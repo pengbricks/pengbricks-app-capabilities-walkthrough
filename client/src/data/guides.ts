@@ -1,10 +1,10 @@
 export const categories = [
-  'CI/CD & Version Control Demo',
+  'CI/CD & Version Control Guides',
   'Governance/Monitoring',
-  'AI Demos',
-  'ML Demos',
+  'AI Guides',
+  'ML Guides',
   'Ingestion',
-  'General Demos',
+  'General Guides',
 ] as const;
 
 export type GuideCategory = (typeof categories)[number];
@@ -63,7 +63,7 @@ export const guides: readonly Guide[] = [
   {
     slug: 'ide-developer-experience',
     title: 'IDE and developer experience',
-    category: 'CI/CD & Version Control Demo',
+    category: 'CI/CD & Version Control Guides',
     summary: 'Capture a representative author, debug, and test workflow.',
     acceptanceCriteria:
       'Complete a representative author-debug-test workflow using supported SQL, Python, notebook, or pipeline tooling.',
@@ -76,7 +76,7 @@ export const guides: readonly Guide[] = [
   {
     slug: 'github-cicd',
     title: 'GitHub integration and CI/CD',
-    category: 'CI/CD & Version Control Demo',
+    category: 'CI/CD & Version Control Guides',
     summary: 'Promote one traceable release across development and test.',
     acceptanceCriteria:
       'Version artifacts in GitHub and deploy the same release through development and test using automation and approval.',
@@ -89,7 +89,7 @@ export const guides: readonly Guide[] = [
   {
     slug: 'versioning',
     title: 'Versioning',
-    category: 'CI/CD & Version Control Demo',
+    category: 'CI/CD & Version Control Guides',
     summary: 'Show compatible evolution and governed breaking-change handling.',
     acceptanceCriteria:
       'Demonstrate nonbreaking and breaking changes, traceability, consumer notification, compatibility, and deprecation handling.',
@@ -102,7 +102,7 @@ export const guides: readonly Guide[] = [
   {
     slug: 'model-deployment-cicd',
     title: 'Model deployment and CI/CD',
-    category: 'ML Demos',
+    category: 'ML Guides',
     summary: 'Release an approved model through an auditable automated path.',
     acceptanceCriteria:
       'Deploy an approved model version through CI/CD with automated tests, approval, environment-specific configuration, and auditable release history.',
@@ -115,7 +115,7 @@ export const guides: readonly Guide[] = [
   {
     slug: 'dataops',
     title: 'DataOps',
-    category: 'CI/CD & Version Control Demo',
+    category: 'CI/CD & Version Control Guides',
     summary: 'Exercise day-two controls across isolated environments.',
     acceptanceCriteria:
       'Demonstrate environment separation, run history, alerting, retry/restart, audit trail, and rollback or redeployment.',
@@ -154,7 +154,7 @@ export const guides: readonly Guide[] = [
   {
     slug: 'user-experience',
     title: 'User experience',
-    category: 'AI Demos',
+    category: 'AI Guides',
     summary: 'Observe representative users completing core discovery tasks.',
     acceptanceCriteria:
       'Representative users complete discovery, question, refinement, and feedback tasks; issues and training needs are recorded.',
@@ -167,7 +167,7 @@ export const guides: readonly Guide[] = [
   {
     slug: 'ontology',
     title: 'Ontology',
-    category: 'AI Demos',
+    category: 'AI Guides',
     summary: 'Improve discovery through governed concepts and synonyms.',
     acceptanceCriteria:
       'Represent priority concepts and synonyms and show improved discovery or question interpretation.',
@@ -180,7 +180,7 @@ export const guides: readonly Guide[] = [
   {
     slug: 'agent-framework-support',
     title: 'Agent framework support',
-    category: 'AI Demos',
+    category: 'AI Guides',
     summary: 'Evaluate governed MCP, A2A, and model-gateway operations end to end.',
     acceptanceCriteria:
       'Demonstrate one governed MCP tool call and one cross-agent handoff; route the same prompt to at least two approved frontier models through a gateway; enforce identity, least privilege, rate/token limits, content-safety policy, audit/trace capture, cost attribution, and model fallback. Document GA versus preview status, supported regions, protocol versions, latency, and portability.',
@@ -193,7 +193,7 @@ export const guides: readonly Guide[] = [
   {
     slug: 'agent-build-deployment',
     title: 'Ease of agent build and deployment',
-    category: 'AI Demos',
+    category: 'AI Guides',
     summary: 'Document the full assistant build-to-operations lifecycle.',
     acceptanceCriteria:
       'Build, deploy, version, secure, and monitor the assistant; document custom code, dependencies, and operational ownership.',
@@ -219,7 +219,7 @@ export const guides: readonly Guide[] = [
   {
     slug: 'model-training-compatibility',
     title: 'Model training and compatibility',
-    category: 'ML Demos',
+    category: 'ML Guides',
     summary: 'Reproduce baseline model behavior in the target runtime.',
     acceptanceCriteria:
       'Train or load the selected model successfully, reproduce agreed baseline behavior, and document code, library, runtime, and portability changes.',
@@ -232,7 +232,7 @@ export const guides: readonly Guide[] = [
   {
     slug: 'experiment-tracking',
     title: 'Experiment tracking and reproducibility',
-    category: 'ML Demos',
+    category: 'ML Guides',
     summary: 'Replay a recorded experiment from tracked inputs.',
     acceptanceCriteria:
       'Rerun a recorded experiment using tracked data/code/environment references and reproduce results within an agreed tolerance.',
@@ -245,7 +245,7 @@ export const guides: readonly Guide[] = [
   {
     slug: 'real-time-scoring',
     title: 'Real-time or on-demand scoring',
-    category: 'ML Demos',
+    category: 'ML Guides',
     summary: 'Measure a secured online inference path under normal and failure conditions.',
     acceptanceCriteria:
       'Demonstrate a secured scoring request, response, latency measurement, scaling approach, and failure behavior using the selected model.',
@@ -258,7 +258,7 @@ export const guides: readonly Guide[] = [
   {
     slug: 'model-performance-drift',
     title: 'Model performance and drift monitoring',
-    category: 'ML Demos',
+    category: 'ML Guides',
     summary: 'Detect a simulated breach and route action to the owner.',
     acceptanceCriteria:
       'Display operational and model metrics, simulate one drift or threshold breach, alert the owner, and document the retraining or review workflow.',
@@ -279,7 +279,7 @@ export const guides: readonly Guide[] = [
   {
     slug: 'iceberg-support',
     title: 'Iceberg support',
-    category: 'General Demos',
+    category: 'General Guides',
     summary: 'Validate governed Iceberg interoperability and table evolution.',
     acceptanceCriteria:
       'Read and write a representative table and demonstrate catalog integration, evolution, time travel, and external access where supported.',
@@ -292,7 +292,7 @@ export const guides: readonly Guide[] = [
   {
     slug: 'external-integrations',
     title: 'External tool integrations',
-    category: 'General Demos',
+    category: 'General Guides',
     summary: 'Connect two priority tools through supported integration patterns.',
     acceptanceCriteria: 'Demonstrate at least two priority integrations using supported patterns.',
     evidence: [
@@ -304,7 +304,7 @@ export const guides: readonly Guide[] = [
   {
     slug: 'legacy-conversion',
     title: 'Legacy conversion',
-    category: 'General Demos',
+    category: 'General Guides',
     summary: 'Assess conversion coverage and the remaining human effort.',
     acceptanceCriteria:
       'Assess one representative workload and record automated coverage, remediation, testing, and role-based effort.',

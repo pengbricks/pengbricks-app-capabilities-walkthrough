@@ -7,12 +7,12 @@ import { categories, guides } from '../data/guides.ts';
 const allCategories = 'All guides';
 
 const categoryBlurbs = {
-  'CI/CD & Version Control Demo': 'Author, test, version, and promote the same release with automation and approval.',
+  'CI/CD & Version Control Guides': 'Author, test, version, and promote the same release with automation and approval.',
   'Governance/Monitoring': 'Make runs, lineage, quality, cost, access, and operational ownership observable.',
-  'AI Demos': 'Build governed user and agent experiences with transparent tools, identity, and model routing.',
-  'ML Demos': 'Prepare features, train, track, release, serve, and monitor models reproducibly.',
+  'AI Guides': 'Build governed user and agent experiences with transparent tools, identity, and model routing.',
+  'ML Guides': 'Prepare features, train, track, release, serve, and monitor models reproducibly.',
   Ingestion: 'Onboard sources through reusable batch, streaming, quality, and medallion patterns.',
-  'General Demos': 'Demonstrate open formats, integrations, migration, and cross-platform patterns.',
+  'General Guides': 'Demonstrate open formats, integrations, migration, and cross-platform patterns.',
 } satisfies Record<(typeof categories)[number], string>;
 
 export function HomePage() {
@@ -105,11 +105,7 @@ export function HomePage() {
                 </div>
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {areaGuides.map((guide) => (
-                    <GuideCard
-                      key={guide.slug}
-                      guide={guide}
-                      number={guides.findIndex((item) => item.slug === guide.slug) + 1}
-                    />
+                    <GuideCard key={guide.slug} guide={guide} />
                   ))}
                 </div>
               </section>
