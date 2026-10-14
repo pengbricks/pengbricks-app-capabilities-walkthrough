@@ -222,6 +222,37 @@
       }
     }
   ],
+  "model-deployment-cicd": [
+    {
+      "path": "reference/model-deployment/src/common.py",
+      "symbol": "evaluate_gates",
+      "startLine": 65,
+      "endLine": 86,
+      "language": "py",
+      "code": "def evaluate_gates(\n    candidate_auc: float,\n    min_auc: float,\n    champion_auc: float | None,\n    max_regression: float,\n) -> list[tuple[str, bool, str]]:\n    \"\"\"Quality threshold and champion comparison. Returns (name, passed, detail) rows.\"\"\"\n    gates = [\n        (\"quality_threshold\", candidate_auc >= min_auc, f\"auc={candidate_auc:.4f} min={min_auc:.4f}\")\n    ]\n    if champion_auc is None:\n        gates.append((\"champion_comparison\", True, \"no current champion\"))\n    else:\n        floor = champion_auc - max_regression\n        gates.append(\n            (\n                \"champion_comparison\",\n                candidate_auc >= floor,\n                f\"candidate={candidate_auc:.4f} champion={champion_auc:.4f} allowed_regression={max_regression:.4f}\",\n            )\n        )\n    return gates",
+      "functions": {
+        "evaluate_gates": "Quality threshold and champion comparison. Returns (name, passed, detail) rows."
+      }
+    },
+    {
+      "path": "reference/model-deployment/src/approval_gate.py",
+      "symbol": "main",
+      "startLine": 42,
+      "endLine": 67,
+      "language": "py",
+      "code": "def main() -> None:\n    spec = common.load_spec(args.spec)\n    model_name = common.full_model_name(args.catalog, args.schema, spec)\n    mlflow.set_registry_uri(\"databricks-uc\")\n    client = MlflowClient(registry_uri=\"databricks-uc\")\n\n    challenger = client.get_model_version_by_alias(model_name, args.challenger_alias)\n    if str(challenger.version) != str(args.model_version):\n        raise SystemExit(f\"@{args.challenger_alias} is version {challenger.version}, expected {args.model_version}\")\n\n    approver = args.approved_by.strip() or table_approver(\n        f\"{args.catalog}.{args.schema}.model_approvals\", model_name, args.model_version\n    )\n    if not approver:\n        print(\n            f\"No approval for version {args.model_version}. Stopping at the gate: \"\n            f\"@{args.challenger_alias} stays, @{args.champion_alias} is unchanged. \"\n            \"Re-run with --params approved_by=<name> or add an 'approved' row to model_approvals.\"\n        )\n        dbutils.jobs.taskValues.set(key=\"promoted\", value=\"false\")\n        return\n\n    client.set_registered_model_alias(model_name, args.champion_alias, args.model_version)\n    client.set_model_version_tag(model_name, args.model_version, \"approved_by\", approver)\n    dbutils.jobs.taskValues.set(key=\"promoted\", value=\"true\")\n    print(f\"{approver} approved version {args.model_version}: @{args.champion_alias} now points to it\")",
+      "functions": {}
+    },
+    {
+      "path": "reference/model-deployment/src/deploy_endpoint.py",
+      "symbol": "wait_ready",
+      "startLine": 46,
+      "endLine": 57,
+      "language": "py",
+      "code": "def wait_ready(w: WorkspaceClient, name: str) -> dict:\n    deadline = time.time() + READY_TIMEOUT_S\n    while time.time() < deadline:\n        state = endpoint_state(w, name)[\"state\"]\n        ready, update = state.get(\"ready\"), state.get(\"config_update\")\n        print(f\"endpoint {name}: ready={ready} config_update={update}\")\n        if update == \"UPDATE_FAILED\":\n            raise SystemExit(f\"Endpoint update failed: {state}\")\n        if ready == \"READY\" and update == \"NOT_UPDATING\":\n            return endpoint_state(w, name)\n        time.sleep(30)\n    raise SystemExit(f\"Endpoint {name} not READY after {READY_TIMEOUT_S}s\")",
+      "functions": {}
+    }
+  ],
   "monitoring": [
     {
       "path": "reference/monitoring/src/sql/ops_job_runs.sql",

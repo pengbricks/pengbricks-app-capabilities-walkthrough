@@ -1,0 +1,68 @@
+bundle:
+  name: capability-guides-model-deployment
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Unity Catalog catalog that holds the guide schema and the registered model
+  warehouse_id:
+    description: SQL warehouse (reserved for SQL tasks and ad hoc queries)
+  app_service_principal:
+    description: Application ID of the Databricks App service principal that triggers quick runs
+  notification_email:
+    description: Address that receives failure alerts
+  schema:
+    description: Schema for the model, training data, and release history
+    default: capability_guides_model_deployment
+  use_case:
+    description: Use-case spec under use_cases/ that drives data, label, model name, and features
+    default: general
+  release:
+    description: Release identifier (CI sets the Git commit SHA) recorded on the model version and in release history
+    default: local
+  min_auc:
+    description: Minimum holdout AUC a candidate must reach to become @challenger (set per target)
+  max_auc_regression:
+    description: How far below the current @champion AUC a candidate may fall (set per target)
+  champion_alias:
+    description: Alias that marks the approved production version
+    default: champion
+  challenger_alias:
+    description: Alias that marks a version that passed the automated tests
+    default: challenger
+  serving_workload_size:
+    description: Model Serving workload size (set per target)
+  serving_scale_to_zero:
+    description: Scale the endpoint to zero when idle
+    default: true
+
+permissions:
+  - level: CAN_MANAGE
+    user_name: ${workspace.current_user.userName}
+  - level: CAN_RUN
+    service_principal_name: ${var.app_service_principal}
+
+targets:
+  dev:
+    default: true
+    mode: development
+    presets:
+      tags:
+        release: ${var.release}
+    variables:
+      min_auc: 0.75
+      max_auc_regression: 0.02
+      serving_workload_size: Small
+
+  test:
+    presets:
+      name_prefix: "[test] "
+      tags:
+        environment: test
+        release: ${var.release}
+    variables:
+      min_auc: 0.85
+      max_auc_regression: 0.0
+      serving_workload_size: Small

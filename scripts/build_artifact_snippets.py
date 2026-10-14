@@ -102,6 +102,36 @@ def build_samples() -> str:
     return json.dumps(samples, indent=2) + "\n"
 
 
+def guide_paths(guide: dict) -> list[str]:
+    items = guide["code"] + guide.get("highlights", []) + guide.get("walkthroughs", [])
+    return [guide["onePager"], guide["bundle"], *(item["path"] for item in items)]
+
+
+def last_updated(paths: list[str]) -> str:
+    """Date of the last commit touching any path, or today when one has uncommitted changes."""
+    import datetime
+    import subprocess
+
+    existing = [path for path in paths if (ROOT / path).exists()]
+    dirty = subprocess.run(
+        ["git", "status", "--porcelain", "--", *existing], cwd=ROOT, capture_output=True, text=True
+    ).stdout.strip()
+    if dirty:
+        return datetime.date.today().isoformat()
+    committed = subprocess.run(
+        ["git", "log", "-1", "--format=%cs", "--", *existing], cwd=ROOT, capture_output=True, text=True
+    ).stdout.strip()
+    return committed or datetime.date.today().isoformat()
+
+
+def write_guide_updates() -> None:
+    """client/src/data/guideUpdates.json: last updated date per guide, from Git history."""
+    index = json.loads(INDEX.read_text(encoding="utf-8"))
+    updates = {slug: last_updated(guide_paths(guide)) for slug, guide in sorted(index["guides"].items())}
+    updates["*"] = last_updated(["client/src/data/guides.ts"])
+    (ROOT / "client" / "src" / "data" / "guideUpdates.json").write_text(json.dumps(updates, indent=2) + "\n", encoding="utf-8")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -118,6 +148,7 @@ def main() -> int:
             return 1
         print("Artifact snippets are current.")
         return 0
+    write_guide_updates()
     OUTPUT.write_text(rendered, encoding="utf-8")
     SAMPLES_OUTPUT.write_text(samples, encoding="utf-8")
     print(f"Wrote {OUTPUT.relative_to(ROOT)} and {SAMPLES_OUTPUT.relative_to(ROOT)}")

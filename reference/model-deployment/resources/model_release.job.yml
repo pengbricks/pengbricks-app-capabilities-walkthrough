@@ -1,0 +1,119 @@
+# Train, test, approve, deploy, and record one model release.
+resources:
+  jobs:
+    capability_guides_model_release:
+      name: capability-guides-model-release
+      description: Trains and registers a model, runs automated tests, promotes @challenger to @champion on approval, deploys to Model Serving, and appends to release history.
+      tags:
+        capability_guide_job: capability_guides_model_release
+        capability_guide_use_case: ${var.use_case}
+      max_concurrent_runs: 1
+      timeout_seconds: 5400
+      email_notifications:
+        on_failure:
+          - ${var.notification_email}
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${resources.schemas.capability_guides_model_deployment.name}
+        - name: release
+          default: ${var.release}
+        # Approval input. Empty means the run stops at the gate and leaves the model unpromoted.
+        - name: approved_by
+          default: ""
+      environments:
+        - environment_key: ml
+          spec:
+            environment_version: "4"
+            dependencies:
+              - mlflow>=3.1
+              - scikit-learn>=1.4
+              - dbldatagen==0.4.0.post1
+              - pyyaml>=6
+              - databricks-sdk>=0.60
+      tasks:
+        - task_key: train_and_register
+          environment_key: ml
+          spark_python_task:
+            python_file: ../src/train_and_register.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --release={{job.parameters.release}}
+              - --src-dir=${workspace.file_path}/src
+              - --spec=${workspace.file_path}/use_cases/${var.use_case}.yml
+              - --experiment=${resources.experiments.model_release_experiment.name}
+              - --job-run-id={{job.run_id}}
+
+        - task_key: run_tests
+          depends_on:
+            - task_key: train_and_register
+          environment_key: ml
+          spark_python_task:
+            python_file: ../src/run_tests.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --src-dir=${workspace.file_path}/src
+              - --spec=${workspace.file_path}/use_cases/${var.use_case}.yml
+              - --model-version={{tasks.train_and_register.values.model_version}}
+              - --min-auc=${var.min_auc}
+              - --max-auc-regression=${var.max_auc_regression}
+              - --champion-alias=${var.champion_alias}
+              - --challenger-alias=${var.challenger_alias}
+
+        - task_key: approval_gate
+          depends_on:
+            - task_key: run_tests
+          environment_key: ml
+          spark_python_task:
+            python_file: ../src/approval_gate.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --src-dir=${workspace.file_path}/src
+              - --spec=${workspace.file_path}/use_cases/${var.use_case}.yml
+              - --model-version={{tasks.train_and_register.values.model_version}}
+              - --approved-by={{job.parameters.approved_by}}
+              - --champion-alias=${var.champion_alias}
+              - --challenger-alias=${var.challenger_alias}
+
+        - task_key: deploy_endpoint
+          depends_on:
+            - task_key: approval_gate
+          environment_key: ml
+          spark_python_task:
+            python_file: ../src/deploy_endpoint.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --src-dir=${workspace.file_path}/src
+              - --spec=${workspace.file_path}/use_cases/${var.use_case}.yml
+              - --promoted={{tasks.approval_gate.values.promoted}}
+              - --champion-alias=${var.champion_alias}
+              - --endpoint-name=capability-guides-model-${bundle.target}
+              - --workload-size=${var.serving_workload_size}
+              - --scale-to-zero=${var.serving_scale_to_zero}
+              - --release={{job.parameters.release}}
+
+        - task_key: record_release
+          depends_on:
+            - task_key: deploy_endpoint
+          environment_key: ml
+          spark_python_task:
+            python_file: ../src/record_release.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --src-dir=${workspace.file_path}/src
+              - --spec=${workspace.file_path}/use_cases/${var.use_case}.yml
+              - --model-version={{tasks.train_and_register.values.model_version}}
+              - --release={{job.parameters.release}}
+              - --approved-by={{job.parameters.approved_by}}
+              - --target=${bundle.target}
+              - --status={{tasks.deploy_endpoint.values.status}}
+              - --endpoint={{tasks.deploy_endpoint.values.endpoint}}
+              - --served-version={{tasks.deploy_endpoint.values.served_version}}
+              - --latency-ms={{tasks.deploy_endpoint.values.latency_ms}}
+              - --job-run-id={{job.run_id}}

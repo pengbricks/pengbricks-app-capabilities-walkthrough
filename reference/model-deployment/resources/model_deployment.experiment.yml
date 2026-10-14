@@ -1,0 +1,4 @@
+resources:
+  experiments:
+    model_release_experiment:
+      name: ${workspace.root_path}/model_release_experiment

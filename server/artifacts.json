@@ -962,6 +962,96 @@
           "path": "docs/guides/github-cicd.md"
         }
       ]
+    },
+    "model-deployment-cicd": {
+      "bundle": "reference/model-deployment",
+      "onePager": "reference/model-deployment/guides/model-deployment-cicd.md",
+      "code": [
+        {
+          "label": "Release job",
+          "path": "reference/model-deployment/resources/model_release.job.yml"
+        },
+        {
+          "label": "Approval gate",
+          "path": "reference/model-deployment/src/approval_gate.py"
+        },
+        {
+          "label": "GitHub Actions workflow",
+          "path": ".github/workflows/model-deployment-cicd.yml"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_model_release",
+          "label": "Model release job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "Model release run (train, test, approve, deploy)",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/429746369694842/runs/62967314861526",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T19:10:00Z"
+        }
+      ],
+      "docs": [
+        {
+          "label": "Manage model lifecycle in Unity Catalog",
+          "url": "https://docs.databricks.com/aws/en/machine-learning/manage-model-lifecycle/"
+        },
+        {
+          "label": "Create and manage serving endpoints",
+          "url": "https://docs.databricks.com/aws/en/machine-learning/model-serving/create-manage-serving-endpoints"
+        },
+        {
+          "label": "Declarative Automation Bundles",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/bundles/"
+        },
+        {
+          "label": "GitHub Actions",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/ci-cd/github"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Quality gate and champion comparison",
+          "path": "reference/model-deployment/src/common.py",
+          "symbol": "evaluate_gates",
+          "notes": [
+            "Thresholds come from bundle variables, so dev and test enforce different bars.",
+            "A challenger must beat the current champion by the configured margin before promotion."
+          ]
+        },
+        {
+          "label": "Approval gate",
+          "path": "reference/model-deployment/src/approval_gate.py",
+          "symbol": "main",
+          "notes": [
+            "Promotion needs an approver: the approved_by job parameter (CI passes the GitHub reviewer) or an approvals table row.",
+            "Without one, the run succeeds but stops before promotion, so nothing unapproved is deployed."
+          ]
+        },
+        {
+          "label": "Deploy the champion and wait for READY",
+          "path": "reference/model-deployment/src/deploy_endpoint.py",
+          "symbol": "wait_ready",
+          "notes": [
+            "The job polls until the endpoint is ready and the config update finishes.",
+            "A scoring request then measures latency for the release record."
+          ]
+        }
+      ],
+      "walkthroughs": [
+        {
+          "label": "Environment separation: workspaces, Unity Catalog, metastores",
+          "path": "docs/guides/environment-separation.md",
+          "route": "/walkthroughs/environment-separation"
+        },
+        {
+          "label": "GitHub CI/CD walkthrough",
+          "path": "docs/guides/github-cicd.md"
+        }
+      ]
     }
   }
 }
