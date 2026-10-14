@@ -541,6 +541,56 @@
           "label": "GitHub CI/CD walkthrough",
           "path": "docs/guides/github-cicd.md"
         }
+      ],
+      "tools": [
+        {
+          "label": "Databricks extension for VS Code and Cursor",
+          "url": "https://marketplace.visualstudio.com/items?itemName=databricks.databricks",
+          "description": "Connect to a workspace, run and debug files on serverless or clusters, use Databricks Connect, and validate, deploy, and run bundles from the sidebar.",
+          "docsUrl": "https://docs.databricks.com/aws/en/dev-tools/vscode-ext/install"
+        },
+        {
+          "label": "Databricks Driver for SQLTools",
+          "url": "https://marketplace.visualstudio.com/items?itemName=databricks.sqltools-databricks-driver",
+          "description": "Browse Unity Catalog and run SQL against a SQL warehouse from the editor. Requires SQLTools.",
+          "docsUrl": "https://docs.databricks.com/aws/en/dev-tools/sqltools-driver"
+        },
+        {
+          "label": "SQLTools",
+          "url": "https://marketplace.visualstudio.com/items?itemName=mtxr.sqltools",
+          "description": "SQL editor and connection manager that the Databricks driver plugs into.",
+          "docsUrl": "https://docs.databricks.com/aws/en/dev-tools/sqltools-driver"
+        },
+        {
+          "label": "Python",
+          "url": "https://marketplace.visualstudio.com/items?itemName=ms-python.python",
+          "description": "Local debugger, test explorer for pytest, and interpreter selection for Databricks Connect.",
+          "docsUrl": "https://docs.databricks.com/aws/en/dev-tools/vscode-ext/dev-tasks/databricks-connect"
+        },
+        {
+          "label": "Jupyter",
+          "url": "https://marketplace.visualstudio.com/items?itemName=ms-toolsai.jupyter",
+          "description": "Run notebook cells locally against Databricks through Databricks Connect.",
+          "docsUrl": "https://docs.databricks.com/aws/en/dev-tools/vscode-ext/dev-tasks/notebooks"
+        },
+        {
+          "label": "YAML (Red Hat)",
+          "url": "https://marketplace.visualstudio.com/items?itemName=redhat.vscode-yaml",
+          "description": "Completion and validation for databricks.yml and resource files using the bundle JSON schema.",
+          "docsUrl": "https://docs.databricks.com/aws/en/dev-tools/vscode-ext/bundles"
+        },
+        {
+          "label": "Databricks Connect in PyCharm",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/databricks-connect/python/pycharm",
+          "description": "The same local run and debug loop for JetBrains users.",
+          "docsUrl": "https://docs.databricks.com/aws/en/dev-tools/databricks-connect/python/"
+        },
+        {
+          "label": "Databricks CLI",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/cli/",
+          "description": "bundle validate, deploy, and run from the IDE terminal or CI.",
+          "docsUrl": "https://docs.databricks.com/aws/en/dev-tools/cli/"
+        }
       ]
     },
     "github-cicd": {
@@ -557,7 +607,14 @@
         }
       ],
       "jobs": [],
-      "recordedRuns": [],
+      "recordedRuns": [
+        {
+          "label": "Git folder for this repository",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/browse/folders/2804120955720865",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T18:55:00Z"
+        }
+      ],
       "docs": [
         {
           "label": "CI/CD on Databricks",
@@ -606,6 +663,44 @@
         {
           "label": "Environment separation: workspaces, Unity Catalog, metastores",
           "path": "docs/guides/environment-separation.md"
+        }
+      ],
+      "tools": [
+        {
+          "label": "Git folders",
+          "url": "https://docs.databricks.com/aws/en/repos/",
+          "description": "Clone the GitHub repository into the workspace, branch, commit, and open pull requests from the Databricks UI.",
+          "docsUrl": "https://docs.databricks.com/aws/en/repos/git-operations-with-repos"
+        },
+        {
+          "label": "CI/CD with Git folders",
+          "url": "https://docs.databricks.com/aws/en/repos/ci-cd-techniques-with-repos",
+          "description": "Patterns for keeping a production Git folder on a release branch and updating it from automation.",
+          "docsUrl": "https://docs.databricks.com/aws/en/repos/ci-cd-techniques-with-repos"
+        },
+        {
+          "label": "Declarative Automation Bundles",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/bundles/",
+          "description": "Deployment as code: jobs, pipelines, schemas, volumes, dashboards, and permissions defined in YAML next to the code.",
+          "docsUrl": "https://docs.databricks.com/aws/en/dev-tools/bundles/"
+        },
+        {
+          "label": "Bundles in the workspace",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/bundles/workspace-bundles",
+          "description": "Validate and deploy a bundle directly from a Git folder in the workspace UI.",
+          "docsUrl": "https://docs.databricks.com/aws/en/dev-tools/bundles/workspace-bundles"
+        },
+        {
+          "label": "Bundles in VS Code",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/vscode-ext/bundles",
+          "description": "Deploy and run bundle targets from the editor before opening a pull request.",
+          "docsUrl": "https://docs.databricks.com/aws/en/dev-tools/vscode-ext/bundles"
+        },
+        {
+          "label": "Databricks CLI GitHub Action",
+          "url": "https://github.com/databricks/setup-cli",
+          "description": "databricks/setup-cli installs the CLI in GitHub Actions runners, as used by the reference workflow.",
+          "docsUrl": "https://docs.databricks.com/aws/en/dev-tools/ci-cd/github"
         }
       ]
     },

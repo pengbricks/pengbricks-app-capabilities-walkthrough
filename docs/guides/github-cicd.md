@@ -35,6 +35,34 @@ sequenceDiagram
 
 For the workspace, catalog, and metastore layout behind the dev, test, stage, and prod targets, see [environment-separation.md](environment-separation.md).
 
+## Git folders and deployment as code
+
+Two Databricks features connect GitHub to the workspace. They do different jobs:
+
+| | Git folders | Declarative Automation Bundles |
+|---|---|---|
+| What it is | A clone of the GitHub repository inside the workspace | Deployment as code: jobs, pipelines, schemas, volumes, dashboards, and permissions in YAML next to the code |
+| Used for | Authoring and review: branch, edit, commit, push, and open a pull request from the Databricks UI | Releasing: the same definition deploys to dev, test, stage, and prod targets |
+| Who changes prod | Nobody edits prod Git folders by hand. Automation can move a production folder to a release branch | CI/CD with a service principal (`bundle deploy --target prod`) |
+| Links | [Git folders](https://docs.databricks.com/aws/en/repos/) · [Git operations](https://docs.databricks.com/aws/en/repos/git-operations-with-repos) · [CI/CD with Git folders](https://docs.databricks.com/aws/en/repos/ci-cd-techniques-with-repos) | [Bundles](https://docs.databricks.com/aws/en/dev-tools/bundles/) · [Bundles in the workspace](https://docs.databricks.com/aws/en/dev-tools/bundles/workspace-bundles) · [Bundles in VS Code](https://docs.databricks.com/aws/en/dev-tools/vscode-ext/bundles) |
+
+The developer loop that ties them together:
+
+```mermaid
+flowchart LR
+  gh[(GitHub repository)] <-->|clone, pull, push| gf[Git folder in the workspace]
+  gh <-->|clone, pull, push| ide[VS Code or Cursor]
+  gf -->|bundle validate and deploy| dev[dev target]
+  ide -->|bundle deploy -t dev| dev
+  gh -->|merge to main| ci[GitHub Actions]
+  ci -->|bundle deploy -t dev, test| envs[shared environments]
+```
+
+1. Create a Git folder from this repository (**Workspace → Create → Git folder**, URL of the GitHub repo) and create a feature branch.
+2. Open `reference/ingestion/databricks.yml` in the Git folder and deploy the `dev` target from the workspace bundle UI, or run `databricks bundle deploy -t dev` from the IDE.
+3. Commit and push from the Git folder, then open the pull request in GitHub. The workflow runs tests on the pull request.
+4. After the merge, the workflow deploys the same commit to dev and then to test after approval. No one deploys shared environments from a laptop or a Git folder.
+
 ## Reference code
 
 - `.github/workflows/reference-cicd.yml`: the pipeline
@@ -49,12 +77,13 @@ For the workspace, catalog, and metastore layout behind the dev, test, stage, an
 
 ## Demo steps
 
-1. Open a pull request that changes `use_cases/general.yml`, for example a new bad-row rule. The `test` job runs pytest and `render_use_case.py --check`, and fails until the feeds are re-rendered.
-2. Re-render the feeds, push, and merge. Open the workflow run.
-3. Show `deploy-dev`: validate, deploy, and the smoke run's job URL.
-4. Show the pending approval on `deploy-test`, approve it, and watch the same commit deploy to `test`.
-5. In Databricks, open the `[test]` job and show the `release` tag matching the commit SHA.
-6. Roll back by re-running the workflow for an earlier commit (`workflow_dispatch` on that SHA), or run the rollback job for a single table.
+1. Show the Git folder for this repository in the workspace and the feature branch in its Git dialog.
+2. Open a pull request that changes `use_cases/general.yml`, for example a new bad-row rule. The `test` job runs pytest and `render_use_case.py --check`, and fails until the feeds are re-rendered.
+3. Re-render the feeds, push, and merge. Open the workflow run.
+4. Show `deploy-dev`: validate, deploy, and the smoke run's job URL.
+5. Show the pending approval on `deploy-test`, approve it, and watch the same commit deploy to `test`.
+6. In Databricks, open the `[test]` job and show the `release` tag matching the commit SHA.
+7. Roll back by re-running the workflow for an earlier commit (`workflow_dispatch` on that SHA), or run the rollback job for a single table.
 
 ## Artifacts produced
 

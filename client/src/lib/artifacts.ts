@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 
 export type ArtifactLink = { label: string; url: string };
 
+export type ToolLink = { label: string; url: string; description: string; docsUrl: string };
+
 export type CodeHighlight = {
   label: string;
   notes: string[];
@@ -48,6 +50,7 @@ export type GuideArtifacts = {
   bundleUrl: string;
   code: ArtifactLink[];
   docs: ArtifactLink[];
+  tools: ToolLink[];
   walkthroughs: ArtifactLink[];
   autoLoaderDrop: boolean;
   highlights: CodeHighlight[];

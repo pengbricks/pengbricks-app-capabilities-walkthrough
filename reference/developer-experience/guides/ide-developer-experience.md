@@ -48,6 +48,21 @@ All files are in `reference/developer-experience/`.
 
 To reuse the workflow for another dataset, add a file in `use_cases/` and set the `use_case`, `output_table`, `key_column`, and `value_column` variables. The transforms and tests do not change.
 
+## IDE extensions
+
+Install these in VS Code or Cursor before the demo:
+
+| Extension | What it adds | Links |
+|---|---|---|
+| Databricks | Workspace connection, run and debug on serverless or clusters, Databricks Connect, bundle validate/deploy/run in the sidebar | [Marketplace](https://marketplace.visualstudio.com/items?itemName=databricks.databricks) · [Docs](https://docs.databricks.com/aws/en/dev-tools/vscode-ext/install) |
+| Databricks Driver for SQLTools | Browse Unity Catalog and run SQL on a warehouse from the editor | [Marketplace](https://marketplace.visualstudio.com/items?itemName=databricks.sqltools-databricks-driver) · [Docs](https://docs.databricks.com/aws/en/dev-tools/sqltools-driver) |
+| SQLTools | The SQL editor the Databricks driver plugs into | [Marketplace](https://marketplace.visualstudio.com/items?itemName=mtxr.sqltools) |
+| Python | Debugger, pytest test explorer, interpreter for Databricks Connect | [Marketplace](https://marketplace.visualstudio.com/items?itemName=ms-python.python) · [Databricks Connect](https://docs.databricks.com/aws/en/dev-tools/vscode-ext/dev-tasks/databricks-connect) |
+| Jupyter | Run notebook cells locally against Databricks | [Marketplace](https://marketplace.visualstudio.com/items?itemName=ms-toolsai.jupyter) · [Docs](https://docs.databricks.com/aws/en/dev-tools/vscode-ext/dev-tasks/notebooks) |
+| YAML (Red Hat) | Completion and validation for `databricks.yml` from the bundle schema | [Marketplace](https://marketplace.visualstudio.com/items?itemName=redhat.vscode-yaml) · [Bundles in VS Code](https://docs.databricks.com/aws/en/dev-tools/vscode-ext/bundles) |
+
+JetBrains users get the same loop with [Databricks Connect in PyCharm](https://docs.databricks.com/aws/en/dev-tools/databricks-connect/python/pycharm). Everything the extensions do is also available from the [Databricks CLI](https://docs.databricks.com/aws/en/dev-tools/cli/) in the IDE terminal.
+
 ## Demo steps
 
 1. Open `reference/developer-experience/` in VS Code or Cursor with the Databricks extension. Select the workspace and the `dev` target.

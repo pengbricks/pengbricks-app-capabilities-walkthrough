@@ -54,7 +54,7 @@ def test_live_runs_are_found_by_tag(monkeypatch) -> None:
     job = SimpleNamespace(job_id=42, settings=SimpleNamespace(name="ingest", tags={"capability_guide_job": "capability_guides_ingestion_framework"}))
     run = SimpleNamespace(
         run_id=7,
-        run_page_url=None,
+        run_page_url="https://workspace.example.com/?o=1#job/42/run/7",
         state=SimpleNamespace(life_cycle_state=SimpleNamespace(value="TERMINATED"), result_state=SimpleNamespace(value="SUCCESS")),
         trigger=SimpleNamespace(value="ONE_TIME"),
         start_time=1_760_000_000_000,

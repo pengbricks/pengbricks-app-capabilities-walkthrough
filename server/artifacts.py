@@ -106,7 +106,8 @@ def run_summary(host: str, job_id: int, run) -> dict[str, Any]:
     state = run.state
     return {
         "runId": run.run_id,
-        "url": run.run_page_url or f"{host}/jobs/{job_id}/runs/{run.run_id}",
+        # Canonical run URL; run_page_url uses the legacy ?o=...#job/... form.
+        "url": f"{host}/jobs/{job_id}/runs/{run.run_id}",
         "lifeCycleState": state.life_cycle_state.value if state and state.life_cycle_state else None,
         "resultState": state.result_state.value if state and state.result_state else None,
         "trigger": run.trigger.value if run.trigger else None,
@@ -138,6 +139,7 @@ def get_artifacts(slug: str) -> dict[str, Any]:
         "bundleUrl": repo_url(entry["bundle"]).replace("/blob/", "/tree/"),
         "code": [{"label": item["label"], "url": repo_url(item["path"])} for item in entry["code"]],
         "docs": entry.get("docs", []),
+        "tools": entry.get("tools", []),
         "autoLoaderDrop": bool(entry.get("autoLoaderDrop")),
         "walkthroughs": [{"label": item["label"], "url": repo_url(item["path"])} for item in entry.get("walkthroughs", [])],
         "highlights": highlights(slug, entry),
@@ -316,29 +318,37 @@ def drop_document(slug: str, request: DropRequest) -> dict[str, Any]:
 
 
 def flow_metrics(w, pipeline_id: str, update_id: str) -> list[dict[str, Any]]:
-    """Rows written and expectation results per flow, from the pipeline event log."""
-    flows: dict[str, dict[str, Any]] = {}
-    events = w.pipelines.list_pipeline_events(
-        pipeline_id=pipeline_id, filter=f"update_id = '{update_id}' AND event_type = 'flow_progress'", max_results=100
+    """Rows written and expectation results per dataset for one update, from the pipeline event log.
+
+    Uses the REST API directly: the SDK event model omits `details`, and streaming flows report
+    their metrics on RUNNING progress events rather than the final COMPLETED one.
+    """
+    page = w.api_client.do(
+        "GET",
+        f"/api/2.0/pipelines/{pipeline_id}/events",
+        query={"filter": f"update_id = '{update_id}'", "max_results": 250},
     )
-    for event in events:
-        details = (event.as_dict() if hasattr(event, "as_dict") else {}).get("details") or {}
-        progress = details.get("flow_progress") or {}
-        metrics = progress.get("metrics") or {}
-        if progress.get("status") != "COMPLETED" or event.origin is None:
+    flows: dict[str, dict[str, Any]] = {}
+    for event in page.get("events", []):
+        if event.get("event_type") != "flow_progress":
             continue
-        name = (event.origin.flow_name or "").split(".")[-1]
+        progress = (event.get("details") or {}).get("flow_progress") or {}
+        metrics = progress.get("metrics") or {}
         quality = progress.get("data_quality") or {}
-        flows.setdefault(name, {
-            "flow": name,
-            "rowsWritten": metrics.get("num_output_rows"),
-            "droppedRecords": quality.get("dropped_records"),
-            "expectations": [
-                {"name": item.get("name"), "passed": item.get("passed_records"), "failed": item.get("failed_records")}
-                for item in quality.get("expectations") or []
-            ],
-        })
-    return sorted(flows.values(), key=lambda flow: flow["flow"])
+        if "num_output_rows" not in metrics and not quality:
+            continue
+        name = ((event.get("origin") or {}).get("flow_name") or "").split(".")[-1]
+        flow = flows.setdefault(name, {"flow": name, "rowsWritten": 0, "droppedRecords": 0, "expectations": {}})
+        flow["rowsWritten"] += int(metrics.get("num_output_rows") or 0)
+        flow["droppedRecords"] += int(quality.get("dropped_records") or 0)
+        for item in quality.get("expectations") or []:
+            totals = flow["expectations"].setdefault(item["name"], {"name": item["name"], "passed": 0, "failed": 0})
+            totals["passed"] += int(item.get("passed_records") or 0)
+            totals["failed"] += int(item.get("failed_records") or 0)
+    return [
+        {**flow, "expectations": sorted(flow["expectations"].values(), key=lambda item: item["name"])}
+        for flow in sorted(flows.values(), key=lambda flow: flow["flow"])
+    ]
 
 
 @router.get("/artifacts/{slug}/drop/updates/{update_id}")

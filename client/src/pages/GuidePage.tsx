@@ -94,6 +94,37 @@ export function GuidePage() {
             </section>
           )}
 
+          {artifacts && artifacts.tools.length > 0 && (
+            <section className="mt-10">
+              <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">Tooling</p>
+              <h2 className="mt-3 text-2xl font-semibold tracking-tight">Extensions and tools</h2>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                {artifacts.tools.map((tool) => (
+                  <div key={tool.url} className="flex flex-col rounded-lg border p-4">
+                    <a
+                      href={tool.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-1 text-sm font-medium hover:underline"
+                    >
+                      {tool.label}
+                      <ArrowUpRight className="size-3.5" />
+                    </a>
+                    <p className="mt-1 flex-1 text-xs leading-5 text-muted-foreground">{tool.description}</p>
+                    <a
+                      href={tool.docsUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-2 text-xs underline-offset-2 hover:underline"
+                    >
+                      Documentation
+                    </a>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
           {artifacts && artifacts.docs.length > 0 && (
             <section className="mt-10">
               <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">Documentation</p>
@@ -164,11 +195,13 @@ export function GuidePage() {
 
 function RunsCard({ slug, artifacts, onChange }: { slug: string; artifacts: GuideArtifacts; onChange: () => void }) {
   const hasJobs = artifacts.jobs.length > 0;
+  // Deployments without the reference jobs (other workspaces) still link the recorded reference runs.
+  const anyDeployed = artifacts.jobs.some((job) => job.deployed);
   return (
     <Card className="shadow-none">
       <CardHeader>
         <CardTitle className="flex items-center justify-between text-base">
-          Actual runs
+          {hasJobs ? 'Actual runs' : 'Workspace artifacts'}
           {artifacts.live && (
             <Badge variant="outline" className="gap-1 font-normal">
               <Database className="size-3" />
@@ -178,13 +211,13 @@ function RunsCard({ slug, artifacts, onChange }: { slug: string; artifacts: Guid
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {artifacts.live && hasJobs
+        {artifacts.live && hasJobs && anyDeployed
           ? artifacts.jobs.map((job) => <JobRow key={job.key} slug={slug} job={job} onChange={onChange} />)
           : null}
 
-        {(!artifacts.live || !hasJobs) && artifacts.recordedRuns.length > 0 && (
+        {(!artifacts.live || !anyDeployed) && artifacts.recordedRuns.length > 0 && (
           <div className="space-y-2">
-            <p className="text-xs text-muted-foreground">Recorded reference runs</p>
+            <p className="text-xs text-muted-foreground">Reference workspace</p>
             {artifacts.recordedRuns.map((run) => (
               <ArtifactAnchor
                 key={run.url}
