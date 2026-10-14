@@ -1,0 +1,53 @@
+resources:
+  schemas:
+    guide_schema:
+      catalog_name: ${var.catalog}
+      name: ${var.schema}
+      comment: Legacy conversion capability guide outputs.
+
+  jobs:
+    capability_guides_legacy_conversion_assessment:
+      name: capability-guides-legacy-conversion-assessment
+      tags:
+        capability_guide_job: capability_guides_legacy_conversion_assessment
+        capability_guide_use_case: ${var.use_case}
+      max_concurrent_runs: 1
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${resources.schemas.guide_schema.name}
+        - name: use_case
+          default: ${var.use_case}
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "3"
+            dependencies:
+              - sqlglot>=25.0.0
+              - dbldatagen
+              - pyyaml
+      tasks:
+        - task_key: assess
+          environment_key: default
+          spark_python_task:
+            python_file: ../src/assess.py
+            parameters: ["--catalog", "{{job.parameters.catalog}}", "--schema", "{{job.parameters.schema}}", "--bundle-root", "${workspace.file_path}", "--use-case", "{{job.parameters.use_case}}"]
+        - task_key: convert
+          depends_on: [{task_key: assess}]
+          environment_key: default
+          spark_python_task:
+            python_file: ../src/convert.py
+            parameters: ["--catalog", "{{job.parameters.catalog}}", "--schema", "{{job.parameters.schema}}", "--bundle-root", "${workspace.file_path}", "--use-case", "{{job.parameters.use_case}}"]
+        - task_key: test
+          depends_on: [{task_key: convert}]
+          environment_key: default
+          spark_python_task:
+            python_file: ../src/reconcile.py
+            parameters: ["--catalog", "{{job.parameters.catalog}}", "--schema", "{{job.parameters.schema}}", "--bundle-root", "${workspace.file_path}", "--use-case", "{{job.parameters.use_case}}"]
+        - task_key: record
+          depends_on: [{task_key: test}]
+          environment_key: default
+          spark_python_task:
+            python_file: ../src/record.py
+            parameters: ["--catalog", "{{job.parameters.catalog}}", "--schema", "{{job.parameters.schema}}", "--bundle-root", "${workspace.file_path}", "--use-case", "{{job.parameters.use_case}}"]

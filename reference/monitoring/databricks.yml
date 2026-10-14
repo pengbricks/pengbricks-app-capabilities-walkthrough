@@ -1,0 +1,38 @@
+bundle:
+  name: capability-guides-monitoring
+
+include:
+  - resources/*.yml
+  - use_cases/*.yml
+
+variables:
+  catalog:
+    description: Unity Catalog catalog that holds the ops_* tables.
+  warehouse_id:
+    description: Serverless SQL warehouse ID for SQL tasks, the dashboard and the alert.
+  app_service_principal:
+    description: Application ID of the app service principal that gets CAN_RUN on the job.
+  alert_email:
+    description: Address that receives job failure emails and the SQL alert.
+  schema:
+    description: Schema that holds the ops_* tables.
+    default: capability_guides_monitoring
+  use_case:
+    description: Label written to the capability_guide_use_case job tag. Dashboard filters on it.
+    default: general
+
+targets:
+  dev:
+    default: true
+    mode: development
+  test:
+    presets:
+      name_prefix: "[test] "
+    variables:
+      schema: ${var.schema}_test
+
+permissions:
+  - level: CAN_MANAGE
+    user_name: ${workspace.current_user.userName}
+  - level: CAN_RUN
+    service_principal_name: ${var.app_service_principal}

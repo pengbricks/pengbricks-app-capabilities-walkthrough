@@ -1,0 +1,8 @@
+resources:
+  dashboards:
+    capability_guides_monitoring:
+      display_name: Capability guides monitoring
+      file_path: ../src/monitoring.lvdash.json
+      warehouse_id: ${var.warehouse_id}
+      dataset_catalog: ${var.catalog}
+      dataset_schema: ${resources.schemas.ops.name}

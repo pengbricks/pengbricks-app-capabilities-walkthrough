@@ -1,0 +1,44 @@
+bundle:
+  name: capability-guides-developer-experience
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Unity Catalog catalog for the output table.
+  warehouse_id:
+    description: SQL warehouse ID for the sql_checks task.
+  app_service_principal:
+    description: Application ID of the app service principal that triggers the job.
+  schema:
+    description: Schema for the output table.
+    default: capability_guides_developer_experience
+  use_case:
+    description: Name of the spec in use_cases/ that defines the dataset.
+    default: general
+  output_table:
+    description: Must match output_table in the use-case spec. transform.py fails on a mismatch.
+    default: orders_clean
+  key_column:
+    description: Must match key_column in the spec. Used by the SQL checks.
+    default: order_id
+  value_column:
+    description: Must match value_column in the spec. Used by the SQL checks.
+    default: amount
+
+permissions:
+  - level: CAN_MANAGE
+    user_name: ${workspace.current_user.userName}
+  - level: CAN_RUN
+    service_principal_name: ${var.app_service_principal}
+
+targets:
+  dev:
+    default: true
+    mode: development
+  test:
+    presets:
+      name_prefix: "[test] "
+    variables:
+      schema: capability_guides_developer_experience_test

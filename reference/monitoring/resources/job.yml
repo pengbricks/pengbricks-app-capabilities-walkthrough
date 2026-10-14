@@ -1,0 +1,97 @@
+resources:
+  schemas:
+    ops:
+      name: ${var.schema}
+      catalog_name: ${var.catalog}
+      comment: Monitoring tables for the capability guides (ops_*).
+
+  jobs:
+    capability_guides_monitoring_snapshot:
+      name: capability-guides-monitoring-snapshot
+      description: Materializes ops_* monitoring tables from system tables and the Jobs API.
+      tags:
+        capability_guide_job: capability_guides_monitoring_snapshot
+        capability_guide_use_case: ${var.use_case}
+      email_notifications:
+        on_failure:
+          - ${var.alert_email}
+        on_duration_warning_threshold_exceeded:
+          - ${var.alert_email}
+      health:
+        rules:
+          - metric: RUN_DURATION_SECONDS
+            op: GREATER_THAN
+            value: 1800
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${resources.schemas.ops.name}
+        - name: lookback_days
+          default: "${var.lookback_days}"
+        - name: audit_lookback_days
+          default: "${var.audit_lookback_days}"
+        - name: guide_tag_key
+          default: ${var.guide_tag_key}
+        - name: use_case_tag_key
+          default: ${var.use_case_tag_key}
+        - name: alert_email
+          default: ${var.alert_email}
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "3"
+            dependencies:
+              - "databricks-sdk>=0.70.0"
+      tasks:
+        - task_key: setup_context_and_alert_routing
+          environment_key: default
+          spark_python_task:
+            python_file: ../src/alert_routing.py
+            parameters:
+              - --catalog
+              - "{{job.parameters.catalog}}"
+              - --schema
+              - "{{job.parameters.schema}}"
+              - --guide_tag_key
+              - "{{job.parameters.guide_tag_key}}"
+              - --use_case_tag_key
+              - "{{job.parameters.use_case_tag_key}}"
+              - --alert_email
+              - "{{job.parameters.alert_email}}"
+        - task_key: ops_job_runs
+          depends_on: [{task_key: setup_context_and_alert_routing}]
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file: {path: ../src/sql/ops_job_runs.sql}
+            parameters: &sql_params
+              catalog: "{{job.parameters.catalog}}"
+              schema: "{{job.parameters.schema}}"
+              lookback_days: "{{job.parameters.lookback_days}}"
+              audit_lookback_days: "{{job.parameters.audit_lookback_days}}"
+              guide_tag_key: "{{job.parameters.guide_tag_key}}"
+              use_case_tag_key: "{{job.parameters.use_case_tag_key}}"
+        - task_key: ops_failures
+          depends_on: [{task_key: ops_job_runs}]
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file: {path: ../src/sql/ops_failures.sql}
+            parameters: *sql_params
+        - task_key: ops_usage_cost
+          depends_on: [{task_key: setup_context_and_alert_routing}]
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file: {path: ../src/sql/ops_usage_cost.sql}
+            parameters: *sql_params
+        - task_key: ops_compute_capacity
+          depends_on: [{task_key: setup_context_and_alert_routing}]
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file: {path: ../src/sql/ops_compute_capacity.sql}
+            parameters: *sql_params
+        - task_key: ops_audit_events
+          depends_on: [{task_key: setup_context_and_alert_routing}]
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file: {path: ../src/sql/ops_audit_events.sql}
+            parameters: *sql_params

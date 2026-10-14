@@ -1,0 +1,21 @@
+# Scoping choices for the default use case. Every value can be overridden with
+# --var on the CLI, or copy these defaults per target to run another use case.
+variables:
+  lookback_days:
+    description: Days of job runs, usage and capacity history to materialize.
+    default: 14
+  audit_lookback_days:
+    description: Days of audit events to materialize.
+    default: 7
+  guide_tag_key:
+    description: Job tag key that marks a capability guide job.
+    default: capability_guide_job
+  use_case_tag_key:
+    description: Job tag key that carries the use case label.
+    default: capability_guide_use_case
+  alert_threshold:
+    description: The SQL alert fires when failed guide runs in the window are greater than this.
+    default: 0
+  alert_window_hours:
+    description: Window, in hours, that the SQL alert counts failures over.
+    default: 24

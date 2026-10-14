@@ -1,0 +1,38 @@
+bundle:
+  name: capability-guides-documentation
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Unity Catalog catalog that holds the schema.
+  warehouse_id:
+    description: Serverless SQL warehouse ID (used by the app, not by this job).
+  app_service_principal:
+    description: Application ID of the app service principal that may run the job.
+  schema:
+    description: Schema that holds the sample tables, the log table, and the docs volume.
+    default: capability_guides_documentation
+  use_case:
+    description: Name of the spec file in use_cases/ that defines the sample data.
+    default: general
+  model_endpoint:
+    description: Foundation Model chat endpoint used by ai_query to draft descriptions.
+    default: databricks-claude-opus-4-8
+
+permissions:
+  - level: CAN_MANAGE
+    user_name: ${workspace.current_user.userName}
+  - level: CAN_RUN
+    service_principal_name: ${var.app_service_principal}
+
+targets:
+  dev:
+    default: true
+    mode: development
+  test:
+    presets:
+      name_prefix: "[test] "
+    variables:
+      schema: capability_guides_documentation_test

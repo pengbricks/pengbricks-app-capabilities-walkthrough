@@ -1,0 +1,2070 @@
+{
+  "datasets": [
+    {
+      "name": "ds_runs",
+      "displayName": "Job runs",
+      "queryLines": [
+        "SELECT *, CASE WHEN is_capability_guide_job THEN 'Capability guide jobs' ELSE 'Other workspace jobs' END AS scope, CASE WHEN result_state IN ('ERROR','FAILED','TIMED_OUT') THEN 1 ELSE 0 END AS failed_flag FROM ops_job_runs "
+      ]
+    },
+    {
+      "name": "ds_failures",
+      "displayName": "Job failures",
+      "queryLines": [
+        "SELECT *, CASE WHEN is_capability_guide_job THEN 'Capability guide jobs' ELSE 'Other workspace jobs' END AS scope FROM ops_failures "
+      ]
+    },
+    {
+      "name": "ds_usage",
+      "displayName": "Usage and cost",
+      "queryLines": [
+        "SELECT * FROM ops_usage_cost "
+      ]
+    },
+    {
+      "name": "ds_capacity_usage",
+      "displayName": "Serverless usage by workload",
+      "queryLines": [
+        "SELECT capacity_date, workload_type, detail, value AS dbus FROM ops_compute_capacity WHERE source = 'serverless_usage' "
+      ]
+    },
+    {
+      "name": "ds_capacity_wh",
+      "displayName": "Warehouse events",
+      "queryLines": [
+        "SELECT capacity_date, split(detail, ' / ')[0] AS event_type, split(detail, ' / ')[1] AS warehouse_id, value AS events FROM ops_compute_capacity WHERE source = 'warehouse_event' "
+      ]
+    },
+    {
+      "name": "ds_audit",
+      "displayName": "Audit events",
+      "queryLines": [
+        "SELECT * FROM ops_audit_events "
+      ]
+    },
+    {
+      "name": "ds_audit_top_actions",
+      "displayName": "Top audit actions",
+      "queryLines": [
+        "SELECT event_date, concat(service_name, '.', action_name) AS action, user_email, events FROM ops_audit_events WHERE concat(service_name, action_name) IN (SELECT concat(service_name, action_name) FROM ops_audit_events GROUP BY service_name, action_name ORDER BY sum(events) DESC LIMIT 12) "
+      ]
+    },
+    {
+      "name": "ds_audit_top_users",
+      "displayName": "Top audit users",
+      "queryLines": [
+        "SELECT event_date, user_email, events FROM ops_audit_events WHERE user_email IN (SELECT user_email FROM ops_audit_events GROUP BY user_email ORDER BY sum(events) DESC LIMIT 10) "
+      ]
+    },
+    {
+      "name": "ds_routing",
+      "displayName": "Alert routing",
+      "queryLines": [
+        "SELECT *, CASE WHEN is_capability_guide_job THEN 'Capability guide jobs' ELSE 'Other workspace jobs' END AS scope FROM ops_alert_routing "
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "runs",
+      "displayName": "Runs",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {
+            "name": "runs_h",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Job runs: all workspace jobs or capability guide jobs only (use the filters page)"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "runs_total",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_runs",
+                  "fields": [
+                    {
+                      "name": "count(run_id)",
+                      "expression": "COUNT(`run_id`)"
+                    },
+                    {
+                      "name": "daily(run_date)",
+                      "expression": "DATE_TRUNC(\"DAY\", `run_date`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "count(run_id)",
+                  "displayName": "Runs",
+                  "format": {
+                    "type": "number",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "period": {
+                  "fieldName": "daily(run_date)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Runs"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 1,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "runs_failed",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_runs",
+                  "fields": [
+                    {
+                      "name": "sum(failed_flag)",
+                      "expression": "SUM(`failed_flag`)"
+                    },
+                    {
+                      "name": "daily(run_date)",
+                      "expression": "DATE_TRUNC(\"DAY\", `run_date`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(failed_flag)",
+                  "displayName": "Failed runs",
+                  "format": {
+                    "type": "number",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "period": {
+                  "fieldName": "daily(run_date)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Failed runs"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 1,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "runs_dur",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_runs",
+                  "fields": [
+                    {
+                      "name": "avg(duration_min)",
+                      "expression": "AVG(`duration_min`)"
+                    },
+                    {
+                      "name": "daily(run_date)",
+                      "expression": "DATE_TRUNC(\"DAY\", `run_date`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "avg(duration_min)",
+                  "displayName": "Avg duration (min)",
+                  "format": {
+                    "type": "number",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "period": {
+                  "fieldName": "daily(run_date)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Avg duration (min)"
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 1,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "runs_by_day",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_runs",
+                  "fields": [
+                    {
+                      "name": "daily(run_date)",
+                      "expression": "DATE_TRUNC(\"DAY\", `run_date`)"
+                    },
+                    {
+                      "name": "count(run_id)",
+                      "expression": "COUNT(`run_id`)"
+                    },
+                    {
+                      "name": "result_state",
+                      "expression": "`result_state`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "daily(run_date)",
+                  "scale": {
+                    "type": "temporal"
+                  },
+                  "displayName": ""
+                },
+                "y": {
+                  "fieldName": "count(run_id)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Runs"
+                },
+                "color": {
+                  "fieldName": "result_state",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "result_state"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Runs per day by result"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 4,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "runs_by_trigger",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_runs",
+                  "fields": [
+                    {
+                      "name": "trigger_type",
+                      "expression": "`trigger_type`"
+                    },
+                    {
+                      "name": "count(run_id)",
+                      "expression": "COUNT(`run_id`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "trigger_type",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": ""
+                },
+                "y": {
+                  "fieldName": "count(run_id)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Runs"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Runs by trigger type"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 4,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "runs_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_runs",
+                  "fields": [
+                    {
+                      "name": "job_name",
+                      "expression": "`job_name`"
+                    },
+                    {
+                      "name": "run_id",
+                      "expression": "`run_id`"
+                    },
+                    {
+                      "name": "start_time",
+                      "expression": "`start_time`"
+                    },
+                    {
+                      "name": "duration_min",
+                      "expression": "`duration_min`"
+                    },
+                    {
+                      "name": "result_state",
+                      "expression": "`result_state`"
+                    },
+                    {
+                      "name": "trigger_type",
+                      "expression": "`trigger_type`"
+                    },
+                    {
+                      "name": "capability_guide_use_case",
+                      "expression": "`capability_guide_use_case`"
+                    },
+                    {
+                      "name": "run_as",
+                      "expression": "`run_as`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "job_name",
+                    "displayName": "Job"
+                  },
+                  {
+                    "fieldName": "run_id",
+                    "displayName": "Run ID"
+                  },
+                  {
+                    "fieldName": "start_time",
+                    "displayName": "Start"
+                  },
+                  {
+                    "fieldName": "duration_min",
+                    "displayName": "Minutes"
+                  },
+                  {
+                    "fieldName": "result_state",
+                    "displayName": "Result"
+                  },
+                  {
+                    "fieldName": "trigger_type",
+                    "displayName": "Trigger"
+                  },
+                  {
+                    "fieldName": "capability_guide_use_case",
+                    "displayName": "Use case"
+                  },
+                  {
+                    "fieldName": "run_as",
+                    "displayName": "Run as"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Runs"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 10,
+            "width": 12,
+            "height": 7
+          }
+        }
+      ]
+    },
+    {
+      "name": "failures",
+      "displayName": "Failures",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {
+            "name": "fail_h",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Failed, errored and timed-out runs"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "fail_total",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_failures",
+                  "fields": [
+                    {
+                      "name": "count(run_id)",
+                      "expression": "COUNT(`run_id`)"
+                    },
+                    {
+                      "name": "daily(run_date)",
+                      "expression": "DATE_TRUNC(\"DAY\", `run_date`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "count(run_id)",
+                  "displayName": "Failures",
+                  "format": {
+                    "type": "number",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "period": {
+                  "fieldName": "daily(run_date)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Failures"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 1,
+            "width": 6,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "fail_jobs",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_failures",
+                  "fields": [
+                    {
+                      "name": "countdistinct(job_id)",
+                      "expression": "COUNT(DISTINCT `job_id`)"
+                    },
+                    {
+                      "name": "daily(run_date)",
+                      "expression": "DATE_TRUNC(\"DAY\", `run_date`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "countdistinct(job_id)",
+                  "displayName": "Jobs with failures",
+                  "format": {
+                    "type": "number",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "period": {
+                  "fieldName": "daily(run_date)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Jobs with failures"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 1,
+            "width": 6,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "fail_by_day",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_failures",
+                  "fields": [
+                    {
+                      "name": "daily(run_date)",
+                      "expression": "DATE_TRUNC(\"DAY\", `run_date`)"
+                    },
+                    {
+                      "name": "count(run_id)",
+                      "expression": "COUNT(`run_id`)"
+                    },
+                    {
+                      "name": "termination_code",
+                      "expression": "`termination_code`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "daily(run_date)",
+                  "scale": {
+                    "type": "temporal"
+                  },
+                  "displayName": ""
+                },
+                "y": {
+                  "fieldName": "count(run_id)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Failures"
+                },
+                "color": {
+                  "fieldName": "termination_code",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "termination_code"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Failures per day by termination code"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 4,
+            "width": 12,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "fail_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_failures",
+                  "fields": [
+                    {
+                      "name": "job_name",
+                      "expression": "`job_name`"
+                    },
+                    {
+                      "name": "run_id",
+                      "expression": "`run_id`"
+                    },
+                    {
+                      "name": "start_time",
+                      "expression": "`start_time`"
+                    },
+                    {
+                      "name": "result_state",
+                      "expression": "`result_state`"
+                    },
+                    {
+                      "name": "termination_code",
+                      "expression": "`termination_code`"
+                    },
+                    {
+                      "name": "capability_guide_use_case",
+                      "expression": "`capability_guide_use_case`"
+                    },
+                    {
+                      "name": "run_as",
+                      "expression": "`run_as`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "job_name",
+                    "displayName": "Job"
+                  },
+                  {
+                    "fieldName": "run_id",
+                    "displayName": "Run ID"
+                  },
+                  {
+                    "fieldName": "start_time",
+                    "displayName": "Start"
+                  },
+                  {
+                    "fieldName": "result_state",
+                    "displayName": "Result"
+                  },
+                  {
+                    "fieldName": "termination_code",
+                    "displayName": "Termination code"
+                  },
+                  {
+                    "fieldName": "capability_guide_use_case",
+                    "displayName": "Use case"
+                  },
+                  {
+                    "fieldName": "run_as",
+                    "displayName": "Run as"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Failed runs"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 10,
+            "width": 12,
+            "height": 7
+          }
+        }
+      ]
+    },
+    {
+      "name": "usage",
+      "displayName": "Usage and cost",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {
+            "name": "use_h",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Usage and list-price cost (system.billing.usage x list_prices)"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "use_cost",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_usage",
+                  "fields": [
+                    {
+                      "name": "sum(list_cost_usd)",
+                      "expression": "SUM(`list_cost_usd`)"
+                    },
+                    {
+                      "name": "daily(usage_date)",
+                      "expression": "DATE_TRUNC(\"DAY\", `usage_date`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(list_cost_usd)",
+                  "displayName": "List cost (USD)",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                },
+                "period": {
+                  "fieldName": "daily(usage_date)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "List cost (USD)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 1,
+            "width": 6,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "use_qty",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_usage",
+                  "fields": [
+                    {
+                      "name": "sum(usage_quantity)",
+                      "expression": "SUM(`usage_quantity`)"
+                    },
+                    {
+                      "name": "daily(usage_date)",
+                      "expression": "DATE_TRUNC(\"DAY\", `usage_date`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(usage_quantity)",
+                  "displayName": "Usage quantity",
+                  "format": {
+                    "type": "number",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "period": {
+                  "fieldName": "daily(usage_date)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Usage quantity"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 1,
+            "width": 6,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "cost_by_day",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_usage",
+                  "fields": [
+                    {
+                      "name": "daily(usage_date)",
+                      "expression": "DATE_TRUNC(\"DAY\", `usage_date`)"
+                    },
+                    {
+                      "name": "sum(list_cost_usd)",
+                      "expression": "SUM(`list_cost_usd`)"
+                    },
+                    {
+                      "name": "product",
+                      "expression": "`product`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "daily(usage_date)",
+                  "scale": {
+                    "type": "temporal"
+                  },
+                  "displayName": ""
+                },
+                "y": {
+                  "fieldName": "sum(list_cost_usd)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "USD"
+                },
+                "color": {
+                  "fieldName": "product",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "product"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Cost per day by product"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 4,
+            "width": 12,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "cost_by_sku",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_usage",
+                  "fields": [
+                    {
+                      "name": "sku_name",
+                      "expression": "`sku_name`"
+                    },
+                    {
+                      "name": "sum(list_cost_usd)",
+                      "expression": "SUM(`list_cost_usd`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "sum(list_cost_usd)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "USD"
+                },
+                "y": {
+                  "fieldName": "sku_name",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "x-reversed"
+                    }
+                  },
+                  "displayName": ""
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Cost by SKU"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 10,
+            "width": 12,
+            "height": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "capacity",
+      "displayName": "Compute and capacity",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {
+            "name": "cap_h",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Serverless usage by workload type and SQL warehouse events"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "cap_dbu",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_capacity_usage",
+                  "fields": [
+                    {
+                      "name": "daily(capacity_date)",
+                      "expression": "DATE_TRUNC(\"DAY\", `capacity_date`)"
+                    },
+                    {
+                      "name": "sum(dbus)",
+                      "expression": "SUM(`dbus`)"
+                    },
+                    {
+                      "name": "workload_type",
+                      "expression": "`workload_type`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "daily(capacity_date)",
+                  "scale": {
+                    "type": "temporal"
+                  },
+                  "displayName": ""
+                },
+                "y": {
+                  "fieldName": "sum(dbus)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "DBU"
+                },
+                "color": {
+                  "fieldName": "workload_type",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "workload_type"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "DBUs per day by workload type"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 1,
+            "width": 12,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "cap_wh",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_capacity_wh",
+                  "fields": [
+                    {
+                      "name": "daily(capacity_date)",
+                      "expression": "DATE_TRUNC(\"DAY\", `capacity_date`)"
+                    },
+                    {
+                      "name": "sum(events)",
+                      "expression": "SUM(`events`)"
+                    },
+                    {
+                      "name": "event_type",
+                      "expression": "`event_type`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "daily(capacity_date)",
+                  "scale": {
+                    "type": "temporal"
+                  },
+                  "displayName": ""
+                },
+                "y": {
+                  "fieldName": "sum(events)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Events"
+                },
+                "color": {
+                  "fieldName": "event_type",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "event_type"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Warehouse events per day"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 7,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "cap_wl",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_capacity_usage",
+                  "fields": [
+                    {
+                      "name": "workload_type",
+                      "expression": "`workload_type`"
+                    },
+                    {
+                      "name": "sum(dbus)",
+                      "expression": "SUM(`dbus`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "sum(dbus)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "DBU"
+                },
+                "y": {
+                  "fieldName": "workload_type",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "x-reversed"
+                    }
+                  },
+                  "displayName": ""
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Total DBUs by workload type"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 7,
+            "width": 6,
+            "height": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "audit",
+      "displayName": "Audit events",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {
+            "name": "aud_h",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Audit events (system.access.audit)"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "aud_total",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_audit",
+                  "fields": [
+                    {
+                      "name": "sum(events)",
+                      "expression": "SUM(`events`)"
+                    },
+                    {
+                      "name": "daily(event_date)",
+                      "expression": "DATE_TRUNC(\"DAY\", `event_date`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(events)",
+                  "displayName": "Audit events",
+                  "format": {
+                    "type": "number",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "period": {
+                  "fieldName": "daily(event_date)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Audit events"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 1,
+            "width": 6,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "aud_fail",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_audit",
+                  "fields": [
+                    {
+                      "name": "sum(failed_events)",
+                      "expression": "SUM(`failed_events`)"
+                    },
+                    {
+                      "name": "daily(event_date)",
+                      "expression": "DATE_TRUNC(\"DAY\", `event_date`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(failed_events)",
+                  "displayName": "Events with an error response",
+                  "format": {
+                    "type": "number",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "period": {
+                  "fieldName": "daily(event_date)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Events with an error response"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 1,
+            "width": 6,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "aud_day",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_audit",
+                  "fields": [
+                    {
+                      "name": "daily(event_date)",
+                      "expression": "DATE_TRUNC(\"DAY\", `event_date`)"
+                    },
+                    {
+                      "name": "sum(events)",
+                      "expression": "SUM(`events`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "daily(event_date)",
+                  "scale": {
+                    "type": "temporal"
+                  },
+                  "displayName": ""
+                },
+                "y": {
+                  "fieldName": "sum(events)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Events"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Events per day"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 4,
+            "width": 12,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "aud_actions",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_audit_top_actions",
+                  "fields": [
+                    {
+                      "name": "action",
+                      "expression": "`action`"
+                    },
+                    {
+                      "name": "sum(events)",
+                      "expression": "SUM(`events`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "sum(events)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Events"
+                },
+                "y": {
+                  "fieldName": "action",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "x-reversed"
+                    }
+                  },
+                  "displayName": ""
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Top actions"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 9,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "aud_users",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_audit_top_users",
+                  "fields": [
+                    {
+                      "name": "user_email",
+                      "expression": "`user_email`"
+                    },
+                    {
+                      "name": "sum(events)",
+                      "expression": "SUM(`events`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "sum(events)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Events"
+                },
+                "y": {
+                  "fieldName": "user_email",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "x-reversed"
+                    }
+                  },
+                  "displayName": ""
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Top users"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 9,
+            "width": 6,
+            "height": 7
+          }
+        }
+      ]
+    },
+    {
+      "name": "routing",
+      "displayName": "Alert routing",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {
+            "name": "rt_h",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Which alert, job notification or health rule routes where (Jobs and Alerts APIs)"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "rt_type",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_routing",
+                  "fields": [
+                    {
+                      "name": "source_type",
+                      "expression": "`source_type`"
+                    },
+                    {
+                      "name": "count(name)",
+                      "expression": "COUNT(`name`)"
+                    },
+                    {
+                      "name": "destination_type",
+                      "expression": "`destination_type`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "source_type",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": ""
+                },
+                "y": {
+                  "fieldName": "count(name)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Routes"
+                },
+                "color": {
+                  "fieldName": "destination_type",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "destination_type"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Routes by source and destination type"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 1,
+            "width": 12,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "rt_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_routing",
+                  "fields": [
+                    {
+                      "name": "source_type",
+                      "expression": "`source_type`"
+                    },
+                    {
+                      "name": "name",
+                      "expression": "`name`"
+                    },
+                    {
+                      "name": "rule",
+                      "expression": "`rule`"
+                    },
+                    {
+                      "name": "destination_type",
+                      "expression": "`destination_type`"
+                    },
+                    {
+                      "name": "destination",
+                      "expression": "`destination`"
+                    },
+                    {
+                      "name": "capability_guide_use_case",
+                      "expression": "`capability_guide_use_case`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "source_type",
+                    "displayName": "Source"
+                  },
+                  {
+                    "fieldName": "name",
+                    "displayName": "Name"
+                  },
+                  {
+                    "fieldName": "rule",
+                    "displayName": "Rule"
+                  },
+                  {
+                    "fieldName": "destination_type",
+                    "displayName": "Destination type"
+                  },
+                  {
+                    "fieldName": "destination",
+                    "displayName": "Destination"
+                  },
+                  {
+                    "fieldName": "capability_guide_use_case",
+                    "displayName": "Use case"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Routing rules"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 12,
+            "height": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "filters",
+      "displayName": "Filters",
+      "pageType": "PAGE_TYPE_GLOBAL_FILTERS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {
+            "name": "f_scope",
+            "queries": [
+              {
+                "name": "q1",
+                "query": {
+                  "datasetName": "ds_runs",
+                  "fields": [
+                    {
+                      "name": "scope",
+                      "expression": "`scope`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "q2",
+                "query": {
+                  "datasetName": "ds_failures",
+                  "fields": [
+                    {
+                      "name": "scope",
+                      "expression": "`scope`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "q3",
+                "query": {
+                  "datasetName": "ds_routing",
+                  "fields": [
+                    {
+                      "name": "scope",
+                      "expression": "`scope`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "scope",
+                    "displayName": "Scope",
+                    "queryName": "q1"
+                  },
+                  {
+                    "fieldName": "scope",
+                    "displayName": "Scope",
+                    "queryName": "q2"
+                  },
+                  {
+                    "fieldName": "scope",
+                    "displayName": "Scope",
+                    "queryName": "q3"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Scope"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 4,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "f_uc",
+            "queries": [
+              {
+                "name": "q1",
+                "query": {
+                  "datasetName": "ds_runs",
+                  "fields": [
+                    {
+                      "name": "capability_guide_use_case",
+                      "expression": "`capability_guide_use_case`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "q2",
+                "query": {
+                  "datasetName": "ds_failures",
+                  "fields": [
+                    {
+                      "name": "capability_guide_use_case",
+                      "expression": "`capability_guide_use_case`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "q3",
+                "query": {
+                  "datasetName": "ds_routing",
+                  "fields": [
+                    {
+                      "name": "capability_guide_use_case",
+                      "expression": "`capability_guide_use_case`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "capability_guide_use_case",
+                    "displayName": "Use case",
+                    "queryName": "q1"
+                  },
+                  {
+                    "fieldName": "capability_guide_use_case",
+                    "displayName": "Use case",
+                    "queryName": "q2"
+                  },
+                  {
+                    "fieldName": "capability_guide_use_case",
+                    "displayName": "Use case",
+                    "queryName": "q3"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Use case"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 4,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "f_date",
+            "queries": [
+              {
+                "name": "q1",
+                "query": {
+                  "datasetName": "ds_runs",
+                  "fields": [
+                    {
+                      "name": "run_date",
+                      "expression": "`run_date`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "q2",
+                "query": {
+                  "datasetName": "ds_failures",
+                  "fields": [
+                    {
+                      "name": "run_date",
+                      "expression": "`run_date`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "q3",
+                "query": {
+                  "datasetName": "ds_usage",
+                  "fields": [
+                    {
+                      "name": "usage_date",
+                      "expression": "`usage_date`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "q4",
+                "query": {
+                  "datasetName": "ds_capacity_usage",
+                  "fields": [
+                    {
+                      "name": "capacity_date",
+                      "expression": "`capacity_date`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "q5",
+                "query": {
+                  "datasetName": "ds_capacity_wh",
+                  "fields": [
+                    {
+                      "name": "capacity_date",
+                      "expression": "`capacity_date`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "q6",
+                "query": {
+                  "datasetName": "ds_audit",
+                  "fields": [
+                    {
+                      "name": "event_date",
+                      "expression": "`event_date`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "q7",
+                "query": {
+                  "datasetName": "ds_audit_top_actions",
+                  "fields": [
+                    {
+                      "name": "event_date",
+                      "expression": "`event_date`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "q8",
+                "query": {
+                  "datasetName": "ds_audit_top_users",
+                  "fields": [
+                    {
+                      "name": "event_date",
+                      "expression": "`event_date`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-date-range-picker",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "run_date",
+                    "displayName": "Date",
+                    "queryName": "q1"
+                  },
+                  {
+                    "fieldName": "run_date",
+                    "displayName": "Date",
+                    "queryName": "q2"
+                  },
+                  {
+                    "fieldName": "usage_date",
+                    "displayName": "Date",
+                    "queryName": "q3"
+                  },
+                  {
+                    "fieldName": "capacity_date",
+                    "displayName": "Date",
+                    "queryName": "q4"
+                  },
+                  {
+                    "fieldName": "capacity_date",
+                    "displayName": "Date",
+                    "queryName": "q5"
+                  },
+                  {
+                    "fieldName": "event_date",
+                    "displayName": "Date",
+                    "queryName": "q6"
+                  },
+                  {
+                    "fieldName": "event_date",
+                    "displayName": "Date",
+                    "queryName": "q7"
+                  },
+                  {
+                    "fieldName": "event_date",
+                    "displayName": "Date",
+                    "queryName": "q8"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Date"
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 0,
+            "width": 4,
+            "height": 2
+          }
+        }
+      ]
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "canvasBackgroundColor": {
+        "light": "#FCFCFC",
+        "dark": "#1F272D"
+      },
+      "widgetBackgroundColor": {
+        "light": "#FFFFFF",
+        "dark": "#11171C"
+      },
+      "fontColor": {
+        "light": "#11171C",
+        "dark": "#E8ECF0"
+      },
+      "selectionColor": {
+        "light": "#2272B4",
+        "dark": "#8ACAFF"
+      },
+      "visualizationColors": [
+        "#0072B2",
+        "#E69F00",
+        "#009E73",
+        "#CC79A7",
+        "#D55E00",
+        "#56B4E9",
+        "#F0E442"
+      ],
+      "widgetHeaderAlignment": "LEFT"
+    }
+  }
+}

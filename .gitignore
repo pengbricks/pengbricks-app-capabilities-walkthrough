@@ -4,8 +4,8 @@ node_modules/
 build/
 .env
 .databricks/
-app.yaml
-databricks.yml
+/app.yaml
+/databricks.yml
 .smoke-test/
 test-results/
 playwright-report/

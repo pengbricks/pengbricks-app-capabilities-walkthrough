@@ -1,0 +1,79 @@
+# Use-case spec: the only file a new tenant or use case needs to author.
+# tools/render_use_case.py renders feeds/<use_case>/*.yml from it, and
+# src/generate_landing.py generates deterministic sample data from it with dbldatagen.
+name: general
+seed: 20261013
+
+entity:
+  name: transactions
+  keys: [record_id]
+  # Canonical columns, generated with dbldatagen. `expr` columns may reference `id`.
+  columns:
+    - {name: record_id, type: string, expr: "concat('TXN-', lpad(cast(id AS STRING), 8, '0'))"}
+    - {name: account_id, type: string, expr: "concat('ACCT-', lpad(cast(id % 250 AS STRING), 5, '0'))"}
+    - {name: event_ts, type: timestamp, begin: "2026-09-01 00:00:00", end: "2026-09-30 23:59:59", interval: "1 minute"}
+    - {name: amount, type: "decimal(18,2)", min: 1, max: 5000}
+    - {name: currency, type: string, values: [USD, EUR, GBP], weights: [8, 1, 1]}
+    - {name: status, type: string, values: [approved, pending, rejected, voided], weights: [7, 2, 1, 1]}
+
+# Shared validation rules, applied to every feed after mapping.
+rules:
+  - {name: record_id_present, type: not_null, column: record_id}
+  - {name: event_ts_present, type: not_null, column: event_ts}
+  - {name: amount_non_negative, type: expression, expr: "amount >= 0"}
+  - {name: currency_supported, type: allowed_values, column: currency, values: [USD, EUR, GBP]}
+  - {name: status_known, type: not_null, column: status}
+
+# Deterministic bad rows: a row is corrupted when id % every == offset.
+bad_rows:
+  - {column: amount, expr: "-abs(amount)", every: 37, offset: 5}
+  - {column: currency, expr: "'XXX'", every: 53, offset: 11}
+  - {column: record_id, expr: "CAST(NULL AS STRING)", every: 71, offset: 3}
+
+feeds:
+  - name: provider_a
+    adapter: provider_a        # needs code: single-letter status codes
+    rows: 2000
+    format: csv
+    options: {header: "true", inferSchema: "false"}
+    # How the provider's file looks, as SQL over the canonical columns (used to generate data).
+    source_columns:
+      TXN_ID: record_id
+      ACCT_NO: account_id
+      TXN_DATE: "date_format(event_ts, 'MM/dd/yyyy HH:mm:ss')"
+      AMOUNT_CENTS: "CAST(amount * 100 AS BIGINT)"
+      CCY: currency
+      STATUS_CD: "upper(substr(status, 1, 1))"
+    # How the framework maps the provider's file back to canonical columns.
+    mapping:
+      record_id: TXN_ID
+      account_id: ACCT_NO
+      event_ts: "to_timestamp(TXN_DATE, 'MM/dd/yyyy HH:mm:ss')"
+      amount: "CAST(CAST(AMOUNT_CENTS AS BIGINT) / 100 AS DECIMAL(18,2))"
+      currency: CCY
+      status: status_label
+
+  - name: provider_b
+    adapter: generic           # onboarded with configuration only
+    rows: 1500
+    format: json
+    options: {}
+    source_columns:
+      id: record_id
+      account: "named_struct('number', account_id)"
+      occurred_at: "date_format(event_ts, \"yyyy-MM-dd'T'HH:mm:ss'Z'\")"
+      amount: "named_struct('value', CAST(amount AS DOUBLE), 'currency', currency)"
+      state: "upper(status)"
+    mapping:
+      record_id: id
+      account_id: account.number
+      event_ts: "to_timestamp(occurred_at)"
+      amount: "CAST(amount.value AS DECIMAL(18,2))"
+      currency: amount.currency
+      status: "lower(state)"
+
+# Streaming source for the batch and real-time guide.
+streaming:
+  feed: events
+  batches: 6
+  rows_per_batch: 400

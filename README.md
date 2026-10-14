@@ -39,15 +39,19 @@ npm run build
 - `client/src/pages/HomePage.tsx` — searchable, filterable guide landing page.
 - `client/src/pages/GuidePage.tsx` — reusable one-page guide layout and evidence slots.
 - `server/app.py` — FastAPI health API and production SPA server.
+- `server/artifacts.py` and `server/artifacts.json` — guide artifacts, run discovery, and quick runs.
+- `reference/` — deployable reference bundles behind each guide.
 - `child-app.json` — Pengbricks child runtime and route contract.
 - `single-child-wrapper.json` — thin-wrapper export contract.
 
-## Connect evidence
+## Guide artifacts
 
-For each entry in `client/src/data/guides.ts`, populate:
+Reference code for each guide lives in `reference/<bundle>/` as a deployable bundle; see `reference/README.md`. The app reads `server/artifacts.json` for each guide's one-pager, code links, documentation links, key-function highlights, and job keys.
 
-- `codeUrl` with an immutable public repository artifact or commit permalink.
-- `runUrl` with the successful Databricks run, MLflow trace, job run, pipeline update, or other authoritative execution record.
+- **Actual runs:** the backend finds each workspace's deployed jobs by their `capability_guide_job` tag and lists recent runs. The **Quick run** button starts a job as the app service principal, which needs `CAN_MANAGE_RUN` (granted by each bundle's `app_service_principal` variable).
+- **Run history:** set `CAPABILITY_GUIDES_LAKEBASE_ENDPOINT`, `CAPABILITY_GUIDES_LAKEBASE_DATABASE`, and optionally `CAPABILITY_GUIDES_LAKEBASE_SCHEMA` to record runs in that workspace's Lakebase database. Without them, history comes from the Jobs API.
+- **Recorded runs:** `recordedRuns` in `server/artifacts.json` are the fallback links shown when the app cannot reach a workspace.
+- **Key functions:** after changing highlighted code, run `python scripts/build_artifact_snippets.py`. `npm run test:python` fails when snippets are stale.
 
 ## Public repository rules
 

@@ -1,0 +1,47 @@
+resources:
+  jobs:
+    capability_guides_developer_experience_workflow:
+      name: capability-guides-developer-experience-workflow
+      tags:
+        capability_guide_job: capability_guides_developer_experience_workflow
+        capability_guide_use_case: ${var.use_case}
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "3"
+            dependencies:
+              - pytest
+              - pyyaml
+              - dbldatagen
+      tasks:
+        - task_key: unit_tests
+          environment_key: default
+          spark_python_task:
+            python_file: ../src/run_tests.py
+            parameters:
+              - ${workspace.file_path}
+        - task_key: transform
+          depends_on:
+            - task_key: unit_tests
+          environment_key: default
+          spark_python_task:
+            python_file: ../src/transform.py
+            parameters:
+              - ${workspace.file_path}
+              - ${var.catalog}
+              - ${var.schema}
+              - ${var.use_case}
+              - ${var.output_table}
+        - task_key: sql_checks
+          depends_on:
+            - task_key: transform
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file:
+              path: ../src/validate_output.sql
+            parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              output_table: ${var.output_table}
+              key_column: ${var.key_column}
+              value_column: ${var.value_column}

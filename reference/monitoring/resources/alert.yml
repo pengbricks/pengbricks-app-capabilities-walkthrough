@@ -1,0 +1,26 @@
+resources:
+  alerts:
+    capability_guide_job_failures:
+      display_name: "capability guide job failures in the last ${var.alert_window_hours}h"
+      query_text: >-
+        SELECT count(*) AS failed_runs
+        FROM `${var.catalog}`.`${resources.schemas.ops.name}`.ops_failures
+        WHERE is_capability_guide_job
+        AND end_time >= current_timestamp() - INTERVAL ${var.alert_window_hours} HOUR
+      warehouse_id: ${var.warehouse_id}
+      evaluation:
+        comparison_operator: GREATER_THAN
+        source:
+          name: failed_runs
+          display: failed_runs
+        threshold:
+          value:
+            double_value: ${var.alert_threshold}
+        notification:
+          notify_on_ok: false
+          subscriptions:
+            - user_email: ${var.alert_email}
+      schedule:
+        pause_status: UNPAUSED
+        quartz_cron_schedule: "0 0 * * * ?"
+        timezone_id: UTC

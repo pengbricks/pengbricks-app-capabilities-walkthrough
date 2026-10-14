@@ -1,0 +1,36 @@
+bundle:
+  name: capability-guides-legacy-conversion
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Unity Catalog catalog for the guide schema.
+  warehouse_id:
+    description: SQL warehouse ID of the target workspace (used by the guide app; not needed by this job).
+  app_service_principal:
+    description: Application ID of the service principal that runs jobs from the app.
+  use_case:
+    description: Name of the spec under use_cases/ that drives the sample data, workload, expected results, and effort model.
+    default: general
+  schema:
+    description: Schema that holds the legacy tables, converted outputs, and assessment tables.
+    default: capability_guides_legacy_conversion
+
+permissions:
+  - level: CAN_MANAGE
+    user_name: ${workspace.current_user.userName}
+  - level: CAN_RUN
+    service_principal_name: ${var.app_service_principal}
+
+targets:
+  dev:
+    default: true
+    mode: development
+
+  test:
+    presets:
+      name_prefix: "[test] "
+    variables:
+      schema: capability_guides_legacy_conversion_test

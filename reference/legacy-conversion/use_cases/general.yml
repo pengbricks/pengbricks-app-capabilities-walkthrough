@@ -1,0 +1,96 @@
+# Use case spec for the legacy conversion guide. Everything domain-specific
+# lives here: the sample data, the legacy workload, the expected results, and
+# the effort model. The code in src/ reads this file and stays generic.
+name: general
+description: Generic nightly sales batch written in T-SQL (stored procedure style).
+
+workload:
+  legacy_sql: legacy/nightly_sales_batch.sql          # relative to the bundle root
+  remediation_sql: remediation/manual_remediations.sql # hand-written Databricks SQL for steps sqlglot cannot convert
+  legacy_schema: dbo        # schema name used in the legacy SQL; mapped to <catalog>.<schema>
+  temp_table_prefix: tmp_   # T-SQL #temp tables become Delta tables with this prefix
+  reset_tables:             # dropped before each run so the job can be re-run
+    - dim_customer
+    - fact_daily_sales
+    - region_summary
+    - dim_date
+    - etl_log
+
+# Sample input, generated with dbldatagen (fixed seed) and written to source_table.
+# Each column is either an SQL `expr` over the row index `id`, or a `range`.
+# Duplicated order_ids (id % distinct_orders) simulate reloaded files.
+sample_data:
+  source_table: stg_orders_raw
+  rows: 120
+  seed: 20240301
+  partitions: 1
+  columns:
+    - {name: order_num, type: int, expr: "id % 80", omit: true}
+    - {name: order_id, type: int, expr: "1000 + order_num"}
+    - {name: cust_num, type: int, expr: "pmod(hash(order_num, 7), 10)", omit: true}
+    - {name: customer_id, type: string, expr: "concat('C', lpad(cast(cust_num + 1 as string), 3, '0'))"}
+    - name: customer_name
+      type: string
+      expr: "concat('Customer ', cust_num + 1, case when cust_num % 3 = 0 and order_num >= 40 then ' (renamed)' else '' end)"
+    - {name: region, type: string, expr: "case when cust_num % 5 = 4 then null else element_at(array('EAST','WEST','NORTH','SOUTH'), cast(cust_num % 4 + 1 as int)) end"}
+    - {name: order_ts, type: timestamp, expr: "timestamp'2024-03-01 08:00:00' + make_interval(0, 0, 0, 0, 0, order_num * 37, 0)"}
+    - {name: amount, type: "decimal(18,2)", range: {min: 20, max: 500}}
+    - {name: status, type: string, expr: "case when pmod(hash(order_num, 11), 6) = 0 then 'CANCELLED' when pmod(hash(order_num, 11), 6) = 1 then 'PENDING' else 'SHIPPED' end"}
+    - {name: load_ts, type: timestamp, expr: "order_ts + make_interval(0, 0, 0, 0, 1 + 20 * cast(id >= 80 as int), 0, 0)"}
+
+# Expected results, computed in Python from the generated rows (independent of
+# the converted SQL). Datasets chain: each `from` names an earlier dataset or
+# the source table. Operations run in this order: filter_not_in, coalesce, latest_per.
+expected:
+  datasets:
+    staged:
+      from: source
+      filter_not_in: {status: [CANCELLED]}
+      coalesce: {region: UNKNOWN}
+    deduped:
+      from: staged
+      latest_per: {key: [order_id], order_by: load_ts}
+  tables:
+    fact_daily_sales:
+      from: deduped
+      group_by: {sales_date: {date_of: order_ts}, region: region}
+      aggregates: {order_count: count, total_amount: {sum: amount}}
+      key_columns: [sales_date, region]
+      sum_columns: [order_count, total_amount]
+    region_summary:
+      from: deduped
+      group_by: {region: region}
+      aggregates: {order_count: count, total_amount: {sum: amount}}
+      key_columns: [region]
+      sum_columns: [order_count, total_amount]
+    dim_customer:
+      from: deduped
+      latest_per: {key: [customer_id], order_by: order_ts}
+      columns: [customer_id, customer_name, region]
+      key_columns: [customer_id]
+      compare_columns: [customer_name, region]
+    dim_date:
+      from: deduped
+      date_range: {column: order_ts, output: calendar_date}
+      key_columns: [calendar_date]
+
+# Role-based effort model. hours = fixed + sum(count[status] * per_status[status]).
+# Statuses: clean (review only), warning (converted, needs a check), manual (rewrite).
+effort:
+  roles:
+    data_engineer:
+      per_status: {clean: 0.25, warning: 1.0, manual: 4.0}
+      fixed: 2.0
+      assumption: "Reviews converted SQL, rewrites manual steps, wires the job. Fixed 2h for pipeline structure and error handling."
+    analytics_engineer:
+      per_status: {clean: 0.1, warning: 0.5, manual: 1.5}
+      fixed: 1.0
+      assumption: "Validates business logic and output tables against the legacy definitions. Fixed 1h for output sign-off."
+    qa:
+      per_status: {clean: 0.1, warning: 0.5, manual: 2.0}
+      fixed: 3.0
+      assumption: "Builds reconciliation checks (counts, key sets, checksums) and triages differences. Fixed 3h for the harness and test data."
+    platform_admin:
+      per_status: {clean: 0.0, warning: 0.1, manual: 0.25}
+      fixed: 2.0
+      assumption: "Unity Catalog schema and grants, serverless job and permissions. Fixed 2h; small per-step cost for new objects."

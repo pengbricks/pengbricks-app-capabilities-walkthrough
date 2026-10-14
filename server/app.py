@@ -8,6 +8,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
+from .artifacts import router as artifacts_router
+
 ROOT = Path(__file__).resolve().parents[1]
 CLIENT_DIST = ROOT / "client" / "runtime"
 ASSETS_DIR = CLIENT_DIST / "assets"
@@ -29,6 +31,9 @@ async def health() -> dict[str, str]:
 @app.get("/", response_class=RedirectResponse)
 async def root() -> RedirectResponse:
     return RedirectResponse(url=f"{APP_PREFIX}/", status_code=302)
+
+
+app.include_router(artifacts_router, prefix=API_PREFIX)
 
 
 @app.get(f"{API_PREFIX}/health")

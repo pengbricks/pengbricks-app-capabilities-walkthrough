@@ -1,0 +1,33 @@
+# Domain-specific parts of the bundle live here. Add another file in this folder
+# and set the use_case bundle variable to stamp the same workflow onto a new dataset.
+name: general
+seed: 42
+rows: 200
+output_table: orders_clean
+
+# Column roles used by the generic transforms.
+key_column: order_id
+value_column: amount
+timestamp_column: updated_at
+
+columns:
+  - {name: order_id, type: string, prefix: "ord-", width: 5}      # unique id built from the row number
+  - {name: amount, type: double, min: 5, max: 1000}
+  - {name: updated_at, type: timestamp, begin: "2024-01-01 00:00:00", end: "2024-06-30 00:00:00"}
+  - {name: category, type: string, values: [books, games, garden, tools]}
+
+# Each fraction is applied to `rows` and picks disjoint rows, so counts are exact.
+edge_cases:
+  null_key_fraction: 0.03          # key is null
+  blank_key_fraction: 0.02         # key is whitespace only
+  negative_value_fraction: 0.03    # value < 0
+  duplicate_fraction: 0.10         # extra copy: messy key ("ord-00007 " lower/padded), newer timestamp, different value
+  null_timestamp_duplicate_fraction: 0.02  # extra copy with a null timestamp and different value
+
+# Optional banding of the value column.
+bands:
+  column: value_band
+  default: small
+  thresholds:
+    - {min: 500, label: large}
+    - {min: 100, label: medium}

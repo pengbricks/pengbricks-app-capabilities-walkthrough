@@ -1,0 +1,49 @@
+bundle:
+  name: capability-guides-ingestion
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Unity Catalog catalog that holds the guide schema
+  warehouse_id:
+    description: SQL warehouse for SQL tasks
+  app_service_principal:
+    description: Application ID of the Databricks App service principal that triggers quick runs
+  schema:
+    description: Schema for this bundle's tables and volume
+    default: capability_guides_ingestion
+  use_case:
+    description: Use-case spec under use_cases/ that drives data, feeds, rules, and tags
+    default: general
+  notification_email:
+    description: Address that receives failure and duration alerts
+  environment:
+    description: Environment label recorded in tags
+    default: dev
+  release:
+    description: Release identifier (CI sets the Git commit SHA) recorded in resource tags
+    default: local
+
+permissions:
+  - level: CAN_MANAGE
+    user_name: ${workspace.current_user.userName}
+  - level: CAN_RUN
+    service_principal_name: ${var.app_service_principal}
+
+targets:
+  dev:
+    default: true
+    mode: development
+    presets:
+      tags:
+        release: ${var.release}
+  test:
+    presets:
+      name_prefix: "[test] "
+      tags:
+        environment: test
+        release: ${var.release}
+    variables:
+      environment: test

@@ -1,0 +1,56 @@
+# Batch and real-time ingestion: batch framework run, then streaming events through a
+# Lakeflow Declarative Pipeline, then latency and throughput metrics.
+resources:
+  jobs:
+    capability_guides_batch_real_time:
+      name: capability-guides-batch-real-time
+      description: Runs the batch framework, streams events through the pipeline, and records latency and throughput.
+      tags:
+        capability_guide_job: capability_guides_batch_real_time
+        capability_guide_use_case: ${var.use_case}
+      max_concurrent_runs: 1
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${resources.schemas.capability_guides_ingestion.name}
+      environments:
+        - environment_key: framework
+          spec:
+            environment_version: "4"
+            dependencies:
+              - dbldatagen==0.4.0.post1
+              - pyyaml>=6
+      tasks:
+        - task_key: batch_ingest
+          run_job_task:
+            job_id: ${resources.jobs.capability_guides_ingestion_framework.id}
+
+        - task_key: land_stream_events
+          environment_key: framework
+          spark_python_task:
+            python_file: ../src/generate_landing.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --use-case-file=${workspace.file_path}/use_cases/${var.use_case}.yml
+              - --mode=stream
+
+        - task_key: streaming_pipeline
+          depends_on:
+            - task_key: batch_ingest
+            - task_key: land_stream_events
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.capability_guides_ingestion_streaming.id}
+
+        - task_key: record_metrics
+          depends_on:
+            - task_key: streaming_pipeline
+          environment_key: framework
+          spark_python_task:
+            python_file: ../src/record_ingestion_metrics.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --run-id={{job.run_id}}
+              - --pipeline-id=${resources.pipelines.capability_guides_ingestion_streaming.id}

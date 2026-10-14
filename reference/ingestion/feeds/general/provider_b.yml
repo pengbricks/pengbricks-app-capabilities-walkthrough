@@ -1,0 +1,35 @@
+# Generated from use_cases/general.yml by tools/render_use_case.py. Do not edit.
+name: provider_b
+adapter: generic
+source:
+  format: json
+  options: {}
+mapping:
+  record_id: id
+  account_id: account.number
+  event_ts: to_timestamp(occurred_at)
+  amount: CAST(amount.value AS DECIMAL(18,2))
+  currency: amount.currency
+  status: lower(state)
+keys:
+- record_id
+rules:
+- name: record_id_present
+  type: not_null
+  column: record_id
+- name: event_ts_present
+  type: not_null
+  column: event_ts
+- name: amount_non_negative
+  type: expression
+  expr: amount >= 0
+- name: currency_supported
+  type: allowed_values
+  column: currency
+  values:
+  - USD
+  - EUR
+  - GBP
+- name: status_known
+  type: not_null
+  column: status

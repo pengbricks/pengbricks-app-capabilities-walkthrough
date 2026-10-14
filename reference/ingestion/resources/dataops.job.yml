@@ -1,0 +1,73 @@
+# DataOps: retries, alerting, duration health rule, run history, audit trail, and rollback.
+resources:
+  jobs:
+    capability_guides_dataops:
+      name: capability-guides-dataops
+      description: Ingests a feed through a retry policy, alerts on failure or slow runs, and records run history and audit trail.
+      tags:
+        capability_guide_job: capability_guides_dataops
+        capability_guide_use_case: ${var.use_case}
+        environment: ${var.environment}
+      max_concurrent_runs: 1
+      timeout_seconds: 3600
+      email_notifications:
+        on_failure:
+          - ${var.notification_email}
+        on_duration_warning_threshold_exceeded:
+          - ${var.notification_email}
+      health:
+        rules:
+          - metric: RUN_DURATION_SECONDS
+            op: GREATER_THAN
+            value: 1200
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${resources.schemas.capability_guides_ingestion.name}
+      environments:
+        - environment_key: framework
+          spec:
+            environment_version: "4"
+            dependencies:
+              - dbldatagen==0.4.0.post1
+              - pyyaml>=6
+      tasks:
+        - task_key: land_files
+          environment_key: framework
+          spark_python_task:
+            python_file: ../src/generate_landing.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --use-case-file=${workspace.file_path}/use_cases/${var.use_case}.yml
+              - --mode=batch
+
+        - task_key: ingest_with_retry
+          depends_on:
+            - task_key: land_files
+          environment_key: framework
+          max_retries: 2
+          min_retry_interval_millis: 15000
+          retry_on_timeout: true
+          spark_python_task:
+            python_file: ../src/run_feed.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --feeds-dir=${workspace.file_path}/feeds/${var.use_case}
+              - --feed=provider_a
+              - --run-id={{job.run_id}}
+              - --simulate-transient-failure=true
+
+        - task_key: record_audit_trail
+          depends_on:
+            - task_key: ingest_with_retry
+          environment_key: framework
+          spark_python_task:
+            python_file: ../src/dataops_audit_trail.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --job-id={{job.id}}
+              - --run-id={{job.run_id}}

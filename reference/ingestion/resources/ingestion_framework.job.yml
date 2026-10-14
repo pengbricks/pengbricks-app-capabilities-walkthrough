@@ -1,0 +1,62 @@
+# Configuration vs code + Reusability / templatization.
+# One shared framework task runs once per feed; feeds come from the use-case spec.
+resources:
+  jobs:
+    capability_guides_ingestion_framework:
+      name: capability-guides-ingestion-framework
+      description: Lands every feed in the use case, runs the shared framework per feed, and compares results.
+      tags:
+        capability_guide_job: capability_guides_ingestion_framework
+        capability_guide_use_case: ${var.use_case}
+      max_concurrent_runs: 1
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${resources.schemas.capability_guides_ingestion.name}
+      environments:
+        - environment_key: framework
+          spec:
+            environment_version: "4"
+            dependencies:
+              - dbldatagen==0.4.0.post1
+              - pyyaml>=6
+      tasks:
+        - task_key: land_files
+          environment_key: framework
+          spark_python_task:
+            python_file: ../src/generate_landing.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --use-case-file=${workspace.file_path}/use_cases/${var.use_case}.yml
+              - --mode=batch
+
+        - task_key: ingest_each_feed
+          depends_on:
+            - task_key: land_files
+          for_each_task:
+            inputs: "{{tasks.land_files.values.feeds}}"
+            concurrency: 4
+            task:
+              task_key: ingest_feed
+              environment_key: framework
+              spark_python_task:
+                python_file: ../src/run_feed.py
+                parameters:
+                  - --catalog={{job.parameters.catalog}}
+                  - --schema={{job.parameters.schema}}
+                  - --feeds-dir=${workspace.file_path}/feeds/${var.use_case}
+                  - --feed={{input}}
+                  - --run-id={{job.run_id}}
+
+        - task_key: compare_feeds
+          depends_on:
+            - task_key: ingest_each_feed
+          environment_key: framework
+          spark_python_task:
+            python_file: ../src/summarize_run.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --run-id={{job.run_id}}

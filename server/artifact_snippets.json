@@ -1,0 +1,228 @@
+{
+  "batch-real-time-ingestion": [
+    {
+      "path": "reference/ingestion/src/pipeline/events_bronze.sql",
+      "symbol": null,
+      "startLine": 1,
+      "endLine": 12,
+      "language": "sql",
+      "code": "-- Real-time path: Auto Loader incrementally picks up only new event files.\nCREATE OR REFRESH STREAMING TABLE events_bronze\nCOMMENT 'Raw events landed by the streaming generator, ingested incrementally with Auto Loader'\nAS SELECT\n  *,\n  _metadata.file_path AS source_file,\n  current_timestamp() AS ingested_at\nFROM STREAM read_files(\n  '${landing_events_path}',\n  format => 'json',\n  schemaHints => 'event_id STRING, account_id STRING, event_ts STRING, amount DOUBLE, currency STRING, status STRING'\n);"
+    },
+    {
+      "path": "reference/ingestion/src/pipeline/events_silver.sql",
+      "symbol": null,
+      "startLine": 1,
+      "endLine": 17,
+      "language": "sql",
+      "code": "-- Expectations record quality metrics in the pipeline event log on every update.\nCREATE OR REFRESH STREAMING TABLE events_silver (\n  CONSTRAINT event_id_present EXPECT (event_id IS NOT NULL) ON VIOLATION DROP ROW,\n  CONSTRAINT amount_non_negative EXPECT (amount >= 0) ON VIOLATION DROP ROW,\n  CONSTRAINT currency_supported EXPECT (currency IN ('USD', 'EUR', 'GBP'))\n)\nCOMMENT 'Validated events with end-to-end ingestion latency per row'\nAS SELECT\n  event_id,\n  account_id,\n  to_timestamp(event_ts) AS event_ts,\n  CAST(amount AS DECIMAL(18, 2)) AS amount,\n  currency,\n  status,\n  ingested_at,\n  (unix_millis(ingested_at) - unix_millis(to_timestamp(event_ts))) / 1000.0 AS latency_seconds\nFROM STREAM(events_bronze);"
+    },
+    {
+      "path": "reference/ingestion/src/record_ingestion_metrics.py",
+      "symbol": "main",
+      "startLine": 8,
+      "endLine": 47,
+      "language": "py",
+      "code": "def main() -> None:\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"--catalog\", required=True)\n    parser.add_argument(\"--schema\", required=True)\n    parser.add_argument(\"--run-id\", required=True)\n    parser.add_argument(\"--pipeline-id\", required=True)\n    args = parser.parse_args()\n\n    from databricks.sdk import WorkspaceClient\n    from databricks.sdk.runtime import spark\n\n    prefix = f\"{args.catalog}.{args.schema}\"\n    w = WorkspaceClient()\n    update = next(iter(w.pipelines.list_updates(pipeline_id=args.pipeline_id, max_results=1).updates or []), None)\n\n    metrics = spark.sql(\n        f\"\"\"\n        SELECT\n          :run_id AS job_run_id,\n          :update_id AS pipeline_update_id,\n          :update_state AS pipeline_update_state,\n          current_timestamp() AS recorded_at,\n          (SELECT count(*) FROM {prefix}.events_bronze) AS bronze_events_total,\n          (SELECT count(*) FROM {prefix}.events_silver) AS silver_events_total,\n          (SELECT count(*) FROM {prefix}.events_bronze) - (SELECT count(*) FROM {prefix}.events_silver) AS dropped_by_expectations,\n          (SELECT percentile_approx(latency_seconds, 0.5) FROM {prefix}.events_silver\n             WHERE ingested_at >= current_timestamp() - INTERVAL 1 HOUR) AS p50_latency_seconds,\n          (SELECT percentile_approx(latency_seconds, 0.95) FROM {prefix}.events_silver\n             WHERE ingested_at >= current_timestamp() - INTERVAL 1 HOUR) AS p95_latency_seconds,\n          (SELECT max(events) / 60.0 FROM {prefix}.ingestion_latency_by_minute) AS peak_events_per_second,\n          (SELECT count(*) FROM {prefix}.transactions_daily_summary) AS batch_summary_rows\n        \"\"\",\n        args={\n            \"run_id\": args.run_id,\n            \"update_id\": update.update_id if update else \"\",\n            \"update_state\": str(update.state.value) if update and update.state else \"\",\n        },\n    )\n    metrics.write.mode(\"append\").option(\"mergeSchema\", \"true\").saveAsTable(f\"{prefix}.ingestion_run_metrics\")\n    metrics.show(vertical=True, truncate=False)"
+    }
+  ],
+  "configuration-vs-code": [
+    {
+      "path": "reference/ingestion/src/capability_framework/adapters/provider_a.py",
+      "symbol": "read",
+      "startLine": 21,
+      "endLine": 24,
+      "language": "py",
+      "code": "def read(spark, config: FeedConfig, landing_path: str):\n    raw = generic.read_raw(spark, config, landing_path)\n    decoded = raw.selectExpr(\"*\", f\"{status_case_sql('STATUS_CD')} AS status_label\")\n    return decoded.selectExpr(*generic.mapping_select(config))"
+    },
+    {
+      "path": "reference/ingestion/src/capability_framework/runner.py",
+      "symbol": "run_feed",
+      "startLine": 34,
+      "endLine": 66,
+      "language": "py",
+      "code": "def run_feed(spark, config: FeedConfig, catalog: str, schema: str, run_id: str) -> AuditRecord:\n    prefix = f\"{catalog}.{schema}\"\n    record = AuditRecord(run_id=run_id, feed=config.name)\n    try:\n        from pyspark.sql import functions as F\n\n        mapped = get_adapter(config.adapter)(spark, config, config.landing_path(catalog, schema))\n        mapped = mapped.withColumn(\"source_feed\", F.lit(config.name)).withColumn(\"ingest_run_id\", F.lit(run_id))\n        valid, quarantined = split_valid(mapped, config.rules)\n\n        record.rows_read = mapped.count()\n        record.rows_quarantined = quarantined.count()\n        record.rows_valid = record.rows_read - record.rows_quarantined\n\n        quarantined.withColumn(\"quarantined_at\", F.current_timestamp()).write.mode(\"append\").saveAsTable(\n            f\"{prefix}.transactions_quarantine\"\n        )\n\n        silver = f\"{prefix}.transactions_silver\"\n        deduped = valid.dropDuplicates([\"source_feed\", *config.keys])\n        deduped.createOrReplaceTempView(\"incoming_valid\")\n        key_match = \" AND \".join(f\"t.{key} = s.{key}\" for key in (\"source_feed\", *config.keys))\n        spark.sql(\n            f\"MERGE INTO {silver} t USING incoming_valid s ON {key_match} \"\n            \"WHEN MATCHED THEN UPDATE SET * WHEN NOT MATCHED THEN INSERT *\"\n        )\n        record.finish(\"SUCCEEDED\")\n        return record\n    except Exception as error:\n        record.finish(\"FAILED\", f\"{type(error).__name__}: {error}\")\n        raise\n    finally:\n        write_audit(spark, f\"{prefix}.audit_log\", record)"
+    },
+    {
+      "path": "reference/ingestion/src/capability_framework/validation.py",
+      "symbol": "quarantine_reasons_sql",
+      "startLine": 21,
+      "endLine": 28,
+      "language": "py",
+      "code": "def quarantine_reasons_sql(rules: tuple[Rule, ...]) -> str:\n    \"\"\"Return a SQL expression producing an array of failed rule names (empty when valid).\"\"\"\n    if not rules:\n        return \"CAST(array() AS ARRAY<STRING>)\"\n    cases = \", \".join(\n        f\"CASE WHEN NOT coalesce(({rule_to_sql(rule)}), false) THEN '{rule.name}' END\" for rule in rules\n    )\n    return f\"filter(array({cases}), reason -> reason IS NOT NULL)\""
+    }
+  ],
+  "dataops": [
+    {
+      "path": "reference/ingestion/resources/dataops.job.yml",
+      "symbol": null,
+      "startLine": 13,
+      "endLine": 52,
+      "language": "yml",
+      "code": "      email_notifications:\n        on_failure:\n          - ${var.notification_email}\n        on_duration_warning_threshold_exceeded:\n          - ${var.notification_email}\n      health:\n        rules:\n          - metric: RUN_DURATION_SECONDS\n            op: GREATER_THAN\n            value: 1200\n      parameters:\n        - name: catalog\n          default: ${var.catalog}\n        - name: schema\n          default: ${resources.schemas.capability_guides_ingestion.name}\n      environments:\n        - environment_key: framework\n          spec:\n            environment_version: \"4\"\n            dependencies:\n              - dbldatagen==0.4.0.post1\n              - pyyaml>=6\n      tasks:\n        - task_key: land_files\n          environment_key: framework\n          spark_python_task:\n            python_file: ../src/generate_landing.py\n            parameters:\n              - --catalog={{job.parameters.catalog}}\n              - --schema={{job.parameters.schema}}\n              - --use-case-file=${workspace.file_path}/use_cases/${var.use_case}.yml\n              - --mode=batch\n\n        - task_key: ingest_with_retry\n          depends_on:\n            - task_key: land_files\n          environment_key: framework\n          max_retries: 2\n          min_retry_interval_millis: 15000\n          retry_on_timeout: true"
+    },
+    {
+      "path": "reference/ingestion/src/run_feed.py",
+      "symbol": "simulate_transient_failure",
+      "startLine": 11,
+      "endLine": 19,
+      "language": "py",
+      "code": "def simulate_transient_failure(dbutils, catalog: str, schema: str, run_id: str) -> None:\n    \"\"\"Fail the first attempt of a run so the job's retry policy is exercised; later attempts pass.\"\"\"\n    marker = f\"/Volumes/{catalog}/{schema}/landing/_markers/transient-{run_id}\"\n    try:\n        dbutils.fs.ls(marker)\n        print(\"Retry attempt: transient condition cleared\")\n    except Exception:\n        dbutils.fs.put(marker, \"first attempt failed on purpose\", True)\n        raise TransientSourceError(\"Simulated transient source outage on first attempt; the job retry policy will rerun\")"
+    },
+    {
+      "path": "reference/ingestion/src/rollback_table.py",
+      "symbol": "main",
+      "startLine": 8,
+      "endLine": 21,
+      "language": "py",
+      "code": "def main() -> None:\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"--table\", required=True)\n    parser.add_argument(\"--version\", default=\"\")\n    args = parser.parse_args()\n\n    from databricks.sdk.runtime import spark\n\n    history = spark.sql(f\"DESCRIBE HISTORY {args.table}\").select(\"version\", \"operation\").orderBy(\"version\", ascending=False).collect()\n    if len(history) < 2 and not args.version:\n        raise RuntimeError(f\"{args.table} has no earlier version to restore\")\n    target = int(args.version) if args.version else history[1].version\n    print(f\"Restoring {args.table} from version {history[0].version} to version {target}\")\n    spark.sql(f\"RESTORE TABLE {args.table} TO VERSION AS OF {target}\").show(truncate=False)"
+    }
+  ],
+  "documentation-generation": [
+    {
+      "path": "reference/documentation/src/generate_docs.py",
+      "symbol": "profile",
+      "startLine": 24,
+      "endLine": 34,
+      "language": "py",
+      "code": "def profile(spark, fq, columns):\n    \"\"\"Row count, per-column null rate, and uniqueness of the first id-like column.\"\"\"\n    exprs = [\"COUNT(*) AS n\"] + [f\"AVG(CASE WHEN `{c}` IS NULL THEN 1.0 ELSE 0.0 END) AS nr_{i}\"\n                                 for i, c in enumerate(columns)]\n    key = next((c for c in columns if c.lower().endswith(\"id\") or c.lower() == \"id\"), columns[0])\n    exprs.append(f\"COUNT(DISTINCT `{key}`) AS key_distinct\")\n    r = spark.sql(f\"SELECT {', '.join(exprs)} FROM {fq}\").first()\n    n = int(r[\"n\"])\n    return {\"row_count\": n, \"null_rates\": {c: (float(r[f\"nr_{i}\"]) if n else None) for i, c in enumerate(columns)},\n            \"key_column\": key, \"key_distinct\": int(r[\"key_distinct\"]),\n            \"key_unique\": n > 0 and int(r[\"key_distinct\"]) == n}"
+    },
+    {
+      "path": "reference/documentation/src/generate_docs.py",
+      "symbol": "draft_descriptions",
+      "startLine": 37,
+      "endLine": 48,
+      "language": "py",
+      "code": "def draft_descriptions(spark, endpoint, fq, cols, prof, upstream):\n    col_lines = \"\\n\".join(f\"- {n} ({t}), null rate {prof['null_rates'][n]:.1%}\" if prof[\"null_rates\"][n] is not None\n                          else f\"- {n} ({t})\" for n, t in cols)\n    prompt = (\n        f\"You document Unity Catalog tables. Table: {fq}\\nRows: {prof['row_count']}\\n\"\n        f\"Upstream tables: {', '.join(upstream) or 'none (source table)'}\\nColumns:\\n{col_lines}\\n\\n\"\n        \"Return only a JSON object: {\\\"table\\\": \\\"one or two sentence table description\\\", \"\n        \"\\\"columns\\\": {\\\"<column name>\\\": \\\"short column description\\\"}, \"\n        \"\\\"usage_guidance\\\": \\\"two or three sentences on how to use this table and what to watch for\\\"}. \"\n        \"Be specific and plain. No marketing language.\")\n    rows = safe(spark, f\"SELECT ai_query('{sql_str(endpoint)}', '{sql_str(prompt)}') AS r\")\n    return parse_ai_json(rows[0][\"r\"]) if rows else {}"
+    },
+    {
+      "path": "reference/documentation/src/doc_render.py",
+      "symbol": "render_table_page",
+      "startLine": 45,
+      "endLine": 84,
+      "language": "py",
+      "code": "def render_table_page(t: dict) -> str:\n    \"\"\"Render one table's page. `t` keys: full_name, description, owner, tags, columns,\n    upstream, downstream, row_count, key_column, key_unique, readers, queries, generated_at, model.\"\"\"\n    L = [f\"# {t['full_name']}\", \"\"]\n    L += [t.get(\"description\") or \"_No description generated._\", \"\"]\n\n    L += [\"## Ownership\", \"\", f\"- Owner: `{t.get('owner') or 'unknown'}`\"]\n    tags = t.get(\"tags\") or []\n    L += [\"- Tags: \" + (\", \".join(f\"`{k}={v}`\" for k, v in tags) if tags else \"none\"), \"\"]\n\n    L += [\"## Schema\", \"\"]\n    L += [md_table([\"Column\", \"Type\", \"Null rate\", \"Description\"],\n                   [(c[\"name\"], c[\"type\"], pct(c.get(\"null_rate\")), c.get(\"description\", \"\")) for c in t[\"columns\"]]), \"\"]\n\n    L += [\"## Quality\", \"\", f\"- Row count: {t.get('row_count', 'n/a'):,}\" if isinstance(t.get(\"row_count\"), int)\n          else \"- Row count: n/a\"]\n    kc = t.get(\"key_column\")\n    if kc:\n        L.append(f\"- Key candidate `{kc}`: {'unique' if t.get('key_unique') else 'NOT unique'}\"\n                 f\" ({t.get('key_distinct', 'n/a')} distinct values)\")\n    L.append(\"\")\n\n    L += [\"## Lineage\", \"\"]\n    for label, key in ((\"Upstream\", \"upstream\"), (\"Downstream\", \"downstream\")):\n        items = t.get(key) or []\n        L.append(f\"- {label}: \" + (\", \".join(f\"`{i}`\" for i in items) if items else \"none recorded\"))\n    L.append(\"\")\n\n    L += [\"## Usage guidance\", \"\"]\n    readers = t.get(\"readers\") or []\n    if readers:\n        L += [md_table([\"Reader\", \"Reads (30d)\", \"Last read\"], readers), \"\"]\n    else:\n        L += [\"No recent readers found in `system.access.table_lineage` (system tables can lag by minutes to hours).\", \"\"]\n    queries = t.get(\"queries\") or []\n    if queries:\n        L += [\"Recent queries from `system.query.history`:\", \"\"]\n        L += [f\"- `{' '.join(str(q).split())[:160]}`\" for q in queries]\n        L.append(\"\")\n    else:"
+    }
+  ],
+  "github-cicd": [
+    {
+      "path": ".github/workflows/reference-cicd.yml",
+      "symbol": null,
+      "startLine": 72,
+      "endLine": 101,
+      "language": "yml",
+      "code": "  deploy-test:\n    needs: deploy-dev\n    runs-on: ubuntu-latest\n    environment: test # required reviewers on this environment gate promotion\n    env:\n      DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}\n      DATABRICKS_AUTH_TYPE: ${{ vars.DATABRICKS_AUTH_TYPE }}\n      DATABRICKS_CLIENT_ID: ${{ vars.DATABRICKS_CLIENT_ID }}\n      DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}\n      BUNDLE_VAR_catalog: ${{ vars.CATALOG }}\n      BUNDLE_VAR_warehouse_id: ${{ vars.WAREHOUSE_ID }}\n      BUNDLE_VAR_app_service_principal: ${{ vars.APP_SERVICE_PRINCIPAL }}\n      BUNDLE_VAR_notification_email: ${{ vars.NOTIFICATION_EMAIL }}\n      BUNDLE_VAR_release: ${{ github.sha }}\n    steps:\n      - uses: actions/checkout@v4\n      - uses: databricks/setup-cli@main\n      - name: Validate\n        run: databricks bundle validate --strict --target test\n      - name: Deploy the same commit\n        run: databricks bundle deploy --target test\n      - name: Run in test\n        run: databricks bundle run capability_guides_ingestion_framework --target test\n      - name: Release summary\n        run: |\n          {\n            echo \"### Released ${GITHUB_SHA::7} to test\"\n            echo \"- Bundle: capability-guides-ingestion\"\n            echo \"- Resources tagged release=${GITHUB_SHA}\"\n          } >> \"$GITHUB_STEP_SUMMARY\""
+    },
+    {
+      "path": "reference/ingestion/databricks.yml",
+      "symbol": null,
+      "startLine": 35,
+      "endLine": 49,
+      "language": "yml",
+      "code": "targets:\n  dev:\n    default: true\n    mode: development\n    presets:\n      tags:\n        release: ${var.release}\n  test:\n    presets:\n      name_prefix: \"[test] \"\n      tags:\n        environment: test\n        release: ${var.release}\n    variables:\n      environment: test"
+    }
+  ],
+  "ide-developer-experience": [
+    {
+      "path": "reference/developer-experience/src/dx_demo/transforms.py",
+      "symbol": "clean_records",
+      "startLine": 8,
+      "endLine": 26,
+      "language": "py",
+      "code": "def clean_records(df: DataFrame, key: str, value: str, order_by: str) -> DataFrame:\n    \"\"\"Normalize keys, drop invalid rows, keep the latest version of each key.\n\n    Edge cases:\n    - Keys are normalized BEFORE de-duplication, so \" k-1\" and \"K-1\" are the same record.\n    - Rows with a null `order_by` sort last, so a dated version always beats an undated one.\n    \"\"\"\n    normalized = (\n        df.withColumn(key, F.upper(F.trim(F.col(key))))\n        .withColumn(key, F.when(F.col(key) == \"\", None).otherwise(F.col(key)))\n        .filter(F.col(key).isNotNull())\n        .filter(F.col(value).isNotNull() & (F.col(value) >= 0))\n    )\n    latest = Window.partitionBy(key).orderBy(F.col(order_by).desc_nulls_last())\n    return (\n        normalized.withColumn(\"_rn\", F.row_number().over(latest))\n        .filter(F.col(\"_rn\") == 1)\n        .drop(\"_rn\")\n    )"
+    },
+    {
+      "path": "reference/developer-experience/src/run_tests.py",
+      "symbol": null,
+      "startLine": 1,
+      "endLine": 15,
+      "language": "py",
+      "code": "\"\"\"Runs the same pytest suite on Databricks serverless. Fails the task on any test failure.\"\"\"\nimport sys\n\nsys.dont_write_bytecode = True  # workspace files cannot hold __pycache__\n\nfrom pathlib import Path  # noqa: E402\n\nimport pytest  # noqa: E402\n\nroot = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parents[1]\nsys.path.insert(0, str(root / \"src\"))\n\ncode = pytest.main([str(root / \"tests\"), \"-v\", \"-p\", \"no:cacheprovider\"])\nif code != 0:\n    raise SystemExit(f\"pytest failed with exit code {int(code)}\")"
+    },
+    {
+      "path": "reference/developer-experience/src/validate_output.sql",
+      "symbol": null,
+      "startLine": 1,
+      "endLine": 7,
+      "language": "sql",
+      "code": "-- Run by the sql_checks task. assert_true fails the task when a check does not hold.\nSELECT\n  assert_true(COUNT(*) > 0, 'output table is empty') AS non_empty,\n  assert_true(COUNT(*) = COUNT(DISTINCT IDENTIFIER(:key_column)), 'keys must be unique') AS unique_keys,\n  assert_true(COUNT(IDENTIFIER(:key_column)) = COUNT(*), 'keys must not be null') AS no_null_keys,\n  assert_true(MIN(IDENTIFIER(:value_column)) >= 0, 'values must not be negative') AS non_negative\nFROM IDENTIFIER(:catalog || '.' || :schema || '.' || :output_table);"
+    }
+  ],
+  "legacy-conversion": [
+    {
+      "path": "reference/legacy-conversion/src/lc_helpers.py",
+      "symbol": "classify",
+      "startLine": 89,
+      "endLine": 99,
+      "language": "py",
+      "code": "def classify(sql):\n    \"\"\"Return (primary_construct, [tags]).\"\"\"\n    body = strip_comments(sql)\n    flat = re.sub(r\"\\s+\", \" \", body)\n    primary = \"other\"\n    for name, pat in CONSTRUCT_RULES:\n        if re.search(pat, flat, re.IGNORECASE | re.DOTALL):\n            primary = name\n            break\n    tags = [t for t, pat in FEATURE_TAGS.items() if re.search(pat, flat, re.IGNORECASE)]\n    return primary, tags"
+    },
+    {
+      "path": "reference/legacy-conversion/src/lc_helpers.py",
+      "symbol": "convert_statement",
+      "startLine": 120,
+      "endLine": 145,
+      "language": "py",
+      "code": "def convert_statement(sql, catalog, schema, legacy_schema=\"dbo\", temp_prefix=\"tmp_\"):\n    \"\"\"Convert one legacy step to Databricks SQL. Never raises; returns a Conversion.\"\"\"\n    primary, tags = classify(sql)\n    if primary in MANUAL_REASONS:\n        return Conversion(\"manual\", [MANUAL_REASONS[primary]])\n    text = re.sub(r\"#(\\w+)\", lambda m: temp_prefix + m.group(1), strip_comments(sql))\n    capture = _Capture()\n    log = logging.getLogger(\"sqlglot\")\n    log.addHandler(capture)\n    try:\n        trees = sqlglot.parse(text, read=\"tsql\")\n        if not trees or any(t is None or isinstance(t, exp.Command) for t in trees):\n            return Conversion(\"manual\", [\"sqlglot could not parse the statement and fell back to a raw command.\"])\n        out = []\n        for tree in trees:\n            _qualify(tree, catalog, schema, legacy_schema, temp_prefix)\n            out.append(tree.sql(dialect=\"databricks\"))\n    except Exception as e:  # parse or generate failure\n        return Conversion(\"manual\", [f\"sqlglot error: {str(e).splitlines()[0][:200]}\"])\n    finally:\n        log.removeHandler(capture)\n    converted = \";\\n\".join(out)\n    converted = re.sub(r\"^CREATE TABLE (\\S+) AS\", r\"CREATE OR REPLACE TABLE \\1 AS\", converted)\n    notes = [WARNING_REASONS[t] for t in TAG_ORDER_FOR_WARNING if t in tags]\n    notes += [f\"sqlglot: {m[:200]}\" for m in capture.messages]\n    return Conversion(\"warning\" if notes else \"clean\", notes or [\"Converted without changes needing review.\"], converted)"
+    },
+    {
+      "path": "reference/legacy-conversion/src/lc_helpers.py",
+      "symbol": "effort_model",
+      "startLine": 148,
+      "endLine": 161,
+      "language": "py",
+      "code": "def effort_model(counts, effort_spec):\n    \"\"\"counts: {'clean': n, 'warning': n, 'manual': n}. Returns one row per role.\"\"\"\n    rows = []\n    for role, cfg in effort_spec[\"roles\"].items():\n        per = cfg[\"per_status\"]\n        parts = {s: round(counts.get(s, 0) * per[s], 2) for s in (\"clean\", \"warning\", \"manual\")}\n        total = round(cfg[\"fixed\"] + sum(parts.values()), 2)\n        rows.append({\n            \"role\": role,\n            \"clean_hours\": parts[\"clean\"], \"warning_hours\": parts[\"warning\"],\n            \"manual_hours\": parts[\"manual\"], \"fixed_hours\": float(cfg[\"fixed\"]),\n            \"total_hours\": total, \"assumption\": cfg[\"assumption\"],\n        })\n    return rows"
+    }
+  ],
+  "monitoring": [
+    {
+      "path": "reference/monitoring/src/sql/ops_job_runs.sql",
+      "symbol": null,
+      "startLine": 1,
+      "endLine": 40,
+      "language": "sql",
+      "code": "-- One row per job run in the lookback window, for the whole workspace.\n-- is_capability_guide_job and the two tag columns let the dashboard filter to guide jobs.\nCREATE OR REPLACE TABLE IDENTIFIER(:catalog || '.' || :schema || '.ops_job_runs') AS\nWITH ctx AS (\n  SELECT workspace_id FROM IDENTIFIER(:catalog || '.' || :schema || '.ops_context')\n),\nlatest_jobs AS (\n  SELECT j.*\n  FROM system.lakeflow.jobs j JOIN ctx USING (workspace_id)\n  WHERE j.delete_time IS NULL\n  QUALIFY row_number() OVER (PARTITION BY j.job_id ORDER BY j.change_time DESC) = 1\n),\nruns AS (\n  SELECT t.job_id, t.run_id,\n         min(t.period_start_time) AS start_time,\n         max(t.period_end_time) AS end_time,\n         max(t.result_state) AS result_state,\n         max(t.termination_code) AS termination_code,\n         max(t.trigger_type) AS trigger_type,\n         max(t.run_type) AS run_type\n  FROM system.lakeflow.job_run_timeline t JOIN ctx USING (workspace_id)\n  WHERE t.period_end_time >= date_sub(current_date(), CAST(:lookback_days AS INT))\n  GROUP BY t.job_id, t.run_id\n)\nSELECT r.job_id,\n       r.run_id,\n       coalesce(j.name, concat('job ', r.job_id)) AS job_name,\n       r.start_time,\n       r.end_time,\n       CAST(r.start_time AS DATE) AS run_date,\n       round((unix_timestamp(r.end_time) - unix_timestamp(r.start_time)) / 60.0, 2) AS duration_min,\n       coalesce(r.result_state, 'RUNNING') AS result_state,\n       r.termination_code,\n       r.trigger_type,\n       r.run_type,\n       coalesce(j.run_as_user_name, j.run_as) AS run_as,\n       coalesce(j.tags[:guide_tag_key], '') AS capability_guide_job,\n       coalesce(j.tags[:use_case_tag_key], '') AS capability_guide_use_case,\n       j.tags[:guide_tag_key] IS NOT NULL AS is_capability_guide_job\nFROM runs r LEFT JOIN latest_jobs j USING (job_id)"
+    },
+    {
+      "path": "reference/monitoring/src/sql/ops_usage_cost.sql",
+      "symbol": null,
+      "startLine": 1,
+      "endLine": 21,
+      "language": "sql",
+      "code": "-- Daily usage and list-price cost by SKU and product for this workspace.\nCREATE OR REPLACE TABLE IDENTIFIER(:catalog || '.' || :schema || '.ops_usage_cost') AS\nWITH ctx AS (\n  SELECT workspace_id FROM IDENTIFIER(:catalog || '.' || :schema || '.ops_context')\n),\nprice AS (\n  SELECT sku_name, usage_unit, pricing.default AS unit_price, price_start_time,\n         coalesce(price_end_time, TIMESTAMP'2999-01-01') AS price_end_time\n  FROM system.billing.list_prices\n)\nSELECT u.usage_date, u.sku_name,\n       coalesce(u.billing_origin_product, 'UNKNOWN') AS product,\n       u.usage_unit,\n       CAST(sum(u.usage_quantity) AS DOUBLE) AS usage_quantity,\n       CAST(round(sum(u.usage_quantity * p.unit_price), 2) AS DOUBLE) AS list_cost_usd\nFROM system.billing.usage u JOIN ctx USING (workspace_id)\nLEFT JOIN price p\n  ON u.sku_name = p.sku_name AND u.usage_unit = p.usage_unit\n AND u.usage_start_time >= p.price_start_time AND u.usage_start_time < p.price_end_time\nWHERE u.usage_date >= date_sub(current_date(), CAST(:lookback_days AS INT))\nGROUP BY u.usage_date, u.sku_name, coalesce(u.billing_origin_product, 'UNKNOWN'), u.usage_unit"
+    },
+    {
+      "path": "reference/monitoring/src/alert_routing.py",
+      "symbol": null,
+      "startLine": 1,
+      "endLine": 40,
+      "language": "py",
+      "code": "\"\"\"Setup task: record the workspace ID and build ops_alert_routing.\n\nsystem.lakeflow.jobs has health rules but not email_notifications, so alert\nrouting comes from the Jobs API. SQL alert subscriptions come from the Alerts v2 API.\n\"\"\"\nimport argparse\n\nfrom databricks.sdk import WorkspaceClient\nfrom pyspark.sql import SparkSession\n\np = argparse.ArgumentParser()\nfor a in (\"catalog\", \"schema\", \"guide_tag_key\", \"use_case_tag_key\", \"alert_email\"):\n    p.add_argument(f\"--{a}\", required=True)\nargs = p.parse_args()\n\nspark = SparkSession.builder.getOrCreate()\nw = WorkspaceClient()\nfq = f\"`{args.catalog}`.`{args.schema}`\"\nws_id = str(w.get_workspace_id())\n\nspark.sql(f\"CREATE OR REPLACE TABLE {fq}.ops_context AS SELECT '{ws_id}' AS workspace_id\")\n\nrows = []\n\n\ndef add(kind, name, ident, tags, rule, dest_type, dest, guide_job=None):\n    rows.append((\n        kind, str(name), str(ident),\n        (tags or {}).get(args.guide_tag_key, \"\"),\n        (tags or {}).get(args.use_case_tag_key, \"\"),\n        (tags or {}).get(args.guide_tag_key) is not None,\n        rule, dest_type, dest,\n    ))\n\n\nfor j in w.jobs.list(expand_tasks=False):\n    s = j.settings\n    if s is None:\n        continue\n    tags = s.tags or {}"
+    }
+  ],
+  "reusability-templatization": [
+    {
+      "path": "reference/ingestion/src/capability_framework/use_case.py",
+      "symbol": "render_feed",
+      "startLine": 34,
+      "endLine": 43,
+      "language": "py",
+      "code": "def render_feed(spec: dict[str, Any], feed: dict[str, Any]) -> dict[str, Any]:\n    \"\"\"Render the framework feed config for one feed. Output is deterministic for a given spec.\"\"\"\n    return {\n        \"name\": feed[\"name\"],\n        \"adapter\": feed.get(\"adapter\", \"generic\"),\n        \"source\": {\"format\": feed[\"format\"], \"options\": dict(feed.get(\"options\", {}))},\n        \"mapping\": {column: feed[\"mapping\"][column] for column in CANONICAL_COLUMNS},\n        \"keys\": list(spec[\"entity\"][\"keys\"]),\n        \"rules\": [dict(rule) for rule in spec.get(\"rules\", [])] + [dict(rule) for rule in feed.get(\"rules\", [])],\n    }"
+    },
+    {
+      "path": "reference/ingestion/src/capability_framework/datagen.py",
+      "symbol": "canonical",
+      "startLine": 61,
+      "endLine": 81,
+      "language": "py",
+      "code": "def canonical(spark, spec: dict[str, Any], rows: int, seed_offset: int = 0, id_offset: int = 0):\n    import dbldatagen as dg\n    from pyspark.sql import functions as F\n\n    generator = dg.DataGenerator(\n        spark,\n        name=f\"{spec['name']}_{spec['entity']['name']}\",\n        rows=rows,\n        partitions=4,\n        randomSeedMethod=\"hash_fieldname\",\n        randomSeed=int(spec[\"seed\"]) + seed_offset,\n    ).withIdOutput()\n    for column in spec[\"entity\"][\"columns\"]:\n        generator = generator.withColumn(column[\"name\"], spark_type(column[\"type\"]), **column_options(column))\n    df = generator.build()\n    if id_offset:\n        df = df.withColumn(\"id\", F.col(\"id\") + F.lit(id_offset))\n        for column in spec[\"entity\"][\"columns\"]:\n            if \"expr\" in column:\n                df = df.withColumn(column[\"name\"], F.expr(column[\"expr\"]))\n    return df"
+    },
+    {
+      "path": "reference/ingestion/feeds/general/provider_b.yml",
+      "symbol": null,
+      "startLine": 1,
+      "endLine": 35,
+      "language": "yml",
+      "code": "# Generated from use_cases/general.yml by tools/render_use_case.py. Do not edit.\nname: provider_b\nadapter: generic\nsource:\n  format: json\n  options: {}\nmapping:\n  record_id: id\n  account_id: account.number\n  event_ts: to_timestamp(occurred_at)\n  amount: CAST(amount.value AS DECIMAL(18,2))\n  currency: amount.currency\n  status: lower(state)\nkeys:\n- record_id\nrules:\n- name: record_id_present\n  type: not_null\n  column: record_id\n- name: event_ts_present\n  type: not_null\n  column: event_ts\n- name: amount_non_negative\n  type: expression\n  expr: amount >= 0\n- name: currency_supported\n  type: allowed_values\n  column: currency\n  values:\n  - USD\n  - EUR\n  - GBP\n- name: status_known\n  type: not_null\n  column: status"
+    }
+  ]
+}

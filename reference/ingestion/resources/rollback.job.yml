@@ -1,0 +1,27 @@
+# Rollback: restore a Delta table to an earlier version after a bad write.
+resources:
+  jobs:
+    capability_guides_rollback:
+      name: capability-guides-rollback
+      description: Restores the silver table to an earlier Delta version. Leave version blank to undo the latest write.
+      tags:
+        capability_guide_job: capability_guides_rollback
+        capability_guide_use_case: ${var.use_case}
+        environment: ${var.environment}
+      parameters:
+        - name: table
+          default: ${var.catalog}.${resources.schemas.capability_guides_ingestion.name}.transactions_silver
+        - name: version
+          default: ""
+      tasks:
+        - task_key: restore_table
+          spark_python_task:
+            python_file: ../src/rollback_table.py
+            parameters:
+              - --table={{job.parameters.table}}
+              - --version={{job.parameters.version}}
+          environment_key: base
+      environments:
+        - environment_key: base
+          spec:
+            environment_version: "4"

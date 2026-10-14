@@ -1,0 +1,37 @@
+# Generated from use_cases/general.yml by tools/render_use_case.py. Do not edit.
+name: provider_a
+adapter: provider_a
+source:
+  format: csv
+  options:
+    header: 'true'
+    inferSchema: 'false'
+mapping:
+  record_id: TXN_ID
+  account_id: ACCT_NO
+  event_ts: to_timestamp(TXN_DATE, 'MM/dd/yyyy HH:mm:ss')
+  amount: CAST(CAST(AMOUNT_CENTS AS BIGINT) / 100 AS DECIMAL(18,2))
+  currency: CCY
+  status: status_label
+keys:
+- record_id
+rules:
+- name: record_id_present
+  type: not_null
+  column: record_id
+- name: event_ts_present
+  type: not_null
+  column: event_ts
+- name: amount_non_negative
+  type: expression
+  expr: amount >= 0
+- name: currency_supported
+  type: allowed_values
+  column: currency
+  values:
+  - USD
+  - EUR
+  - GBP
+- name: status_known
+  type: not_null
+  column: status
