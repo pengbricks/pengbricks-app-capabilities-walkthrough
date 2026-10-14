@@ -1,0 +1,81 @@
+# Governed MCP tool call, supervisor handoff, and a two-model gateway comparison with limits and audit.
+resources:
+  jobs:
+    capability_guides_agent_gateway:
+      name: capability-guides-agent-gateway
+      description: Calls a Unity Catalog function as an MCP tool, hands off between two agents, routes one prompt through two Unity Gateway model services, and records the audit trail and a capability table.
+      tags:
+        capability_guide_job: capability_guides_agent_gateway
+        capability_guide_use_case: ${var.use_case}
+      max_concurrent_runs: 1
+      timeout_seconds: 3600
+      email_notifications:
+        on_failure:
+          - ${var.notification_email}
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${resources.schemas.capability_guides_agents.name}
+        - name: use_case
+          default: ${var.use_case}
+      environments:
+        - environment_key: agents
+          spec:
+            environment_version: "4"
+            dependencies:
+              - databricks-sdk>=0.152
+              - dbldatagen==0.4.0.post1
+              - pyyaml>=6
+              - requests
+      tasks:
+        - task_key: prepare_tool
+          environment_key: agents
+          spark_python_task:
+            python_file: ../src/prepare_tool.py
+            parameters: &common
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --src-dir=${workspace.file_path}/src
+              - --spec=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+
+        - task_key: mcp_tool_call
+          depends_on:
+            - task_key: prepare_tool
+          environment_key: agents
+          spark_python_task:
+            python_file: ../src/mcp_call.py
+            parameters: *common
+
+        - task_key: agent_handoff
+          depends_on:
+            - task_key: mcp_tool_call
+          environment_key: agents
+          spark_python_task:
+            python_file: ../src/handoff.py
+            parameters: *common
+
+        - task_key: gateway_routing
+          depends_on:
+            - task_key: prepare_tool
+          environment_key: agents
+          spark_python_task:
+            python_file: ../src/gateway_routing.py
+            parameters: *common
+
+        - task_key: gateway_audit
+          depends_on:
+            - task_key: gateway_routing
+          environment_key: agents
+          spark_python_task:
+            python_file: ../src/gateway_audit.py
+            parameters: *common
+
+        - task_key: capability_matrix
+          depends_on:
+            - task_key: agent_handoff
+            - task_key: gateway_audit
+          environment_key: agents
+          spark_python_task:
+            python_file: ../src/capability_matrix.py
+            parameters: *common

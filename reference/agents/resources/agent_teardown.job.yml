@@ -1,0 +1,41 @@
+# Delete the agent's Model Serving endpoint and the gateway model services to stop spend.
+resources:
+  jobs:
+    capability_guides_agent_teardown:
+      name: capability-guides-agent-teardown
+      description: Deletes the agent Model Serving endpoint, the Unity Gateway model services, and their inference tables. Keeps registered model versions and record tables.
+      tags:
+        capability_guide_job: capability_guides_agent_teardown
+        capability_guide_use_case: ${var.use_case}
+      max_concurrent_runs: 1
+      timeout_seconds: 1800
+      email_notifications:
+        on_failure:
+          - ${var.notification_email}
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${resources.schemas.capability_guides_agents.name}
+        - name: use_case
+          default: ${var.use_case}
+        - name: delete_gateway_services
+          default: "true"
+      environments:
+        - environment_key: agents
+          spec:
+            environment_version: "4"
+            dependencies:
+              - databricks-sdk>=0.152
+              - pyyaml>=6
+      tasks:
+        - task_key: delete_endpoint
+          environment_key: agents
+          spark_python_task:
+            python_file: ../src/teardown_agent.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --src-dir=${workspace.file_path}/src
+              - --spec=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+              - --delete-gateway-services={{job.parameters.delete_gateway_services}}

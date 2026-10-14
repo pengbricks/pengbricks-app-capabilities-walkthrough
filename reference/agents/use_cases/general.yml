@@ -1,0 +1,110 @@
+# Use-case spec for the agent guides: sample data, the governed tool, the agents, the gateway services,
+# and the capability facts. Code reads this file; nothing domain-specific lives in src/.
+name: general
+seed: 20261014
+
+data:
+  table: orders
+  rows: 500
+  id_offset: 1000            # order_id = id + id_offset
+  columns:
+    - {name: status, kind: values, values: [processing, shipped, delivered, delayed], weights: [2, 3, 4, 1]}
+    - {name: carrier, kind: values, values: [northwind, harborline, skyfreight], weights: [1, 1, 1]}
+    - {name: category, kind: values, values: [apparel, electronics, home, grocery], weights: [1, 1, 1, 1]}
+    - {name: days_since_order, kind: range, min: 0, max: 45}
+    - {name: customer_email, kind: template, template: "customer\\w\\w\\w@example.com"}
+
+# Unity Catalog function that agents call as an MCP tool. The mask hides the customer address
+# from everyone outside the group, so the tool result shows UC governance on the data it reads.
+tool:
+  function: order_status
+  comment: Look up the status, carrier and age of one order by its numeric order id.
+  parameter: p_order_id
+  parameter_comment: Numeric order id, for example 1042
+  sample_order_id: 1042
+  mask_function: mask_email
+  pii_group: capability_guides_pii_readers
+
+prompt: >-
+  Order 1042 has not arrived. Look it up, then draft a short reply to the customer
+  that applies our return policy.
+
+# Handoff: a supervisor routes to an orders agent (uses the MCP tool) and then a policy agent.
+agents:
+  supervisor_model: claude-haiku-5-5
+  orders_model: gpt-5-4-mini
+  policy_model: claude-haiku-5-5
+  policy_text: >-
+    Return policy: items can be returned within 30 days of delivery. Orders marked delayed
+    or older than 14 days without delivery get a free reship or a full refund, customer's choice.
+    Never include the customer's email address in a reply.
+
+# Gateway: two model services behind Unity Gateway. Same prompt goes to both.
+gateway:
+  prompt: "In two sentences, explain what a model gateway does for a team that uses several foundation models."
+  repeats: 3
+  max_tokens: 120
+  services:
+    - name: agents_gateway_a
+      primary: claude-haiku-5-5
+      fallback: gpt-5-4-mini
+      rate_limits: {requests_per_minute: 60, tokens_per_minute: 30000}
+    - name: agents_gateway_b
+      primary: gpt-5-4-nano
+      fallback: gpt-5-4-mini
+      rate_limits: {requests_per_minute: 4, tokens_per_minute: 30000}
+  burst_service: agents_gateway_b
+  burst_requests: 30
+  limit_propagation_seconds: 120
+
+# Capability facts recorded in the matrix. Status text comes from the Databricks docs and release notes.
+capabilities:
+  - key: uc_function_mcp
+    name: Managed MCP server for Unity Catalog functions
+    status: Public Preview
+    source: Release notes "Managed MCP servers is now Public Preview"; no GA note found
+  - key: unity_gateway
+    name: Unity Gateway model services (routing, fallback)
+    status: GA
+    source: Release notes "Unity Gateway is now generally available"; Unity Gateway API GA September 2026
+  - key: rate_limits
+    name: Rate limits on model services (QPM and TPM)
+    status: GA
+    source: Part of Unity Gateway; doc page "Apply rate limits to model and MCP services"
+  - key: inference_tables
+    name: Inference tables on model services
+    status: GA
+    source: Doc page "Log requests and responses to inference tables" carries no preview label; billed feature
+  - key: usage_system_table
+    name: system.ai_gateway.usage
+    status: GA
+    source: System table available in the workspace
+  - key: service_policies
+    name: Service policies (guardrails)
+    status: Beta
+    source: Doc page "Service policies for AI securables"; attached through the Unity Gateway UI only
+  - key: a2a
+    name: Agent-to-agent (A2A) protocol endpoint
+    status: Not available
+    source: No A2A endpoint in the Databricks docs index or release notes; the guide uses a supervisor handoff
+  - key: model_serving_agents
+    name: Agents deployed to Model Serving
+    status: Legacy
+    source: Release notes, October 12 2026; replacement is the Agent Bricks CLI on Agent Runtime
+
+# Build guide: the tool-calling assistant that is logged, registered, deployed, and called.
+build:
+  model_name: support_assistant
+  llm_endpoint: databricks-claude-haiku-5-5
+  endpoint_name: capability-guides-support-assistant
+  workload_size: Small
+  scale_to_zero: true
+  max_tool_rounds: 4
+  system_prompt: >-
+    You are a support assistant. Use the order lookup tool for any question about an order.
+    Quote the order status exactly as the tool returns it, and never reveal the customer's email address.
+  test_question: "Where is order 1042, and has it been more than two weeks since it was placed?"
+  owners:
+    - {role: agent owner, responsibility: prompt, model choice, and releases}
+    - {role: tool owner, responsibility: the Unity Catalog function and the table it reads}
+    - {role: on-call, responsibility: endpoint health and rate-limit changes}

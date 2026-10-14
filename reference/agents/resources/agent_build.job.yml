@@ -1,0 +1,94 @@
+# Build a tool-calling agent, register a version in Unity Catalog, deploy it to Model Serving, and call it.
+resources:
+  jobs:
+    capability_guides_agent_build:
+      name: capability-guides-agent-build
+      description: Logs a ResponsesAgent from code, registers a version in Unity Catalog, deploys it to a small scale-to-zero Model Serving endpoint, calls it, and records traces and a build record.
+      tags:
+        capability_guide_job: capability_guides_agent_build
+        capability_guide_use_case: ${var.use_case}
+      max_concurrent_runs: 1
+      timeout_seconds: 5400
+      email_notifications:
+        on_failure:
+          - ${var.notification_email}
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${resources.schemas.capability_guides_agents.name}
+        - name: use_case
+          default: ${var.use_case}
+        - name: release
+          default: ${var.release}
+        - name: warehouse_id
+          default: ${var.warehouse_id}
+      environments:
+        - environment_key: agents
+          spec:
+            environment_version: "4"
+            dependencies:
+              - mlflow>=3.1
+              - databricks-sdk>=0.152
+              - dbldatagen==0.4.0.post1
+              - pyyaml>=6
+              - requests
+              - openai
+              - httpx
+      tasks:
+        - task_key: prepare_tool
+          environment_key: agents
+          spark_python_task:
+            python_file: ../src/prepare_tool.py
+            parameters: &common
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --src-dir=${workspace.file_path}/src
+              - --spec=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+
+        - task_key: log_and_register
+          depends_on:
+            - task_key: prepare_tool
+          environment_key: agents
+          spark_python_task:
+            python_file: ../src/log_register_agent.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --src-dir=${workspace.file_path}/src
+              - --spec=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+              - --experiment=${resources.experiments.agent_build_experiment.name}
+              - --warehouse-id={{job.parameters.warehouse_id}}
+              - --release={{job.parameters.release}}
+
+        - task_key: deploy_endpoint
+          depends_on:
+            - task_key: log_and_register
+          environment_key: agents
+          spark_python_task:
+            python_file: ../src/deploy_agent.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --src-dir=${workspace.file_path}/src
+              - --spec=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+              - --version={{tasks.log_and_register.values.version}}
+              - --experiment-id=${resources.experiments.agent_build_experiment.id}
+              - --release={{job.parameters.release}}
+
+        - task_key: call_and_record
+          depends_on:
+            - task_key: deploy_endpoint
+          environment_key: agents
+          spark_python_task:
+            python_file: ../src/call_agent.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --src-dir=${workspace.file_path}/src
+              - --spec=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+              - --endpoint={{tasks.deploy_endpoint.values.endpoint}}
+              - --version={{tasks.log_and_register.values.version}}
+              - --model-run-id={{tasks.log_and_register.values.run_id}}
+              - --ready-seconds={{tasks.deploy_endpoint.values.ready_seconds}}
+              - --release={{job.parameters.release}}

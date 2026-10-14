@@ -3547,6 +3547,184 @@
           "symbol": "main"
         }
       ]
+    },
+    "agent-framework-support": {
+      "bundle": "reference/agents",
+      "onePager": "reference/agents/guides/agent-framework-support.md",
+      "code": [
+        {
+          "label": "Governed MCP call",
+          "path": "reference/agents/src/mcp_call.py"
+        },
+        {
+          "label": "Supervisor handoff",
+          "path": "reference/agents/src/handoff.py"
+        },
+        {
+          "label": "Gateway routing",
+          "path": "reference/agents/src/gateway_routing.py"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_agent_gateway",
+          "label": "Agents and gateway job"
+        },
+        {
+          "key": "capability_guides_agent_teardown",
+          "label": "Teardown job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "MCP, handoff, and gateway run",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/947337568514037/runs/350942996439791",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-15T01:00:00Z"
+        },
+        {
+          "label": "Gateway teardown run",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/1072086254515562/runs/404596158808938",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-15T01:00:00Z"
+        }
+      ],
+      "docs": [
+        {
+          "label": "Model services",
+          "url": "https://docs.databricks.com/aws/en/ai-gateway/model-services"
+        },
+        {
+          "label": "Rate limits",
+          "url": "https://docs.databricks.com/aws/en/ai-gateway/rate-limits"
+        },
+        {
+          "label": "Inference tables",
+          "url": "https://docs.databricks.com/aws/en/ai-gateway/inference-tables"
+        },
+        {
+          "label": "Service policies",
+          "url": "https://docs.databricks.com/aws/en/data-governance/unity-catalog/service-policies"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Call a Unity Catalog function through managed MCP",
+          "path": "reference/agents/src/mcp_call.py",
+          "symbol": "main",
+          "notes": [
+            "initialize, tools/list, and tools/call with the SDK's OAuth headers.",
+            "Grants on the function govern the call; a column mask hid the email."
+          ]
+        },
+        {
+          "label": "Route one prompt to two models with a fallback",
+          "path": "reference/agents/src/gateway_routing.py",
+          "symbol": "service_config",
+          "notes": [
+            "Primary and fallback models, request and token limits, and an inference table.",
+            "A 30-request burst against a 4-per-minute limit got 9 HTTP 429s."
+          ]
+        },
+        {
+          "label": "Use MCP tools from a chat model",
+          "path": "reference/agents/src/agents_common.py",
+          "symbol": "mcp_tools_as_chat_tools",
+          "notes": [
+            "Shortens tool names to fit the 64-character chat API limit.",
+            "Handles content returned as a list of parts."
+          ]
+        }
+      ]
+    },
+    "agent-build-deployment": {
+      "bundle": "reference/agents",
+      "onePager": "reference/agents/guides/agent-build-deployment.md",
+      "code": [
+        {
+          "label": "Agent",
+          "path": "reference/agents/src/agent/assistant.py"
+        },
+        {
+          "label": "Log and register",
+          "path": "reference/agents/src/log_register_agent.py"
+        },
+        {
+          "label": "Call and verify",
+          "path": "reference/agents/src/call_agent.py"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_agent_build",
+          "label": "Agent build job"
+        },
+        {
+          "key": "capability_guides_agent_teardown",
+          "label": "Teardown job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "Build, deploy, and call run",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/517824647105789/runs/896720685743845",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-15T01:00:00Z"
+        },
+        {
+          "label": "Endpoint teardown run",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/1072086254515562/runs/853295788107215",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-15T01:00:00Z"
+        }
+      ],
+      "docs": [
+        {
+          "label": "Deploy agents",
+          "url": "https://docs.databricks.com/aws/en/agents/deploy"
+        },
+        {
+          "label": "Legacy agent deployment",
+          "url": "https://docs.databricks.com/aws/en/agents/legacy"
+        },
+        {
+          "label": "MLflow tracing",
+          "url": "https://docs.databricks.com/aws/en/mlflow3/genai/tracing/overview"
+        },
+        {
+          "label": "Serving endpoints",
+          "url": "https://docs.databricks.com/aws/en/machine-learning/model-serving/create-manage-serving-endpoints"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Tool-calling assistant with traces",
+          "path": "reference/agents/src/agent/assistant.py",
+          "symbol": "SupportAssistant",
+          "notes": [
+            "Loops between the chat model and one tool, tracing both.",
+            "Casts the order id before building SQL."
+          ]
+        },
+        {
+          "label": "Log, register, and alias",
+          "path": "reference/agents/src/log_register_agent.py",
+          "symbol": "main",
+          "notes": [
+            "Runs a local traced test first, then logs with declared resources.",
+            "Version 3 holds the champion alias."
+          ]
+        },
+        {
+          "label": "Call the endpoint and check the trace",
+          "path": "reference/agents/src/call_agent.py",
+          "symbol": "main",
+          "notes": [
+            "Fails unless the trace has a uc_function_tool span.",
+            "Records code path, packages, owners, and latency."
+          ]
+        }
+      ]
     }
   }
 }

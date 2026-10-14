@@ -1,0 +1,4 @@
+resources:
+  experiments:
+    agent_build_experiment:
+      name: ${workspace.root_path}/agent_build_experiment

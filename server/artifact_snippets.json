@@ -38,6 +38,71 @@
       }
     }
   ],
+  "agent-build-deployment": [
+    {
+      "path": "reference/agents/src/agent/assistant.py",
+      "symbol": "SupportAssistant",
+      "startLine": 32,
+      "endLine": 71,
+      "language": "py",
+      "code": "class SupportAssistant(ResponsesAgent):\n    def __init__(self) -> None:\n        self.cfg = CONFIG\n        self._w = None\n\n    @property\n    def w(self) -> WorkspaceClient:\n        if self._w is None:\n            self._w = WorkspaceClient()\n        return self._w\n\n    @property\n    def tools(self) -> list[dict]:\n        return [{\n            \"type\": \"function\",\n            \"function\": {\n                \"name\": TOOL_NAME,\n                \"description\": self.cfg.get(\"function_comment\"),\n                \"parameters\": {\n                    \"type\": \"object\",\n                    \"properties\": {\"order_id\": {\"type\": \"integer\", \"description\": \"Numeric order id, for example 1042\"}},\n                    \"required\": [\"order_id\"],\n                },\n            },\n        }]\n\n    @mlflow.trace(span_type=\"TOOL\", name=\"uc_function_tool\")\n    def _call_tool(self, order_id: int) -> str:\n        # order_id is cast to int, so the statement cannot carry anything else.\n        result = self.w.statement_execution.execute_statement(\n            statement=f\"SELECT {self.cfg.get('function')}({int(order_id)}) AS result\",\n            warehouse_id=self.cfg.get(\"warehouse_id\"),\n            wait_timeout=\"30s\",\n        )\n        if result.status.state.value != \"SUCCEEDED\":\n            return f\"ERROR: {result.status.error.message if result.status.error else result.status.state.value}\"\n        return str(result.result.data_array[0][0]) if result.result and result.result.data_array else \"no result\"\n\n    @mlflow.trace(span_type=\"LLM\", name=\"chat_model\")\n    def _llm(self, messages: list[dict]):",
+      "functions": {}
+    },
+    {
+      "path": "reference/agents/src/log_register_agent.py",
+      "symbol": "main",
+      "startLine": 27,
+      "endLine": 66,
+      "language": "py",
+      "code": "def main() -> None:\n    spec = ac.load_spec(args.spec)\n    build = spec[\"build\"]\n    cat, sch = args.catalog, args.schema\n    fn = ac.qualified(cat, sch, spec[\"tool\"][\"function\"])\n    table = ac.qualified(cat, sch, spec[\"data\"][\"table\"])\n    model_name = ac.qualified(cat, sch, build[\"model_name\"])\n    code_path = f\"{args.src_dir}/agent/assistant.py\"\n    config = {\n        \"llm_endpoint\": build[\"llm_endpoint\"], \"function\": fn, \"function_comment\": spec[\"tool\"][\"comment\"],\n        \"warehouse_id\": args.warehouse_id, \"system_prompt\": build[\"system_prompt\"], \"max_tool_rounds\": build[\"max_tool_rounds\"],\n    }\n    mlflow.set_registry_uri(\"databricks-uc\")\n    mlflow.set_experiment(args.experiment)\n\n    # Local test: the same code the endpoint runs, with traces written to the experiment.\n    import importlib.util\n\n    from mlflow.models import ModelConfig\n    from mlflow.types.responses import ResponsesAgentRequest\n\n    spec_mod = importlib.util.spec_from_file_location(\"assistant_local\", code_path)\n    mod = importlib.util.module_from_spec(spec_mod)\n    spec_mod.loader.exec_module(mod)\n    agent = mod.SupportAssistant()\n    agent.cfg = ModelConfig(development_config=config)\n    question = build[\"test_question\"]\n    reply = agent.predict(ResponsesAgentRequest(input=[{\"role\": \"user\", \"content\": question}]))\n    answer = reply.output[0].content[0][\"text\"] if isinstance(reply.output[0].content[0], dict) else reply.output[0].content[0].text\n    print(\"local answer:\", answer)\n    traces = mlflow.search_traces(experiment_ids=[mlflow.get_experiment_by_name(args.experiment).experiment_id], max_results=5)\n    print(\"traces in experiment:\", len(traces))\n\n    with mlflow.start_run(run_name=\"log_support_assistant\") as run:\n        info = mlflow.pyfunc.log_model(\n            name=\"agent\",\n            python_model=code_path,\n            model_config=config,\n            pip_requirements=PIP_REQUIREMENTS,\n            resources=[DatabricksServingEndpoint(endpoint_name=build[\"llm_endpoint\"]), DatabricksFunction(function_name=fn), DatabricksTable(table_name=table), DatabricksSQLWarehouse(warehouse_id=args.warehouse_id)],",
+      "functions": {}
+    },
+    {
+      "path": "reference/agents/src/call_agent.py",
+      "symbol": "main",
+      "startLine": 28,
+      "endLine": 67,
+      "language": "py",
+      "code": "def main() -> None:\n    spec = ac.load_spec(args.spec)\n    build = spec[\"build\"]\n    w = WorkspaceClient()\n    body = {\n        \"input\": [{\"role\": \"user\", \"content\": build[\"test_question\"]}],\n        \"databricks_options\": {\"return_trace\": True},\n    }\n    results = []\n    for attempt in range(2):\n        for retry in range(6):\n            start = time.perf_counter()\n            try:\n                out = w.api_client.do(\"POST\", f\"/serving-endpoints/{args.endpoint}/invocations\", body=body)\n                break\n            except Exception as exc:  # a cold or just-ready endpoint can return 503 for a short time\n                print(f\"retry {retry}: {exc}\")\n                time.sleep(20)\n        else:\n            raise SystemExit(\"Endpoint did not answer\")\n        ms = (time.perf_counter() - start) * 1000\n        results.append((out, ms))\n        print(f\"request {attempt + 1}: {ms:.0f} ms\")\n    out, _ = results[-1]\n    text = \" \".join(c.get(\"text\", \"\") for item in out.get(\"output\", []) for c in item.get(\"content\", []) if isinstance(c, dict))\n    trace = out.get(\"databricks_output\", {}).get(\"trace\") or {}\n    spans = trace.get(\"data\", {}).get(\"spans\", []) if isinstance(trace, dict) else []\n    span_names = sorted({s.get(\"name\") for s in spans})\n    print(\"answer:\", text)\n    print(\"trace spans returned by the endpoint:\", span_names)\n    assert text, f\"empty answer: {json.dumps(out)[:500]}\"\n    tool_spans = [n for n in span_names if n == \"uc_function_tool\"]\n    assert tool_spans, f\"the endpoint answered without calling the tool; spans: {span_names}\"\n    assert \"status=\" in json.dumps(spans), \"tool span carries no order data\"\n\n    info = w.serving_endpoints.get(args.endpoint)\n    entity = info.config.served_entities[0]\n    owner = w.current_user.me().user_name\n    model_name = ac.qualified(args.catalog, args.schema, build[\"model_name\"])\n    row = {",
+      "functions": {}
+    }
+  ],
+  "agent-framework-support": [
+    {
+      "path": "reference/agents/src/mcp_call.py",
+      "symbol": "main",
+      "startLine": 24,
+      "endLine": 63,
+      "language": "py",
+      "code": "def main() -> None:\n    spec = ac.load_spec(args.spec)\n    tool = spec[\"tool\"]\n    w = WorkspaceClient()\n    headers = w.config.authenticate()\n    url = ac.mcp_url(w.config.host, args.catalog, args.schema)\n    fn = ac.qualified(args.catalog, args.schema, tool[\"function\"])\n    tool_name = ac.mcp_tool_name(args.catalog, args.schema, tool[\"function\"])\n\n    init, init_ms = ac.mcp_rpc(\n        url, headers, \"initialize\",\n        {\"protocolVersion\": ac.MCP_PROTOCOL_VERSION, \"capabilities\": {}, \"clientInfo\": {\"name\": \"capability-guide\", \"version\": \"1\"}},\n    )\n    protocol = init.get(\"result\", {}).get(\"protocolVersion\", \"unreported\")\n    listing, list_ms = ac.mcp_rpc(url, headers, \"tools/list\", rid=2)\n    names = [t[\"name\"] for t in listing[\"result\"][\"tools\"]]\n    assert tool_name in names, f\"{tool_name} not listed: {names}\"\n\n    call_ms = []\n    for i in range(3):\n        result, ms = ac.mcp_rpc(\n            url, headers, \"tools/call\", {\"name\": tool_name, \"arguments\": {tool[\"parameter\"]: tool[\"sample_order_id\"]}}, rid=10 + i\n        )\n        call_ms.append(ms)\n    text = ac.tool_result_text(result)\n    assert \"ERROR\" not in text and \"status=\" in text, text\n\n    grants = spark.sql(f\"SHOW GRANTS ON FUNCTION {fn}\").collect()\n    caller = w.current_user.me().user_name\n    lat = ac.summarize_latency(call_ms)\n    print(f\"caller={caller} protocol={protocol}\\ntool result: {text}\\nlatency: {lat}\")\n\n    rows = [\n        (caller, tool_name, url.replace(w.config.host, \"<workspace>\"), protocol, len(names), text, lat[\"p50_ms\"], lat[\"max_ms\"],\n         round(init_ms, 1), round(list_ms, 1), \"; \".join(f\"{g['Principal']}:{g['ActionType']}\" for g in grants)),\n    ]\n    cols = [\"caller\", \"tool\", \"mcp_url\", \"protocol_version\", \"tools_listed\", \"result\", \"call_p50_ms\", \"call_max_ms\",\n            \"initialize_ms\", \"list_ms\", \"function_grants\"]\n    (spark.createDataFrame(rows, cols).withColumn(\"recorded_at\", F.current_timestamp())\n        .write.mode(\"overwrite\").option(\"overwriteSchema\", \"true\").saveAsTable(ac.qualified(args.catalog, args.schema, \"mcp_tool_call\")))",
+      "functions": {
+        "mcp_rpc": "One JSON-RPC call to an MCP server. Returns the parsed body and the elapsed milliseconds.",
+        "mcp_tool_name": "UC function tools are named catalog__schema__function.",
+        "tool_result_text": "Flatten a tools/call result into the text a model reads."
+      }
+    },
+    {
+      "path": "reference/agents/src/gateway_routing.py",
+      "symbol": "service_config",
+      "startLine": 40,
+      "endLine": 52,
+      "language": "py",
+      "code": "def service_config(svc: dict) -> c.ModelServiceConfig:\n    limits = svc[\"rate_limits\"]\n    return c.ModelServiceConfig(\n        routing=c.ModelServiceConfigRoutingConfig(\n            destinations=[destination(\"primary\", svc[\"primary\"], 100)],\n            fallback=c.ModelServiceConfigFallbackConfig(destinations=[destination(\"fallback\", svc[\"fallback\"])]),\n        ),\n        rate_limits=[\n            c.RateLimit(key=SERVICE_KEY, renewal_period=MIN, requests=limits[\"requests_per_minute\"]),\n            c.RateLimit(key=SERVICE_KEY, renewal_period=MIN, tokens=limits[\"tokens_per_minute\"]),\n        ],\n        inference_table=c.InferenceTableConfig(parent=f\"schemas/{args.catalog}.{args.schema}\"),\n    )",
+      "functions": {}
+    },
+    {
+      "path": "reference/agents/src/agents_common.py",
+      "symbol": "mcp_tools_as_chat_tools",
+      "startLine": 99,
+      "endLine": 115,
+      "language": "py",
+      "code": "def mcp_tools_as_chat_tools(tools: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[str, str]]:\n    \"\"\"Convert MCP tool definitions into OpenAI-style chat tools. Returns (tools, short name -> MCP name).\"\"\"\n    aliases = {short_tool_name(t[\"name\"]): t[\"name\"] for t in tools}\n    if len(aliases) != len(tools):\n        raise ValueError(\"Tool names collide after shortening\")\n    chat_tools = [\n        {\n            \"type\": \"function\",\n            \"function\": {\n                \"name\": short_tool_name(t[\"name\"]),\n                \"description\": t.get(\"description\", \"\"),\n                \"parameters\": t.get(\"inputSchema\", {\"type\": \"object\", \"properties\": {}}),\n            },\n        }\n        for t in tools\n    ]\n    return chat_tools, aliases",
+      "functions": {
+        "mcp_tools_as_chat_tools": "Convert MCP tool definitions into OpenAI-style chat tools. Returns (tools, short name -> MCP name).",
+        "short_tool_name": "Chat APIs cap tool names at 64 characters; the function part of catalog__schema__function fits."
+      }
+    }
+  ],
   "batch-real-time-ingestion": [
     {
       "path": "reference/ingestion/src/pipeline/events_bronze.sql",

@@ -1,5 +1,7 @@
 {
   "access-management": "2026-10-14",
+  "agent-build-deployment": "2026-10-14",
+  "agent-framework-support": "2026-10-14",
   "batch-real-time-ingestion": "2026-10-14",
   "bring-your-own-data": "2026-10-14",
   "compute-capacity-management": "2026-10-14",
