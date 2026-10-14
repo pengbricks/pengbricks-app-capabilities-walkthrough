@@ -31,6 +31,7 @@ class FeedConfig:
     rules: tuple[Rule, ...] = field(default_factory=tuple)
 
     def landing_path(self, catalog: str, schema: str) -> str:
+        """Volume folder the feed's files land in."""
         return f"/Volumes/{catalog}/{schema}/landing/{self.name}/"
 
 

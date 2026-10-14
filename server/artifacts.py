@@ -50,6 +50,7 @@ def highlights(slug: str, entry: dict[str, Any]) -> list[dict[str, Any]]:
             "symbol": snippet["symbol"],
             "language": snippet["language"],
             "code": snippet["code"],
+            "functions": snippet.get("functions", {}),
             "url": f"{repo_url(snippet['path'])}#L{snippet['startLine']}-L{snippet['endLine']}",
         }
         for item, snippet in zip(entry.get("highlights", []), snippets)
@@ -141,7 +142,10 @@ def get_artifacts(slug: str) -> dict[str, Any]:
         "docs": entry.get("docs", []),
         "tools": entry.get("tools", []),
         "autoLoaderDrop": bool(entry.get("autoLoaderDrop")),
-        "walkthroughs": [{"label": item["label"], "url": repo_url(item["path"])} for item in entry.get("walkthroughs", [])],
+        "walkthroughs": [
+            {"label": item["label"], "url": repo_url(item["path"]), "route": item.get("route")}
+            for item in entry.get("walkthroughs", [])
+        ],
         "highlights": highlights(slug, entry),
         "recordedRuns": entry.get("recordedRuns", []),
         "jobs": [],

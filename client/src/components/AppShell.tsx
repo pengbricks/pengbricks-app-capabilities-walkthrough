@@ -23,10 +23,16 @@ export function AppShell() {
                 <span className="hidden sm:inline">Guides</span>
               </Link>
             </Button>
-            <Button variant="outline" size="sm" disabled>
-              <Github className="size-4" />
-              <span className="hidden sm:inline">Repository</span>
-              <ArrowUpRight className="size-3.5" />
+            <Button variant="outline" size="sm" asChild>
+              <a
+                href="https://github.com/pengbricks/pengbricks-app-capabilities-walkthrough"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <Github className="size-4" />
+                <span className="hidden sm:inline">Repository</span>
+                <ArrowUpRight className="size-3.5" />
+              </a>
             </Button>
           </div>
         </div>
@@ -39,8 +45,8 @@ export function AppShell() {
       <footer className="mx-auto max-w-[1200px] px-5 py-8 lg:px-8">
         <Separator />
         <div className="flex flex-col gap-2 pt-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-          <p>Capability Atlas · evidence-first platform guides</p>
-          <p>One narrative · one implementation · one verified run</p>
+          <p>Databricks capability guides</p>
+          <p>Guide · reference code · artifacts</p>
         </div>
       </footer>
     </div>

@@ -362,7 +362,8 @@
       "walkthroughs": [
         {
           "label": "Environment separation: workspaces, Unity Catalog, metastores",
-          "path": "docs/guides/environment-separation.md"
+          "path": "docs/guides/environment-separation.md",
+          "route": "/walkthroughs/environment-separation"
         },
         {
           "label": "GitHub CI/CD walkthrough",
@@ -535,7 +536,8 @@
       "walkthroughs": [
         {
           "label": "Environment separation: workspaces, Unity Catalog, metastores",
-          "path": "docs/guides/environment-separation.md"
+          "path": "docs/guides/environment-separation.md",
+          "route": "/walkthroughs/environment-separation"
         },
         {
           "label": "GitHub CI/CD walkthrough",
@@ -662,7 +664,8 @@
       "walkthroughs": [
         {
           "label": "Environment separation: workspaces, Unity Catalog, metastores",
-          "path": "docs/guides/environment-separation.md"
+          "path": "docs/guides/environment-separation.md",
+          "route": "/walkthroughs/environment-separation"
         }
       ],
       "tools": [
@@ -951,7 +954,8 @@
       "walkthroughs": [
         {
           "label": "Environment separation: workspaces, Unity Catalog, metastores",
-          "path": "docs/guides/environment-separation.md"
+          "path": "docs/guides/environment-separation.md",
+          "route": "/walkthroughs/environment-separation"
         },
         {
           "label": "GitHub CI/CD walkthrough",

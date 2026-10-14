@@ -14,6 +14,7 @@ import {
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { AutoLoaderDrop } from '../components/AutoLoaderDrop.tsx';
+import { CodeBlock } from '../components/CodeBlock.tsx';
 import { getGuide } from '../data/guides.ts';
 import {
   latestSuccessfulRun,
@@ -165,9 +166,30 @@ export function GuidePage() {
                     description="Deployable bundle on GitHub"
                     url={artifacts.bundleUrl}
                   />
-                  {artifacts.walkthroughs.map((item) => (
-                    <ArtifactAnchor key={item.url} icon={MapIcon} title={item.label} description="Walkthrough with diagrams" url={item.url} />
-                  ))}
+                  {artifacts.walkthroughs.map((item) =>
+                    item.route ? (
+                      <Link
+                        key={item.url}
+                        to={item.route}
+                        className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50"
+                      >
+                        <MapIcon className="size-4 shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium">{item.label}</p>
+                          <p className="text-xs text-muted-foreground">Walkthrough with diagrams</p>
+                        </div>
+                        <ArrowUpRight className="size-4 shrink-0" />
+                      </Link>
+                    ) : (
+                      <ArtifactAnchor
+                        key={item.url}
+                        icon={MapIcon}
+                        title={item.label}
+                        description="Walkthrough with diagrams"
+                        url={item.url}
+                      />
+                    )
+                  )}
                   {artifacts.code.map((item) => (
                     <a
                       key={item.url}
@@ -293,7 +315,13 @@ function JobRow({ slug, job, onChange }: { slug: string; job: GuideJob; onChange
         <a href={job.jobUrl} target="_blank" rel="noreferrer" className="text-sm font-medium hover:underline">
           {job.label}
         </a>
-        <Button size="sm" variant="outline" onClick={() => void quickRun()} disabled={pending} aria-label={`Quick run ${job.label}`}>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => void quickRun()}
+          disabled={pending}
+          aria-label={`Quick run ${job.label}`}
+        >
           {pending ? <Loader2 className="size-3.5 animate-spin" /> : <Play className="size-3.5" />}
           Quick run
         </Button>
@@ -311,7 +339,12 @@ function JobRow({ slug, job, onChange }: { slug: string; job: GuideJob; onChange
         </a>
       )}
       {latest && latest !== successful && (
-        <a href={latest.url} target="_blank" rel="noreferrer" className="mt-1 flex items-center gap-2 text-xs hover:underline">
+        <a
+          href={latest.url}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-1 flex items-center gap-2 text-xs hover:underline"
+        >
           Latest run <StatusBadge status={runStatus(latest)} />
         </a>
       )}
@@ -322,7 +355,8 @@ function JobRow({ slug, job, onChange }: { slug: string; job: GuideJob; onChange
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const label = status === 'SUCCESS' ? 'Succeeded' : status.charAt(0) + status.slice(1).toLowerCase().replace(/_/g, ' ');
+  const label =
+    status === 'SUCCESS' ? 'Succeeded' : status.charAt(0) + status.slice(1).toLowerCase().replace(/_/g, ' ');
   return <Badge variant={status === 'SUCCESS' ? 'secondary' : 'outline'}>{label}</Badge>;
 }
 
@@ -355,9 +389,7 @@ function CodeExcerpt({ highlight }: { highlight: CodeHighlight }) {
           ))}
         </ul>
       )}
-      <pre className="max-h-96 overflow-auto bg-muted/40 p-4 text-xs leading-5">
-        <code>{highlight.code}</code>
-      </pre>
+      <CodeBlock code={highlight.code} language={highlight.language} functions={highlight.functions} />
     </figure>
   );
 }

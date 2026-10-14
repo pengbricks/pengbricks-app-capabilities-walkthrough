@@ -32,6 +32,7 @@ class TransientSourceError(RuntimeError):
 
 
 def run_feed(spark, config: FeedConfig, catalog: str, schema: str, run_id: str) -> AuditRecord:
+    """Ingest one feed end to end: read, validate, quarantine, MERGE into silver, and audit."""
     prefix = f"{catalog}.{schema}"
     record = AuditRecord(run_id=run_id, feed=config.name)
     try:

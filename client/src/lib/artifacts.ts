@@ -11,6 +11,7 @@ export type CodeHighlight = {
   symbol: string | null;
   language: string;
   code: string;
+  functions: Record<string, string>;
   url: string;
 };
 
@@ -51,7 +52,7 @@ export type GuideArtifacts = {
   code: ArtifactLink[];
   docs: ArtifactLink[];
   tools: ToolLink[];
-  walkthroughs: ArtifactLink[];
+  walkthroughs: (ArtifactLink & { route: string | null })[];
   autoLoaderDrop: boolean;
   highlights: CodeHighlight[];
   jobs: GuideJob[];

@@ -8,6 +8,8 @@ from datetime import datetime, timezone
 
 @dataclass
 class AuditRecord:
+    """Counts, status, and timing for one feed in one job run."""
+
     run_id: str
     feed: str
     started_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
@@ -32,6 +34,7 @@ AUDIT_SCHEMA = (
 
 
 def write_audit(spark, table: str, record: AuditRecord) -> None:
+    """Append one audit row for a feed run."""
     row = [
         (
             record.run_id,

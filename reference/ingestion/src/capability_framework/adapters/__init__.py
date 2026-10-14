@@ -19,6 +19,7 @@ ADAPTERS: dict[str, Adapter] = {
 
 
 def get_adapter(name: str) -> Adapter:
+    """Look up the reader for a feed's `adapter` setting; unknown names fail fast."""
     try:
         return ADAPTERS[name]
     except KeyError as error:

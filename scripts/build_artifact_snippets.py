@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import ast
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -31,6 +32,31 @@ def python_symbol(source: str, symbol: str) -> tuple[int, int]:
     raise ValueError(f"{symbol} not found")
 
 
+def bundle_function_docs(path: str) -> dict[str, str]:
+    """First docstring sentence of every function in the highlighted file's bundle (reference/<bundle>)."""
+    parts = Path(path).parts
+    root = ROOT / Path(*parts[:2]) if parts[0] == "reference" and len(parts) > 2 else (ROOT / path).parent
+    docs: dict[str, str] = {}
+    for file in sorted(root.rglob("*.py")):
+        if "tests" in file.parts or ".databricks" in file.parts:
+            continue
+        try:
+            tree = ast.parse(file.read_text(encoding="utf-8"))
+        except SyntaxError:
+            continue
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                doc = ast.get_docstring(node)
+                if doc and node.name not in docs and node.name != "main":
+                    docs[node.name] = doc.strip().split("\n\n")[0].replace("\n", " ")
+    return docs
+
+
+def referenced_functions(code: str, docs: dict[str, str]) -> dict[str, str]:
+    names = set(re.findall(r"\b([A-Za-z_][A-Za-z0-9_]*)\s*\(", code))
+    return {name: docs[name] for name in sorted(names) if name in docs}
+
+
 def extract(highlight: dict) -> dict:
     path = ROOT / highlight["path"]
     lines = path.read_text(encoding="utf-8").splitlines()
@@ -41,13 +67,15 @@ def extract(highlight: dict) -> dict:
     else:
         start, end = 1, min(len(lines), MAX_LINES)
     end = min(end, start + MAX_LINES - 1)
+    code = "\n".join(lines[start - 1 : end])
     return {
         "path": highlight["path"],
         "symbol": highlight.get("symbol"),
         "startLine": start,
         "endLine": end,
         "language": path.suffix.lstrip(".") or "text",
-        "code": "\n".join(lines[start - 1 : end]),
+        "code": code,
+        "functions": referenced_functions(code, bundle_function_docs(highlight["path"])),
     }
 
 
