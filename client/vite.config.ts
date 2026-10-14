@@ -15,7 +15,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: path.resolve(__dirname, './dist'),
+    outDir: path.resolve(__dirname, './runtime'),
     emptyOutDir: true,
     sourcemap: process.env.NODE_ENV === 'development',
   },

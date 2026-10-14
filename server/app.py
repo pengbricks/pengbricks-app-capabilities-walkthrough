@@ -9,7 +9,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 ROOT = Path(__file__).resolve().parents[1]
-CLIENT_DIST = ROOT / "client" / "dist"
+CLIENT_DIST = ROOT / "client" / "runtime"
 ASSETS_DIR = CLIENT_DIST / "assets"
 APP_PREFIX = "/capability-guides"
 API_PREFIX = "/api/capability-guides"
