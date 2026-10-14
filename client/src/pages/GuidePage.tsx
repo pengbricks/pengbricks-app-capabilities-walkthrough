@@ -193,6 +193,9 @@ function RunsCard({ slug, artifacts, onChange }: { slug: string; artifacts: Guid
         )}
 
         {artifacts.liveError && <p className="text-xs text-muted-foreground">{artifacts.liveError}</p>}
+        {artifacts.live && artifacts.trackingDetail && (
+          <p className="text-xs text-muted-foreground">{artifacts.trackingDetail}</p>
+        )}
 
         {artifacts.history.length > 0 && (
           <div>

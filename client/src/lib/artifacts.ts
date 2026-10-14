@@ -54,6 +54,7 @@ export type GuideArtifacts = {
   live: boolean;
   liveError?: string;
   tracking: 'lakebase' | 'jobs-api';
+  trackingDetail?: string;
   history: HistoryRow[];
 };
 

@@ -169,6 +169,9 @@ def get_artifacts(slug: str) -> dict[str, Any]:
         response["liveError"] = "Run history is unavailable in this deployment."
         return response
 
+    if not store.enabled:
+        response["trackingDetail"] = "Lakebase run history is not configured for this deployment."
+        return response
     try:
         store.record(records)
         response["history"] = [
@@ -178,6 +181,7 @@ def get_artifacts(slug: str) -> dict[str, Any]:
     except Exception as error:
         logger.warning("Lakebase run tracking failed for %s: %s", slug, error)
         response["tracking"] = "jobs-api"
+        response["trackingDetail"] = f"Lakebase run history is unavailable ({type(error).__name__}: {str(error)[:160]})"
     return response
 
 
