@@ -6,6 +6,29 @@ This guide assesses one representative legacy workload, a nightly T-SQL sales ba
 
 Databricks Lakebridge (Analyzer, Transpiler, Reconcile) is the supported product path for production-scale migrations. This bundle shows the same assess, convert, reconcile loop on one workload so you can see each step and its artifacts end to end.
 
+## Lakebridge: the supported migration toolkit
+
+[Lakebridge](https://databrickslabs.github.io/lakebridge/) ([GitHub](https://github.com/databrickslabs/lakebridge)) is the Databricks Labs toolkit for migrating to Databricks. It covers the same three stages as this bundle, at estate scale:
+
+| Stage | Lakebridge component | What it does |
+|---|---|---|
+| Assess | **Profiler**, **Analyzer** ([Assessment guide](https://databrickslabs.github.io/lakebridge/docs/assessment/)) | Profiler connects to the source environment and reports workload size, complexity, and features used. Analyzer scans SQL and orchestration code to size the migration and flag problem constructs. |
+| Convert | **Transpilers** ([Transpiler guide](https://databrickslabs.github.io/lakebridge/docs/transpile/)) | BladeBridge is the mature transpiler for a wide range of dialects and some ETL/orchestration. Morpheus is the next-generation transpiler with experimental dbt support. Switch is LLM-powered and converts SQL and other formats into Databricks notebooks. |
+| Reconcile | **Reconciler** ([Reconcile guide](https://databrickslabs.github.io/lakebridge/docs/reconcile/)) | Compares data in Databricks with the source system after migration. |
+
+Sources include SQL platforms (for example MSSQL, Oracle, Teradata, Snowflake, Redshift, Synapse, BigQuery, Netezza), ETL tools (for example SSIS, DataStage, Talend, Alteryx, SAS), and orchestrators (Airflow, ADF, Oozie). See the [overview](https://databrickslabs.github.io/lakebridge/docs/overview/) for the current list.
+
+Getting started ([installation](https://databrickslabs.github.io/lakebridge/docs/installation/)):
+
+```bash
+databricks labs install lakebridge
+databricks labs lakebridge install-transpile
+databricks labs lakebridge transpile --transpiler-config-path <path> --input-source <path> \
+  --source-dialect <dialect> --output-folder <path> --catalog-name <catalog> --schema-name <schema>
+```
+
+How this bundle maps to Lakebridge: `assess.py` stands in for Analyzer on one workload, `convert.py` (sqlglot) stands in for a transpiler, and `reconcile.py` stands in for Reconciler. Use this bundle to explain the loop and its artifacts. Use Lakebridge for a real estate.
+
 ## What this shows
 
 | Success criterion | Artifact |

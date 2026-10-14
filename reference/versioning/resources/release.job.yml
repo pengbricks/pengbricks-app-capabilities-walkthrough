@@ -1,0 +1,106 @@
+# Publishes three versions of a data contract: nonbreaking change in place, breaking change
+# behind a compatibility view, with a gate, a registry, and consumer notifications.
+resources:
+  jobs:
+    capability_guides_versioning_release:
+      name: capability-guides-versioning-release
+      description: Applies contract v1.0.0, v1.1.0 (nonbreaking) and v2.0.0 (breaking) with a compatibility gate, registry, and consumer notifications.
+      tags:
+        capability_guide_job: capability_guides_versioning_release
+        capability_guide_use_case: ${var.use_case}
+      max_concurrent_runs: 1
+      timeout_seconds: 3600
+      email_notifications:
+        on_success:
+          - ${var.notification_email}
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${resources.schemas.capability_guides_versioning.name}
+        - name: release
+          default: ${var.release}
+      environments:
+        - environment_key: contracts
+          spec:
+            environment_version: "4"
+            dependencies:
+              - dbldatagen==0.4.0.post1
+              - pyyaml>=6
+      tasks:
+        - task_key: generate_data
+          environment_key: contracts
+          spark_python_task:
+            python_file: ../src/generate_data.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --src-dir=${workspace.file_path}/src
+              - --contracts-dir=${workspace.file_path}/contracts
+              - --use-case-file=${workspace.file_path}/use_cases/${var.use_case}.yml
+
+        - task_key: compatibility_gate
+          depends_on:
+            - task_key: generate_data
+          environment_key: contracts
+          spark_python_task:
+            python_file: ../src/compatibility_gate.py
+            parameters:
+              - --src-dir=${workspace.file_path}/src
+              - --contracts-dir=${workspace.file_path}/contracts
+              - --use-case-file=${workspace.file_path}/use_cases/${var.use_case}.yml
+
+        - task_key: apply_v1
+          depends_on:
+            - task_key: compatibility_gate
+          environment_key: contracts
+          spark_python_task:
+            python_file: ../src/apply_v1.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --release={{job.parameters.release}}
+              - --src-dir=${workspace.file_path}/src
+              - --contracts-dir=${workspace.file_path}/contracts
+              - --use-case-file=${workspace.file_path}/use_cases/${var.use_case}.yml
+
+        - task_key: apply_v2
+          depends_on:
+            - task_key: apply_v1
+          environment_key: contracts
+          spark_python_task:
+            python_file: ../src/apply_v2.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --release={{job.parameters.release}}
+              - --src-dir=${workspace.file_path}/src
+              - --contracts-dir=${workspace.file_path}/contracts
+              - --use-case-file=${workspace.file_path}/use_cases/${var.use_case}.yml
+
+        - task_key: show_traceability
+          depends_on:
+            - task_key: apply_v2
+          environment_key: contracts
+          spark_python_task:
+            python_file: ../src/show_traceability.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --src-dir=${workspace.file_path}/src
+              - --contracts-dir=${workspace.file_path}/contracts
+              - --use-case-file=${workspace.file_path}/use_cases/${var.use_case}.yml
+
+        - task_key: notify_consumers
+          depends_on:
+            - task_key: show_traceability
+          environment_key: contracts
+          spark_python_task:
+            python_file: ../src/notify_consumers.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --release={{job.parameters.release}}
+              - --src-dir=${workspace.file_path}/src
+              - --contracts-dir=${workspace.file_path}/contracts
+              - --use-case-file=${workspace.file_path}/use_cases/${var.use_case}.yml

@@ -1,0 +1,22 @@
+# Use-case spec: names the dataset, its owner, its consumers, and the seed.
+# Contracts under contracts/<dataset>/ define the columns for each version; the generation
+# options below only describe how to produce sample rows for the latest nonbreaking shape (v1.1.0).
+name: general
+seed: 20261014
+
+dataset:
+  name: customers
+  owner: data-platform-team
+  rows: 1000
+  columns:
+    - {name: customer_id, type: string, expr: "concat('CUST-', lpad(cast(id AS STRING), 6, '0'))"}
+    - {name: full_name, type: string, values: [Ada Lovelace, Grace Hopper, Alan Turing, Edsger Dijkstra, Barbara Liskov, Donald Knuth, Margaret Hamilton, Linus Torvalds]}
+    - {name: email, type: string, expr: "CASE WHEN id % 10 = 0 THEN CAST(NULL AS STRING) ELSE concat('user', cast(id AS STRING), '@example.com') END"}
+    - {name: signup_date, type: date, begin: "2022-01-01", end: "2026-09-30", interval: "1 day"}
+    - {name: lifetime_value, type: bigint, min: 0, max: 20000}
+    - {name: loyalty_tier, type: string, values: [bronze, silver, gold, platinum], weights: [5, 3, 1, 1]}
+
+consumers:
+  - {name: finance-reporting, uses: [customer_id, full_name, lifetime_value]}
+  - {name: marketing-campaigns, uses: [customer_id, email, loyalty_tier]}
+  - {name: support-portal, uses: [customer_id, signup_date]}

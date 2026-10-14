@@ -1,0 +1,13 @@
+dataset: customers
+version: 2.0.0
+# Versions this release replaces. They stay readable through the customers_v1 view until sunset_date.
+deprecates: [1.0.0, 1.1.0]
+sunset_date: "2027-03-31"
+comment: Customer master data, one row per customer.
+columns:
+  - {name: customer_id, type: string, nullable: false, comment: Stable customer key}
+  - {name: display_name, type: string, nullable: false, renamed_from: full_name, comment: Customer name as a single string}
+  - {name: email, type: string, nullable: true, comment: Primary contact address, null when not collected}
+  - {name: signup_date, type: date, nullable: false, comment: Date the customer signed up}
+  - {name: lifetime_value_usd, type: "decimal(18,2)", nullable: false, renamed_from: lifetime_value, comment: Lifetime spend in US dollars with cents}
+  - {name: loyalty_tier, type: string, nullable: true, comment: Loyalty program tier, null until assigned}

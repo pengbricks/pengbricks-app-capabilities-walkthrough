@@ -1,0 +1,12 @@
+dataset: customers
+version: 1.1.0
+deprecates: []
+sunset_date: null
+comment: Customer master data, one row per customer.
+columns:
+  - {name: customer_id, type: string, nullable: false, comment: Stable customer key}
+  - {name: full_name, type: string, nullable: false, comment: Customer name as a single string}
+  - {name: email, type: string, nullable: true, comment: Primary contact address, null when not collected}
+  - {name: signup_date, type: date, nullable: false, comment: Date the customer signed up}
+  - {name: lifetime_value, type: bigint, nullable: false, comment: Lifetime spend in whole US dollars}
+  - {name: loyalty_tier, type: string, nullable: true, comment: Loyalty program tier, null until assigned}

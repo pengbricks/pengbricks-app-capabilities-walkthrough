@@ -3,11 +3,59 @@
   "schemaVersion": 1,
   "nodeWorkspaces": [],
   "buildWorkspaces": [],
-  "variables": {},
+  "variables": {
+    "capability_guides_lakebase_branch": {
+      "description": "Existing Lakebase branch resource path in the deployment workspace"
+    },
+    "capability_guides_lakebase_database_resource": {
+      "description": "Existing Lakebase database resource path"
+    },
+    "capability_guides_lakebase_database_name": {
+      "description": "PostgreSQL database name from status.postgres_database"
+    },
+    "capability_guides_lakebase_schema": {
+      "description": "App-owned Lakebase schema for guide run history",
+      "default": "capability_guides"
+    }
+  },
   "app": {
     "description": "Standalone Databricks capability guide walkthrough",
-    "env": [],
+    "env": [
+      {
+        "name": "CAPABILITY_GUIDES_LAKEBASE_ENDPOINT",
+        "value_from": "postgres"
+      },
+      {
+        "name": "CAPABILITY_GUIDES_LAKEBASE_DATABASE",
+        "value": "${var.capability_guides_lakebase_database_name}"
+      },
+      {
+        "name": "CAPABILITY_GUIDES_LAKEBASE_SCHEMA",
+        "value": "${var.capability_guides_lakebase_schema}"
+      }
+    ],
     "userApiScopes": [],
-    "resources": []
+    "resources": [
+      {
+        "name": "postgres",
+        "postgres": {
+          "branch": "${var.capability_guides_lakebase_branch}",
+          "database": "${var.capability_guides_lakebase_database_resource}",
+          "permission": "CAN_CONNECT_AND_CREATE"
+        }
+      }
+    ],
+    "externallyGoverned": [
+      {
+        "id": "capability-guides-jobs",
+        "resourceType": "job",
+        "resource": "Reference jobs tagged capability_guide_job in the deployment workspace",
+        "permission": "CAN_MANAGE_RUN, granted by each reference bundle through its app_service_principal variable",
+        "consumers": [
+          "capability-guides"
+        ],
+        "grantProcedure": "reference/README.md#deploy-a-bundle"
+      }
+    ]
   }
 }

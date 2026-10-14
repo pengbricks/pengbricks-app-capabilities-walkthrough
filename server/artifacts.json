@@ -597,20 +597,28 @@
       ],
       "docs": [
         {
-          "label": "Lakebridge",
+          "label": "Lakebridge documentation",
           "url": "https://databrickslabs.github.io/lakebridge/"
         },
         {
-          "label": "Migration overview",
-          "url": "https://docs.databricks.com/aws/en/migration/"
+          "label": "Lakebridge on GitHub",
+          "url": "https://github.com/databrickslabs/lakebridge"
+        },
+        {
+          "label": "Lakebridge assessment (Profiler, Analyzer)",
+          "url": "https://databrickslabs.github.io/lakebridge/docs/assessment/"
+        },
+        {
+          "label": "Lakebridge transpilers",
+          "url": "https://databrickslabs.github.io/lakebridge/docs/transpile/"
+        },
+        {
+          "label": "Lakebridge reconcile",
+          "url": "https://databrickslabs.github.io/lakebridge/docs/reconcile/"
         },
         {
           "label": "SQLGlot transpiler",
           "url": "https://sqlglot.com/sqlglot.html"
-        },
-        {
-          "label": "Delta MERGE INTO",
-          "url": "https://docs.databricks.com/aws/en/delta/merge"
         }
       ],
       "highlights": [
@@ -628,6 +636,83 @@
           "label": "Role-based effort model",
           "path": "reference/legacy-conversion/src/lc_helpers.py",
           "symbol": "effort_model"
+        }
+      ]
+    },
+    "versioning": {
+      "bundle": "reference/versioning",
+      "onePager": "reference/versioning/guides/versioning.md",
+      "code": [
+        {
+          "label": "Versioned data contracts",
+          "path": "reference/versioning/contracts/customers"
+        },
+        {
+          "label": "Compatibility rules",
+          "path": "reference/versioning/src/compatibility.py"
+        },
+        {
+          "label": "Release job",
+          "path": "reference/versioning/resources/release.job.yml"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_versioning_release",
+          "label": "Versioned release job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "Versioned release run",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/515917340261303/runs/917098403833162",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T18:30:00Z"
+        }
+      ],
+      "docs": [
+        {
+          "label": "Unity Catalog tags",
+          "url": "https://docs.databricks.com/aws/en/data-governance/unity-catalog/tags"
+        },
+        {
+          "label": "Delta table history",
+          "url": "https://docs.databricks.com/aws/en/delta/history"
+        },
+        {
+          "label": "Delta schema evolution",
+          "url": "https://docs.databricks.com/aws/en/delta/update-schema"
+        },
+        {
+          "label": "Job notifications",
+          "url": "https://docs.databricks.com/aws/en/jobs/notifications"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Classify changes and enforce the semver bump",
+          "path": "reference/versioning/src/compatibility.py",
+          "symbol": "check_contracts"
+        },
+        {
+          "label": "Publish v2 and keep v1 consumers working",
+          "path": "reference/versioning/src/apply_v2.py",
+          "symbol": "main"
+        },
+        {
+          "label": "Release gate with a mislabeled-release dry run",
+          "path": "reference/versioning/src/compatibility_gate.py",
+          "symbol": "main"
+        }
+      ],
+      "walkthroughs": [
+        {
+          "label": "Environment separation: workspaces, Unity Catalog, metastores",
+          "path": "docs/guides/environment-separation.md"
+        },
+        {
+          "label": "GitHub CI/CD walkthrough",
+          "path": "docs/guides/github-cicd.md"
         }
       ]
     }
