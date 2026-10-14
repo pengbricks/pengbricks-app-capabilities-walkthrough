@@ -3,6 +3,7 @@ export const categories = [
   'Governance/Monitoring',
   'AI Demos',
   'ML Demos',
+  'Ingestion',
   'General Demos',
 ] as const;
 
@@ -23,7 +24,7 @@ export const guides: readonly Guide[] = [
   {
     slug: 'configuration-vs-code',
     title: 'Configuration vs code',
-    category: 'General Demos',
+    category: 'Ingestion',
     summary: 'Separate provider-specific adapters from reusable control-plane services.',
     acceptanceCriteria:
       'Show that provider-specific logic is isolated while audit, validation, orchestration, and error handling are reused.',
@@ -36,7 +37,7 @@ export const guides: readonly Guide[] = [
   {
     slug: 'reusability-templatization',
     title: 'Reusability / templatization',
-    category: 'General Demos',
+    category: 'Ingestion',
     summary: 'Prove that a second source can be onboarded without rebuilding the framework.',
     acceptanceCriteria:
       'Onboard a second representative feed through configuration and mappings without redesigning the core framework.',
@@ -49,7 +50,7 @@ export const guides: readonly Guide[] = [
   {
     slug: 'batch-real-time-ingestion',
     title: 'Batch and real-time ingestion',
-    category: 'General Demos',
+    category: 'Ingestion',
     summary: 'Demonstrate priority batch and supported streaming ingestion patterns.',
     acceptanceCriteria:
       'Implement the priority batch pattern and demonstrate the supported real-time path, including latency, scaling, and monitoring evidence.',
@@ -205,7 +206,7 @@ export const guides: readonly Guide[] = [
   {
     slug: 'data-ingestion-feature-preparation',
     title: 'Data ingestion and feature preparation',
-    category: 'ML Demos',
+    category: 'Ingestion',
     summary: 'Create reproducible, governed model inputs from source data.',
     acceptanceCriteria:
       'Ingest representative data, create reproducible features, validate quality, and persist versioned model inputs with lineage to source.',

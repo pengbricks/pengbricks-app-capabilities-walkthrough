@@ -11,7 +11,8 @@ const categoryBlurbs = {
   'Governance/Monitoring': 'Make runs, lineage, quality, cost, access, and operational ownership observable.',
   'AI Demos': 'Build governed user and agent experiences with transparent tools, identity, and model routing.',
   'ML Demos': 'Prepare features, train, track, release, serve, and monitor models reproducibly.',
-  'General Demos': 'Demonstrate reusable ingestion, open formats, integrations, and migration patterns.',
+  Ingestion: 'Onboard sources through reusable batch, streaming, quality, and medallion patterns.',
+  'General Demos': 'Demonstrate open formats, integrations, migration, and cross-platform patterns.',
 } satisfies Record<(typeof categories)[number], string>;
 
 export function HomePage() {

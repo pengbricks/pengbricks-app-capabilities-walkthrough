@@ -17,4 +17,11 @@ describe('guide catalog', () => {
   it('resolves a guide by slug', () => {
     expect(getGuide('configuration-vs-code')?.title).toBe('Configuration vs code');
   });
+
+  it('groups ingestion framework guides together', () => {
+    expect(getGuide('configuration-vs-code')?.category).toBe('Ingestion');
+    expect(getGuide('reusability-templatization')?.category).toBe('Ingestion');
+    expect(getGuide('batch-real-time-ingestion')?.category).toBe('Ingestion');
+    expect(getGuide('data-ingestion-feature-preparation')?.category).toBe('Ingestion');
+  });
 });
