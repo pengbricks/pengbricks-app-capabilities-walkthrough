@@ -2,7 +2,7 @@
 
 Each deployment binds to the Lakebase database in its own workspace through:
   CAPABILITY_GUIDES_LAKEBASE_ENDPOINT  endpoint resource path (valueFrom: postgres)
-  CAPABILITY_GUIDES_LAKEBASE_DATABASE  logical PostgreSQL database name
+  CAPABILITY_GUIDES_LAKEBASE_DATABASE  logical PostgreSQL database name (default databricks_postgres)
   CAPABILITY_GUIDES_LAKEBASE_SCHEMA    app-owned schema (default capability_guides)
 When the endpoint is not configured, the app still works and reads run history from the Jobs API only.
 """
@@ -42,7 +42,9 @@ class RunStore:
     def __init__(self, workspace_client_factory) -> None:
         self._workspace_client_factory = workspace_client_factory
         self.endpoint = os.environ.get("CAPABILITY_GUIDES_LAKEBASE_ENDPOINT", "").strip()
-        self.database = os.environ.get("CAPABILITY_GUIDES_LAKEBASE_DATABASE", "").strip()
+        # Every Lakebase branch creates databricks_postgres; deployments that only inject the
+        # endpoint (for example through app.yaml valueFrom) use it.
+        self.database = os.environ.get("CAPABILITY_GUIDES_LAKEBASE_DATABASE", "").strip() or "databricks_postgres"
         self.schema = os.environ.get("CAPABILITY_GUIDES_LAKEBASE_SCHEMA", "capability_guides").strip()
         if not SCHEMA_PATTERN.match(self.schema):
             raise ValueError("CAPABILITY_GUIDES_LAKEBASE_SCHEMA must be a lowercase PostgreSQL identifier")
@@ -52,7 +54,7 @@ class RunStore:
 
     @property
     def enabled(self) -> bool:
-        return bool(self.endpoint and self.database)
+        return bool(self.endpoint)
 
     def _connection_settings(self) -> tuple[str, str, str]:
         with self._lock:
