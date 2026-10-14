@@ -1,0 +1,8 @@
+resources:
+  dashboards:
+    revenue_overview_dashboard:
+      display_name: Capability guides revenue overview
+      file_path: ../src/dashboards/visualization.lvdash.json
+      warehouse_id: ${var.warehouse_id}
+      dataset_catalog: ${var.catalog}
+      dataset_schema: ${resources.schemas.capability_guides_analyst.name}

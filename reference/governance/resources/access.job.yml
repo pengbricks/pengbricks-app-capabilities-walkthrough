@@ -1,0 +1,130 @@
+# Access management: group, dev-like and prod-like schemas, grants, verification, audit, service principals.
+resources:
+  jobs:
+    capability_guides_access:
+      name: capability-guides-access
+      description: Grants through a group, segregates dev and prod access, verifies grants, audits changes, and lists service principals.
+      tags:
+        capability_guide_job: capability_guides_access
+        capability_guide_use_case: ${var.use_case}
+      max_concurrent_runs: 1
+      timeout_seconds: 3600
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${resources.schemas.capability_guides_governance.name}
+        - name: use_case
+          default: ${var.use_case}
+      environments:
+        - environment_key: gov
+          spec:
+            environment_version: "4"
+            dependencies:
+              - databricks-sdk>=0.70
+              - dbldatagen==0.4.0.post1
+              - pyyaml>=6
+      tasks:
+        - task_key: ensure_group
+          environment_key: gov
+          spark_python_task:
+            python_file: ../src/access_tasks.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+              - --reader-group=${var.reader_group}
+              - --app-service-principal=${var.app_service_principal}
+              - --dev-schema=${resources.schemas.capability_guides_access_dev.name}
+              - --prod-schema=${resources.schemas.capability_guides_access_prod.name}
+              - --step=ensure_group
+
+        - task_key: create_data
+          depends_on:
+            - task_key: ensure_group
+          environment_key: gov
+          spark_python_task:
+            python_file: ../src/access_tasks.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+              - --reader-group=${var.reader_group}
+              - --app-service-principal=${var.app_service_principal}
+              - --dev-schema=${resources.schemas.capability_guides_access_dev.name}
+              - --prod-schema=${resources.schemas.capability_guides_access_prod.name}
+              - --step=create_data
+
+        - task_key: apply_grants
+          depends_on:
+            - task_key: create_data
+          environment_key: gov
+          spark_python_task:
+            python_file: ../src/access_tasks.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+              - --reader-group=${var.reader_group}
+              - --app-service-principal=${var.app_service_principal}
+              - --dev-schema=${resources.schemas.capability_guides_access_dev.name}
+              - --prod-schema=${resources.schemas.capability_guides_access_prod.name}
+              - --step=apply_grants
+
+        - task_key: verify_grants
+          depends_on:
+            - task_key: apply_grants
+          environment_key: gov
+          spark_python_task:
+            python_file: ../src/access_tasks.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+              - --reader-group=${var.reader_group}
+              - --app-service-principal=${var.app_service_principal}
+              - --dev-schema=${resources.schemas.capability_guides_access_dev.name}
+              - --prod-schema=${resources.schemas.capability_guides_access_prod.name}
+              - --step=verify_grants
+
+        - task_key: audit_grant_changes
+          depends_on:
+            - task_key: apply_grants
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file:
+              path: ../sql/permission_audit_task.sql
+              source: WORKSPACE
+            parameters:
+              catalog: "{{job.parameters.catalog}}"
+              schema: "{{job.parameters.schema}}"
+
+        - task_key: check_audit
+          depends_on:
+            - task_key: audit_grant_changes
+          environment_key: gov
+          spark_python_task:
+            python_file: ../src/access_tasks.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+              - --reader-group=${var.reader_group}
+              - --app-service-principal=${var.app_service_principal}
+              - --dev-schema=${resources.schemas.capability_guides_access_dev.name}
+              - --prod-schema=${resources.schemas.capability_guides_access_prod.name}
+              - --step=check_audit
+
+        - task_key: list_service_principals
+          environment_key: gov
+          spark_python_task:
+            python_file: ../src/access_tasks.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+              - --reader-group=${var.reader_group}
+              - --app-service-principal=${var.app_service_principal}
+              - --dev-schema=${resources.schemas.capability_guides_access_dev.name}
+              - --prod-schema=${resources.schemas.capability_guides_access_prod.name}
+              - --step=list_service_principals

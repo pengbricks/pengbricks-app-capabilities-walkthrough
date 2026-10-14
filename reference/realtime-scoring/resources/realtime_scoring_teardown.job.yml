@@ -1,0 +1,32 @@
+# Cleanup: deletes the serving endpoint the scoring job creates.
+resources:
+  jobs:
+    capability_guides_realtime_scoring_teardown:
+      name: capability-guides-realtime-scoring-teardown
+      description: Deletes the Model Serving endpoint created by the online scoring job.
+      tags:
+        capability_guide_job: capability_guides_realtime_scoring_teardown
+        capability_guide_use_case: ${var.use_case}
+      max_concurrent_runs: 1
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${resources.schemas.realtime_scoring.name}
+        - name: use_case
+          default: ${var.use_case}
+        - name: endpoint_name
+          default: capability-guides-realtime-scoring
+      environments:
+        - environment_key: teardown
+          spec:
+            environment_version: "4"
+            dependencies:
+              - databricks-sdk>=0.70
+      tasks:
+        - task_key: delete_endpoint
+          environment_key: teardown
+          spark_python_task:
+            python_file: ../src/teardown_endpoint.py
+            parameters:
+              - --endpoint-name={{job.parameters.endpoint_name}}

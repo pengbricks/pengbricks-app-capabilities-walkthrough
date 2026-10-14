@@ -13,6 +13,8 @@ const categoryBlurbs = {
   'ML Guides': 'Prepare features, train, track, release, serve, and monitor models reproducibly.',
   Ingestion: 'Onboard sources through reusable batch, streaming, quality, and medallion patterns.',
   'General Guides': 'Demonstrate open formats, integrations, migration, and cross-platform patterns.',
+  'Data Engineering Guides': 'Transform, capture changes, load targets, orchestrate jobs, and watch for drift.',
+  'Analyst Guides': 'Explore, upload, prepare, chart, and export governed data with or without code.',
 } satisfies Record<(typeof categories)[number], string>;
 
 export function HomePage() {

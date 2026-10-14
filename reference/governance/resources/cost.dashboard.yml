@@ -1,0 +1,8 @@
+resources:
+  dashboards:
+    capability_guides_cost_dashboard:
+      display_name: "Capability guides cost"
+      file_path: ../src/cost.lvdash.json
+      warehouse_id: ${var.warehouse_id}
+      dataset_catalog: ${var.catalog}
+      dataset_schema: ${resources.schemas.capability_guides_governance.name}

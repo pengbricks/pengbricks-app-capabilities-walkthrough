@@ -1,0 +1,78 @@
+# Operational support: retries, a failure by design, triage and routing. The repair job fixes the failed run.
+resources:
+  jobs:
+    capability_guides_operational_support:
+      name: capability-guides-operational-support
+      description: Writes work items with a retry, fails fragile_step on its first attempt by design, then triages failed guide runs and routes each one through the on_call table.
+      tags:
+        capability_guide_job: capability_guides_operational_support
+        capability_guide_use_case: ${var.use_case}
+      max_concurrent_runs: 1
+      timeout_seconds: 1800
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${resources.schemas.capability_guides_platform_ops.name}
+        - name: use_case
+          default: ${var.use_case}
+      environments:
+        - environment_key: support
+          spec:
+            environment_version: "4"
+            dependencies:
+              - databricks-sdk>=0.70
+              - pyyaml>=6
+              - dbldatagen==0.4.0.post1
+      tasks:
+        - task_key: setup_on_call
+          environment_key: support
+          spark_python_task:
+            python_file: ../src/support_tasks.py
+            parameters:
+              - --task=setup_on_call
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+
+        - task_key: write_with_retry
+          depends_on: [{task_key: setup_on_call}]
+          environment_key: support
+          max_retries: 2
+          min_retry_interval_millis: 10000
+          retry_on_timeout: true
+          timeout_seconds: 600
+          spark_python_task:
+            python_file: ../src/support_tasks.py
+            parameters:
+              - --task=write_with_retry
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+              - --execution-count={{task.execution_count}}
+
+        - task_key: fragile_step
+          depends_on: [{task_key: setup_on_call}]
+          environment_key: support
+          timeout_seconds: 600
+          spark_python_task:
+            python_file: ../src/support_tasks.py
+            parameters:
+              - --task=fragile_step
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+              - --repair-count={{job.repair_count}}
+
+        - task_key: triage
+          depends_on: [{task_key: write_with_retry}, {task_key: fragile_step}]
+          run_if: ALL_DONE
+          environment_key: support
+          timeout_seconds: 900
+          spark_python_task:
+            python_file: ../src/support_tasks.py
+            parameters:
+              - --task=triage
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml

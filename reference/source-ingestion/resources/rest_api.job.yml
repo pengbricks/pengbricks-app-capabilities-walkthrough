@@ -1,0 +1,39 @@
+# Authenticated REST API ingestion: login, paginate, refresh the token, retry, and log every request.
+resources:
+  jobs:
+    capability_guides_rest_api:
+      name: capability-guides-rest-api
+      description: Pulls a paginated, token-authenticated API into Delta and writes a request log.
+      tags:
+        capability_guide_job: capability_guides_rest_api
+        capability_guide_use_case: ${var.use_case}
+      max_concurrent_runs: 1
+      email_notifications:
+        on_failure:
+          - ${var.notification_email}
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${resources.schemas.capability_guides_source_ingestion.name}
+        - name: use_case
+          default: ${var.use_case}
+      environments:
+        - environment_key: tools
+          spec:
+            environment_version: "4"
+            dependencies:
+              - pyyaml>=6
+              - requests>=2.31
+      tasks:
+        - task_key: pull_api
+          environment_key: tools
+          max_retries: 1
+          spark_python_task:
+            python_file: ../src/pull_rest_api.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --src-dir=${workspace.file_path}/src
+              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+              - --run-id={{job.run_id}}

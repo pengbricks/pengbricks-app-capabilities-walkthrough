@@ -1,0 +1,6 @@
+# JDBC URL for tools that take a driver jar (SPSS JDBC, DBeaver, SAS/ACCESS to JDBC).
+# Driver class: com.databricks.client.jdbc.Driver
+# U2M (browser sign-in):
+jdbc:databricks://<workspace-host>:443/default;httpPath=/sql/1.0/warehouses/<warehouse-id>;AuthMech=11;Auth_Flow=2;ConnCatalog=<catalog>;ConnSchema=<schema>
+# M2M (service principal):
+jdbc:databricks://<workspace-host>:443/default;httpPath=/sql/1.0/warehouses/<warehouse-id>;AuthMech=11;Auth_Flow=1;OAuth2ClientId=<application-id>;OAuth2Secret=<secret>;ConnCatalog=<catalog>;ConnSchema=<schema>

@@ -1,0 +1,51 @@
+# Apache Iceberg interoperability: managed Iceberg table, schema evolution, time travel, and an
+# external read through the Unity Catalog Iceberg REST catalog with PyIceberg.
+resources:
+  jobs:
+    capability_guides_iceberg:
+      name: capability-guides-iceberg
+      description: Creates a managed Iceberg table, evolves its schema, uses time travel, and reads it with PyIceberg through the Unity Catalog Iceberg REST catalog.
+      tags:
+        capability_guide_job: capability_guides_iceberg
+        capability_guide_use_case: ${var.use_case}
+      max_concurrent_runs: 1
+      timeout_seconds: 3600
+      email_notifications:
+        on_failure:
+          - ${var.notification_email}
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${resources.schemas.capability_guides_open_data.name}
+        - name: use_case
+          default: ${var.use_case}
+      environments:
+        - environment_key: iceberg
+          spec:
+            environment_version: "4"
+            dependencies:
+              - dbldatagen==0.4.0.post1
+              - pyyaml>=6
+              - pyiceberg[pyarrow]>=0.9
+              - databricks-sdk>=0.70
+      tasks:
+        - task_key: managed_iceberg_table
+          environment_key: iceberg
+          spark_python_task:
+            python_file: ../src/iceberg_table.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+
+        - task_key: read_through_irc
+          depends_on:
+            - task_key: managed_iceberg_table
+          environment_key: iceberg
+          spark_python_task:
+            python_file: ../src/iceberg_external_read.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml

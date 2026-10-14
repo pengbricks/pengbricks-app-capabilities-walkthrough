@@ -1,0 +1,100 @@
+# Compute and capacity: settings, concurrent load on a 2X-Small test warehouse, queueing from system tables.
+resources:
+  jobs:
+    capability_guides_compute_capacity:
+      name: capability-guides-compute-capacity
+      description: Reads warehouse settings, loads a temporary 2X-Small test warehouse, reads the queueing from system tables, and deletes the test warehouse.
+      tags:
+        capability_guide_job: capability_guides_compute_capacity
+        capability_guide_use_case: ${var.use_case}
+      max_concurrent_runs: 1
+      timeout_seconds: 5400
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${resources.schemas.capability_guides_governance.name}
+        - name: use_case
+          default: ${var.use_case}
+        - name: queries
+          default: "40"
+        - name: range_rows
+          default: "200000000"
+      environments:
+        - environment_key: gov
+          spec:
+            environment_version: "4"
+            dependencies:
+              - databricks-sdk>=0.70
+              - pyyaml>=6
+      tasks:
+        - task_key: read_settings
+          environment_key: gov
+          spark_python_task:
+            python_file: ../src/compute_tasks.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --warehouse-id=${var.warehouse_id}
+              - --queries={{job.parameters.queries}}
+              - --range-rows={{job.parameters.range_rows}}
+              - --step=read_settings
+
+        - task_key: create_load_warehouse
+          depends_on:
+            - task_key: read_settings
+          environment_key: gov
+          spark_python_task:
+            python_file: ../src/compute_tasks.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --warehouse-id=${var.warehouse_id}
+              - --queries={{job.parameters.queries}}
+              - --range-rows={{job.parameters.range_rows}}
+              - --step=create_load_warehouse
+
+        - task_key: generate_load
+          depends_on:
+            - task_key: create_load_warehouse
+          environment_key: gov
+          spark_python_task:
+            python_file: ../src/compute_tasks.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --warehouse-id=${var.warehouse_id}
+              - --queries={{job.parameters.queries}}
+              - --range-rows={{job.parameters.range_rows}}
+              - --step=generate_load
+
+        - task_key: analyze_load
+          depends_on:
+            - task_key: generate_load
+          environment_key: gov
+          spark_python_task:
+            python_file: ../src/compute_tasks.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --warehouse-id=${var.warehouse_id}
+              - --queries={{job.parameters.queries}}
+              - --range-rows={{job.parameters.range_rows}}
+              - --step=analyze_load
+
+        - task_key: delete_load_warehouse
+          depends_on:
+            - task_key: create_load_warehouse
+            - task_key: generate_load
+            - task_key: analyze_load
+          run_if: ALL_DONE
+          environment_key: gov
+          spark_python_task:
+            python_file: ../src/compute_tasks.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --warehouse-id=${var.warehouse_id}
+              - --queries={{job.parameters.queries}}
+              - --range-rows={{job.parameters.range_rows}}
+              - --step=delete_load_warehouse

@@ -5,6 +5,8 @@ export const categories = [
   'ML Guides',
   'Ingestion',
   'General Guides',
+  'Data Engineering Guides',
+  'Analyst Guides',
 ] as const;
 
 export type GuideCategory = (typeof categories)[number];
@@ -273,7 +275,8 @@ export const guides: readonly Guide[] = [
     title: 'Support and recovery',
     category: 'Governance/Monitoring',
     summary: 'Exercise support ownership and a representative recovery path.',
-    acceptanceCriteria: 'Triage an incident, restart or recover the workload, and follow the escalation path and ownership.',
+    acceptanceCriteria:
+      'Triage an incident, restart or recover the workload, and follow the escalation path and ownership.',
     evidence: ['Triage and recovery exercise', 'Resiliency approach', 'Escalation path and ownership matrix'],
   },
   {
@@ -339,6 +342,222 @@ export const guides: readonly Guide[] = [
       'Roles, policies, and capacity controls',
       'Audit access and routine support procedure',
     ],
+  },
+  {
+    slug: 'file-format-ingestion',
+    title: 'File format ingestion',
+    category: 'Ingestion',
+    summary: 'Land CSV, delimited text, Excel, JSON, and XML through one pipeline.',
+    acceptanceCriteria:
+      'CSV, pipe-delimited text with quoted delimiters, a named Excel sheet, nested JSON, and XML with repeating and optional nodes all land in Delta tables with types preserved and nothing dropped.',
+    evidence: [
+      'One table per format with row counts',
+      'Rescued-data and type checks',
+      'Pipeline run with every format',
+    ],
+  },
+  {
+    slug: 'rest-api-ingestion',
+    title: 'Authenticated REST API ingestion',
+    category: 'Ingestion',
+    summary: 'Pull a paginated, authenticated API into Delta.',
+    acceptanceCriteria:
+      'A job calls a paginated REST endpoint with OAuth or an API key, follows pages until the end, refreshes tokens, and lands every record with the request log.',
+    evidence: ['Paginated pull with token handling', 'Request log with page counts', 'Job run with total records'],
+  },
+  {
+    slug: 'sftp-ingestion',
+    title: 'SFTP file retrieval',
+    category: 'Ingestion',
+    summary: 'Fetch files from an SFTP server and ingest them.',
+    acceptanceCriteria:
+      'A job connects to an SFTP server with stored credentials, copies new files to a volume, and Auto Loader ingests them without reprocessing old files.',
+    evidence: ['Credentials in a secret scope', 'Files copied to a volume', 'Ingested table and job run'],
+  },
+  {
+    slug: 'multi-source-pipeline',
+    title: 'Multi-source pipeline',
+    category: 'Ingestion',
+    summary: 'Combine database, file, and API sources in one pipeline.',
+    acceptanceCriteria:
+      'One Lakeflow Declarative Pipeline reads a database extract, landed files, and API output, tags each row with its source, and builds one conformed table.',
+    evidence: [
+      'Single pipeline graph with three sources',
+      'source_system column on every row',
+      'Pipeline update with row counts',
+    ],
+  },
+  {
+    slug: 'relational-db-ingestion',
+    title: 'Relational database extracts',
+    category: 'Ingestion',
+    summary: 'Full extracts and custom SQL from a relational database.',
+    acceptanceCriteria:
+      'A full table extract and a custom query with joins, aggregates, window functions, and a database function land in Delta and match the same query run at the source.',
+    evidence: ['Full extract with types preserved', 'Custom SQL result matching the source', 'Run log with row counts'],
+  },
+  {
+    slug: 'transformation-patterns',
+    title: 'Transformation patterns',
+    category: 'Data Engineering Guides',
+    summary: 'Ten common ETL patterns as declarative SQL.',
+    acceptanceCriteria:
+      'Lookups, joins, string functions, null handling, date and time zones, casting with a reject path, running totals, pivots, last record per group, and per-group iteration, each as a materialized view.',
+    evidence: [
+      'One materialized view per pattern',
+      'Reject table for failed casts',
+      'Pipeline update covering all patterns',
+    ],
+  },
+  {
+    slug: 'scd-change-capture',
+    title: 'SCD and change capture',
+    category: 'Data Engineering Guides',
+    summary: 'SCD type 1, type 2, and change detection with Auto CDC.',
+    acceptanceCriteria:
+      'New, changed, and deleted source records flow into an SCD type 1 table that overwrites and an SCD type 2 table that keeps history, without full reloads.',
+    evidence: [
+      'SCD type 1 and type 2 tables',
+      'Deletes propagated or flagged',
+      'Pipeline updates before and after changes',
+    ],
+  },
+  {
+    slug: 'target-loading-outputs',
+    title: 'Target loading and file outputs',
+    category: 'Data Engineering Guides',
+    summary: 'Upsert to a target table and write CSV, Excel, and JSON files.',
+    acceptanceCriteria:
+      'A job merges inserts, updates, and deletes into a target table, then writes the result as CSV, pipe-delimited text, an Excel workbook, and JSON to a volume.',
+    evidence: [
+      'MERGE with insert, update, and delete counts',
+      'Four output files in a volume',
+      'Job run with file sizes',
+    ],
+  },
+  {
+    slug: 'orchestration-patterns',
+    title: 'Orchestration patterns',
+    category: 'Data Engineering Guides',
+    summary: 'Chain, parallelize, schedule, retry, alert, and pause jobs.',
+    acceptanceCriteria:
+      'One Lakeflow Job shows sequential tasks with passed values, parallel branches, a schedule, retries, success and failure alerts, a call to an external process, and a bulk pause of scheduled jobs.',
+    evidence: [
+      'Job graph with sequential and parallel tasks',
+      'Retry and alert settings',
+      'Bulk pause and resume record',
+    ],
+  },
+  {
+    slug: 'data-observability',
+    title: 'Lineage and drift detection',
+    category: 'Data Engineering Guides',
+    summary: 'Trace lineage, catch schema drift, and flag data drift.',
+    acceptanceCriteria:
+      'Lineage from source to report comes from system tables, schema changes are detected from Delta history, and a monitor flags a shift in a column distribution.',
+    evidence: [
+      'End-to-end lineage query',
+      'Schema drift report from table history',
+      'Data drift result from a monitor',
+    ],
+  },
+  {
+    slug: 'sql-notebook-analysis',
+    title: 'SQL and notebooks at scale',
+    category: 'Analyst Guides',
+    summary: 'Explore with SQL, Python, and R notebooks, including large data.',
+    acceptanceCriteria:
+      'Analysts query with SQL, round-trip to pandas in a Python notebook, use R, and aggregate millions of rows on serverless compute in seconds.',
+    evidence: ['SQL exploration queries', 'Python and R notebooks', 'Large aggregation with timing'],
+  },
+  {
+    slug: 'bring-your-own-data',
+    title: 'Bring your own data',
+    category: 'Analyst Guides',
+    summary: 'Upload a spreadsheet and join it to governed tables.',
+    acceptanceCriteria:
+      'A user uploads a file to a personal volume path, joins it to governed tables, and keeps unmatched keys visible.',
+    evidence: ['Uploaded file in a volume', 'Join result with match counts', 'Per-user upload location'],
+  },
+  {
+    slug: 'local-tool-connectivity',
+    title: 'Connecting local tools',
+    category: 'Analyst Guides',
+    summary: 'Reach Databricks from Python, R, and statistics tools on a laptop.',
+    acceptanceCriteria:
+      'Python, R, and ODBC/JDBC clients on a workstation connect with OAuth, query governed tables, and respect the same permissions as the workspace.',
+    evidence: ['Connection examples per tool', 'OAuth sign-in steps', 'Query result from a local client'],
+  },
+  {
+    slug: 'no-code-data-prep',
+    title: 'No-code data preparation',
+    category: 'Analyst Guides',
+    summary: 'Browse, filter, transform, and save flows without code.',
+    acceptanceCriteria:
+      'A business user browses tables, filters and joins with Lakeflow Designer, renames and derives columns, and saves the flow to rerun later.',
+    evidence: ['Saved visual flow', 'Output table from the flow', 'Steps a non-coder can follow'],
+  },
+  {
+    slug: 'self-service-extracts',
+    title: 'Self-service extracts and subscriptions',
+    category: 'Analyst Guides',
+    summary: 'Subscribe to reports and export data to Excel or flat files.',
+    acceptanceCriteria:
+      'Users subscribe to a scheduled dashboard, export filtered data to Excel or CSV, and write a formatted workbook or delimited file for external partners.',
+    evidence: ['Dashboard subscription', 'Excel and CSV exports', 'Delimited file in a volume'],
+  },
+  {
+    slug: 'in-platform-visualization',
+    title: 'Charts and dashboards in the platform',
+    category: 'Analyst Guides',
+    summary: 'Chart in notebooks and publish an AI/BI dashboard.',
+    acceptanceCriteria:
+      'Notebook charts and an AI/BI dashboard read the same governed views, so a chart and its dashboard tile show the same numbers.',
+    evidence: ['Notebook charts', 'Published AI/BI dashboard', 'Shared governed views'],
+  },
+  {
+    slug: 'access-management',
+    title: 'Access management',
+    category: 'Governance/Monitoring',
+    summary: 'Groups, environments, object permissions, and service principals.',
+    acceptanceCriteria:
+      'Users get access through groups, dev and prod catalogs grant different privileges, object-level grants are audited, and service principals hold credentials for automation.',
+    evidence: ['Group-based grants', 'Dev versus prod access difference', 'Permission audit query'],
+  },
+  {
+    slug: 'row-column-security',
+    title: 'Row and column security',
+    category: 'Governance/Monitoring',
+    summary: 'Mask columns and filter rows by user, then test the policies.',
+    acceptanceCriteria:
+      'Column masks hide sensitive fields, row filters limit rows by attribute and identity, and a second identity confirms the policies apply before they are documented.',
+    evidence: [
+      'Column masks and row filters',
+      'Results as two different identities',
+      'Policy inventory from information_schema',
+    ],
+  },
+  {
+    slug: 'compute-capacity-management',
+    title: 'Compute and capacity management',
+    category: 'Governance/Monitoring',
+    summary: 'Size, scale, isolate, pause, and monitor compute.',
+    acceptanceCriteria:
+      'Warehouses scale up and out, auto-stop when idle, isolate workloads, and a utilization dashboard shows queueing and peak concurrency.',
+    evidence: [
+      'Warehouse sizing and autoscale settings',
+      'Workload isolation layout',
+      'Capacity dashboard over query history',
+    ],
+  },
+  {
+    slug: 'cost-chargeback',
+    title: 'Cost tracking and chargeback',
+    category: 'Governance/Monitoring',
+    summary: 'Spend by product, team, and workload, with budgets and forecasts.',
+    acceptanceCriteria:
+      'Usage system tables break spend down by product, tag, user, and pipeline, budgets alert on thresholds, and a forecast projects the next 30 days.',
+    evidence: ['Spend by product and tag', 'Budget alert', 'Forecast and optimization queries'],
   },
 ];
 

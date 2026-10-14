@@ -1,0 +1,28 @@
+# Email the owner when the newest scored batch drifts past the PSI threshold.
+resources:
+  alerts:
+    capability_guides_drift_alert:
+      display_name: "capability guides model drift: PSI above threshold"
+      query_text: >-
+        SELECT coalesce(max(psi), 0) AS max_psi
+        FROM `${var.catalog}`.`${resources.schemas.capability_guides_ml_lifecycle.name}`.drift_metrics
+        WHERE computed_at = (SELECT max(computed_at) FROM `${var.catalog}`.`${resources.schemas.capability_guides_ml_lifecycle.name}`.drift_metrics)
+          AND batch_id = (SELECT max(batch_id) FROM `${var.catalog}`.`${resources.schemas.capability_guides_ml_lifecycle.name}`.drift_metrics
+                          WHERE computed_at = (SELECT max(computed_at) FROM `${var.catalog}`.`${resources.schemas.capability_guides_ml_lifecycle.name}`.drift_metrics))
+      warehouse_id: ${var.warehouse_id}
+      evaluation:
+        comparison_operator: GREATER_THAN
+        source:
+          name: max_psi
+          display: max_psi
+        threshold:
+          value:
+            double_value: 0.2
+        notification:
+          notify_on_ok: false
+          subscriptions:
+            - user_email: ${var.notification_email}
+      schedule:
+        pause_status: UNPAUSED
+        quartz_cron_schedule: "0 0 * * * ?"
+        timezone_id: UTC

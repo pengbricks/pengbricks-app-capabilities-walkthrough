@@ -1,0 +1,81 @@
+# Use-case spec for the source ingestion guides. Code stays generic; the domain lives here.
+name: general
+seed: 20261014
+
+entities:
+  customers:
+    rows: 200
+    columns:
+      - {name: customer_id, type: int, expr: "id + 1001"}
+      - {name: first_name, type: string, values: [Ava, Noah, Mia, Liam, Zoe, Ethan, Ivy, Lucas, Nora, Owen, Ruth, Sam]}
+      - {name: last_name, type: string, values: [Garcia, Chen, Okafor, Novak, Silva, Khan, Tanaka, Dubois, Rossi, Meyer]}
+      - {name: email, type: string, expr: "concat('customer', cast(id + 1001 AS STRING), '@example.com')"}
+      - {name: city, type: string, values: [Austin, Toronto, Leeds, Berlin, Lyon, Osaka, Recife, Pune, Perth, Monterrey]}
+      - {name: country, type: string, values: [US, CA, GB, DE, FR, JP, BR, IN, AU, MX]}
+      - {name: segment, type: string, values: [consumer, small_business, enterprise], weights: [6, 3, 1]}
+      - {name: created_date, type: date, begin: "2024-01-01", end: "2026-09-30", interval: "1 day"}
+      - {name: credit_limit, type: "decimal(12,2)", min: 500, max: 20000}
+  orders:
+    rows: 1000
+    columns:
+      - {name: order_id, type: int, expr: "id + 50001"}
+      - {name: customer_id, type: int, expr: "1001 + ((id * 7) % 200)"}
+      - {name: order_date, type: date, begin: "2026-01-01", end: "2026-09-30", interval: "1 day"}
+      - {name: status, type: string, values: [shipped, pending, cancelled, returned], weights: [7, 2, 1, 1]}
+      - {name: amount, type: "decimal(12,2)", min: 5, max: 900}
+      - {name: discount_pct, type: int, values: [0, 5, 10, 15], weights: [6, 2, 1, 1]}
+      # Free text with embedded delimiters, commas, and quotes (used by the pipe-delimited file).
+      - name: notes
+        type: string
+        values: ["", "gift wrap | express", "call first, leave at door", "hold | do not ship", "fragile"]
+        weights: [5, 2, 1, 1, 1]
+
+file_formats:
+  # Sheet the Excel workbook reads; the other sheets are ignored.
+  excel_sheet: Orders
+  excel_other_sheets: [README, Products]
+  nested_json_rows: 200
+  xml_rows: 100
+  xml_max_lines: 4
+  xml_coupon_every: 4   # one order in four carries the optional <coupon> element
+
+rest_api:
+  base_url: https://dummyjson.com
+  # Public test credentials published by the API. The token is exchanged for a bearer token.
+  username: emilys
+  password: emilyspass
+  endpoint: /auth/users
+  page_size: 30
+  # Shortened so the run exercises the refresh path; real APIs use their issued lifetime.
+  refresh_after_seconds: 3
+  page_delay_seconds: 1.0
+  # Send an invalid token on this page so the 401 -> refresh -> retry path runs against the real API.
+  inject_invalid_token_on_page: 4
+  max_retries: 5
+  backoff_base_seconds: 0.5
+
+sftp:
+  host: test.rebex.net
+  port: 22
+  # Public read-only test server credentials, stored in a secret scope by the first task.
+  username: demo
+  password: password
+  secret_scope: capability-guides
+  remote_roots: [/]
+  text_suffixes: [.txt]
+  binary_suffixes: [.png]
+  connect_timeout_seconds: 20
+
+multi_source:
+  db_rows: 120
+  file_rows: 80
+  api_pages: 2
+
+relational:
+  lakebase_project: capability-guides
+  lakebase_branch: production
+  lakebase_endpoint: primary
+  lakebase_database: databricks_postgres
+  source_schema: source_app
+  connection_name: capability_guides_lakebase
+  foreign_catalog: capability_guides_lakebase

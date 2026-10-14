@@ -1,0 +1,26 @@
+# Budget alert: list-price spend over the last 7 days against a threshold variable.
+resources:
+  alerts:
+    capability_guides_budget_7_day:
+      display_name: "capability guides 7-day spend above ${var.budget_threshold_usd} USD"
+      query_text: >-
+        SELECT coalesce(sum(cost_usd), 0) AS spend_7d_usd
+        FROM `${var.catalog}`.`${resources.schemas.capability_guides_governance.name}`.cost_usage_enriched
+        WHERE usage_date >= date_sub(current_date(), 7)
+      warehouse_id: ${var.warehouse_id}
+      evaluation:
+        comparison_operator: GREATER_THAN
+        source:
+          name: spend_7d_usd
+          display: spend_7d_usd
+        threshold:
+          value:
+            double_value: ${var.budget_threshold_usd}
+        notification:
+          notify_on_ok: false
+          subscriptions:
+            - user_email: ${var.notification_email}
+      schedule:
+        pause_status: UNPAUSED
+        quartz_cron_schedule: "0 0 * * * ?"
+        timezone_id: UTC

@@ -1,0 +1,71 @@
+# Logs a run with its data version, code reference, and environment, then reruns from those references and checks the metric.
+resources:
+  jobs:
+    capability_guides_experiment_rerun:
+      name: capability-guides-experiment-rerun
+      description: Logs a run with its data version, code reference, and environment, then reruns from those references and checks the metric.
+      tags:
+        capability_guide_job: capability_guides_experiment_rerun
+        capability_guide_use_case: ${var.use_case}
+      max_concurrent_runs: 1
+      timeout_seconds: 3600
+      email_notifications:
+        on_failure:
+          - ${var.notification_email}
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${resources.schemas.capability_guides_ml_lifecycle.name}
+        - name: use_case
+          default: ${var.use_case}
+        - name: release
+          default: ${var.release}
+      environments:
+        - environment_key: ml
+          spec:
+            environment_version: "4"
+            dependencies:
+              - mlflow>=3.1
+              - scikit-learn>=1.4
+              - dbldatagen==0.4.0.post1
+              - pyyaml>=6
+              - databricks-sdk>=0.70
+      tasks:
+        - task_key: tracked_run
+          environment_key: ml
+          spark_python_task:
+            python_file: ../src/et_tracked_run.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --src-dir=${workspace.file_path}/src
+              - --spec=${workspace.file_path}/use_cases/${var.use_case}.yml
+              - --release={{job.parameters.release}}
+              - --experiment=${resources.experiments.ml_lifecycle_experiment.name}
+
+        - task_key: append_new_data
+          depends_on:
+            - task_key: tracked_run
+          environment_key: ml
+          spark_python_task:
+            python_file: ../src/et_append_new_data.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --src-dir=${workspace.file_path}/src
+              - --spec=${workspace.file_path}/use_cases/${var.use_case}.yml
+
+        - task_key: rerun_and_compare
+          depends_on:
+            - task_key: append_new_data
+          environment_key: ml
+          spark_python_task:
+            python_file: ../src/et_rerun_and_compare.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --src-dir=${workspace.file_path}/src
+              - --spec=${workspace.file_path}/use_cases/${var.use_case}.yml
+              - --experiment=${resources.experiments.ml_lifecycle_experiment.name}
+              - --run-id={{tasks.tracked_run.values.run_id}}

@@ -1,0 +1,10 @@
+resources:
+  volumes:
+    capability_guides_source_ingestion_landing:
+      catalog_name: ${var.catalog}
+      schema_name: ${resources.schemas.capability_guides_source_ingestion.name}
+      name: landing
+      comment: Generated sample files, API landings, and files copied from SFTP
+      grants:
+        - principal: ${var.app_service_principal}
+          privileges: [READ_VOLUME]

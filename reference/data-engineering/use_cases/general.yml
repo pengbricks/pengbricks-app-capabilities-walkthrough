@@ -1,0 +1,73 @@
+# Use-case spec: the domain for all three data engineering guides.
+# src/de_common/datagen.py turns it into deterministic sample data with dbldatagen.
+name: general
+seed: 20261014
+
+# Source tables for the transformation patterns pipeline.
+tables:
+  regions:
+    static_rows:
+      - {region_code: NE, region_name: Northeast, time_zone: America/New_York}
+      - {region_code: SE, region_name: Southeast, time_zone: America/New_York}
+      - {region_code: MW, region_name: Midwest, time_zone: America/Chicago}
+      - {region_code: SW, region_name: Southwest, time_zone: America/Denver}
+      - {region_code: W, region_name: West, time_zone: America/Los_Angeles}
+
+  customers:
+    rows: 2000
+    columns:
+      - {name: customer_id, type: string, expr: "concat('C-', lpad(cast(id AS STRING), 5, '0'))"}
+      - {name: first_name, type: string, values: ["alice", "BOB", "  Carol ", "dave", "ELENA", "  frank"]}
+      - {name: last_name, type: string, values: ["Nguyen", "o'brien", "  SMITH", "garcia ", "Khan", "mcdonald"]}
+      - {name: email, type: string, expr: "concat('user', id, '@', element_at(array('example.com', 'mail.example.org', 'corp.example.net'), cast(id % 3 + 1 AS INT)))"}
+      # XX is not in the regions lookup; percent_nulls adds NULL regions.
+      - {name: region_code, type: string, values: [NE, SE, MW, SW, W, XX], weights: [3, 3, 3, 3, 3, 1], percent_nulls: 0.03}
+      - {name: segment, type: string, values: [consumer, smb, enterprise], weights: [6, 3, 1], percent_nulls: 0.05}
+      # Three input formats: yyyy-MM-dd, MM/dd/yyyy, dd.MM.yyyy.
+      - name: signup_date_raw
+        type: string
+        expr: "CASE id % 3 WHEN 0 THEN date_format(date_add(DATE'2024-01-01', cast(id % 700 AS INT)), 'yyyy-MM-dd') WHEN 1 THEN date_format(date_add(DATE'2024-01-01', cast(id % 700 AS INT)), 'MM/dd/yyyy') ELSE date_format(date_add(DATE'2024-01-01', cast(id % 700 AS INT)), 'dd.MM.yyyy') END"
+
+  orders:
+    rows: 12000
+    columns:
+      - {name: order_id, type: string, expr: "concat('O-', lpad(cast(id AS STRING), 7, '0'))"}
+      # Customers C-00000..C-00099 never order; C-02000..C-02199 are orphans with no customer row.
+      - {name: customer_id, type: string, expr: "concat('C-', lpad(cast(100 + id % 2100 AS STRING), 5, '0'))"}
+      - {name: order_ts_utc, type: timestamp, begin: "2026-01-01 00:00:00", end: "2026-06-30 23:59:59", interval: "1 minute"}
+      - name: ship_date_raw
+        type: string
+        expr: "CASE id % 3 WHEN 0 THEN date_format(date_add(DATE'2026-01-05', cast(id % 180 AS INT)), 'yyyy-MM-dd') WHEN 1 THEN date_format(date_add(DATE'2026-01-05', cast(id % 180 AS INT)), 'MM/dd/yyyy') ELSE date_format(date_add(DATE'2026-01-05', cast(id % 180 AS INT)), 'dd.MM.yyyy') END"
+      # Deterministic bad values: every 53rd amount is 'N/A', every 89th is malformed.
+      - name: amount_raw
+        type: string
+        expr: "CASE WHEN id % 53 = 0 THEN 'N/A' WHEN id % 89 = 0 THEN '12,50x' ELSE cast(round(10 + (id * 37) % 49000 / 100.0, 2) AS STRING) END"
+      - {name: quantity_raw, type: string, expr: "CASE WHEN id % 71 = 0 THEN 'abc' ELSE cast(1 + id % 9 AS STRING) END"}
+      - {name: category, type: string, values: [hardware, software, services, support], weights: [4, 3, 2, 1]}
+      - {name: status, type: string, values: [placed, shipped, returned], weights: [3, 6, 1]}
+
+# Entity used by the SCD and target loading guides.
+accounts:
+  key: account_id
+  rows: 1000
+  columns:
+    - {name: account_id, type: string, expr: "concat('A-', lpad(cast(id AS STRING), 6, '0'))"}
+    - {name: account_name, type: string, expr: "concat('Account ', cast(id AS STRING))"}
+    - {name: tier, type: string, values: [basic, plus, premium], weights: [6, 3, 1]}
+    - {name: balance, type: "decimal(12,2)", min: 0, max: 20000}
+    - {name: email, type: string, expr: "concat('account', id, '@example.com')"}
+    - {name: updated_at, type: timestamp, expr: "timestampadd(MINUTE, cast(id % 600 AS INT), timestamp'2026-07-01 08:00:00')"}
+  # One change batch: new keys beyond `rows`, updated keys, and deleted keys.
+  changes:
+    inserts: 60
+    updates: 150
+    deletes: 40
+  # Columns that change on an update, as SQL over the existing row.
+  update_exprs:
+    tier: "CASE WHEN tier = 'basic' THEN 'plus' WHEN tier = 'plus' THEN 'premium' ELSE 'basic' END"
+    balance: "round(balance * 1.1, 2)"
+    updated_at: "updated_at + INTERVAL 30 DAYS"
+  # Output files written by the target loading guide.
+  outputs:
+    base_name: accounts_export
+    max_rows: 5000

@@ -1,0 +1,4 @@
+resources:
+  experiments:
+    ml_lifecycle_experiment:
+      name: ${workspace.root_path}/ml_lifecycle_experiment

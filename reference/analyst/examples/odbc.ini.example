@@ -1,0 +1,18 @@
+; ODBC data source for desktop statistics tools (SAS/ACCESS to ODBC, SPSS, Excel, Tableau).
+; Put this in odbc.ini (macOS/Linux) or create the same keys in the Windows ODBC Data Source Administrator.
+[Databricks]
+Driver=/Library/simba/spark/lib/libsimbaspark.dylib
+Host=<workspace-host>
+Port=443
+HTTPPath=/sql/1.0/warehouses/<warehouse-id>
+SSL=1
+ThriftTransport=2
+; OAuth U2M (browser sign-in)
+AuthMech=11
+Auth_Flow=2
+; OAuth M2M instead:
+; Auth_Flow=1
+; Auth_Client_ID=<service-principal-application-id>
+; Auth_Client_Secret=<oauth-secret>
+Catalog=<catalog>
+Schema=<schema>

@@ -1,0 +1,6 @@
+resources:
+  schemas:
+    capability_guides_ml_lifecycle:
+      catalog_name: ${var.catalog}
+      name: ${var.schema}
+      comment: Feature tables, models, experiment references, and drift metrics produced by the ML guides

@@ -1,0 +1,81 @@
+# Generates source data, builds a Unity Catalog feature table with quality checks, freezes a versioned training set, and records lineage.
+resources:
+  jobs:
+    capability_guides_feature_preparation:
+      name: capability-guides-feature-preparation
+      description: Generates source data, builds a Unity Catalog feature table with quality checks, freezes a versioned training set, and records lineage.
+      tags:
+        capability_guide_job: capability_guides_feature_preparation
+        capability_guide_use_case: ${var.use_case}
+      max_concurrent_runs: 1
+      timeout_seconds: 3600
+      email_notifications:
+        on_failure:
+          - ${var.notification_email}
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${resources.schemas.capability_guides_ml_lifecycle.name}
+        - name: use_case
+          default: ${var.use_case}
+      environments:
+        - environment_key: ml
+          spec:
+            environment_version: "4"
+            dependencies:
+              - mlflow>=3.1
+              - scikit-learn>=1.4
+              - dbldatagen==0.4.0.post1
+              - pyyaml>=6
+              - databricks-sdk>=0.70
+              - databricks-feature-engineering>=0.13
+      tasks:
+        - task_key: generate_source
+          environment_key: ml
+          spark_python_task:
+            python_file: ../src/fp_generate_source.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --src-dir=${workspace.file_path}/src
+              - --spec=${workspace.file_path}/use_cases/${var.use_case}.yml
+
+        - task_key: build_features
+          depends_on:
+            - task_key: generate_source
+          environment_key: ml
+          spark_python_task:
+            python_file: ../src/fp_build_features.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --src-dir=${workspace.file_path}/src
+              - --spec=${workspace.file_path}/use_cases/${var.use_case}.yml
+
+        - task_key: snapshot_training_set
+          depends_on:
+            - task_key: build_features
+          environment_key: ml
+          spark_python_task:
+            python_file: ../src/fp_snapshot_training_set.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --src-dir=${workspace.file_path}/src
+              - --spec=${workspace.file_path}/use_cases/${var.use_case}.yml
+              - --feature-version={{tasks.build_features.values.feature_version}}
+              - --source-version={{tasks.build_features.values.source_version}}
+
+        - task_key: record_lineage
+          depends_on:
+            - task_key: snapshot_training_set
+          environment_key: ml
+          spark_python_task:
+            python_file: ../src/fp_record_lineage.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --src-dir=${workspace.file_path}/src
+              - --spec=${workspace.file_path}/use_cases/${var.use_case}.yml
+              - --training-set={{tasks.snapshot_training_set.values.training_set}}

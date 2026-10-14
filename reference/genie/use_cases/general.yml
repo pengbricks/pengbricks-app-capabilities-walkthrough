@@ -1,0 +1,198 @@
+# Use-case spec: tables to generate, the semantic layer, the Genie space text, the questions with
+# expected SQL, and the scripted user session. Code under src/ reads this file and stays generic.
+name: general
+seed: 20261014
+space_prefix: Capability guide sales
+
+tables:
+  - name: cust
+    rows: 400
+    comment: Customer master
+    tags: {domain: sales}
+    columns:
+      - {name: cust_id, type: string, expr: "concat('C', lpad(cast(id AS STRING), 5, '0'))"}
+      - {name: cust_nm, type: string, expr: "concat('Customer ', cast(id AS STRING))"}
+      - {name: seg_cd, type: string, values: [E, M, S], weights: [2, 3, 5]}
+      - {name: rgn_cd, type: string, values: [NA, EM, AP], weights: [5, 3, 2]}
+      - {name: signup_dt, type: date, begin: "2024-01-01", end: "2026-06-30", interval: "1 day"}
+    column_comments:
+      cust_id: Unique customer (account) identifier
+      cust_nm: Customer display name
+      seg_cd: "Customer segment code: E = Enterprise, M = Mid-Market, S = SMB"
+      rgn_cd: "Sales region code: NA = North America, EM = EMEA, AP = APAC"
+      signup_dt: Date the customer signed up
+    column_tags:
+      seg_cd: {business_term: customer_segment}
+      rgn_cd: {business_term: sales_region}
+
+  - name: ord_fact
+    rows: 6000
+    comment: One row per customer order
+    tags: {domain: sales}
+    columns:
+      - {name: ord_id, type: string, expr: "concat('O', lpad(cast(id AS STRING), 7, '0'))"}
+      - {name: cust_id, type: string, expr: "concat('C', lpad(cast(id % 400 AS STRING), 5, '0'))"}
+      - {name: ord_dt, type: date, begin: "2026-07-01", end: "2026-09-30", interval: "1 day"}
+      - {name: net_amt, type: "decimal(12,2)", min: 20, max: 2000}
+      - {name: ord_st, type: string, values: [C, X, R], weights: [8, 1, 1]}
+      - {name: chan_cd, type: string, values: [W, S, P], weights: [5, 3, 2]}
+    column_comments:
+      ord_id: Unique order identifier
+      cust_id: Customer who placed the order
+      ord_dt: Order date
+      net_amt: Order amount in USD after discounts and before tax
+      ord_st: "Order status code: C = Completed, X = Cancelled, R = Returned"
+      chan_cd: "Sales channel code: W = Web, S = Sales rep, P = Partner"
+    column_tags:
+      net_amt: {business_term: revenue}
+      ord_st: {business_term: order_status}
+
+# Governed business concepts, defined once as a Unity Catalog metric view.
+metric_view:
+  name: sales_metrics
+  definition:
+    version: 1.1
+    source: "{catalog}.{schema}.ord_fact"
+    comment: "Sales KPIs. Revenue counts completed orders only; cancelled and returned orders are excluded from revenue."
+    joins:
+      - name: cust
+        source: "{catalog}.{schema}.cust"
+        "on": source.cust_id = cust.cust_id
+    dimensions:
+      - name: Customer Segment
+        expr: "CASE cust.seg_cd WHEN 'E' THEN 'Enterprise' WHEN 'M' THEN 'Mid-Market' ELSE 'SMB' END"
+        comment: Customer tier derived from the segment code
+        synonyms: [segment, tier, customer tier, account type]
+      - name: Region
+        expr: "CASE cust.rgn_cd WHEN 'NA' THEN 'North America' WHEN 'EM' THEN 'EMEA' ELSE 'APAC' END"
+        comment: Sales region of the customer
+        synonyms: [territory, geo, geography, sales region]
+      - name: Sales Channel
+        expr: "CASE source.chan_cd WHEN 'W' THEN 'Web' WHEN 'S' THEN 'Sales rep' ELSE 'Partner' END"
+        comment: Channel the order came through
+        synonyms: [channel, route to market]
+      - name: Order Status
+        expr: "CASE source.ord_st WHEN 'C' THEN 'Completed' WHEN 'X' THEN 'Cancelled' ELSE 'Returned' END"
+        comment: Order lifecycle status
+        synonyms: [status, order state]
+      - name: Order Month
+        expr: DATE_TRUNC('MONTH', source.ord_dt)
+        comment: Month the order was placed
+        synonyms: [month]
+      - name: Order Date
+        expr: source.ord_dt
+        comment: Day the order was placed
+        synonyms: [date, day]
+    measures:
+      - name: Revenue
+        expr: SUM(source.net_amt) FILTER (WHERE source.ord_st = 'C')
+        comment: Net amount of completed orders in USD
+        synonyms: [sales, net sales, bookings, turnover, income]
+      - name: Order Count
+        expr: COUNT(1) FILTER (WHERE source.ord_st = 'C')
+        comment: Number of completed orders
+        synonyms: [orders, completed orders, number of orders]
+      - name: Cancelled Orders
+        expr: COUNT(1) FILTER (WHERE source.ord_st = 'X')
+        comment: Number of cancelled orders
+        synonyms: [cancellations, cancelled]
+      - name: Active Customers
+        expr: COUNT(DISTINCT source.cust_id) FILTER (WHERE source.ord_st = 'C')
+        comment: Customers with at least one completed order in the period
+        synonyms: [active accounts, buying customers, paying customers]
+      - name: Average Order Value
+        expr: SUM(source.net_amt) FILTER (WHERE source.ord_st = 'C') / COUNT(1) FILTER (WHERE source.ord_st = 'C')
+        comment: Revenue divided by completed orders
+        synonyms: [AOV, average order size, basket size]
+
+genie:
+  description: Sales questions over orders and customers.
+  instructions: |
+    Glossary. Revenue and sales mean the net amount of completed orders only; never include cancelled or returned orders.
+    A customer and an account are the same thing. An active customer has at least one completed order in the period.
+    Enterprise, Mid-Market, and SMB are customer segments. Regions are North America, EMEA, and APAC.
+    Use the sales_metrics metric view with MEASURE() for every KPI, and show business names rather than codes.
+  sample_questions:
+    - What is revenue by sales channel?
+    - How many orders did Mid-Market customers place in August 2026?
+    - Which customer segment has the highest average order value?
+  example_sql:
+    - question: What is revenue by sales channel?
+      sql: "SELECT `Sales Channel`, MEASURE(`Revenue`) AS revenue FROM {catalog}.{schema}.sales_metrics GROUP BY ALL ORDER BY revenue DESC"
+
+# Ontology guide: the same questions are asked before and after the semantics exist.
+questions:
+  - id: q1_revenue_by_segment
+    text: What is total revenue by customer segment?
+    expected_sql: |
+      SELECT CASE c.seg_cd WHEN 'E' THEN 'Enterprise' WHEN 'M' THEN 'Mid-Market' ELSE 'SMB' END AS segment,
+             SUM(o.net_amt) AS revenue
+      FROM {catalog}.{schema}.ord_fact o JOIN {catalog}.{schema}.cust c ON o.cust_id = c.cust_id
+      WHERE o.ord_st = 'C' GROUP BY 1
+  - id: q2_active_customers_by_region
+    text: How many active customers do we have in each region?
+    expected_sql: |
+      SELECT CASE c.rgn_cd WHEN 'NA' THEN 'North America' WHEN 'EM' THEN 'EMEA' ELSE 'APAC' END AS region,
+             COUNT(DISTINCT o.cust_id) AS active_customers
+      FROM {catalog}.{schema}.ord_fact o JOIN {catalog}.{schema}.cust c ON o.cust_id = c.cust_id
+      WHERE o.ord_st = 'C' GROUP BY 1
+  - id: q3_aov_enterprise
+    text: What is the average order value for enterprise accounts?
+    expected_sql: |
+      SELECT SUM(o.net_amt) / COUNT(*) AS average_order_value
+      FROM {catalog}.{schema}.ord_fact o JOIN {catalog}.{schema}.cust c ON o.cust_id = c.cust_id
+      WHERE o.ord_st = 'C' AND c.seg_cd = 'E'
+  - id: q4_top_region_september
+    text: Which region had the most sales in September 2026?
+    expected_sql: |
+      SELECT CASE c.rgn_cd WHEN 'NA' THEN 'North America' WHEN 'EM' THEN 'EMEA' ELSE 'APAC' END AS region,
+             SUM(o.net_amt) AS revenue
+      FROM {catalog}.{schema}.ord_fact o JOIN {catalog}.{schema}.cust c ON o.cust_id = c.cust_id
+      WHERE o.ord_st = 'C' AND o.ord_dt >= '2026-09-01' AND o.ord_dt < '2026-10-01'
+      GROUP BY 1 ORDER BY revenue DESC LIMIT 1
+  - id: q5_cancellations_by_channel
+    text: How many cancelled orders did we have per sales channel?
+    expected_sql: |
+      SELECT CASE chan_cd WHEN 'W' THEN 'Web' WHEN 'S' THEN 'Sales rep' ELSE 'Partner' END AS channel,
+             COUNT(*) AS cancelled_orders
+      FROM {catalog}.{schema}.ord_fact WHERE ord_st = 'X' GROUP BY 1
+
+# User experience guide: one scripted session. Steps run in order in one conversation unless marked new.
+ux_script:
+  latency_warn_seconds: 45
+  steps:
+    - id: discovery
+      task_type: discovery
+      prompt: What data is available here, and what can I ask about it?
+      training_need: Show new users the sample questions and the data list on the space home page.
+    - id: question
+      task_type: question
+      prompt: What was revenue by region in Q3 2026?
+      expected_sql: |
+        SELECT CASE c.rgn_cd WHEN 'NA' THEN 'North America' WHEN 'EM' THEN 'EMEA' ELSE 'APAC' END AS region,
+               SUM(o.net_amt) AS revenue
+        FROM {catalog}.{schema}.ord_fact o JOIN {catalog}.{schema}.cust c ON o.cust_id = c.cust_id
+        WHERE o.ord_st = 'C' AND o.ord_dt >= '2026-07-01' AND o.ord_dt < '2026-10-01' GROUP BY 1
+      training_need: Teach users to open "Show code" and check the filters, dates, and measures behind a number.
+    - id: refine
+      task_type: refinement
+      prompt: Now split that by customer segment as well.
+      expected_sql: |
+        SELECT CASE c.rgn_cd WHEN 'NA' THEN 'North America' WHEN 'EM' THEN 'EMEA' ELSE 'APAC' END AS region,
+               CASE c.seg_cd WHEN 'E' THEN 'Enterprise' WHEN 'M' THEN 'Mid-Market' ELSE 'SMB' END AS segment,
+               SUM(o.net_amt) AS revenue
+        FROM {catalog}.{schema}.ord_fact o JOIN {catalog}.{schema}.cust c ON o.cust_id = c.cust_id
+        WHERE o.ord_st = 'C' AND o.ord_dt >= '2026-07-01' AND o.ord_dt < '2026-10-01' GROUP BY 1, 2
+      training_need: Teach users that follow-ups keep context only inside one conversation; start a new chat for a new topic.
+    - id: ambiguous
+      task_type: ambiguous question
+      prompt: Who are our best customers?
+      ambiguous: true
+      new_conversation: true
+      training_need: Teach users to name the measure and period ("top 10 customers by revenue in Q3 2026").
+    - id: feedback_question
+      task_type: feedback
+      target: question
+    - id: feedback_refine
+      task_type: feedback
+      target: refine

@@ -1,0 +1,53 @@
+# Use-case spec: sample tables, sensitive columns, and policy settings for the governance guides.
+# Code under src/ stays generic; swap this file to change the domain.
+name: general
+seed: 20261014
+
+tables:
+  customers:
+    rows: 5000
+    columns:
+      - {name: customer_id, type: string, expr: "concat('CUST-', lpad(cast(id AS STRING), 6, '0'))"}
+      - {name: customer_name, type: string, expr: "concat('Customer ', lpad(cast(id AS STRING), 6, '0'))"}
+      - {name: email, type: string, expr: "concat('user', lpad(cast(id AS STRING), 6, '0'), '@example.com')"}
+      - {name: national_id, type: string, expr: "concat(lpad(cast((id * 7919) % 900 + 100 AS STRING), 3, '0'), '-', lpad(cast(id % 99 + 1 AS STRING), 2, '0'), '-', lpad(cast((id * 31) % 10000 AS STRING), 4, '0'))"}
+      - {name: region, type: string, values: [NA, EMEA, APAC, LATAM], weights: [4, 3, 2, 1]}
+      - {name: segment, type: string, values: [consumer, business, enterprise], weights: [6, 3, 1]}
+      - {name: created_at, type: timestamp, begin: "2025-01-01 00:00:00", end: "2026-09-30 23:59:59", interval: "1 hour"}
+  orders:
+    rows: 20000
+    columns:
+      - {name: order_id, type: string, expr: "concat('ORD-', lpad(cast(id AS STRING), 8, '0'))"}
+      - {name: customer_id, type: string, expr: "concat('CUST-', lpad(cast(id % 5000 AS STRING), 6, '0'))"}
+      - {name: order_ts, type: timestamp, begin: "2026-07-01 00:00:00", end: "2026-09-30 23:59:59", interval: "1 minute"}
+      - {name: amount, type: "decimal(12,2)", min: 5, max: 2500}
+      - {name: status, type: string, values: [paid, pending, refunded], weights: [8, 2, 1]}
+      - {name: sensitivity, type: string, values: [standard, restricted], weights: [9, 1]}
+
+# Environment segregation: the same tables in two schemas with different privileges.
+access:
+  environments:
+    dev:
+      privileges: [USE_SCHEMA, SELECT, MODIFY, CREATE_TABLE]
+      table_privileges: {}
+    prod:
+      privileges: [USE_SCHEMA]
+      # Object-level grants: only these tables, read-only.
+      table_privileges:
+        orders: [SELECT]
+  rows_per_table: {customers: 500, orders: 2000}
+
+# Row and column security.
+policy:
+  admin_group: admins
+  # Identity that session_user() returns while a role is assumed.
+  restricted_role: account users
+  masked_columns:
+    - {table: customers, column: email, mask: email}
+    - {table: customers, column: national_id, mask: national_id}
+  attribute_filter: {table: orders, column: sensitivity, hidden_value: restricted}
+  dynamic_filter: {table: customers, column: region, mapping_table: region_access}
+  # principal -> permitted regions. The app service principal row is added at run time.
+  mapping:
+    - {principal: account users, regions: [NA, EMEA]}
+    - {principal: app_service_principal, regions: [APAC]}

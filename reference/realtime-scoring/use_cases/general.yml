@@ -1,0 +1,36 @@
+# Use-case spec: the domain for the scoring guide. Code reads feature names, label, and
+# request settings from here; nothing in src/ is specific to this domain.
+name: general
+seed: 20261014
+
+model:
+  name: account_risk_model
+  alias: champion
+  label: at_risk
+  # Features the endpoint accepts. `optional: true` means a request may omit the feature;
+  # the model fills it with the training median.
+  features:
+    - {name: tenure_months, type: double, min: 1, max: 96}
+    - {name: monthly_spend, type: double, min: 5, max: 900}
+    - {name: support_tickets, type: double, min: 0, max: 12}
+    - {name: usage_score, type: double, min: 0, max: 100, optional: true}
+  training:
+    rows: 5000
+    # Spark SQL for the label, applied to the generated features. Fixed seed, deterministic.
+    label_expr: "CAST(((support_tickets * 9 - tenure_months * 0.4 - usage_score * 0.3 + 20) > 0) AS INT)"
+
+endpoint:
+  workload_size: Small
+  scale_to_zero: true
+  # Route optimization needs a JWT OAuth token. The serverless job token is opaque, so the
+  # reference run keeps this off; set true when the scoring identity can mint a JWT (user or service principal OAuth).
+  route_optimized: false
+  ready_timeout_seconds: 1500
+
+scoring:
+  warm_requests: 50
+  concurrent_requests: 20
+  concurrency: 5
+  request_timeout_seconds: 120
+  # Row count per request body.
+  records_per_request: 1

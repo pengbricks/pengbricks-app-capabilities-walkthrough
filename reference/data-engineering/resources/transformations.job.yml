@@ -1,0 +1,49 @@
+resources:
+  jobs:
+    capability_guides_transformations:
+      name: capability_guides_transformations
+      description: Runs the transformation patterns pipeline and checks row counts per materialized view.
+      tags:
+        capability_guide_job: capability_guides_transformations
+        capability_guide_use_case: ${var.use_case}
+      max_concurrent_runs: 1
+      timeout_seconds: 3600
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${resources.schemas.capability_guides_data_engineering.name}
+        - name: use_case
+          default: ${var.use_case}
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+            dependencies:
+              - dbldatagen==0.4.0.post1
+              - pyyaml>=6
+              - openpyxl>=3.1
+      tasks:
+        - task_key: generate_sources
+          environment_key: default
+          spark_python_task:
+            python_file: ../src/generate_sources.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+        - task_key: run_pipeline
+          depends_on:
+            - task_key: generate_sources
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.capability_guides_transformations_pipeline.id}
+            full_refresh: true
+        - task_key: check_row_counts
+          depends_on:
+            - task_key: run_pipeline
+          environment_key: default
+          spark_python_task:
+            python_file: ../src/check_transformations.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}

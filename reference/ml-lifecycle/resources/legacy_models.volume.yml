@@ -1,0 +1,7 @@
+resources:
+  volumes:
+    legacy_models:
+      catalog_name: ${var.catalog}
+      schema_name: ${resources.schemas.capability_guides_ml_lifecycle.name}
+      name: legacy_models
+      comment: Holds the pickled model that the compatibility guide brings into Unity Catalog

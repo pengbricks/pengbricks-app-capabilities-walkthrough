@@ -1,0 +1,46 @@
+# No-code data preparation: the SQL version of the Lakeflow Designer flow, to compare with the flow's output.
+resources:
+  jobs:
+    capability_guides_no_code_prep:
+      name: capability-guides-no-code-prep
+      description: Builds prep_flow_output with SQL so the Lakeflow Designer flow has an output to compare against.
+      tags:
+        capability_guide_job: capability_guides_no_code_prep
+        capability_guide_use_case: ${var.use_case}
+      max_concurrent_runs: 1
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${resources.schemas.capability_guides_analyst.name}
+        - name: use_case
+          default: ${var.use_case}
+      environments:
+        - environment_key: analyst
+          spec:
+            environment_version: "4"
+            dependencies:
+              - dbldatagen==0.4.0.post1
+              - pyyaml>=6
+      tasks:
+        - task_key: generate_data
+          environment_key: analyst
+          spark_python_task:
+            python_file: ../src/generate_data.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --src=${workspace.file_path}/src
+              - --spec=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+              - --tables=customers,orders
+
+        - task_key: build_flow_output
+          depends_on:
+            - task_key: generate_data
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file:
+              path: ../sql/prep_flow_output.sql
+            parameters:
+              catalog: "{{job.parameters.catalog}}"
+              schema: "{{job.parameters.schema}}"

@@ -1,0 +1,55 @@
+# Domain for the platform operations guides. Code reads this file; nothing here is hard-coded in Python.
+name: general
+
+admin:
+  group_name: capability-guides-analysts
+  group_schema_privileges: [USE_SCHEMA, SELECT]
+  budget_policy_name: capability-guides-budget
+  budget_policy_tags:
+    - {key: capability_guide, value: platform-administration}
+  cluster_policy_name: capability-guides-policy
+  cluster_policy_definition:
+    autotermination_minutes: {type: range, maxValue: 60, defaultValue: 30}
+    custom_tags.capability_guide: {type: fixed, value: platform-administration}
+  workspace_conf_keys:
+    - enableTokensConfig
+    - maxTokenLifetimeDays
+    - enableIpAccessLists
+    - enableDbfsFileBrowser
+    - enableWebTerminal
+  warehouse_max_auto_stop_mins: 60
+  usage_lookback_days: 30
+  audit_lookback_days: 7
+  audit_services: [accounts, clusterPolicies, groups, unityCatalog, workspace, jobs, sqlPermissions, secrets, tokens]
+  failed_job_lookback_hours: 24
+  token_expiry_warning_days: 30
+
+support:
+  lookback_hours: 168
+  triage_job_tag: capability_guide_job
+  repair_job_key: capability_guides_operational_support
+  repair_task_key: fragile_step
+  work_items:
+    count: 25
+    seed: 20260101
+  # First matching pattern wins. Patterns are case-insensitive regular expressions.
+  error_classes:
+    - {name: permission, severity: high, pattern: "PERMISSION_DENIED|UNAUTHORIZED|not authorized|Forbidden"}
+    - {name: missing_dependency, severity: high, pattern: "TABLE_OR_VIEW_NOT_FOUND|SCHEMA_NOT_FOUND|DOES_NOT_EXIST|RESOURCE_DOES_NOT_EXIST|does not exist"}
+    - {name: concurrency, severity: low, pattern: "DELTA_METADATA_CHANGED|ConcurrentAppend|ConcurrentDeleteRead|MetadataChanged"}
+    - {name: resource_limit, severity: medium, pattern: "OutOfMemory|QUOTA|RESOURCE_EXHAUSTED|DRIVER_UNAVAILABLE"}
+    - {name: timeout, severity: medium, pattern: "timed out|TIMEOUT|DEADLINE"}
+    - {name: transient, severity: low, pattern: "TransientSource|temporar|Simulated|UNAVAILABLE|connection reset"}
+    - {name: data_quality, severity: medium, pattern: "Feeds without a successful audit|Cannot cast|schema mismatch|CAST_INVALID|AnalysisException"}
+    - {name: bad_request, severity: medium, pattern: "INVALID_PARAMETER_VALUE|BAD_REQUEST|returned 400|MlflowException"}
+    - {name: code_error, severity: medium, pattern: "TypeError|ValueError|NameError|AttributeError|KeyError|UNRESOLVED_COLUMN|SystemExit"}
+    - {name: task_failure, severity: medium, pattern: "RUN_EXECUTION_ERROR"}
+  default_error_class: {name: unclassified, severity: medium}
+  # Maps job tags to owner and escalation contacts. A row matches when the job tag key has that value.
+  # The "*" row is the fallback. Severity "high" also pages the escalation contact.
+  on_call:
+    - {tag_key: capability_guide_job, tag_value: capability_guides_operational_support, owner_team: platform-support, owner_contact: platform-support@example.com, escalation_contact: platform-lead@example.com, escalate_after_minutes: 30}
+    - {tag_key: capability_guide_job, tag_value: capability_guides_platform_admin, owner_team: platform-admins, owner_contact: platform-admins@example.com, escalation_contact: platform-lead@example.com, escalate_after_minutes: 30}
+    - {tag_key: capability_guide_job, tag_value: capability_guides_dataops, owner_team: data-engineering, owner_contact: data-eng@example.com, escalation_contact: data-eng-lead@example.com, escalate_after_minutes: 60}
+    - {tag_key: capability_guide_use_case, tag_value: general, owner_team: capability-guides, owner_contact: guides-owner@example.com, escalation_contact: guides-lead@example.com, escalate_after_minutes: 120}
+    - {tag_key: "*", tag_value: "*", owner_team: platform-support, owner_contact: platform-support@example.com, escalation_contact: platform-lead@example.com, escalate_after_minutes: 60}

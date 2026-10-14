@@ -1,0 +1,40 @@
+bundle:
+  name: capability-guides-data-engineering
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Unity Catalog catalog that holds the guide schema
+  app_service_principal:
+    description: Application ID of the Databricks App service principal that triggers quick runs
+  schema:
+    description: Schema for this bundle's tables, pipelines, and output volume
+    default: capability_guides_data_engineering
+  use_case:
+    description: Use-case spec under use_cases/ that drives the sample data
+    default: general
+  release:
+    description: Release identifier recorded in resource tags
+    default: local
+
+permissions:
+  - level: CAN_MANAGE
+    user_name: ${workspace.current_user.userName}
+  - level: CAN_RUN
+    service_principal_name: ${var.app_service_principal}
+
+targets:
+  dev:
+    default: true
+    mode: development
+    presets:
+      tags:
+        release: ${var.release}
+  test:
+    presets:
+      name_prefix: "[test] "
+      tags:
+        environment: test
+        release: ${var.release}

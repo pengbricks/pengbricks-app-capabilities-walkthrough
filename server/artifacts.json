@@ -1105,6 +1105,2448 @@
           "path": "docs/guides/github-cicd.md"
         }
       ]
+    },
+    "file-format-ingestion": {
+      "bundle": "reference/source-ingestion",
+      "onePager": "reference/source-ingestion/guides/file-format-ingestion.md",
+      "code": [
+        {
+          "label": "File generator",
+          "path": "reference/source-ingestion/src/generate_format_files.py"
+        },
+        {
+          "label": "Format pipeline",
+          "path": "reference/source-ingestion/src/pipelines/file_formats"
+        },
+        {
+          "label": "Checks",
+          "path": "reference/source-ingestion/src/verify_format_tables.py"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_file_formats",
+          "label": "File format ingestion job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "File format ingestion run",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/824741638970017/runs/498898889781387",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T22:00:00Z"
+        }
+      ],
+      "docs": [
+        {
+          "label": "Read Excel files",
+          "url": "https://docs.databricks.com/aws/en/query/formats/excel"
+        },
+        {
+          "label": "XML files",
+          "url": "https://docs.databricks.com/aws/en/query/formats/xml"
+        },
+        {
+          "label": "CSV files",
+          "url": "https://docs.databricks.com/aws/en/query/formats/csv"
+        },
+        {
+          "label": "Auto Loader",
+          "url": "https://docs.databricks.com/aws/en/ingestion/cloud-object-storage/auto-loader/"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Read one named Excel sheet",
+          "path": "reference/source-ingestion/src/pipelines/file_formats/fmt_orders_excel.sql",
+          "notes": [
+            "dataAddress selects the sheet; the cell form Orders!A1 fails.",
+            "Schema hints keep dates and numbers typed; Excel needs schemaEvolutionMode none."
+          ]
+        },
+        {
+          "label": "Build files locally, then copy to the volume",
+          "path": "reference/source-ingestion/src/generate_format_files.py",
+          "notes": [
+            "An .xlsx is a zip and can't be written straight to a volume path.",
+            "Every format is generated from the use-case spec."
+          ],
+          "symbol": "main"
+        },
+        {
+          "label": "24 format checks",
+          "path": "reference/source-ingestion/src/verify_format_tables.py",
+          "notes": [
+            "Counts, rescued data, and types per format.",
+            "The job fails on any mismatch."
+          ]
+        }
+      ]
+    },
+    "rest-api-ingestion": {
+      "bundle": "reference/source-ingestion",
+      "onePager": "reference/source-ingestion/guides/rest-api-ingestion.md",
+      "code": [
+        {
+          "label": "API client",
+          "path": "reference/source-ingestion/src/source_ingestion/api_client.py"
+        },
+        {
+          "label": "Pull job",
+          "path": "reference/source-ingestion/src/pull_rest_api.py"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_rest_api",
+          "label": "REST API ingestion job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "REST API pull run",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/368059592545557/runs/527594844505047",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T22:00:00Z"
+        }
+      ],
+      "docs": [
+        {
+          "label": "PySpark custom data sources",
+          "url": "https://docs.databricks.com/aws/en/pyspark/datasources"
+        },
+        {
+          "label": "Secrets",
+          "url": "https://docs.databricks.com/aws/en/security/secrets/"
+        },
+        {
+          "label": "Lakeflow Connect",
+          "url": "https://docs.databricks.com/aws/en/ingestion/lakeflow-connect/"
+        },
+        {
+          "label": "Custom data sources (Azure)",
+          "url": "https://learn.microsoft.com/en-us/azure/databricks/pyspark/datasources"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Paginate with retries and token refresh",
+          "path": "reference/source-ingestion/src/source_ingestion/api_client.py",
+          "notes": [
+            "A 401 refreshes the token and retries once; 429 and 5xx back off and honor Retry-After.",
+            "Every HTTP attempt becomes one request-log row."
+          ],
+          "symbol": "fetch_all_pages"
+        },
+        {
+          "label": "Refresh tokens before they expire",
+          "path": "reference/source-ingestion/src/source_ingestion/api_client.py",
+          "notes": [
+            "Tokens refresh at a set age, not only after a failure.",
+            "The reference run refreshed three times over seven pages."
+          ],
+          "symbol": "TokenManager"
+        },
+        {
+          "label": "Land records and the request log",
+          "path": "reference/source-ingestion/src/pull_rest_api.py",
+          "notes": [
+            "Writes api_users, api_request_log, and api_pull_runs.",
+            "Fails if record count, distinct ids, and the API total disagree."
+          ]
+        }
+      ]
+    },
+    "sftp-ingestion": {
+      "bundle": "reference/source-ingestion",
+      "onePager": "reference/source-ingestion/guides/sftp-ingestion.md",
+      "code": [
+        {
+          "label": "Fetch job",
+          "path": "reference/source-ingestion/src/fetch_sftp_files.py"
+        },
+        {
+          "label": "Transfer planning",
+          "path": "reference/source-ingestion/src/source_ingestion/sftp_utils.py"
+        },
+        {
+          "label": "Job",
+          "path": "reference/source-ingestion/resources/sftp.job.yml"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_sftp",
+          "label": "SFTP ingestion job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "SFTP fetch and ingest run",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/294720796648983/runs/810730734562522",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T22:00:00Z"
+        }
+      ],
+      "docs": [
+        {
+          "label": "SFTP ingestion",
+          "url": "https://docs.databricks.com/aws/en/ingestion/sftp"
+        },
+        {
+          "label": "Secrets",
+          "url": "https://docs.databricks.com/aws/en/security/secrets/"
+        },
+        {
+          "label": "Volumes",
+          "url": "https://docs.databricks.com/aws/en/volumes/"
+        },
+        {
+          "label": "File metadata column",
+          "url": "https://docs.databricks.com/aws/en/ingestion/file-metadata-column"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Fetch only new files",
+          "path": "reference/source-ingestion/src/fetch_sftp_files.py",
+          "notes": [
+            "Credentials come from a secret scope, never the code.",
+            "Files already in sftp_transfer_log are skipped."
+          ]
+        },
+        {
+          "label": "Decide what is new",
+          "path": "reference/source-ingestion/src/source_ingestion/sftp_utils.py",
+          "notes": [
+            "A file is new by path, size, and modified time.",
+            "The same logic runs against a volume when SFTP is blocked."
+          ],
+          "symbol": "plan_transfers"
+        },
+        {
+          "label": "Prove the second fetch copies nothing",
+          "path": "reference/source-ingestion/resources/sftp.job.yml",
+          "notes": [
+            "refetch_finds_nothing reruns the fetch after ingestion.",
+            "It fails if anything is copied twice."
+          ]
+        }
+      ]
+    },
+    "multi-source-pipeline": {
+      "bundle": "reference/source-ingestion",
+      "onePager": "reference/source-ingestion/guides/multi-source-pipeline.md",
+      "code": [
+        {
+          "label": "Conformed table",
+          "path": "reference/source-ingestion/src/pipelines/multi_source/customers_conformed.sql"
+        },
+        {
+          "label": "Inputs",
+          "path": "reference/source-ingestion/src/prepare_multi_source_inputs.py"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_multi_source",
+          "label": "Multi-source pipeline job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "Multi-source pipeline run",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/112022954434477/runs/120398549803226",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T22:00:00Z"
+        }
+      ],
+      "docs": [
+        {
+          "label": "Lakeflow Declarative Pipelines",
+          "url": "https://docs.databricks.com/aws/en/ldp/"
+        },
+        {
+          "label": "Flows",
+          "url": "https://docs.databricks.com/aws/en/ldp/flows"
+        },
+        {
+          "label": "read_files",
+          "url": "https://docs.databricks.com/aws/en/sql/language-manual/functions/read_files"
+        },
+        {
+          "label": "Auto Loader schema",
+          "url": "https://docs.databricks.com/aws/en/ingestion/auto-loader/schema"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Three sources, one conformed table",
+          "path": "reference/source-ingestion/src/pipelines/multi_source/customers_conformed.sql",
+          "notes": [
+            "Each source maps to the same seven columns and sets source_system.",
+            "Expectations fail the update if source_system or source_id is null."
+          ]
+        },
+        {
+          "label": "Prepare database, file, and API inputs",
+          "path": "reference/source-ingestion/src/prepare_multi_source_inputs.py",
+          "notes": [
+            "Builds a Delta extract, a landed CSV, and API pages.",
+            "Reuses the REST client from the API guide."
+          ]
+        },
+        {
+          "label": "Check counts per source",
+          "path": "reference/source-ingestion/src/verify_multi_source.py",
+          "notes": [
+            "120 database, 80 file, and 60 API rows in the reference run.",
+            "(source_system, source_id) must be unique."
+          ]
+        }
+      ]
+    },
+    "relational-db-ingestion": {
+      "bundle": "reference/source-ingestion",
+      "onePager": "reference/source-ingestion/guides/relational-db-ingestion.md",
+      "code": [
+        {
+          "label": "Source SQL",
+          "path": "reference/source-ingestion/src/source_ingestion/relational_sql.py"
+        },
+        {
+          "label": "Extract",
+          "path": "reference/source-ingestion/src/extract_relational.py"
+        },
+        {
+          "label": "Compare",
+          "path": "reference/source-ingestion/src/compare_relational.py"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_relational_extract",
+          "label": "Relational extract job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "Relational extract run",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/699770449878339/runs/52093804077963",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T22:00:00Z"
+        }
+      ],
+      "docs": [
+        {
+          "label": "Federation with PostgreSQL",
+          "url": "https://docs.databricks.com/aws/en/query-federation/postgresql"
+        },
+        {
+          "label": "Remote queries",
+          "url": "https://docs.databricks.com/aws/en/query-federation/remote-queries"
+        },
+        {
+          "label": "Lakebase authentication",
+          "url": "https://docs.databricks.com/aws/en/oltp/projects/authentication"
+        },
+        {
+          "label": "SQL Server connector",
+          "url": "https://docs.databricks.com/aws/en/ingestion/lakeflow-connect/sql-server-overview"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Custom query with joins, window, and a function",
+          "path": "reference/source-ingestion/src/source_ingestion/relational_sql.py",
+          "notes": [
+            "The query runs inside the source database.",
+            "net_amount() is a database function called from the query."
+          ]
+        },
+        {
+          "label": "One checksum on both sides",
+          "path": "reference/source-ingestion/src/source_ingestion/checksum.py",
+          "notes": [
+            "The same canonical-row md5 runs in Postgres and Spark SQL.",
+            "Counts, checksums, and types must match."
+          ]
+        },
+        {
+          "label": "Extract through the connection",
+          "path": "reference/source-ingestion/src/extract_relational.py",
+          "notes": [
+            "remote_query runs full tables and custom SQL in Postgres.",
+            "A foreign catalog was not allowed here, so remote_query is used."
+          ],
+          "symbol": "remote"
+        }
+      ]
+    },
+    "transformation-patterns": {
+      "bundle": "reference/data-engineering",
+      "onePager": "reference/data-engineering/guides/transformation-patterns.md",
+      "code": [
+        {
+          "label": "Pattern SQL",
+          "path": "reference/data-engineering/src/transformations"
+        },
+        {
+          "label": "Checks",
+          "path": "reference/data-engineering/src/check_transformations.py"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_transformations",
+          "label": "Transformation patterns job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "Transformation pipeline run",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/61329864730957/runs/60162032650034",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T22:00:00Z"
+        }
+      ],
+      "docs": [
+        {
+          "label": "Materialized views",
+          "url": "https://docs.databricks.com/aws/en/ldp/developer/ldp-sql-ref-create-materialized-view"
+        },
+        {
+          "label": "PIVOT",
+          "url": "https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-qry-select-pivot"
+        },
+        {
+          "label": "try_cast",
+          "url": "https://docs.databricks.com/aws/en/sql/language-manual/functions/try_cast"
+        },
+        {
+          "label": "from_utc_timestamp",
+          "url": "https://docs.databricks.com/aws/en/sql/language-manual/functions/from_utc_timestamp"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Cast with a reject path",
+          "path": "reference/data-engineering/src/transformations/06_cast_with_reject_path.sql",
+          "notes": [
+            "try_cast splits good rows from bad ones.",
+            "Rejected rows carry a reason string."
+          ]
+        },
+        {
+          "label": "Iterate over each group's records",
+          "path": "reference/data-engineering/src/transformations/10_per_group_iteration.sql",
+          "notes": [
+            "Orders are collected into an array per customer.",
+            "transform, aggregate, and filter run on the array."
+          ]
+        },
+        {
+          "label": "Independent expected counts",
+          "path": "reference/data-engineering/src/check_transformations.py",
+          "notes": [
+            "Each view is paired with its own expected-count query.",
+            "11,476 valid plus 524 rejected equals 12,000 orders."
+          ]
+        }
+      ]
+    },
+    "scd-change-capture": {
+      "bundle": "reference/data-engineering",
+      "onePager": "reference/data-engineering/guides/scd-change-capture.md",
+      "code": [
+        {
+          "label": "Auto CDC flows",
+          "path": "reference/data-engineering/src/scd/accounts_scd.sql"
+        },
+        {
+          "label": "Counts",
+          "path": "reference/data-engineering/src/record_scd_counts.py"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_scd",
+          "label": "SCD and change capture job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "SCD pipeline run",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/134774509401751/runs/541134822725574",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T22:00:00Z"
+        }
+      ],
+      "docs": [
+        {
+          "label": "Change data capture",
+          "url": "https://docs.databricks.com/aws/en/ldp/cdc"
+        },
+        {
+          "label": "AUTO CDC INTO",
+          "url": "https://docs.databricks.com/aws/en/ldp/developer/ldp-sql-ref-apply-changes-into"
+        },
+        {
+          "label": "Streaming tables",
+          "url": "https://docs.databricks.com/aws/en/ldp/developer/ldp-sql-ref-create-streaming-table"
+        },
+        {
+          "label": "Auto CDC in Python",
+          "url": "https://docs.databricks.com/aws/en/ldp/developer/ldp-python-ref-apply-changes"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "SCD type 1 and type 2 from one feed",
+          "path": "reference/data-engineering/src/scd/accounts_scd.sql",
+          "notes": [
+            "Two AUTO CDC INTO flows with APPLY AS DELETE WHEN.",
+            "Only STORED AS differs between them."
+          ]
+        },
+        {
+          "label": "Plan inserts, updates, and deletes",
+          "path": "reference/data-engineering/src/de_common/spec.py",
+          "notes": [
+            "Disjoint ids by stride keep the change batch deterministic.",
+            "60 inserts, 150 updates, 40 deletes in the reference run."
+          ],
+          "symbol": "plan_changes"
+        },
+        {
+          "label": "Count current, history, and deleted keys",
+          "path": "reference/data-engineering/src/record_scd_counts.py",
+          "notes": [
+            "SCD type 2 kept 1,210 history rows; type 1 kept 1,020.",
+            "Fails if counts differ from the spec."
+          ]
+        }
+      ]
+    },
+    "target-loading-outputs": {
+      "bundle": "reference/data-engineering",
+      "onePager": "reference/data-engineering/guides/target-loading-outputs.md",
+      "code": [
+        {
+          "label": "MERGE",
+          "path": "reference/data-engineering/src/merge_target.py"
+        },
+        {
+          "label": "File outputs",
+          "path": "reference/data-engineering/src/write_outputs.py"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_target_loading",
+          "label": "Target loading job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "Target loading run",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/1050478352378393/runs/767079370152563",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T22:00:00Z"
+        }
+      ],
+      "docs": [
+        {
+          "label": "Delta MERGE",
+          "url": "https://docs.databricks.com/aws/en/delta/merge"
+        },
+        {
+          "label": "MERGE INTO",
+          "url": "https://docs.databricks.com/aws/en/sql/language-manual/delta-merge-into"
+        },
+        {
+          "label": "Volumes",
+          "url": "https://docs.databricks.com/aws/en/connect/unity-catalog/volumes"
+        },
+        {
+          "label": "Table history",
+          "url": "https://docs.databricks.com/aws/en/delta/history"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "One MERGE for insert, update, and delete",
+          "path": "reference/data-engineering/src/merge_target.py",
+          "notes": [
+            "whenMatchedDelete, whenMatchedUpdate, and whenNotMatchedInsert in one statement.",
+            "Operation metrics come from Delta history."
+          ],
+          "symbol": "main"
+        },
+        {
+          "label": "Formatted Excel output",
+          "path": "reference/data-engineering/src/write_outputs.py",
+          "notes": [
+            "Bold header, fitted widths, frozen header, number format.",
+            "Built in a temp folder and copied to the volume."
+          ],
+          "symbol": "write_xlsx"
+        },
+        {
+          "label": "Column widths and merge metrics",
+          "path": "reference/data-engineering/src/de_common/files.py",
+          "notes": [
+            "Pure helpers covered by unit tests.",
+            "Widths come from the longest value per column."
+          ],
+          "symbol": "column_widths"
+        }
+      ]
+    },
+    "orchestration-patterns": {
+      "bundle": "reference/orchestration",
+      "onePager": "reference/orchestration/guides/orchestration-patterns.md",
+      "code": [
+        {
+          "label": "Job definition",
+          "path": "reference/orchestration/resources/orchestration_patterns.job.yml"
+        },
+        {
+          "label": "Bulk pause",
+          "path": "reference/orchestration/src/bulk_pause.py"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_orchestration",
+          "label": "Orchestration patterns job"
+        },
+        {
+          "key": "capability_guides_bulk_pause",
+          "label": "Bulk pause job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "Orchestration run",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/775149037007974/runs/1105768174541580",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T22:00:00Z"
+        },
+        {
+          "label": "Bulk pause and resume run",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/153795936260183/runs/804052836346106",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T22:00:00Z"
+        }
+      ],
+      "docs": [
+        {
+          "label": "Lakeflow Jobs",
+          "url": "https://docs.databricks.com/aws/en/jobs/"
+        },
+        {
+          "label": "Conditional tasks",
+          "url": "https://docs.databricks.com/aws/en/jobs/conditional-tasks"
+        },
+        {
+          "label": "Task values",
+          "url": "https://docs.databricks.com/aws/en/jobs/task-values"
+        },
+        {
+          "label": "Notifications",
+          "url": "https://docs.databricks.com/aws/en/jobs/notifications"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "The whole task graph",
+          "path": "reference/orchestration/resources/orchestration_patterns.job.yml",
+          "notes": [
+            "Condition task branches, a run_if join, retries, notifications, and a health rule.",
+            "record_run still runs when one branch is excluded."
+          ]
+        },
+        {
+          "label": "Call an external process",
+          "path": "reference/orchestration/src/orch_external_call.py",
+          "notes": [
+            "A shell command and an HTTP request from one task.",
+            "Attempt 0 fails on purpose so the retry shows."
+          ],
+          "symbol": "main"
+        },
+        {
+          "label": "Pause every scheduled guide job",
+          "path": "reference/orchestration/src/bulk_pause.py",
+          "notes": [
+            "Jobs are found by tag; only unpaused ones are flipped.",
+            "Resume restores only the jobs this run paused."
+          ],
+          "symbol": "tagged_scheduled_jobs"
+        }
+      ]
+    },
+    "data-observability": {
+      "bundle": "reference/orchestration",
+      "onePager": "reference/orchestration/guides/data-observability.md",
+      "code": [
+        {
+          "label": "Lineage",
+          "path": "reference/orchestration/src/obs_lineage.py"
+        },
+        {
+          "label": "Schema drift",
+          "path": "reference/orchestration/src/obs_schema_drift.py"
+        },
+        {
+          "label": "Data drift",
+          "path": "reference/orchestration/src/obs_data_drift.py"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_observability",
+          "label": "Lineage and drift job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "Lineage and drift run",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/1055820708782183/runs/585468771365571",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T22:00:00Z"
+        }
+      ],
+      "docs": [
+        {
+          "label": "Lineage system tables",
+          "url": "https://docs.databricks.com/aws/en/admin/system-tables/lineage"
+        },
+        {
+          "label": "Data lineage",
+          "url": "https://docs.databricks.com/aws/en/data-governance/unity-catalog/data-lineage"
+        },
+        {
+          "label": "Data profiling",
+          "url": "https://docs.databricks.com/aws/en/data-quality-monitoring/data-profiling/"
+        },
+        {
+          "label": "Type widening",
+          "url": "https://docs.databricks.com/aws/en/delta/type-widening"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Wait for lineage, then walk it",
+          "path": "reference/orchestration/src/obs_lineage.py",
+          "notes": [
+            "Lineage appeared about 13 minutes after the writes, so the task polls.",
+            "Table and column lineage for source, silver, and gold."
+          ],
+          "symbol": "main"
+        },
+        {
+          "label": "Detect schema drift",
+          "path": "reference/orchestration/src/obs_schema_drift.py",
+          "notes": [
+            "information_schema snapshots around each ALTER.",
+            "Each change is matched to its Delta history version."
+          ],
+          "symbol": "snapshot"
+        },
+        {
+          "label": "Detect data drift",
+          "path": "reference/orchestration/src/obs_data_drift.py",
+          "notes": [
+            "A data profiling monitor refreshes before and after the shifted batch.",
+            "PSI and mean shift are also computed in the job."
+          ],
+          "symbol": "run_monitor_baseline"
+        }
+      ]
+    },
+    "sql-notebook-analysis": {
+      "bundle": "reference/analyst",
+      "onePager": "reference/analyst/guides/sql-notebook-analysis.md",
+      "code": [
+        {
+          "label": "Large aggregation",
+          "path": "reference/analyst/src/large_aggregation.py"
+        },
+        {
+          "label": "Notebooks",
+          "path": "reference/analyst/src/notebooks"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_sql_notebooks",
+          "label": "SQL and notebooks job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "SQL and notebooks run",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/409915756735345/runs/481836460537272",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T22:00:00Z"
+        }
+      ],
+      "docs": [
+        {
+          "label": "Notebooks",
+          "url": "https://docs.databricks.com/aws/en/notebooks/"
+        },
+        {
+          "label": "Serverless compute",
+          "url": "https://docs.databricks.com/aws/en/compute/serverless/"
+        },
+        {
+          "label": "sparklyr",
+          "url": "https://docs.databricks.com/aws/en/sparkr/sparklyr"
+        },
+        {
+          "label": "Notebook code",
+          "url": "https://docs.databricks.com/aws/en/notebooks/notebooks-code"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Time a 6M-row aggregation",
+          "path": "reference/analyst/src/large_aggregation.py",
+          "notes": [
+            "6 million rows generated with dbldatagen, then aggregated.",
+            "Each step's time goes to large_aggregation_timing."
+          ],
+          "symbol": "main"
+        },
+        {
+          "label": "Python and pandas round trip",
+          "path": "reference/analyst/src/notebooks/python_pandas_roundtrip.py",
+          "notes": [
+            "toPandas, pivot and rolling means, then back to a table.",
+            "The re-read row count is asserted."
+          ]
+        },
+        {
+          "label": "R with sparklyr",
+          "path": "reference/analyst/src/notebooks/r_sparklyr_summary.r",
+          "notes": [
+            "Aggregates in Spark, then fits lm and quantile in R.",
+            "Shipped but not run: serverless has no R runtime."
+          ]
+        }
+      ]
+    },
+    "bring-your-own-data": {
+      "bundle": "reference/analyst",
+      "onePager": "reference/analyst/guides/bring-your-own-data.md",
+      "code": [
+        {
+          "label": "Upload and join",
+          "path": "reference/analyst/src/byod.py"
+        },
+        {
+          "label": "Helpers",
+          "path": "reference/analyst/src/analyst_common/helpers.py"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_byod",
+          "label": "Bring your own data job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "Upload and join run",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/925265486789029/runs/933824869009411",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T22:00:00Z"
+        }
+      ],
+      "docs": [
+        {
+          "label": "File upload",
+          "url": "https://docs.databricks.com/aws/en/ingestion/file-upload/"
+        },
+        {
+          "label": "Upload to a volume",
+          "url": "https://docs.databricks.com/aws/en/ingestion/file-upload/upload-to-volume"
+        },
+        {
+          "label": "Volumes",
+          "url": "https://docs.databricks.com/aws/en/volumes/"
+        },
+        {
+          "label": "Volume files",
+          "url": "https://docs.databricks.com/aws/en/volumes/volume-files"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Upload to a per-user path, then join",
+          "path": "reference/analyst/src/byod.py",
+          "notes": [
+            "The CSV lands under uploads/<user>/.",
+            "A full outer join labels matched, upload_only, and governed_only keys."
+          ]
+        },
+        {
+          "label": "Label each key",
+          "path": "reference/analyst/src/analyst_common/helpers.py",
+          "notes": [
+            "Pure helper covered by tests.",
+            "450 matched, 30 upload-only in the reference run."
+          ],
+          "symbol": "match_status"
+        },
+        {
+          "label": "Per-user folder",
+          "path": "reference/analyst/src/analyst_common/helpers.py",
+          "notes": [
+            "Each user writes to their own folder.",
+            "The task fails if no key matches."
+          ],
+          "symbol": "user_folder"
+        }
+      ]
+    },
+    "local-tool-connectivity": {
+      "bundle": "reference/analyst",
+      "onePager": "reference/analyst/guides/local-tool-connectivity.md",
+      "code": [
+        {
+          "label": "Connector check",
+          "path": "reference/analyst/src/connector_check.py"
+        },
+        {
+          "label": "Client examples",
+          "path": "reference/analyst/examples"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_local_connectivity",
+          "label": "Local connectivity check job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "Connector check run",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/104588072366780/runs/335256858614154",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T22:00:00Z"
+        }
+      ],
+      "docs": [
+        {
+          "label": "Python SQL connector",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/python-sql-connector"
+        },
+        {
+          "label": "OAuth U2M",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/auth/oauth-u2m"
+        },
+        {
+          "label": "OAuth M2M",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/auth/oauth-m2m"
+        },
+        {
+          "label": "ODBC driver",
+          "url": "https://docs.databricks.com/aws/en/integrations/odbc/"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Connect with the SQL connector",
+          "path": "reference/analyst/src/connector_check.py",
+          "notes": [
+            "Uses OAuth M2M when a client id is set, the job identity otherwise.",
+            "Returned 4 regions and 5,000 customers in 1.56 s."
+          ]
+        },
+        {
+          "label": "Python client example",
+          "path": "reference/analyst/examples/python_sql_connector.py",
+          "notes": [
+            "Copy-paste U2M and M2M sign-in.",
+            "Same governed tables and permissions as the workspace."
+          ]
+        },
+        {
+          "label": "ODBC configuration for statistics tools",
+          "path": "reference/analyst/examples/odbc.ini.example",
+          "notes": [
+            "U2M and M2M variants for SAS and SPSS.",
+            "Not run in the reference workspace."
+          ]
+        }
+      ]
+    },
+    "no-code-data-prep": {
+      "bundle": "reference/analyst",
+      "onePager": "reference/analyst/guides/no-code-data-prep.md",
+      "code": [
+        {
+          "label": "Equivalent SQL",
+          "path": "reference/analyst/sql/prep_flow_output.sql"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_no_code_prep",
+          "label": "No-code prep output job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "Prep output run",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/859992182760575/runs/770669008949852",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T22:00:00Z"
+        }
+      ],
+      "docs": [
+        {
+          "label": "Lakeflow Designer",
+          "url": "https://docs.databricks.com/aws/en/designer/"
+        },
+        {
+          "label": "Build a transformation",
+          "url": "https://docs.databricks.com/aws/en/designer/build-transformation"
+        },
+        {
+          "label": "Built-in operators",
+          "url": "https://docs.databricks.com/aws/en/designer/built-in-operators"
+        },
+        {
+          "label": "Ingest data in Designer",
+          "url": "https://docs.databricks.com/aws/en/designer/ingest-data"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "The flow as one SQL statement",
+          "path": "reference/analyst/sql/prep_flow_output.sql",
+          "notes": [
+            "Filter, join, rename, and derive, matching the Designer steps.",
+            "prep_flow_summary holds the totals to compare with the Designer output."
+          ]
+        }
+      ]
+    },
+    "self-service-extracts": {
+      "bundle": "reference/analyst",
+      "onePager": "reference/analyst/guides/self-service-extracts.md",
+      "code": [
+        {
+          "label": "Extracts",
+          "path": "reference/analyst/src/build_extracts.py"
+        },
+        {
+          "label": "Dashboard schedule",
+          "path": "reference/analyst/src/schedule_dashboard.py"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_extracts",
+          "label": "Extracts and subscription job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "Extracts run",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/303722227219706/runs/797763214748014",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T22:00:00Z"
+        },
+        {
+          "label": "Partner orders dashboard",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/dashboardsv3/01f1c815e2c010fdb03cd1c22c9acb4f/published",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T22:00:00Z"
+        }
+      ],
+      "docs": [
+        {
+          "label": "Schedule and subscribe",
+          "url": "https://docs.databricks.com/aws/en/dashboards/schedule-subscribe"
+        },
+        {
+          "label": "Manage dashboards",
+          "url": "https://docs.databricks.com/aws/en/dashboards/manage"
+        },
+        {
+          "label": "AI/BI dashboards",
+          "url": "https://docs.databricks.com/aws/en/dashboards/"
+        },
+        {
+          "label": "Volume files",
+          "url": "https://docs.databricks.com/aws/en/volumes/volume-files"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Formatted workbook and delimited file",
+          "path": "reference/analyst/src/build_extracts.py",
+          "notes": [
+            "Styled header, number formats, autofilter, and a summary sheet.",
+            "Both files are read back and row counts checked."
+          ],
+          "symbol": "main"
+        },
+        {
+          "label": "Schedule and subscribe",
+          "path": "reference/analyst/src/schedule_dashboard.py",
+          "notes": [
+            "The bundle can't declare a subscription, so the task creates it.",
+            "Reruns reuse the existing schedule."
+          ],
+          "symbol": "main"
+        }
+      ]
+    },
+    "in-platform-visualization": {
+      "bundle": "reference/analyst",
+      "onePager": "reference/analyst/guides/in-platform-visualization.md",
+      "code": [
+        {
+          "label": "Governed views",
+          "path": "reference/analyst/sql/create_views.sql"
+        },
+        {
+          "label": "Charts",
+          "path": "reference/analyst/src/notebooks/charts.py"
+        },
+        {
+          "label": "Totals check",
+          "path": "reference/analyst/src/confirm_totals.py"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_visualization",
+          "label": "Visualization job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "Visualization run",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/1916109138477/runs/975475851271421",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T22:00:00Z"
+        },
+        {
+          "label": "Revenue overview dashboard",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/dashboardsv3/01f1c815e2c21316b3b9f97f6a0d35ae/published",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T22:00:00Z"
+        }
+      ],
+      "docs": [
+        {
+          "label": "Notebook visualizations",
+          "url": "https://docs.databricks.com/aws/en/notebooks/visualizations/"
+        },
+        {
+          "label": "Create a dashboard",
+          "url": "https://docs.databricks.com/aws/en/dashboards/tutorials/create-dashboard"
+        },
+        {
+          "label": "Views",
+          "url": "https://docs.databricks.com/aws/en/views/"
+        },
+        {
+          "label": "Visualizations",
+          "url": "https://docs.databricks.com/aws/en/visualizations/"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Two governed views",
+          "path": "reference/analyst/sql/create_views.sql",
+          "notes": [
+            "Notebook charts and the dashboard read the same views.",
+            "Views are commented for discovery."
+          ]
+        },
+        {
+          "label": "Notebook charts",
+          "path": "reference/analyst/src/notebooks/charts.py",
+          "notes": [
+            "matplotlib images saved to a volume.",
+            "Chart totals written to chart_totals."
+          ]
+        },
+        {
+          "label": "Dashboard and charts agree",
+          "path": "reference/analyst/src/confirm_totals.py",
+          "notes": [
+            "Runs the dashboard's own dataset queries on the warehouse.",
+            "Fails if any total differs."
+          ]
+        }
+      ]
+    },
+    "access-management": {
+      "bundle": "reference/governance",
+      "onePager": "reference/governance/guides/access-management.md",
+      "code": [
+        {
+          "label": "Access tasks",
+          "path": "reference/governance/src/access_tasks.py"
+        },
+        {
+          "label": "SQL generation",
+          "path": "reference/governance/src/governance_lib/sqlgen.py"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_access",
+          "label": "Access management job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "Access management run",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/119524613406309/runs/363288366361872",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T22:00:00Z"
+        }
+      ],
+      "docs": [
+        {
+          "label": "Manage privileges",
+          "url": "https://docs.databricks.com/aws/en/data-governance/unity-catalog/manage-privileges/"
+        },
+        {
+          "label": "Audit log system table",
+          "url": "https://docs.databricks.com/aws/en/admin/system-tables/audit-logs"
+        },
+        {
+          "label": "Service principals",
+          "url": "https://docs.databricks.com/aws/en/admin/users-groups/service-principals"
+        },
+        {
+          "label": "OAuth M2M",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/auth/oauth-m2m"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Grant to groups only",
+          "path": "reference/governance/src/governance_lib/sqlgen.py",
+          "notes": [
+            "Raises on an email principal, so no person gets a direct grant.",
+            "Privilege names are validated."
+          ],
+          "symbol": "grant_sql"
+        },
+        {
+          "label": "Verify dev and prod differ",
+          "path": "reference/governance/src/access_tasks.py",
+          "notes": [
+            "Reads information_schema with inherited_from.",
+            "Separates direct grants from cascaded catalog privileges."
+          ],
+          "symbol": "verify_grants"
+        },
+        {
+          "label": "Fall back to a grantable group",
+          "path": "reference/governance/src/access_tasks.py",
+          "notes": [
+            "Workspace-local groups aren't Unity Catalog principals.",
+            "The job records the fallback to account users."
+          ],
+          "symbol": "resolve_grantee"
+        }
+      ]
+    },
+    "row-column-security": {
+      "bundle": "reference/governance",
+      "onePager": "reference/governance/guides/row-column-security.md",
+      "code": [
+        {
+          "label": "Policy SQL",
+          "path": "reference/governance/src/governance_lib/sqlgen.py"
+        },
+        {
+          "label": "Policy tasks",
+          "path": "reference/governance/src/row_column_tasks.py"
+        },
+        {
+          "label": "Role-switch tests",
+          "path": "reference/governance/sql/policy_test_queries.sql"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_row_column_security",
+          "label": "Row and column security job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "Row and column security run",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/194805629721389/runs/280452091886445",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T22:00:00Z"
+        }
+      ],
+      "docs": [
+        {
+          "label": "Row filters and masks",
+          "url": "https://docs.databricks.com/aws/en/data-governance/unity-catalog/filters-and-masks/"
+        },
+        {
+          "label": "Apply filters and masks",
+          "url": "https://docs.databricks.com/aws/en/data-governance/unity-catalog/filters-and-masks/manually-apply"
+        },
+        {
+          "label": "session_user",
+          "url": "https://docs.databricks.com/aws/en/sql/language-manual/functions/session_user"
+        },
+        {
+          "label": "is_member",
+          "url": "https://docs.databricks.com/aws/en/sql/language-manual/functions/is_member"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Masks that branch on identity",
+          "path": "reference/governance/src/governance_lib/sqlgen.py",
+          "notes": [
+            "session_user() is checked before is_member().",
+            "Identity expressions are parameters, so another identity can be simulated."
+          ],
+          "symbol": "mask_body"
+        },
+        {
+          "label": "Create and attach the policies",
+          "path": "reference/governance/src/row_column_tasks.py",
+          "notes": [
+            "A region_access mapping table drives the dynamic filter.",
+            "Masks and filters attach with ALTER TABLE."
+          ],
+          "symbol": "create_policies"
+        },
+        {
+          "label": "Test as each identity",
+          "path": "reference/governance/src/row_column_tasks.py",
+          "notes": [
+            "The simulation must reproduce the real result for the job identity.",
+            "Other identities are simulated; role switching is the real test."
+          ],
+          "symbol": "test_policies"
+        }
+      ]
+    },
+    "compute-capacity-management": {
+      "bundle": "reference/governance",
+      "onePager": "reference/governance/guides/compute-capacity-management.md",
+      "code": [
+        {
+          "label": "Compute tasks",
+          "path": "reference/governance/src/compute_tasks.py"
+        },
+        {
+          "label": "Job",
+          "path": "reference/governance/resources/compute_capacity.job.yml"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_compute_capacity",
+          "label": "Compute and capacity job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "Capacity load run",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/119779867494286/runs/529035766885166",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T22:00:00Z"
+        },
+        {
+          "label": "Capacity dashboard",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/dashboardsv3/01f1c81ba0e9195ba142ee3a1fedb55a/published",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T22:00:00Z"
+        }
+      ],
+      "docs": [
+        {
+          "label": "SQL warehouses",
+          "url": "https://docs.databricks.com/aws/en/compute/sql-warehouse/"
+        },
+        {
+          "label": "Warehouse behavior",
+          "url": "https://docs.databricks.com/aws/en/compute/sql-warehouse/warehouse-behavior"
+        },
+        {
+          "label": "Query history system table",
+          "url": "https://docs.databricks.com/aws/en/admin/system-tables/query-history"
+        },
+        {
+          "label": "Warehouse events",
+          "url": "https://docs.databricks.com/aws/en/admin/system-tables/warehouse-events"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Generate concurrent load",
+          "path": "reference/governance/src/compute_tasks.py",
+          "notes": [
+            "40 async statements against a temporary 2X-Small warehouse.",
+            "Shared warehouses are only read, never resized."
+          ],
+          "symbol": "generate_load"
+        },
+        {
+          "label": "Measure queueing",
+          "path": "reference/governance/src/compute_tasks.py",
+          "notes": [
+            "Waits for query history, then computes waits and peak concurrency.",
+            "Median wait at capacity was 61.1 s in the reference run."
+          ],
+          "symbol": "analyze_load"
+        },
+        {
+          "label": "Always delete the test warehouse",
+          "path": "reference/governance/resources/compute_capacity.job.yml",
+          "notes": [
+            "delete_load_warehouse uses run_if ALL_DONE.",
+            "The warehouse is removed even if a task fails."
+          ]
+        }
+      ]
+    },
+    "cost-chargeback": {
+      "bundle": "reference/governance",
+      "onePager": "reference/governance/guides/cost-chargeback.md",
+      "code": [
+        {
+          "label": "Cost views",
+          "path": "reference/governance/src/cost_tasks.py"
+        },
+        {
+          "label": "Forecast",
+          "path": "reference/governance/sql/cost_forecast.sql"
+        },
+        {
+          "label": "Budget alert",
+          "path": "reference/governance/resources/budget.alert.yml"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_cost",
+          "label": "Cost and chargeback job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "Cost run",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/97286940760283/runs/195399164014504",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T22:00:00Z"
+        },
+        {
+          "label": "Cost dashboard",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/dashboardsv3/01f1c81ba0e214bf93d901c38f4824fc/published",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T22:00:00Z"
+        }
+      ],
+      "docs": [
+        {
+          "label": "Billing system tables",
+          "url": "https://docs.databricks.com/aws/en/admin/system-tables/billing"
+        },
+        {
+          "label": "Pricing system table",
+          "url": "https://docs.databricks.com/aws/en/admin/system-tables/pricing"
+        },
+        {
+          "label": "ai_forecast",
+          "url": "https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_forecast"
+        },
+        {
+          "label": "SQL alerts",
+          "url": "https://docs.databricks.com/aws/en/sql/user/alerts"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Spend by product, tag, user, and job",
+          "path": "reference/governance/src/cost_tasks.py",
+          "notes": [
+            "Usage joined to list prices by effective window.",
+            "Scoped to this workspace."
+          ],
+          "symbol": "build_views"
+        },
+        {
+          "label": "30-day forecast",
+          "path": "reference/governance/sql/cost_forecast.sql",
+          "notes": [
+            "ai_forecast runs as a SQL task on the warehouse.",
+            "With only 3 days of history, it shows the method, not a plan."
+          ]
+        },
+        {
+          "label": "Budget alert",
+          "path": "reference/governance/resources/budget.alert.yml",
+          "notes": [
+            "Alerts when 7-day spend passes budget_threshold_usd.",
+            "The threshold is a bundle variable per environment."
+          ]
+        }
+      ]
+    },
+    "data-ingestion-feature-preparation": {
+      "bundle": "reference/ml-lifecycle",
+      "onePager": "reference/ml-lifecycle/guides/data-ingestion-feature-preparation.md",
+      "code": [
+        {
+          "label": "Feature table",
+          "path": "reference/ml-lifecycle/src/fp_build_features.py"
+        },
+        {
+          "label": "Training set snapshot",
+          "path": "reference/ml-lifecycle/src/fp_snapshot_training_set.py"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_feature_preparation",
+          "label": "Feature preparation job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "Feature preparation run",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/815959990725098/runs/489345422199847",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T22:00:00Z"
+        }
+      ],
+      "docs": [
+        {
+          "label": "Feature tables in Unity Catalog",
+          "url": "https://docs.databricks.com/aws/en/machine-learning/feature-store/uc/feature-tables-uc"
+        },
+        {
+          "label": "Data lineage",
+          "url": "https://docs.databricks.com/aws/en/data-governance/unity-catalog/data-lineage"
+        },
+        {
+          "label": "Table history",
+          "url": "https://docs.databricks.com/aws/en/delta/history"
+        },
+        {
+          "label": "Constraints",
+          "url": "https://docs.databricks.com/aws/en/tables/constraints"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Create the feature table",
+          "path": "reference/ml-lifecycle/src/fp_build_features.py",
+          "notes": [
+            "Uses the Feature Engineering client, with a primary-key Delta fallback.",
+            "Drops first, so reruns are idempotent."
+          ],
+          "symbol": "create_feature_table"
+        },
+        {
+          "label": "Quality checks from the spec",
+          "path": "reference/ml-lifecycle/src/ml_common.py",
+          "notes": [
+            "16 checks built from the use-case spec.",
+            "Any failure fails the task."
+          ],
+          "symbol": "quality_queries"
+        },
+        {
+          "label": "Versioned training set",
+          "path": "reference/ml-lifecycle/src/fp_snapshot_training_set.py",
+          "notes": [
+            "Joins features and labels with VERSION AS OF.",
+            "Both table versions are recorded."
+          ],
+          "symbol": "main"
+        }
+      ]
+    },
+    "model-training-compatibility": {
+      "bundle": "reference/ml-lifecycle",
+      "onePager": "reference/ml-lifecycle/guides/model-training-compatibility.md",
+      "code": [
+        {
+          "label": "Legacy model wrapper",
+          "path": "reference/ml-lifecycle/src/legacy_pyfunc.py"
+        },
+        {
+          "label": "Import and verify",
+          "path": "reference/ml-lifecycle/src/mt_import_legacy_model.py"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_model_training",
+          "label": "Model training job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "Train and import run",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/860581854791201/runs/1057769621116963",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T22:00:00Z"
+        }
+      ],
+      "docs": [
+        {
+          "label": "Model lifecycle in UC",
+          "url": "https://docs.databricks.com/aws/en/machine-learning/manage-model-lifecycle/"
+        },
+        {
+          "label": "MLflow models",
+          "url": "https://docs.databricks.com/aws/en/mlflow/models"
+        },
+        {
+          "label": "Models from code",
+          "url": "https://mlflow.org/docs/latest/ml/model/models-from-code/"
+        },
+        {
+          "label": "MLflow tracking",
+          "url": "https://docs.databricks.com/aws/en/mlflow/tracking"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Wrap an existing pickled model",
+          "path": "reference/ml-lifecycle/src/legacy_pyfunc.py",
+          "notes": [
+            "Models-from-code loads the pickle as an artifact.",
+            "The wrapper class itself is never pickled."
+          ],
+          "symbol": "PickledModel"
+        },
+        {
+          "label": "Reproduce the recorded baseline",
+          "path": "reference/ml-lifecycle/src/mt_import_legacy_model.py",
+          "notes": [
+            "Scores the same holdout through the registered model.",
+            "AUC 0.947689 reproduced within 0.001."
+          ],
+          "symbol": "main"
+        },
+        {
+          "label": "Record library and runtime versions",
+          "path": "reference/ml-lifecycle/src/ml_common.py",
+          "notes": [
+            "Versions become run tags and a change log.",
+            "Shows exactly what differs between runtimes."
+          ],
+          "symbol": "environment_versions"
+        }
+      ]
+    },
+    "experiment-tracking": {
+      "bundle": "reference/ml-lifecycle",
+      "onePager": "reference/ml-lifecycle/guides/experiment-tracking.md",
+      "code": [
+        {
+          "label": "Tracked run",
+          "path": "reference/ml-lifecycle/src/et_tracked_run.py"
+        },
+        {
+          "label": "Rerun and compare",
+          "path": "reference/ml-lifecycle/src/et_rerun_and_compare.py"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_experiment_rerun",
+          "label": "Experiment rerun job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "Experiment rerun",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/964391141118736/runs/1010902347685803",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T22:00:00Z"
+        }
+      ],
+      "docs": [
+        {
+          "label": "MLflow tracking",
+          "url": "https://docs.databricks.com/aws/en/mlflow/tracking"
+        },
+        {
+          "label": "MLflow runs",
+          "url": "https://docs.databricks.com/aws/en/mlflow/runs"
+        },
+        {
+          "label": "Table history",
+          "url": "https://docs.databricks.com/aws/en/delta/history"
+        },
+        {
+          "label": "Model lifecycle in UC",
+          "url": "https://docs.databricks.com/aws/en/machine-learning/manage-model-lifecycle/"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Tag data, code, and environment",
+          "path": "reference/ml-lifecycle/src/et_tracked_run.py",
+          "notes": [
+            "data_version, git_sha, code_hash, and the environment are tags.",
+            "Everything needed to rerun is on the run."
+          ],
+          "symbol": "main"
+        },
+        {
+          "label": "Move the data on",
+          "path": "reference/ml-lifecycle/src/et_append_new_data.py",
+          "notes": [
+            "New rows land after the recorded version.",
+            "Only a rerun that reads the recorded version can match."
+          ],
+          "symbol": "main"
+        },
+        {
+          "label": "Rerun and assert the result",
+          "path": "reference/ml-lifecycle/src/et_rerun_and_compare.py",
+          "notes": [
+            "Original and rerun AUC both 0.947689.",
+            "A latest-data control shows the difference new data makes."
+          ],
+          "symbol": "main"
+        }
+      ]
+    },
+    "model-performance-drift": {
+      "bundle": "reference/ml-lifecycle",
+      "onePager": "reference/ml-lifecycle/guides/model-performance-drift.md",
+      "code": [
+        {
+          "label": "Drift metrics",
+          "path": "reference/ml-lifecycle/src/ml_common.py"
+        },
+        {
+          "label": "Drift job",
+          "path": "reference/ml-lifecycle/resources/model_drift.job.yml"
+        },
+        {
+          "label": "Alert",
+          "path": "reference/ml-lifecycle/resources/drift.alert.yml"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_model_drift",
+          "label": "Model drift job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "Drift detection run",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/651729285360127/runs/787492186905297",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T22:00:00Z"
+        }
+      ],
+      "docs": [
+        {
+          "label": "SQL alerts",
+          "url": "https://docs.databricks.com/aws/en/sql/user/alerts/"
+        },
+        {
+          "label": "Data quality monitoring",
+          "url": "https://docs.databricks.com/aws/en/data-quality-monitoring/"
+        },
+        {
+          "label": "If/else tasks",
+          "url": "https://docs.databricks.com/aws/en/jobs/if-else"
+        },
+        {
+          "label": "Model lifecycle in UC",
+          "url": "https://docs.databricks.com/aws/en/machine-learning/manage-model-lifecycle/"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Population stability index",
+          "path": "reference/ml-lifecycle/src/ml_common.py",
+          "notes": [
+            "Baseline quantile bins; a breach is PSI or mean shift over the threshold.",
+            "days_since_login reached PSI 3.86 in the shifted batches."
+          ],
+          "symbol": "psi"
+        },
+        {
+          "label": "Retrain only on a breach",
+          "path": "reference/ml-lifecycle/resources/model_drift.job.yml",
+          "notes": [
+            "breach_check gates the retrain_candidate task.",
+            "A person promotes the challenger."
+          ]
+        },
+        {
+          "label": "Alert the owner",
+          "path": "reference/ml-lifecycle/resources/drift.alert.yml",
+          "notes": [
+            "SQL alert on the newest batch's max PSI.",
+            "Emails notification_email."
+          ]
+        }
+      ]
+    },
+    "real-time-scoring": {
+      "bundle": "reference/realtime-scoring",
+      "onePager": "reference/realtime-scoring/guides/real-time-scoring.md",
+      "code": [
+        {
+          "label": "Scoring",
+          "path": "reference/realtime-scoring/src/score_endpoint.py"
+        },
+        {
+          "label": "Deploy",
+          "path": "reference/realtime-scoring/src/deploy_endpoint.py"
+        },
+        {
+          "label": "Train",
+          "path": "reference/realtime-scoring/src/train_register.py"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_realtime_scoring",
+          "label": "Online scoring job"
+        },
+        {
+          "key": "capability_guides_realtime_scoring_teardown",
+          "label": "Endpoint teardown job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "Scoring run",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/920082277506172/runs/1082287396068690",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T22:00:00Z"
+        },
+        {
+          "label": "Endpoint teardown run",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/760693706470600/runs/449862336873388",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T22:00:00Z"
+        }
+      ],
+      "docs": [
+        {
+          "label": "Model Serving",
+          "url": "https://docs.databricks.com/aws/en/machine-learning/model-serving/"
+        },
+        {
+          "label": "Route optimization",
+          "url": "https://docs.databricks.com/aws/en/machine-learning/model-serving/route-optimization"
+        },
+        {
+          "label": "Production optimization",
+          "url": "https://docs.databricks.com/aws/en/machine-learning/model-serving/production-optimization"
+        },
+        {
+          "label": "Score custom models",
+          "url": "https://docs.databricks.com/aws/en/machine-learning/model-serving/score-custom-model-endpoints"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Secured requests and latency",
+          "path": "reference/realtime-scoring/src/score_endpoint.py",
+          "notes": [
+            "OAuth from the SDK; no PAT or secret.",
+            "p50 43.6 ms, p95 99.7 ms over 50 warm requests."
+          ],
+          "symbol": "main"
+        },
+        {
+          "label": "Optional features are filled",
+          "path": "reference/realtime-scoring/src/train_register.py",
+          "notes": [
+            "The signature marks usage_score optional; an imputer fills it.",
+            "A missing required feature returns 400."
+          ],
+          "symbol": "main"
+        },
+        {
+          "label": "Create or update the endpoint",
+          "path": "reference/realtime-scoring/src/deploy_endpoint.py",
+          "notes": [
+            "Small size with scale-to-zero.",
+            "Waits for READY before scoring."
+          ],
+          "symbol": "main"
+        }
+      ]
+    },
+    "ontology": {
+      "bundle": "reference/genie",
+      "onePager": "reference/genie/guides/ontology.md",
+      "code": [
+        {
+          "label": "Semantics spec",
+          "path": "reference/genie/use_cases/general.yml"
+        },
+        {
+          "label": "Question runner",
+          "path": "reference/genie/src/ask_questions.py"
+        },
+        {
+          "label": "Helpers",
+          "path": "reference/genie/src/genie_lib.py"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_ontology",
+          "label": "Business terms job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "Before and after semantics run",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/227273521498345/runs/701352029788383",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T22:00:00Z"
+        },
+        {
+          "label": "Genie space with semantics",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/genie/rooms/01f1c813e7fb1e24844489683dfd774f",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T22:00:00Z"
+        }
+      ],
+      "docs": [
+        {
+          "label": "Genie Conversation API",
+          "url": "https://docs.databricks.com/aws/en/genie/conversation-api"
+        },
+        {
+          "label": "Metric views",
+          "url": "https://docs.databricks.com/aws/en/metric-views/"
+        },
+        {
+          "label": "Set up Genie",
+          "url": "https://docs.databricks.com/aws/en/genie/set-up"
+        },
+        {
+          "label": "Genie best practices",
+          "url": "https://docs.databricks.com/aws/en/genie/best-practices"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Terms, measures, and synonyms",
+          "path": "reference/genie/use_cases/general.yml",
+          "notes": [
+            "Revenue excludes cancelled orders with a FILTER clause.",
+            "Every term carries a synonyms list."
+          ]
+        },
+        {
+          "label": "Ask the same questions twice",
+          "path": "reference/genie/src/ask_questions.py",
+          "notes": [
+            "Creates a space per stage and asks through the API.",
+            "Matched 0 of 5 before semantics and 5 of 5 after."
+          ],
+          "symbol": "main"
+        },
+        {
+          "label": "Compare answers to expected rows",
+          "path": "reference/genie/src/genie_lib.py",
+          "notes": [
+            "Ignores column names and order, not values.",
+            "A code like NA does not match North America."
+          ],
+          "symbol": "rows_match"
+        }
+      ]
+    },
+    "user-experience": {
+      "bundle": "reference/genie",
+      "onePager": "reference/genie/guides/user-experience.md",
+      "code": [
+        {
+          "label": "UX session",
+          "path": "reference/genie/src/run_ux_session.py"
+        },
+        {
+          "label": "Genie client",
+          "path": "reference/genie/src/genie_lib.py"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_genie_ux",
+          "label": "Assistant UX job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "UX session run",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/554698490513181/runs/1079680389155684",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T22:00:00Z"
+        },
+        {
+          "label": "Assistant Genie space",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/genie/rooms/01f1c815313d1d3f8d89301daefff7f4",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T22:00:00Z"
+        }
+      ],
+      "docs": [
+        {
+          "label": "Genie Conversation API",
+          "url": "https://docs.databricks.com/aws/en/genie/conversation-api"
+        },
+        {
+          "label": "Metric views",
+          "url": "https://docs.databricks.com/aws/en/metric-views/"
+        },
+        {
+          "label": "Set up Genie",
+          "url": "https://docs.databricks.com/aws/en/genie/set-up"
+        },
+        {
+          "label": "Genie best practices",
+          "url": "https://docs.databricks.com/aws/en/genie/best-practices"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Scripted user tasks",
+          "path": "reference/genie/src/run_ux_session.py",
+          "notes": [
+            "Discovery, a question, a refinement, an ambiguous ask, and feedback.",
+            "Each task becomes a ux_session_log row."
+          ],
+          "symbol": "main"
+        },
+        {
+          "label": "Ask and give feedback",
+          "path": "reference/genie/src/genie_lib.py",
+          "notes": [
+            "Polls each message and retries on throttling.",
+            "Posts thumbs-up or thumbs-down feedback."
+          ],
+          "symbol": "GenieClient"
+        },
+        {
+          "label": "Find issues and training needs",
+          "path": "reference/genie/src/genie_lib.py",
+          "notes": [
+            "Rules flag failures, missing SQL, mismatches, and slow answers.",
+            "The ambiguous ask drew a clarifying question."
+          ],
+          "symbol": "find_issues"
+        }
+      ]
+    },
+    "data-sharing": {
+      "bundle": "reference/open-data",
+      "onePager": "reference/open-data/guides/data-sharing.md",
+      "code": [
+        {
+          "label": "Share lifecycle",
+          "path": "reference/open-data/src/share_and_read.py"
+        },
+        {
+          "label": "Audit events",
+          "path": "reference/open-data/src/collect_share_audit.py"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_data_sharing",
+          "label": "Data sharing job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "Data sharing run (share creation blocked)",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/782848950254257/runs/361525985722735",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T22:00:00Z"
+        }
+      ],
+      "docs": [
+        {
+          "label": "Delta Sharing",
+          "url": "https://docs.databricks.com/aws/en/delta-sharing/"
+        },
+        {
+          "label": "Create a share",
+          "url": "https://docs.databricks.com/aws/en/delta-sharing/create-share"
+        },
+        {
+          "label": "Read shared data",
+          "url": "https://docs.databricks.com/aws/en/delta-sharing/read-data-open"
+        },
+        {
+          "label": "Sharing audit logs",
+          "url": "https://docs.databricks.com/aws/en/delta-sharing/audit-logs"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Share, read, revoke",
+          "path": "reference/open-data/src/share_and_read.py",
+          "notes": [
+            "Create, grant, read with the delta-sharing client, revoke, confirm the read fails.",
+            "Records BLOCKED with the needed GRANT when CREATE SHARE is missing."
+          ],
+          "symbol": "main"
+        },
+        {
+          "label": "Shared in place, not copied",
+          "path": "reference/open-data/src/open_data/sharing.py",
+          "notes": [
+            "Checks pre-signed file URLs sit under the source table path.",
+            "That is the evidence no replication happens."
+          ],
+          "symbol": "served_from_source"
+        },
+        {
+          "label": "Collect the audit trail",
+          "path": "reference/open-data/src/collect_share_audit.py",
+          "notes": [
+            "Polls system.access.audit for the share and recipient.",
+            "Tolerates audit lag."
+          ]
+        }
+      ]
+    },
+    "iceberg-support": {
+      "bundle": "reference/open-data",
+      "onePager": "reference/open-data/guides/iceberg-support.md",
+      "code": [
+        {
+          "label": "Iceberg table",
+          "path": "reference/open-data/src/iceberg_table.py"
+        },
+        {
+          "label": "External read",
+          "path": "reference/open-data/src/iceberg_external_read.py"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_iceberg",
+          "label": "Iceberg job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "Iceberg read and write run",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/377668373864361/runs/327604775452155",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T22:00:00Z"
+        }
+      ],
+      "docs": [
+        {
+          "label": "Iceberg on Databricks",
+          "url": "https://docs.databricks.com/aws/en/iceberg/"
+        },
+        {
+          "label": "External Iceberg access",
+          "url": "https://docs.databricks.com/aws/en/external-access/iceberg"
+        },
+        {
+          "label": "Table history",
+          "url": "https://docs.databricks.com/aws/en/delta/history"
+        },
+        {
+          "label": "Audit log system table",
+          "url": "https://docs.databricks.com/aws/en/admin/system-tables/audit-logs"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Create, evolve, and time travel",
+          "path": "reference/open-data/src/iceberg_table.py",
+          "notes": [
+            "USING ICEBERG, append, ADD COLUMN, VERSION AS OF.",
+            "Each step is recorded as a check."
+          ],
+          "symbol": "main"
+        },
+        {
+          "label": "PyIceberg REST catalog config",
+          "path": "reference/open-data/src/iceberg_external_read.py",
+          "notes": [
+            "URI, warehouse, token, and the vended-credentials header.",
+            "Without the header the data read is denied."
+          ],
+          "symbol": "catalog_properties"
+        },
+        {
+          "label": "Read externally and compare",
+          "path": "reference/open-data/src/iceberg_external_read.py",
+          "notes": [
+            "PyIceberg read 1,500 rows, matching Spark.",
+            "A pushed-down filter returned 417 rows."
+          ],
+          "symbol": "main"
+        }
+      ]
+    },
+    "external-integrations": {
+      "bundle": "reference/open-data",
+      "onePager": "reference/open-data/guides/external-integrations.md",
+      "code": [
+        {
+          "label": "SQL connector",
+          "path": "reference/open-data/src/sql_connector_check.py"
+        },
+        {
+          "label": "Federation",
+          "path": "reference/open-data/src/federation_check.py"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_external_integrations",
+          "label": "Integrations job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "Integrations run",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/237190663763900/runs/420771647369185",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T22:00:00Z"
+        }
+      ],
+      "docs": [
+        {
+          "label": "Python SQL connector",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/python-sql-connector"
+        },
+        {
+          "label": "Federation with PostgreSQL",
+          "url": "https://docs.databricks.com/aws/en/query-federation/postgresql"
+        },
+        {
+          "label": "remote_query",
+          "url": "https://docs.databricks.com/aws/en/sql/language-manual/functions/remote_query"
+        },
+        {
+          "label": "Power BI",
+          "url": "https://docs.databricks.com/aws/en/partners/bi/power-bi"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "BI-style client on the warehouse",
+          "path": "reference/open-data/src/sql_connector_check.py",
+          "notes": [
+            "Connects as the job identity or with OAuth M2M.",
+            "Results are cross-checked against Spark."
+          ],
+          "symbol": "main"
+        },
+        {
+          "label": "Query Postgres in place",
+          "path": "reference/open-data/src/federation_check.py",
+          "notes": [
+            "Creates the UC connection and tries a foreign catalog.",
+            "Falls back to remote_query when CREATE CATALOG is denied."
+          ],
+          "symbol": "main"
+        },
+        {
+          "label": "Remote query expression",
+          "path": "reference/open-data/src/federation_check.py",
+          "notes": [
+            "Builds the table expression for queries through the connection.",
+            "Aggregates run inside Postgres."
+          ],
+          "symbol": "remote_query_sql"
+        }
+      ]
+    },
+    "platform-administration": {
+      "bundle": "reference/platform-ops",
+      "onePager": "reference/platform-ops/guides/platform-administration.md",
+      "code": [
+        {
+          "label": "Admin tasks",
+          "path": "reference/platform-ops/src/platform_admin.py"
+        },
+        {
+          "label": "Action ledger",
+          "path": "reference/platform-ops/src/admin_lib.py"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_platform_admin",
+          "label": "Platform administration job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "Admin tasks run",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/672910490592219/runs/390971828825052",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T22:00:00Z"
+        }
+      ],
+      "docs": [
+        {
+          "label": "Administration",
+          "url": "https://docs.databricks.com/aws/en/admin/"
+        },
+        {
+          "label": "Audit log system table",
+          "url": "https://docs.databricks.com/aws/en/admin/system-tables/audit-logs"
+        },
+        {
+          "label": "Billing system tables",
+          "url": "https://docs.databricks.com/aws/en/admin/system-tables/billing"
+        },
+        {
+          "label": "Compute policies",
+          "url": "https://docs.databricks.com/aws/en/admin/clusters/policies"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Ensure the group",
+          "path": "reference/platform-ops/src/platform_admin.py",
+          "notes": [
+            "Creates the group only if missing.",
+            "A refused UC grant is recorded with its reason."
+          ],
+          "symbol": "roles"
+        },
+        {
+          "label": "Idempotent action ledger",
+          "path": "reference/platform-ops/src/admin_lib.py",
+          "notes": [
+            "MERGE keyed on run, category, action, and target.",
+            "A retried task never duplicates rows."
+          ],
+          "symbol": "ledger_merge_sql"
+        },
+        {
+          "label": "Apply a policy if it drifted",
+          "path": "reference/platform-ops/src/platform_admin.py",
+          "notes": [
+            "Tries a budget policy, then a cluster policy.",
+            "Edits only when the definition changed."
+          ],
+          "symbol": "policies"
+        }
+      ]
+    },
+    "operational-support": {
+      "bundle": "reference/platform-ops",
+      "onePager": "reference/platform-ops/guides/operational-support.md",
+      "code": [
+        {
+          "label": "Triage",
+          "path": "reference/platform-ops/src/support_lib.py"
+        },
+        {
+          "label": "Repair",
+          "path": "reference/platform-ops/src/support_repair.py"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_operational_support",
+          "label": "Support job"
+        },
+        {
+          "key": "capability_guides_support_repair",
+          "label": "Repair job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "Support run with a failure by design",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/795846009467607/runs/207301928882917",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T22:00:00Z"
+        },
+        {
+          "label": "Repair run",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/582172527595601/runs/272044088631319",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T22:00:00Z"
+        }
+      ],
+      "docs": [
+        {
+          "label": "Repair job failures",
+          "url": "https://docs.databricks.com/aws/en/jobs/repair-job-failures"
+        },
+        {
+          "label": "Run if",
+          "url": "https://docs.databricks.com/aws/en/jobs/run-if"
+        },
+        {
+          "label": "Parameter value references",
+          "url": "https://docs.databricks.com/aws/en/jobs/parameter-value-references"
+        },
+        {
+          "label": "Jobs system tables",
+          "url": "https://docs.databricks.com/aws/en/admin/system-tables/jobs"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Classify and route failures",
+          "path": "reference/platform-ops/src/support_lib.py",
+          "notes": [
+            "The first matching pattern wins; tags pick the owner.",
+            "High severity also pages the escalation contact."
+          ],
+          "symbol": "classify"
+        },
+        {
+          "label": "Count only the latest attempt",
+          "path": "reference/platform-ops/src/support_lib.py",
+          "notes": [
+            "Retries appear as separate task entries.",
+            "A task that passed on retry is not an incident."
+          ],
+          "symbol": "latest_attempts"
+        },
+        {
+          "label": "Repair the failed run",
+          "path": "reference/platform-ops/src/support_repair.py",
+          "notes": [
+            "Repairs only failed tasks through the Jobs API.",
+            "The original run ended SUCCESS after repair."
+          ],
+          "symbol": "main"
+        }
+      ]
     }
   }
 }

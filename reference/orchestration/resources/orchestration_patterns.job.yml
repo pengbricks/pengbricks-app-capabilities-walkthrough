@@ -1,0 +1,174 @@
+# Orchestration patterns: task values, parallel branches, schedule, retry, alerts, external call, condition.
+resources:
+  jobs:
+    capability_guides_orchestration:
+      name: capability-guides-orchestration
+      description: One job that chains tasks with passed values, fans out to two parallel branches, calls an external process, and branches on a condition.
+      tags:
+        capability_guide_job: capability_guides_orchestration
+        capability_guide_use_case: ${var.use_case}
+      max_concurrent_runs: 1
+      timeout_seconds: 3600
+
+      # Schedule is paused here. Unpause it in the UI or with the bulk pause job's resume step.
+      schedule:
+        quartz_cron_expression: "0 0 6 * * ?"
+        timezone_id: UTC
+        pause_status: PAUSED
+
+      email_notifications:
+        on_success:
+          - ${var.notification_email}
+        on_failure:
+          - ${var.notification_email}
+        on_duration_warning_threshold_exceeded:
+          - ${var.notification_email}
+      # The duration warning above fires when a run passes this health rule.
+      health:
+        rules:
+          - metric: RUN_DURATION_SECONDS
+            op: GREATER_THAN
+            value: 900
+
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${resources.schemas.guide_schema.name}
+        - name: use_case
+          default: ${var.use_case}
+        - name: min_valid_rows
+          default: "2000"
+
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+            dependencies:
+              - dbldatagen==0.4.0.post1
+              - pyyaml>=6
+              - databricks-sdk>=0.70
+
+      tasks:
+        # Sequential: extract -> validate. Each task hands values to the next.
+        - task_key: extract
+          environment_key: default
+          spark_python_task:
+            python_file: ../src/orch_extract.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+
+        - task_key: validate
+          depends_on:
+            - task_key: extract
+          environment_key: default
+          spark_python_task:
+            python_file: ../src/orch_validate.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+
+        # Parallel: both branches depend only on validate, so they run at the same time.
+        - task_key: branch_region
+          depends_on:
+            - task_key: validate
+          environment_key: default
+          spark_python_task:
+            python_file: ../src/orch_branch.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --dimension=region
+
+        - task_key: branch_status
+          depends_on:
+            - task_key: validate
+          environment_key: default
+          spark_python_task:
+            python_file: ../src/orch_branch.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --dimension=status
+
+        # Join: waits for both branches.
+        - task_key: join_branches
+          depends_on:
+            - task_key: branch_region
+            - task_key: branch_status
+          environment_key: default
+          spark_python_task:
+            python_file: ../src/orch_join.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --run-id={{job.run_id}}
+
+        # External process with a retry policy: the first attempt fails on purpose.
+        - task_key: external_call
+          depends_on:
+            - task_key: join_branches
+          environment_key: default
+          max_retries: 2
+          min_retry_interval_millis: 10000
+          retry_on_timeout: true
+          timeout_seconds: 300
+          spark_python_task:
+            python_file: ../src/orch_external_call.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+              - --run-id={{job.run_id}}
+              - --fail-first-attempt=true
+
+        # Condition: compares a task value from validate with a job parameter.
+        - task_key: enough_valid_rows
+          depends_on:
+            - task_key: external_call
+          condition_task:
+            op: GREATER_THAN
+            left: "{{tasks.validate.values.valid_rows}}"
+            right: "{{job.parameters.min_valid_rows}}"
+
+        - task_key: publish
+          depends_on:
+            - task_key: enough_valid_rows
+              outcome: "true"
+          environment_key: default
+          spark_python_task:
+            python_file: ../src/orch_publish.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --run-id={{job.run_id}}
+              - --outcome=publish
+
+        - task_key: hold_for_review
+          depends_on:
+            - task_key: enough_valid_rows
+              outcome: "false"
+          environment_key: default
+          spark_python_task:
+            python_file: ../src/orch_publish.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --run-id={{job.run_id}}
+              - --outcome=hold
+
+        # Runs after whichever branch was taken; the skipped branch does not block it.
+        - task_key: record_run
+          depends_on:
+            - task_key: publish
+            - task_key: hold_for_review
+          run_if: AT_LEAST_ONE_SUCCESS
+          environment_key: default
+          spark_python_task:
+            python_file: ../src/orch_record_run.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --run-id={{job.run_id}}

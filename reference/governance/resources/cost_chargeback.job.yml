@@ -1,0 +1,95 @@
+# Cost tracking and chargeback: spend by product, tag, user, and job; budget check; forecast; optimization queries.
+resources:
+  jobs:
+    capability_guides_cost:
+      name: capability-guides-cost
+      description: Breaks down list-price spend from system tables, checks a 7-day budget, forecasts 30 days with ai_forecast, and flags optimization candidates.
+      tags:
+        capability_guide_job: capability_guides_cost
+        capability_guide_use_case: ${var.use_case}
+      max_concurrent_runs: 1
+      timeout_seconds: 3600
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${resources.schemas.capability_guides_governance.name}
+        - name: use_case
+          default: ${var.use_case}
+      environments:
+        - environment_key: gov
+          spec:
+            environment_version: "4"
+            dependencies:
+              - databricks-sdk>=0.70
+              - pyyaml>=6
+      tasks:
+        - task_key: build_views
+          environment_key: gov
+          spark_python_task:
+            python_file: ../src/cost_tasks.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --threshold=${var.budget_threshold_usd}
+              - --step=build_views
+
+        - task_key: spend_breakdown
+          depends_on:
+            - task_key: build_views
+          environment_key: gov
+          spark_python_task:
+            python_file: ../src/cost_tasks.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --threshold=${var.budget_threshold_usd}
+              - --step=spend_breakdown
+
+        - task_key: budget_check
+          depends_on:
+            - task_key: spend_breakdown
+          environment_key: gov
+          spark_python_task:
+            python_file: ../src/cost_tasks.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --threshold=${var.budget_threshold_usd}
+              - --step=budget_check
+
+        - task_key: forecast
+          depends_on:
+            - task_key: spend_breakdown
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file:
+              path: ../sql/cost_forecast.sql
+              source: WORKSPACE
+            parameters:
+              catalog: "{{job.parameters.catalog}}"
+              schema: "{{job.parameters.schema}}"
+
+        - task_key: check_forecast
+          depends_on:
+            - task_key: forecast
+          environment_key: gov
+          spark_python_task:
+            python_file: ../src/cost_tasks.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --threshold=${var.budget_threshold_usd}
+              - --step=check_forecast
+
+        - task_key: optimization
+          depends_on:
+            - task_key: spend_breakdown
+          environment_key: gov
+          spark_python_task:
+            python_file: ../src/cost_tasks.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --threshold=${var.budget_threshold_usd}
+              - --step=optimization

@@ -1,0 +1,55 @@
+resources:
+  jobs:
+    capability_guides_target_loading:
+      name: capability_guides_target_loading
+      description: MERGEs inserts, updates, and deletes into a Delta target, then writes CSV, pipe-delimited, Excel, and JSON files to a volume.
+      tags:
+        capability_guide_job: capability_guides_target_loading
+        capability_guide_use_case: ${var.use_case}
+      max_concurrent_runs: 1
+      timeout_seconds: 3600
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${resources.schemas.capability_guides_data_engineering.name}
+        - name: use_case
+          default: ${var.use_case}
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+            dependencies:
+              - dbldatagen==0.4.0.post1
+              - pyyaml>=6
+              - openpyxl>=3.1
+      tasks:
+        - task_key: prepare_target
+          environment_key: default
+          spark_python_task:
+            python_file: ../src/prepare_target.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+        - task_key: merge_target
+          depends_on:
+            - task_key: prepare_target
+          environment_key: default
+          spark_python_task:
+            python_file: ../src/merge_target.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+        - task_key: write_outputs
+          depends_on:
+            - task_key: merge_target
+          environment_key: default
+          spark_python_task:
+            python_file: ../src/write_outputs.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+              - --volume=${resources.volumes.capability_guides_data_engineering_exports.name}

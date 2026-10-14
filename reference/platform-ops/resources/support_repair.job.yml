@@ -1,0 +1,34 @@
+# Repairs the failed operational support run through the Jobs API repair endpoint.
+resources:
+  jobs:
+    capability_guides_support_repair:
+      name: capability-guides-support-repair
+      description: Finds the latest failed capability-guides-operational-support run, repairs it with the Jobs API repair endpoint, waits, and records the outcome in support_incidents.
+      tags:
+        capability_guide_job: capability_guides_support_repair
+        capability_guide_use_case: ${var.use_case}
+      max_concurrent_runs: 1
+      timeout_seconds: 2400
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${resources.schemas.capability_guides_platform_ops.name}
+        - name: use_case
+          default: ${var.use_case}
+      environments:
+        - environment_key: support
+          spec:
+            environment_version: "4"
+            dependencies:
+              - databricks-sdk>=0.70
+              - pyyaml>=6
+      tasks:
+        - task_key: repair_failed_run
+          environment_key: support
+          spark_python_task:
+            python_file: ../src/support_repair.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml

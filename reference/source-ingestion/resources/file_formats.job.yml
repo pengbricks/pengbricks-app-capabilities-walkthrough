@@ -1,0 +1,59 @@
+# File format ingestion: generate sample files from the spec, ingest them with a Lakeflow
+# Declarative Pipeline, then check counts, rescued data, and types.
+resources:
+  jobs:
+    capability_guides_file_formats:
+      name: capability-guides-file-formats
+      description: Generates CSV, pipe-delimited, Excel, nested JSON, and XML files, ingests them with a pipeline, and verifies the tables.
+      tags:
+        capability_guide_job: capability_guides_file_formats
+        capability_guide_use_case: ${var.use_case}
+      max_concurrent_runs: 1
+      email_notifications:
+        on_failure:
+          - ${var.notification_email}
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${resources.schemas.capability_guides_source_ingestion.name}
+        - name: use_case
+          default: ${var.use_case}
+      environments:
+        - environment_key: tools
+          spec:
+            environment_version: "4"
+            dependencies:
+              - dbldatagen==0.4.0.post1
+              - pyyaml>=6
+              - openpyxl>=3.1
+      tasks:
+        - task_key: generate_files
+          environment_key: tools
+          spark_python_task:
+            python_file: ../src/generate_format_files.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --src-dir=${workspace.file_path}/src
+              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+
+        - task_key: ingest_formats
+          depends_on:
+            - task_key: generate_files
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.capability_guides_file_formats_pipeline.id}
+            full_refresh: true
+
+        - task_key: verify_tables
+          depends_on:
+            - task_key: ingest_formats
+          environment_key: tools
+          spark_python_task:
+            python_file: ../src/verify_format_tables.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --src-dir=${workspace.file_path}/src
+              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+              - --run-id={{job.run_id}}

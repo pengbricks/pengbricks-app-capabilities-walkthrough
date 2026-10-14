@@ -1,0 +1,74 @@
+# Relational database extracts: build a source in Lakebase Postgres, expose it through Lakehouse
+# Federation, land full tables and a custom SQL result, then compare them with the source.
+resources:
+  jobs:
+    capability_guides_relational_extract:
+      name: capability-guides-relational-extract
+      description: Extracts full tables and a custom SQL result from Lakebase Postgres and compares them with the source.
+      tags:
+        capability_guide_job: capability_guides_relational_extract
+        capability_guide_use_case: ${var.use_case}
+      max_concurrent_runs: 1
+      email_notifications:
+        on_failure:
+          - ${var.notification_email}
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${resources.schemas.capability_guides_source_ingestion.name}
+        - name: use_case
+          default: ${var.use_case}
+      environments:
+        - environment_key: tools
+          spec:
+            environment_version: "4"
+            dependencies:
+              - databricks-sdk>=0.85
+              - dbldatagen==0.4.0.post1
+              - pyyaml>=6
+              - psycopg2-binary>=2.9
+      tasks:
+        - task_key: create_source
+          environment_key: tools
+          spark_python_task:
+            python_file: ../src/create_relational_source.py
+            parameters:
+              - --src-dir=${workspace.file_path}/src
+              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+
+        - task_key: setup_federation
+          depends_on:
+            - task_key: create_source
+          environment_key: tools
+          spark_python_task:
+            python_file: ../src/setup_federation.py
+            parameters:
+              - --src-dir=${workspace.file_path}/src
+              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+
+        - task_key: extract
+          depends_on:
+            - task_key: setup_federation
+          environment_key: tools
+          spark_python_task:
+            python_file: ../src/extract_relational.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --src-dir=${workspace.file_path}/src
+              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+              - --run-id={{job.run_id}}
+
+        - task_key: compare_with_source
+          depends_on:
+            - task_key: extract
+          environment_key: tools
+          spark_python_task:
+            python_file: ../src/compare_relational.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --src-dir=${workspace.file_path}/src
+              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+              - --run-id={{job.run_id}}

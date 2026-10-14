@@ -1,0 +1,6 @@
+resources:
+  schemas:
+    capability_guides_access_dev:
+      catalog_name: ${var.catalog}
+      name: ${var.schema}_access_dev
+      comment: "Dev-like schema, broad read-write privileges for the reader group"

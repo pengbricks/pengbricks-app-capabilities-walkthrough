@@ -1,0 +1,55 @@
+# Use-case spec: the only file a new domain needs to author.
+# src/generate_data.py builds every table from it with dbldatagen and a fixed seed.
+name: general
+seed: 20261014
+
+tables:
+  customers:
+    rows: 5000
+    columns:
+      - {name: customer_id, type: string, expr: "concat('CUST-', lpad(cast(id AS STRING), 6, '0'))"}
+      - {name: region, type: string, values: [North, South, East, West], weights: [3, 2, 3, 2]}
+      - {name: segment, type: string, values: [Enterprise, Mid-market, Small business], weights: [1, 3, 6]}
+      - {name: signup_date, type: date, begin: "2022-01-01", end: "2026-06-30", interval: "1 day"}
+  products:
+    rows: 40
+    columns:
+      - {name: product_id, type: string, expr: "concat('PROD-', lpad(cast(id AS STRING), 3, '0'))"}
+      - {name: category, type: string, values: [Hardware, Software, Services, Support], weights: [3, 3, 2, 2]}
+      - {name: list_price, type: "decimal(10,2)", min: 5, max: 500}
+  orders:
+    rows: 200000
+    columns:
+      - {name: order_id, type: string, expr: "concat('ORD-', lpad(cast(id AS STRING), 8, '0'))"}
+      - {name: customer_id, type: string, expr: "concat('CUST-', lpad(cast(id % 5000 AS STRING), 6, '0'))"}
+      - {name: product_id, type: string, expr: "concat('PROD-', lpad(cast(id % 40 AS STRING), 3, '0'))"}
+      - {name: order_ts, type: timestamp, begin: "2025-10-01 00:00:00", end: "2026-09-30 23:59:59", interval: "1 minute"}
+      - {name: quantity, type: int, min: 1, max: 10}
+      - {name: unit_price, type: "decimal(10,2)", min: 5, max: 500}
+      - {name: status, type: string, values: [completed, shipped, cancelled, returned], weights: [12, 4, 1, 1]}
+
+# Table for the large aggregation. Generated on demand by src/large_aggregation.py.
+large_table:
+  name: events_large
+  rows: 6000000
+  columns:
+    - {name: event_id, type: bigint, expr: "id"}
+    - {name: customer_id, type: string, expr: "concat('CUST-', lpad(cast(id % 5000 AS STRING), 6, '0'))"}
+    - {name: event_ts, type: timestamp, begin: "2025-10-01 00:00:00", end: "2026-09-30 23:59:59", interval: "1 second"}
+    - {name: event_type, type: string, values: [view, click, add_to_cart, purchase], weights: [10, 6, 3, 1]}
+    - {name: amount, type: "decimal(10,2)", min: 0, max: 500}
+
+# Spreadsheet a user uploads in the bring-your-own-data guide.
+upload:
+  file_name: account_targets.csv
+  matched_keys: 450
+  unmatched_keys: 30
+  key_prefix: CUST-
+  unmatched_start: 900000
+
+# Filter applied to the partner extract.
+extract:
+  region: West
+  status: completed
+  begin: "2026-01-01"
+  end: "2026-06-30"

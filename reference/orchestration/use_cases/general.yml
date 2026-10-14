@@ -1,0 +1,39 @@
+# Use-case spec: the domain for both guides. Code reads this file; it holds no domain names.
+name: general
+seed: 20261014
+
+entity:
+  name: orders
+  columns:
+    - {name: order_id, type: string, expr: "concat('ORD-', lpad(cast(id AS STRING), 8, '0'))"}
+    - {name: customer_id, type: string, expr: "concat('CUST-', lpad(cast(id % 400 AS STRING), 5, '0'))"}
+    - {name: order_ts, type: timestamp, begin: "2026-09-01 00:00:00", end: "2026-09-30 23:59:59", interval: "1 minute"}
+    - {name: region, type: string, values: [north, south, east, west], weights: [4, 3, 2, 1]}
+    - {name: status, type: string, values: [paid, pending, refunded], weights: [8, 2, 1]}
+    - {name: quantity, type: int, min: 1, max: 20}
+    - {name: amount, type: double, min: 10, max: 200}
+
+# Rows that must be rejected by the validate task: a row is corrupted when id % every == offset.
+bad_rows:
+  - {column: amount, expr: "-abs(amount)", every: 41, offset: 7}
+
+orchestration:
+  rows: 2400
+  http_probe_url: https://api.github.com/zen
+  min_valid_rows: 2000   # condition_task publishes when valid rows exceed this
+
+observability:
+  psi_threshold: 0.2
+  mean_shift_threshold_pct: 15
+  batches:
+    - {name: baseline, rows: 3000, seed_offset: 0}
+    # A later batch where amounts rise and the region mix moves toward one region.
+    - name: shifted
+      rows: 3000
+      seed_offset: 1
+      overrides:
+        amount: {min: 120, max: 380}
+        region: {weights: [1, 1, 1, 7]}
+  schema_changes:
+    add_column: {name: loyalty_tier, type: STRING}
+    widen_column: {name: quantity, from_type: INT, to_type: BIGINT}

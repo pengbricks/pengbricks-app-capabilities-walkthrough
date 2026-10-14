@@ -1,0 +1,9 @@
+resources:
+  schemas:
+    capability_guides_platform_ops:
+      catalog_name: ${var.catalog}
+      name: ${var.schema}
+      comment: Tables produced by the platform administration and operational support guides
+      grants:
+        - principal: ${var.app_service_principal}
+          privileges: [USE_SCHEMA]

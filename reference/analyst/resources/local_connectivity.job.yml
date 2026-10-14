@@ -1,0 +1,49 @@
+# Local tool connectivity: the Databricks SQL connector path, authenticated with OAuth, against the warehouse.
+resources:
+  jobs:
+    capability_guides_local_connectivity:
+      name: capability-guides-local-connectivity
+      description: Connects with the Databricks SQL connector over OAuth, queries a governed table, and records the result.
+      tags:
+        capability_guide_job: capability_guides_local_connectivity
+        capability_guide_use_case: ${var.use_case}
+      max_concurrent_runs: 1
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${resources.schemas.capability_guides_analyst.name}
+        - name: use_case
+          default: ${var.use_case}
+      environments:
+        - environment_key: analyst
+          spec:
+            environment_version: "4"
+            dependencies:
+              - dbldatagen==0.4.0.post1
+              - pyyaml>=6
+              - databricks-sdk>=0.70
+              - databricks-sql-connector>=4
+      tasks:
+        - task_key: generate_data
+          environment_key: analyst
+          spark_python_task:
+            python_file: ../src/generate_data.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --src=${workspace.file_path}/src
+              - --spec=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+              - --tables=customers
+
+        - task_key: sql_connector_check
+          depends_on:
+            - task_key: generate_data
+          environment_key: analyst
+          spark_python_task:
+            python_file: ../src/connector_check.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --warehouse-id=${var.warehouse_id}
+              - --run-id={{job.run_id}}

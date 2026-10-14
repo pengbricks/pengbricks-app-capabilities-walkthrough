@@ -1,0 +1,57 @@
+# Use-case spec for the open-data bundle: sample domain, sharing settings, Iceberg settings, and
+# the external Postgres source. Code reads everything domain-specific from here.
+name: general
+seed: 20261014
+
+tables:
+  orders:
+    comment: Customer orders. Source table for the governed share and the Iceberg table.
+    rows: 5000
+    columns:
+      - {name: order_id, type: string, expr: "concat('ORD-', lpad(cast(id AS STRING), 7, '0'))", comment: Unique order identifier}
+      - {name: region, type: string, values: [West, East, North, South], weights: [3, 3, 2, 2], comment: Sales region of the order}
+      - {name: product, type: string, values: [Standard, Plus, Premium], weights: [6, 3, 1], comment: Product tier ordered}
+      - {name: quantity, type: int, min: 1, max: 20, comment: Units ordered}
+      - {name: amount, type: "decimal(12,2)", min: 10, max: 2500, comment: Order total in USD}
+      - {name: customer_email, type: string, expr: "concat('buyer', cast(id % 400 AS STRING), '@example.com')", comment: Customer contact. Personal data, never shared}
+      - {name: order_ts, type: timestamp, begin: "2026-09-01 00:00:00", end: "2026-09-30 23:59:59", interval: "1 minute", comment: When the order was placed}
+  products:
+    comment: Product tiers and list prices. Shared whole.
+    rows: 3
+    columns:
+      - {name: product, type: string, expr: "element_at(array('Standard', 'Plus', 'Premium'), cast(id + 1 AS INT))", comment: Product tier name}
+      - {name: list_price, type: "decimal(12,2)", expr: "cast((id + 1) * 100 AS DECIMAL(12,2))", comment: List price in USD}
+
+sharing:
+  share_name: capability_guides_orders_share
+  recipient_name: capability_guides_partner
+  # The shared view limits rows to one region and leaves out the personal-data column.
+  view_name: orders_west_v
+  view_region: West
+  view_columns: [order_id, region, product, quantity, amount, order_ts]
+  shared_table: products
+  # system.access.audit lags the event by several minutes; the job waits up to this long.
+  audit_wait_seconds: 900
+
+iceberg:
+  table: orders_iceberg
+  seed_rows: 1000
+  extra_rows: 500
+  added_column: {name: channel, type: string, default: online}
+  # Unity Catalog Iceberg REST catalog path on the workspace host.
+  irc_path: /api/2.1/unity-catalog/iceberg-rest
+
+integrations:
+  sql_connector:
+    query_table: orders
+  federation:
+    # Lakebase Postgres project used as the "external" database.
+    lakebase_project: capability-guides
+    lakebase_branch: production
+    lakebase_endpoint: primary
+    database: databricks_postgres
+    source_schema: capability_guides_external
+    source_table: external_orders
+    source_rows: 200
+    connection_name: capability_guides_lakebase_pg
+    foreign_catalog: capability_guides_lakebase_fc

@@ -1,0 +1,73 @@
+# Trains a scikit-learn model with MLflow, and brings a pickled model into Unity Catalog as a pyfunc while reproducing its recorded baseline.
+resources:
+  jobs:
+    capability_guides_model_training:
+      name: capability-guides-model-training
+      description: Trains a scikit-learn model with MLflow, and brings a pickled model into Unity Catalog as a pyfunc while reproducing its recorded baseline.
+      tags:
+        capability_guide_job: capability_guides_model_training
+        capability_guide_use_case: ${var.use_case}
+      max_concurrent_runs: 1
+      timeout_seconds: 3600
+      email_notifications:
+        on_failure:
+          - ${var.notification_email}
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${resources.schemas.capability_guides_ml_lifecycle.name}
+        - name: use_case
+          default: ${var.use_case}
+        - name: release
+          default: ${var.release}
+      environments:
+        - environment_key: ml
+          spec:
+            environment_version: "4"
+            dependencies:
+              - mlflow>=3.1
+              - scikit-learn>=1.4
+              - dbldatagen==0.4.0.post1
+              - pyyaml>=6
+              - databricks-sdk>=0.70
+      tasks:
+        - task_key: export_legacy_model
+          environment_key: ml
+          spark_python_task:
+            python_file: ../src/mt_export_legacy_model.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --src-dir=${workspace.file_path}/src
+              - --spec=${workspace.file_path}/use_cases/${var.use_case}.yml
+              - --volume=${resources.volumes.legacy_models.name}
+
+        - task_key: train_native
+          depends_on:
+            - task_key: export_legacy_model
+          environment_key: ml
+          spark_python_task:
+            python_file: ../src/mt_train_native.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --src-dir=${workspace.file_path}/src
+              - --spec=${workspace.file_path}/use_cases/${var.use_case}.yml
+              - --release={{job.parameters.release}}
+              - --experiment=${resources.experiments.ml_lifecycle_experiment.name}
+
+        - task_key: import_legacy_model
+          depends_on:
+            - task_key: export_legacy_model
+          environment_key: ml
+          spark_python_task:
+            python_file: ../src/mt_import_legacy_model.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --src-dir=${workspace.file_path}/src
+              - --spec=${workspace.file_path}/use_cases/${var.use_case}.yml
+              - --volume=${resources.volumes.legacy_models.name}
+              - --release={{job.parameters.release}}
+              - --experiment=${resources.experiments.ml_lifecycle_experiment.name}

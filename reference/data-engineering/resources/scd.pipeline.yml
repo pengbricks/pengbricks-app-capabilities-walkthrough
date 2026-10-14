@@ -1,0 +1,15 @@
+resources:
+  pipelines:
+    capability_guides_scd_pipeline:
+      name: capability-guides-scd
+      catalog: ${var.catalog}
+      schema: ${resources.schemas.capability_guides_data_engineering.name}
+      serverless: true
+      continuous: false
+      channel: CURRENT
+      tags:
+        capability_guide_job: capability_guides_scd
+        capability_guide_use_case: ${var.use_case}
+      libraries:
+        - glob:
+            include: ../src/scd/**

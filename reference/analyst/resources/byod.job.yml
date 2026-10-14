@@ -1,0 +1,62 @@
+# Bring your own data: simulate an upload to a per-user volume folder, then join it to a governed table.
+resources:
+  jobs:
+    capability_guides_byod:
+      name: capability-guides-byod
+      description: Writes a CSV to the caller's upload folder, joins it to customers, and keeps unmatched keys visible.
+      tags:
+        capability_guide_job: capability_guides_byod
+        capability_guide_use_case: ${var.use_case}
+      max_concurrent_runs: 1
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${resources.schemas.capability_guides_analyst.name}
+        - name: use_case
+          default: ${var.use_case}
+      environments:
+        - environment_key: analyst
+          spec:
+            environment_version: "4"
+            dependencies:
+              - dbldatagen==0.4.0.post1
+              - pyyaml>=6
+      tasks:
+        - task_key: generate_data
+          environment_key: analyst
+          spark_python_task:
+            python_file: ../src/generate_data.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --src=${workspace.file_path}/src
+              - --spec=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+              - --tables=customers
+
+        - task_key: simulate_upload
+          depends_on:
+            - task_key: generate_data
+          environment_key: analyst
+          spark_python_task:
+            python_file: ../src/byod.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --src=${workspace.file_path}/src
+              - --spec=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+              - --step=upload
+
+        - task_key: join_to_governed
+          depends_on:
+            - task_key: simulate_upload
+          environment_key: analyst
+          spark_python_task:
+            python_file: ../src/byod.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --src=${workspace.file_path}/src
+              - --spec=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+              - --step=join
+              - --run-id={{job.run_id}}

@@ -1,0 +1,10 @@
+resources:
+  volumes:
+    capability_guides_data_engineering_exports:
+      catalog_name: ${var.catalog}
+      schema_name: ${resources.schemas.capability_guides_data_engineering.name}
+      name: exports
+      comment: File outputs written by the target loading guide
+      grants:
+        - principal: ${var.app_service_principal}
+          privileges: [READ_VOLUME]

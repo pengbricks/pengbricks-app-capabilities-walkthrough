@@ -1,0 +1,59 @@
+# Use-case spec for all four ML guides. Code reads this file; nothing in src/ names a domain.
+name: general
+seed: 20261014
+
+source:
+  table: customer_activity_raw
+  key: customer_id
+  rows: 20000
+  columns:                # generated with dbldatagen (uniform random, fixed seed)
+    - {name: tenure_months, type: int, min: 1, max: 72}
+    - {name: monthly_spend, type: double, min: 10, max: 300}
+    - {name: support_tickets, type: int, min: 0, max: 12}
+    - {name: usage_score, type: double, min: 0, max: 100, null_pct: 0.02}
+    - {name: days_since_login, type: int, min: 0, max: 90}
+    - {name: noise, type: double, min: 0, max: 1}   # hidden driver, never a feature
+
+label:
+  name: churned
+  expr: >-
+    CAST((0.04 * support_tickets + 0.012 * days_since_login - 0.01 * tenure_months
+          - 0.006 * coalesce(usage_score, 50.0) + 0.002 * monthly_spend + 0.4 * noise) > 0.63 AS INT)
+
+# Guide 1: feature preparation
+features:
+  table: customer_features
+  passthrough: [tenure_months, monthly_spend, support_tickets, days_since_login]
+  derived:
+    - {name: usage_score_filled, expr: "coalesce(usage_score, 50.0)"}
+    - {name: usage_score_missing, expr: "CAST(usage_score IS NULL AS INT)"}
+    - {name: lifetime_spend, expr: "monthly_spend * tenure_months"}
+    - {name: tickets_per_year, expr: "support_tickets * 12.0 / tenure_months"}
+    - {name: is_inactive, expr: "CAST(days_since_login > 30 AS INT)"}
+  ranges:                 # inclusive [min, max] quality checks
+    tenure_months: [1, 72]
+    monthly_spend: [10, 300]
+    support_tickets: [0, 12]
+    usage_score_filled: [0, 100]
+    days_since_login: [0, 90]
+  training_set_prefix: training_set_v
+
+# Guides 2, 3, 4: models trained on the raw columns
+model:
+  features: [tenure_months, monthly_spend, support_tickets, usage_score_filled, days_since_login]
+  fill: {usage_score_filled: {from: usage_score, value: 50.0}}
+  holdout_mod: 5
+  trained_name: churn_classifier
+  imported_name: churn_classifier_imported
+  drift_name: churn_drift_model
+  baseline_tolerance: 0.001   # imported model AUC vs recorded baseline
+  rerun_tolerance: 0.001      # rerun AUC vs tracked run AUC
+
+# Guide 4: drift
+drift:
+  batches: 5
+  batch_rows: 4000
+  drift_from_batch: 4         # batches 4 and 5 carry the shifted distribution
+  shift: {feature: days_since_login, add: 30}
+  psi_threshold: 0.2
+  mean_shift_threshold: 0.5   # in baseline standard deviations

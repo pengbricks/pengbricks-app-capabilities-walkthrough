@@ -4,11 +4,24 @@ Each folder under `reference/` is a self-contained Declarative Automation Bundle
 
 | Bundle | Guides |
 |---|---|
-| `ingestion/` | Configuration vs code, Reusability / templatization, Batch and real-time ingestion, DataOps |
-| `monitoring/` | Monitoring |
-| `developer-experience/` | IDE and developer experience |
-| `documentation/` | Documentation generation |
-| `legacy-conversion/` | Legacy conversion |
+| `ingestion/` | Configuration-driven ingestion, Reusable ingestion templates, Batch and streaming ingestion, Pipeline operations |
+| `monitoring/` | Platform observability |
+| `developer-experience/` | Developer workflow in the IDE |
+| `documentation/` | Automated data documentation |
+| `legacy-conversion/` | Legacy workload migration |
+| `versioning/` | Data contract versioning |
+| `model-deployment/` | Model release pipeline |
+| `source-ingestion/` | File format ingestion, Authenticated REST API ingestion, SFTP file retrieval, Multi-source pipeline, Relational database extracts |
+| `data-engineering/` | Transformation patterns, SCD and change capture, Target loading and file outputs |
+| `orchestration/` | Orchestration patterns, Lineage and drift detection |
+| `analyst/` | SQL and notebooks at scale, Bring your own data, Connecting local tools, No-code data preparation, Self-service extracts and subscriptions, Charts and dashboards in the platform |
+| `governance/` | Access management, Row and column security, Compute and capacity management, Cost tracking and chargeback |
+| `ml-lifecycle/` | Feature preparation from source data, Training and bringing existing models, Reproducible experiments, Model quality and drift |
+| `realtime-scoring/` | Online model scoring |
+| `genie/` | Business terms and synonyms, Assistant user experience |
+| `open-data/` | Governed data sharing, Apache Iceberg interoperability, Partner tool integrations |
+| `platform-ops/` | Workspace and account administration, Support and recovery |
+| `agents/` | Agents, MCP, and model gateway; Building and shipping agents |
 
 The GitHub integration and CI/CD guide deploys the `ingestion/` bundle through `.github/workflows/reference-cicd.yml`.
 

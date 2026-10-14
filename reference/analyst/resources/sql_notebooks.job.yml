@@ -1,0 +1,69 @@
+# SQL and notebooks at scale: SQL exploration, Python pandas round trip, a 6-million-row aggregation.
+# The R notebook ships in src/notebooks but is not a task, because serverless does not run R.
+resources:
+  jobs:
+    capability_guides_sql_notebooks:
+      name: capability-guides-sql-notebooks
+      description: Runs SQL exploration, a Python pandas round trip, and a timed aggregation over 6 million generated rows.
+      tags:
+        capability_guide_job: capability_guides_sql_notebooks
+        capability_guide_use_case: ${var.use_case}
+      max_concurrent_runs: 1
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${resources.schemas.capability_guides_analyst.name}
+        - name: use_case
+          default: ${var.use_case}
+      environments:
+        - environment_key: analyst
+          spec:
+            environment_version: "4"
+            dependencies:
+              - dbldatagen==0.4.0.post1
+              - pyyaml>=6
+      tasks:
+        - task_key: generate_data
+          environment_key: analyst
+          spark_python_task:
+            python_file: ../src/generate_data.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --src=${workspace.file_path}/src
+              - --spec=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+
+        - task_key: sql_exploration
+          depends_on:
+            - task_key: generate_data
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file:
+              path: ../sql/sql_exploration.sql
+            parameters:
+              catalog: "{{job.parameters.catalog}}"
+              schema: "{{job.parameters.schema}}"
+
+        - task_key: python_pandas_roundtrip
+          depends_on:
+            - task_key: generate_data
+          environment_key: analyst
+          notebook_task:
+            notebook_path: ../src/notebooks/python_pandas_roundtrip.py
+            base_parameters:
+              catalog: "{{job.parameters.catalog}}"
+              schema: "{{job.parameters.schema}}"
+
+        - task_key: large_aggregation
+          depends_on:
+            - task_key: generate_data
+          environment_key: analyst
+          spark_python_task:
+            python_file: ../src/large_aggregation.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --src=${workspace.file_path}/src
+              - --spec=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+              - --run-id={{job.run_id}}

@@ -1,0 +1,76 @@
+# Row and column security: column masks, an attribute row filter, a dynamic row filter, identity tests, and the policy inventory.
+resources:
+  jobs:
+    capability_guides_row_column_security:
+      name: capability-guides-row-column-security
+      description: Applies masks and row filters to spec-generated tables, tests them as different identities, and inventories the policies.
+      tags:
+        capability_guide_job: capability_guides_row_column_security
+        capability_guide_use_case: ${var.use_case}
+      max_concurrent_runs: 1
+      timeout_seconds: 3600
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${resources.schemas.capability_guides_governance.name}
+        - name: use_case
+          default: ${var.use_case}
+      environments:
+        - environment_key: gov
+          spec:
+            environment_version: "4"
+            dependencies:
+              - databricks-sdk>=0.70
+              - dbldatagen==0.4.0.post1
+              - pyyaml>=6
+      tasks:
+        - task_key: generate_data
+          environment_key: gov
+          spark_python_task:
+            python_file: ../src/row_column_tasks.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+              - --app-service-principal=${var.app_service_principal}
+              - --step=generate_data
+
+        - task_key: create_policies
+          depends_on:
+            - task_key: generate_data
+          environment_key: gov
+          spark_python_task:
+            python_file: ../src/row_column_tasks.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+              - --app-service-principal=${var.app_service_principal}
+              - --step=create_policies
+
+        - task_key: test_policies
+          depends_on:
+            - task_key: create_policies
+          environment_key: gov
+          spark_python_task:
+            python_file: ../src/row_column_tasks.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+              - --app-service-principal=${var.app_service_principal}
+              - --step=test_policies
+
+        - task_key: policy_inventory
+          depends_on:
+            - task_key: test_policies
+          environment_key: gov
+          spark_python_task:
+            python_file: ../src/row_column_tasks.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+              - --app-service-principal=${var.app_service_principal}
+              - --step=policy_inventory

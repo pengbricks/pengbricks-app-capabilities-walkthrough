@@ -1,0 +1,627 @@
+{
+  "datasets": [
+    {
+      "name": "ds_hourly",
+      "displayName": "Statements per hour",
+      "queryLines": [
+        "SELECT date_trunc('HOUR', start_time) AS hour, warehouse_name, count(*) AS statements, ",
+        "round(avg(waiting_at_capacity_duration_ms) / 1000, 2) AS avg_wait_at_capacity_s, ",
+        "round(max(waiting_at_capacity_duration_ms) / 1000, 2) AS max_wait_at_capacity_s, ",
+        "round(avg(total_duration_ms) / 1000, 2) AS avg_total_s ",
+        "FROM capacity_query_history WHERE end_time IS NOT NULL GROUP BY ALL"
+      ]
+    },
+    {
+      "name": "ds_events",
+      "displayName": "Warehouse events",
+      "queryLines": [
+        "SELECT event_time, warehouse_name, event_type, cluster_count FROM capacity_warehouse_events ORDER BY event_time DESC LIMIT 200"
+      ]
+    },
+    {
+      "name": "ds_settings",
+      "displayName": "Warehouse settings",
+      "queryLines": [
+        "SELECT name, size, min_clusters, max_clusters, auto_stop_minutes, warehouse_type, serverless, state, role FROM warehouse_settings ORDER BY name"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "main",
+      "displayName": "Main",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {
+            "name": "title",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Compute and capacity"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "subtitle",
+            "multilineTextboxSpec": {
+              "lines": [
+                "Statements, queueing, and warehouse events from system.query.history and system.compute.warehouse_events for this workspace (last 14 days)."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 1,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "filter_hour",
+            "queries": [
+              {
+                "name": "ds_hourly_hour",
+                "query": {
+                  "datasetName": "ds_hourly",
+                  "fields": [
+                    {
+                      "name": "hour",
+                      "expression": "`hour`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-date-range-picker",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "hour",
+                    "displayName": "Hour",
+                    "queryName": "ds_hourly_hour"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Hour"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi-statements",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_hourly",
+                  "fields": [
+                    {
+                      "name": "sum(statements)",
+                      "expression": "SUM(`statements`)"
+                    },
+                    {
+                      "name": "daily(hour)",
+                      "expression": "DATE_TRUNC(\"DAY\", `hour`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(statements)",
+                  "displayName": "Statements",
+                  "format": {
+                    "type": "number",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "period": {
+                  "fieldName": "daily(hour)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Statements"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 4,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi-wait",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_hourly",
+                  "fields": [
+                    {
+                      "name": "max(max_wait_at_capacity_s)",
+                      "expression": "MAX(`max_wait_at_capacity_s`)"
+                    },
+                    {
+                      "name": "daily(hour)",
+                      "expression": "DATE_TRUNC(\"DAY\", `hour`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "max(max_wait_at_capacity_s)",
+                  "displayName": "Longest wait at capacity (s)",
+                  "format": {
+                    "type": "number",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "period": {
+                  "fieldName": "daily(hour)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Longest wait at capacity (s)"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 4,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi-total",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_hourly",
+                  "fields": [
+                    {
+                      "name": "avg(avg_total_s)",
+                      "expression": "AVG(`avg_total_s`)"
+                    },
+                    {
+                      "name": "daily(hour)",
+                      "expression": "DATE_TRUNC(\"DAY\", `hour`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "avg(avg_total_s)",
+                  "displayName": "Average total duration (s)",
+                  "format": {
+                    "type": "number",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "period": {
+                  "fieldName": "daily(hour)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Average total duration (s)"
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 4,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "line-statements",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_hourly",
+                  "fields": [
+                    {
+                      "name": "hour(hour)",
+                      "expression": "DATE_TRUNC(\"HOUR\", `hour`)"
+                    },
+                    {
+                      "name": "sum(statements)",
+                      "expression": "SUM(`statements`)"
+                    },
+                    {
+                      "name": "warehouse_name",
+                      "expression": "`warehouse_name`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "hour(hour)",
+                  "scale": {
+                    "type": "temporal"
+                  },
+                  "displayName": "Time"
+                },
+                "y": {
+                  "fieldName": "sum(statements)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Statements",
+                  "format": {
+                    "type": "number",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "color": {
+                  "fieldName": "warehouse_name",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Warehouse Name"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Statements per hour by warehouse"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 7,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "line-wait",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_hourly",
+                  "fields": [
+                    {
+                      "name": "hour(hour)",
+                      "expression": "DATE_TRUNC(\"HOUR\", `hour`)"
+                    },
+                    {
+                      "name": "max(max_wait_at_capacity_s)",
+                      "expression": "MAX(`max_wait_at_capacity_s`)"
+                    },
+                    {
+                      "name": "warehouse_name",
+                      "expression": "`warehouse_name`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "hour(hour)",
+                  "scale": {
+                    "type": "temporal"
+                  },
+                  "displayName": "Time"
+                },
+                "y": {
+                  "fieldName": "max(max_wait_at_capacity_s)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Seconds",
+                  "format": {
+                    "type": "number",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "color": {
+                  "fieldName": "warehouse_name",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Warehouse Name"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Longest wait at capacity per hour (s)"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 7,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "table-settings",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_settings",
+                  "fields": [
+                    {
+                      "name": "name",
+                      "expression": "`name`"
+                    },
+                    {
+                      "name": "size",
+                      "expression": "`size`"
+                    },
+                    {
+                      "name": "min_clusters",
+                      "expression": "`min_clusters`"
+                    },
+                    {
+                      "name": "max_clusters",
+                      "expression": "`max_clusters`"
+                    },
+                    {
+                      "name": "auto_stop_minutes",
+                      "expression": "`auto_stop_minutes`"
+                    },
+                    {
+                      "name": "warehouse_type",
+                      "expression": "`warehouse_type`"
+                    },
+                    {
+                      "name": "serverless",
+                      "expression": "`serverless`"
+                    },
+                    {
+                      "name": "state",
+                      "expression": "`state`"
+                    },
+                    {
+                      "name": "role",
+                      "expression": "`role`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "name",
+                    "displayName": "Warehouse"
+                  },
+                  {
+                    "fieldName": "size",
+                    "displayName": "Size"
+                  },
+                  {
+                    "fieldName": "min_clusters",
+                    "displayName": "Min clusters"
+                  },
+                  {
+                    "fieldName": "max_clusters",
+                    "displayName": "Max clusters"
+                  },
+                  {
+                    "fieldName": "auto_stop_minutes",
+                    "displayName": "Auto-stop (min)"
+                  },
+                  {
+                    "fieldName": "warehouse_type",
+                    "displayName": "Type"
+                  },
+                  {
+                    "fieldName": "serverless",
+                    "displayName": "Serverless"
+                  },
+                  {
+                    "fieldName": "state",
+                    "displayName": "State"
+                  },
+                  {
+                    "fieldName": "role",
+                    "displayName": "Role"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Warehouse settings"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 13,
+            "width": 12,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "table-events",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_events",
+                  "fields": [
+                    {
+                      "name": "event_time",
+                      "expression": "`event_time`"
+                    },
+                    {
+                      "name": "warehouse_name",
+                      "expression": "`warehouse_name`"
+                    },
+                    {
+                      "name": "event_type",
+                      "expression": "`event_type`"
+                    },
+                    {
+                      "name": "cluster_count",
+                      "expression": "`cluster_count`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "event_time",
+                    "displayName": "Time"
+                  },
+                  {
+                    "fieldName": "warehouse_name",
+                    "displayName": "Warehouse"
+                  },
+                  {
+                    "fieldName": "event_type",
+                    "displayName": "Event"
+                  },
+                  {
+                    "fieldName": "cluster_count",
+                    "displayName": "Clusters"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Recent warehouse events"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 18,
+            "width": 12,
+            "height": 6
+          }
+        }
+      ]
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "canvasBackgroundColor": {
+        "light": "#FCFCFC",
+        "dark": "#1F272D"
+      },
+      "widgetBackgroundColor": {
+        "light": "#FFFFFF",
+        "dark": "#11171C"
+      },
+      "fontColor": {
+        "light": "#11171C",
+        "dark": "#E8ECF0"
+      },
+      "selectionColor": {
+        "light": "#2272B4",
+        "dark": "#8ACAFF"
+      },
+      "visualizationColors": [
+        "#0072B2",
+        "#E69F00",
+        "#009E73",
+        "#CC79A7",
+        "#D55E00",
+        "#56B4E9",
+        "#F0E442"
+      ],
+      "widgetHeaderAlignment": "LEFT"
+    }
+  }
+}

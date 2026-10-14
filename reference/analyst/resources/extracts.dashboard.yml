@@ -1,0 +1,8 @@
+resources:
+  dashboards:
+    partner_orders_dashboard:
+      display_name: Capability guides partner orders extract
+      file_path: ../src/dashboards/extracts.lvdash.json
+      warehouse_id: ${var.warehouse_id}
+      dataset_catalog: ${var.catalog}
+      dataset_schema: ${resources.schemas.capability_guides_analyst.name}

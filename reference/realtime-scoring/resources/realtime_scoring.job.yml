@@ -1,0 +1,64 @@
+# Online model scoring: train and register a model, deploy a small scale-to-zero endpoint,
+# score it with OAuth, and record latency and failure behavior.
+resources:
+  jobs:
+    capability_guides_realtime_scoring:
+      name: capability-guides-realtime-scoring
+      description: Trains a UC model, deploys a Model Serving endpoint, measures scoring latency, and records failure behavior.
+      tags:
+        capability_guide_job: capability_guides_realtime_scoring
+        capability_guide_use_case: ${var.use_case}
+      max_concurrent_runs: 1
+      timeout_seconds: 3600
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${resources.schemas.realtime_scoring.name}
+        - name: use_case
+          default: ${var.use_case}
+        - name: endpoint_name
+          default: capability-guides-realtime-scoring
+      environments:
+        - environment_key: scoring
+          spec:
+            environment_version: "4"
+            dependencies:
+              - dbldatagen==0.4.0.post1
+              - pyyaml>=6
+              - databricks-sdk>=0.70
+              - mlflow>=3
+      tasks:
+        - task_key: train_register
+          environment_key: scoring
+          spark_python_task:
+            python_file: ../src/train_register.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+
+        - task_key: deploy_endpoint
+          depends_on:
+            - task_key: train_register
+          environment_key: scoring
+          spark_python_task:
+            python_file: ../src/deploy_endpoint.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --endpoint-name={{job.parameters.endpoint_name}}
+              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+
+        - task_key: score_and_measure
+          depends_on:
+            - task_key: deploy_endpoint
+          environment_key: scoring
+          spark_python_task:
+            python_file: ../src/score_endpoint.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --endpoint-name={{job.parameters.endpoint_name}}
+              - --run-id={{job.run_id}}
+              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml

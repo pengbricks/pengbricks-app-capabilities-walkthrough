@@ -1,0 +1,66 @@
+# Self-service extracts: Excel workbook and pipe-delimited file in a volume, plus a scheduled dashboard subscription.
+resources:
+  jobs:
+    capability_guides_extracts:
+      name: capability-guides-extracts
+      description: Writes a filtered extract as an Excel workbook and a pipe-delimited file, then schedules the dashboard and subscribes the notification address.
+      tags:
+        capability_guide_job: capability_guides_extracts
+        capability_guide_use_case: ${var.use_case}
+      max_concurrent_runs: 1
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${resources.schemas.capability_guides_analyst.name}
+        - name: use_case
+          default: ${var.use_case}
+        - name: notification_email
+          default: ${var.notification_email}
+      environments:
+        - environment_key: analyst
+          spec:
+            environment_version: "4"
+            dependencies:
+              - dbldatagen==0.4.0.post1
+              - pyyaml>=6
+              - openpyxl>=3.1
+              - databricks-sdk>=0.70
+      tasks:
+        - task_key: generate_data
+          environment_key: analyst
+          spark_python_task:
+            python_file: ../src/generate_data.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --src=${workspace.file_path}/src
+              - --spec=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+              - --tables=customers,orders
+
+        - task_key: build_extracts
+          depends_on:
+            - task_key: generate_data
+          environment_key: analyst
+          spark_python_task:
+            python_file: ../src/build_extracts.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --src=${workspace.file_path}/src
+              - --spec=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+              - --run-id={{job.run_id}}
+
+        - task_key: schedule_dashboard
+          depends_on:
+            - task_key: build_extracts
+          environment_key: analyst
+          spark_python_task:
+            python_file: ../src/schedule_dashboard.py
+            parameters:
+              - --catalog={{job.parameters.catalog}}
+              - --schema={{job.parameters.schema}}
+              - --dashboard-id=${resources.dashboards.partner_orders_dashboard.id}
+              - --warehouse-id=${var.warehouse_id}
+              - --email={{job.parameters.notification_email}}
+              - --run-id={{job.run_id}}
