@@ -1,0 +1,17 @@
+{
+  "$schema": "https://raw.githubusercontent.com/rob-peng_data/pengbricks-apps/main/spec/child-app.schema.json",
+  "schemaVersion": 1,
+  "id": "capability-guides",
+  "runtime": "python",
+  "port": 9130,
+  "command": ["python", "-m", "server.app"],
+  "healthPath": "/api/capability-guides/health",
+  "authorization": {
+    "mode": "service-principal",
+    "policy": "shared"
+  },
+  "routes": [
+    { "path": "/api/capability-guides", "preservePrefix": true },
+    { "path": "/capability-guides", "preservePrefix": true }
+  ]
+}

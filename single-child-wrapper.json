@@ -1,0 +1,13 @@
+{
+  "$schema": "https://raw.githubusercontent.com/rob-peng_data/pengbricks-apps/main/spec/single-child-wrapper.schema.json",
+  "schemaVersion": 1,
+  "nodeWorkspaces": ["apps/capability-guides"],
+  "buildWorkspaces": ["capabilities-walkthrough"],
+  "variables": {},
+  "app": {
+    "description": "Standalone Databricks capability guide walkthrough",
+    "env": [],
+    "userApiScopes": [],
+    "resources": []
+  }
+}

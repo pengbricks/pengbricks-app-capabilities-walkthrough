@@ -1,0 +1,154 @@
+import { Button, Card, CardContent, Input } from '@databricks/appkit-ui/react';
+import { Search } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { GuideCard } from '../components/GuideCard.tsx';
+import { categories, guides } from '../data/guides.ts';
+
+const allCategories = 'All guides';
+
+const categoryBlurbs = {
+  'CI/CD & Version Control Demo': 'Author, test, version, and promote the same release with automation and approval.',
+  'Governance/Monitoring': 'Make runs, lineage, quality, cost, access, and operational ownership observable.',
+  'AI Demos': 'Build governed user and agent experiences with transparent tools, identity, and model routing.',
+  'ML Demos': 'Prepare features, train, track, release, serve, and monitor models reproducibly.',
+  'General Demos': 'Demonstrate reusable ingestion, open formats, integrations, and migration patterns.',
+} satisfies Record<(typeof categories)[number], string>;
+
+export function HomePage() {
+  const [query, setQuery] = useState('');
+  const [category, setCategory] = useState(allCategories);
+
+  const filteredGuides = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+
+    return guides.filter((guide) => {
+      const categoryMatches = category === allCategories || guide.category === category;
+      const queryMatches =
+        normalizedQuery.length === 0 ||
+        `${guide.title} ${guide.summary} ${guide.acceptanceCriteria}`.toLowerCase().includes(normalizedQuery);
+      return categoryMatches && queryMatches;
+    });
+  }, [category, query]);
+
+  return (
+    <div className="mx-auto max-w-[1200px] px-5 py-10 lg:px-8 lg:py-14">
+      <section className="border-b pb-8">
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Platform guides</p>
+        <h1 className="mt-2 max-w-3xl text-4xl font-bold tracking-[-0.03em] sm:text-5xl">
+          Databricks capability walkthrough
+        </h1>
+        <p className="mt-5 max-w-3xl text-lg leading-8 text-muted-foreground">
+          One page per guide: what to demonstrate, which Databricks capabilities apply, the reference implementation,
+          and the run that proves it.
+        </p>
+
+        <div className="mt-8 grid overflow-hidden rounded-lg sm:grid-cols-3">
+          <Stat value={guides.length.toString()} label="Capability guides" />
+          <Stat value={categories.length.toString()} label="Demo areas" />
+          <Stat value={`0/${guides.length}`} label="Runs linked" />
+        </div>
+      </section>
+
+      <section id="guide-library" className="scroll-mt-20 pt-10">
+        <div className="max-w-md">
+          <label htmlFor="guide-search" className="text-sm font-semibold">
+            Search guides
+          </label>
+          <div className="relative mt-1.5">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              id="guide-search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Title, criterion, or capability"
+              className="h-11 pl-9"
+            />
+          </div>
+        </div>
+
+        <div
+          className="-mx-5 mt-4 flex gap-2 overflow-x-auto px-5 py-1 lg:mx-0 lg:px-0"
+          role="group"
+          aria-label="Filter guides by area"
+        >
+          {[allCategories, ...categories].map((item) => {
+            const count =
+              item === allCategories ? guides.length : guides.filter((guide) => guide.category === item).length;
+            const active = category === item;
+            return (
+              <button
+                key={item}
+                type="button"
+                aria-pressed={active}
+                onClick={() => setCategory(item)}
+                className={`inline-flex min-h-9 shrink-0 items-center rounded-full border px-3 text-sm transition-colors ${active ? 'border-primary bg-primary text-primary-foreground' : 'bg-background hover:border-foreground'}`}
+              >
+                {item}
+                <span className="ml-2 tabular-nums opacity-70">{count}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        <p className="mt-4 text-sm text-muted-foreground" aria-live="polite">
+          Showing {filteredGuides.length} of {guides.length} guides
+        </p>
+
+        {filteredGuides.length > 0 ? (
+          categories.map((area) => {
+            const areaGuides = filteredGuides.filter((guide) => guide.category === area);
+            if (areaGuides.length === 0) return null;
+            const sectionId = `area-${area.replaceAll(' ', '-').replaceAll('/', '-').toLowerCase()}`;
+
+            return (
+              <section key={area} className="mt-10" aria-labelledby={sectionId}>
+                <div className="mb-4">
+                  <h2 id={sectionId} className="text-2xl font-bold tracking-tight">
+                    {area}
+                  </h2>
+                  <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">{categoryBlurbs[area]}</p>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {areaGuides.map((guide) => (
+                    <GuideCard
+                      key={guide.slug}
+                      guide={guide}
+                      number={guides.findIndex((item) => item.slug === guide.slug) + 1}
+                    />
+                  ))}
+                </div>
+              </section>
+            );
+          })
+        ) : (
+          <Card className="mt-10 border-dashed shadow-none">
+            <CardContent className="flex min-h-56 flex-col items-center justify-center text-center">
+              <Search className="size-8 text-muted-foreground" />
+              <h2 className="mt-4 font-semibold">No guides found</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Try a product name or clear the current filters.</p>
+              <Button
+                variant="outline"
+                className="mt-5"
+                onClick={() => {
+                  setQuery('');
+                  setCategory(allCategories);
+                }}
+              >
+                Clear filters
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function Stat({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="border-b p-4 last:border-b-0 sm:odd:border-r lg:border-b-0 lg:border-r lg:last:border-r-0">
+      <p className="text-3xl font-bold tracking-tight">{value}</p>
+      <p className="mt-1 text-sm text-muted-foreground">{label}</p>
+    </div>
+  );
+}

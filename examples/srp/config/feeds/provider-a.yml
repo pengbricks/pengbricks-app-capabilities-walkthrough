@@ -1,0 +1,23 @@
+feed:
+  id: provider_a_reference
+  provider: provider_a
+  mode: batch
+  format: csv
+  landing_path: ${var.landing_root}/provider-a/{snapshot_date}
+  primary_keys: [record_id, snapshot_date]
+  schema_version: '1'
+  mappings:
+    source_id: record_id
+    source_name: record_name
+    source_region: region_code
+  quality_rules:
+    - name: record_id_required
+      expression: record_id IS NOT NULL
+      action: quarantine
+    - name: region_code_valid
+      expression: region_code RLIKE '^[A-Z]{2}$'
+      action: quarantine
+  owner: data_platform_team
+  target:
+    bronze: bronze_provider_a
+    silver: silver_canonical_records

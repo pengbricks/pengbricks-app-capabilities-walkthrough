@@ -1,0 +1,86 @@
+@import '@databricks/appkit-ui/styles.css';
+
+:root {
+  color-scheme: light;
+  --brand: oklch(0.64 0.23 31);
+  --radius: 0.5rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.28 0.035 210);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.28 0.035 210);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.28 0.035 210);
+  --primary: oklch(0.28 0.035 210);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.97 0.007 210);
+  --secondary-foreground: oklch(0.28 0.035 210);
+  --muted: oklch(0.975 0.004 210);
+  --muted-foreground: oklch(0.48 0.025 210);
+  --accent: oklch(0.96 0.025 31);
+  --accent-foreground: oklch(0.4 0.12 31);
+  --border: oklch(0.9 0.012 210);
+  --input: oklch(0.9 0.012 210);
+  --ring: var(--brand);
+}
+
+html {
+  color-scheme: light only;
+  scroll-behavior: smooth;
+  background: var(--background);
+}
+
+body {
+  min-width: 320px;
+  background: var(--background);
+}
+
+body,
+#root {
+  min-height: 100vh;
+}
+
+.hero-grid {
+  background: var(--background);
+}
+
+.brand-mark {
+  color: var(--brand);
+}
+
+.brand-surface {
+  background: color-mix(in oklab, var(--brand) 9%, var(--background));
+}
+
+.skip-link {
+  position: fixed;
+  left: 1rem;
+  top: -4rem;
+  z-index: 100;
+  border-radius: var(--radius);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  padding: 0.5rem 1rem;
+}
+
+.skip-link:focus {
+  top: 0.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+@media print {
+  header,
+  footer,
+  .skip-link,
+  button {
+    display: none !important;
+  }
+}

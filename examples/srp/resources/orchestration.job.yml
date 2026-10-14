@@ -1,0 +1,36 @@
+resources:
+  jobs:
+    srp_reference_walkthrough:
+      name: ${var.resource_prefix}-srp-reference
+      schedule:
+        quartz_cron_expression: '0 0 7 ? * MON'
+        timezone_id: UTC
+        pause_status: PAUSED
+      tasks:
+        - task_key: generate_or_stage_demo_data
+          notebook_task:
+            notebook_path: ../src/generate_demo_data.py
+          max_retries: 2
+          min_retry_interval_millis: 30000
+          retry_on_timeout: true
+        - task_key: run_pipeline
+          depends_on:
+            - task_key: generate_or_stage_demo_data
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.srp_reference.id}
+            full_refresh: false
+        - task_key: validate_outputs
+          depends_on:
+            - task_key: run_pipeline
+          notebook_task:
+            notebook_path: ../src/validate_outputs.py
+          max_retries: 1
+          min_retry_interval_millis: 30000
+        - task_key: capture_failure_evidence
+          run_if: AT_LEAST_ONE_FAILED
+          depends_on:
+            - task_key: generate_or_stage_demo_data
+            - task_key: run_pipeline
+            - task_key: validate_outputs
+          notebook_task:
+            notebook_path: ../src/capture_failure_evidence.py

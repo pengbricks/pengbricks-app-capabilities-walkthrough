@@ -1,0 +1,11 @@
+{
+  "id": "capability-guides",
+  "title": "Databricks Capability Guides",
+  "description": "Evidence-first walkthroughs for CI/CD, governance, AI, ML, ingestion, integration, and platform operations.",
+  "category": "Shared services",
+  "tags": ["Guides", "Reference", "Databricks"],
+  "status": "preview",
+  "icon": "book-open",
+  "appUrl": "/capability-guides/",
+  "repositoryUrl": "https://github.com/pengbricks/pengbricks-app-capabilities-walkthrough"
+}
