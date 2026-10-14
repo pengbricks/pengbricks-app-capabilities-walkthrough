@@ -2,7 +2,7 @@
 
 ## Objective
 
-Create public-safe, provider-neutral reference artifacts that let each guide connect four things: the guide steps, reusable code, generated documentation, and an actual Databricks run. SRP remains a generic architecture pattern rather than a dedicated feature implementation; its contracts must allow future tenant-specific datasets without embedding an institution, provider, or customer name.
+Create public-safe, provider-neutral reference artifacts that let each guide connect four things: the guide steps, reusable code, generated documentation, and an actual Databricks run. Artifact contracts must allow future tenant-specific datasets and generated schemas without embedding an institution, provider, or customer name.
 
 ## Design Rules
 

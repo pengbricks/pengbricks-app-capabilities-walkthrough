@@ -8,7 +8,7 @@ Every guide uses the same evidence contract:
 2. A versioned reference implementation.
 3. A link to the actual Databricks run and trace.
 
-The app also includes a generic SRP walkthrough covering provider isolation, parameterized medallion pipelines, quarantine, scheduled recovery, and system-table evidence. It does not claim a current tenant or dataset implementation; custom multi-tenant datasets are a future extension. Code and run links remain visibly pending until real artifacts are connected.
+Guides are general and not tied to a tenant, provider, or dataset. Multi-tenant support with generated, use-case-specific schemas is a future extension. Code and run links remain visibly pending until real artifacts are connected.
 
 ## Local development
 
@@ -38,9 +38,7 @@ npm run build
 - `client/src/data/guides.ts` — capability guides, acceptance criteria, and evidence requirements.
 - `client/src/pages/HomePage.tsx` — searchable, filterable guide landing page.
 - `client/src/pages/GuidePage.tsx` — reusable one-page guide layout and evidence slots.
-- `client/src/pages/SrpOverviewPage.tsx` — generic, provider-neutral SRP walkthrough.
 - `server/app.py` — FastAPI health API and production SPA server.
-- `examples/srp/` — portable public examples and implementation specifications.
 - `child-app.json` — Pengbricks child runtime and route contract.
 - `single-child-wrapper.json` — thin-wrapper export contract.
 
@@ -62,5 +60,18 @@ For each entry in `client/src/data/guides.ts`, populate:
 This repository is a child feature app. It intentionally owns no `app.yaml` or root `databricks.yml`; the Pengbricks wrapper owns the single Databricks App, deployment bundle, external port, and reverse proxy.
 
 The validated `client/runtime/` build is pinned for the shared Python-child runtime. Rebuild it with `npm run build` whenever frontend source changes, then update the tracked build artifacts.
+
+## Standalone deployment
+
+Suffixed deployment templates are included so Pengbricks child discovery never treats this repository as a second Databricks App or root bundle.
+
+```bash
+cp app.yaml.standalone app.yaml
+cp databricks.yml.standalone databricks.yml
+databricks bundle validate --strict --target dev --profile <profile>
+databricks bundle deploy --target dev --profile <profile>
+```
+
+The copied `app.yaml` and `databricks.yml` are ignored by Git. The standalone root redirects to `/capability-guides/`; override `--var app_name=<workspace-unique-name>` when needed.
 
 Deployment is intentionally not performed by this template task.

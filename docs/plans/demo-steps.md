@@ -4,7 +4,7 @@
 
 Provide a repeatable operator script that connects the public reference code, a deployed release, an actual Databricks run, and the generated guide artifacts. The narration is capability-focused rather than customer- or provider-specific.
 
-SRP is presented only as a generic reusable pattern. Do not show an SRP feature implementation card yet. Describe future multi-tenant and custom-dataset support as configuration-driven roadmap context, not as a completed capability.
+Keep the walkthrough general. Describe future multi-tenant and generated custom-schema support as configuration-driven roadmap context, not as a completed capability.
 
 ## Prerequisites
 
@@ -39,15 +39,15 @@ SRP is presented only as a generic reusable pattern. Do not show an SRP feature 
 | 8 | Show monitoring and support routing | “Runs, failures, capacity, audit events, alerts, and ownership are connected to day-two operations.” | Monitoring period is bounded; owner and alert destination are clear. |
 | 9 | Return to the guide | “The artifact record ties together intent, code, release, execution, and operational ownership.” | All completed links resolve; incomplete items are labeled `Pending`. |
 
-## Generic SRP narration
+## Reusable pattern narration
 
-Use SRP only to explain the reusable pattern:
+Use a general example to explain the reusable pattern:
 
 1. Show a parameterized source or dataset manifest without naming a proprietary provider.
 2. Identify the thin adapter boundary and shared validation, audit, quarantine, orchestration, and error-handling layers.
 3. Show that a second representative dataset changes configuration and mappings, not the shared framework.
 4. Explain that tenant isolation, tenant-specific entitlements, and custom datasets are future configuration dimensions pending an approved multi-tenant contract.
-5. Return to the mapped general guide rather than presenting a separate SRP implementation card.
+5. Return to the mapped general guide.
 
 ## Failure and recovery checkpoint
 
@@ -87,4 +87,4 @@ For guides that require operational behavior:
 - The Databricks link opened an actual run with a terminal status.
 - The documentation covered schema, lineage, quality, ownership, and usage where applicable.
 - Operational ownership, alerting, recovery, limitations, and reset were stated.
-- SRP remained generic and provider-neutral, with future multi-tenancy clearly labeled as roadmap context.
+- The walkthrough remained general and provider-neutral, with future multi-tenancy clearly labeled as roadmap context.

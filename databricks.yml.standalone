@@ -1,0 +1,28 @@
+bundle:
+  name: capability-guides-standalone
+
+variables:
+  app_name:
+    description: Workspace-unique Databricks App name
+    default: cap-guides-standalone
+
+resources:
+  apps:
+    app:
+      name: ${var.app_name}
+      description: Public Databricks capability guide walkthrough
+      source_code_path: ./
+      lifecycle:
+        started: true
+      config:
+        command:
+          - python
+          - -m
+          - server.app
+
+targets:
+  dev:
+    default: true
+    mode: development
+  prod:
+    mode: production

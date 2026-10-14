@@ -1,5 +1,5 @@
 import { Button, Separator } from '@databricks/appkit-ui/react';
-import { ArrowUpRight, BookOpen, Boxes, Github, Layers3 } from 'lucide-react';
+import { ArrowUpRight, BookOpen, Github, Layers3 } from 'lucide-react';
 import { Link, Outlet } from 'react-router';
 
 export function AppShell() {
@@ -21,12 +21,6 @@ export function AppShell() {
               <Link to="/#guide-library">
                 <BookOpen className="size-4" />
                 <span className="hidden sm:inline">Guides</span>
-              </Link>
-            </Button>
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/demos/srp">
-                <Boxes className="size-4" />
-                <span className="hidden sm:inline">SRP walkthrough</span>
               </Link>
             </Button>
             <Button variant="outline" size="sm" disabled>

@@ -2,7 +2,7 @@
 
 Every guide must link its reference code and walkthrough to an actual execution. The unit is an **artifact**: a small, typed record that connects a guide, release, environment, Databricks resource, immutable run identifier, and supporting outputs. Screenshots may illustrate an artifact, but they never replace the underlying run link or machine-readable record.
 
-SRP is not a separate implementation card in this contract. It may later supply tenant-specific datasets and runs through the same generic guide and artifact interfaces.
+Future multi-tenant use cases may supply tenant-specific datasets, generated schemas, and runs through the same generic guide and artifact interfaces.
 
 ## Per-guide artifact set
 

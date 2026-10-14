@@ -5,7 +5,7 @@ from pathlib import Path
 
 import uvicorn
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -24,6 +24,11 @@ app = FastAPI(
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/", response_class=RedirectResponse)
+async def root() -> RedirectResponse:
+    return RedirectResponse(url=f"{APP_PREFIX}/", status_code=302)
 
 
 @app.get(f"{API_PREFIX}/health")
