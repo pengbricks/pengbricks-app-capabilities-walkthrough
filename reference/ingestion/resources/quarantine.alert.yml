@@ -1,0 +1,26 @@
+# Alert when any feed quarantines more than the allowed share of rows in the last 24 hours.
+resources:
+  alerts:
+    capability_guides_quarantine_rate:
+      display_name: "capability guides quarantine rate above ${var.quarantine_alert_pct}%"
+      query_text: >-
+        SELECT coalesce(max(rows_quarantined * 100.0 / nullif(rows_read, 0)), 0) AS quarantine_pct
+        FROM `${var.catalog}`.`${resources.schemas.capability_guides_ingestion.name}`.audit_log
+        WHERE started_at >= current_timestamp() - INTERVAL 24 HOUR
+      warehouse_id: ${var.warehouse_id}
+      evaluation:
+        comparison_operator: GREATER_THAN
+        source:
+          name: quarantine_pct
+          display: quarantine_pct
+        threshold:
+          value:
+            double_value: ${var.quarantine_alert_pct}
+        notification:
+          notify_on_ok: true
+          subscriptions:
+            - user_email: ${var.notification_email}
+      schedule:
+        pause_status: UNPAUSED
+        quartz_cron_schedule: "0 0 * * * ?"
+        timezone_id: UTC

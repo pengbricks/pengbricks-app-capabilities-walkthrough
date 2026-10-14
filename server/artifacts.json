@@ -17,6 +17,10 @@
         {
           "label": "Use-case spec",
           "path": "reference/ingestion/use_cases/general.yml"
+        },
+        {
+          "label": "Audit queries over system tables",
+          "path": "reference/ingestion/sql/audit_system_tables.sql"
         }
       ],
       "jobs": [
@@ -53,6 +57,22 @@
       ],
       "highlights": [
         {
+          "label": "Feed configuration: provider A (CSV, custom adapter)",
+          "path": "reference/ingestion/feeds/general/provider_a.yml",
+          "notes": [
+            "Everything provider-specific is here: file format, options, column mapping, and the adapter name.",
+            "The rules block is shared with every other feed, so validation is identical."
+          ]
+        },
+        {
+          "label": "Feed configuration: provider B (JSON, configuration only)",
+          "path": "reference/ingestion/feeds/general/provider_b.yml",
+          "notes": [
+            "adapter: generic means no provider code. Nested JSON fields are mapped with dot paths.",
+            "Diff this file against provider A to see everything that differs between the two sources."
+          ]
+        },
+        {
           "label": "Provider-specific code stays in its adapter",
           "path": "reference/ingestion/src/capability_framework/adapters/provider_a.py",
           "symbol": "read",
@@ -78,6 +98,39 @@
           "notes": [
             "Rules come from the use-case spec, not code.",
             "Each row gets an array of failed rule names, so quarantine records say why a row was rejected."
+          ]
+        },
+        {
+          "label": "Audit: transformation runs and pipeline updates (system.lakeflow)",
+          "path": "reference/ingestion/sql/audit_system_tables.sql",
+          "lines": [
+            6,
+            34
+          ],
+          "notes": [
+            "Jobs and pipelines are found by their capability_guide_job tag, so the queries work in any workspace.",
+            "Each row is one job run or pipeline update with trigger, identity, and result."
+          ]
+        },
+        {
+          "label": "Audit: who changed or started them, lineage, and query activity",
+          "path": "reference/ingestion/sql/audit_system_tables.sql",
+          "lines": [
+            36,
+            73
+          ],
+          "notes": [
+            "system.access.audit records who created, edited, ran, or repaired the job and pipeline.",
+            "table_lineage shows which job or pipeline wrote each table; query.history shows SQL warehouse reads and writes.",
+            "Spark reads and writes from serverless jobs appear in lineage rather than query history."
+          ]
+        },
+        {
+          "label": "Alert: quarantine rate above the threshold",
+          "path": "reference/ingestion/resources/quarantine.alert.yml",
+          "notes": [
+            "A SQL alert evaluates the audit table hourly and emails when any feed quarantines more than quarantine_alert_pct.",
+            "The threshold is a bundle variable, so each environment can set its own."
           ]
         }
       ]

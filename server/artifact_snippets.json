@@ -30,6 +30,24 @@
   ],
   "configuration-vs-code": [
     {
+      "path": "reference/ingestion/feeds/general/provider_a.yml",
+      "symbol": null,
+      "startLine": 1,
+      "endLine": 37,
+      "language": "yml",
+      "code": "# Generated from use_cases/general.yml by tools/render_use_case.py. Do not edit.\nname: provider_a\nadapter: provider_a\nsource:\n  format: csv\n  options:\n    header: 'true'\n    inferSchema: 'false'\nmapping:\n  record_id: TXN_ID\n  account_id: ACCT_NO\n  event_ts: to_timestamp(TXN_DATE, 'MM/dd/yyyy HH:mm:ss')\n  amount: CAST(CAST(AMOUNT_CENTS AS BIGINT) / 100 AS DECIMAL(18,2))\n  currency: CCY\n  status: status_label\nkeys:\n- record_id\nrules:\n- name: record_id_present\n  type: not_null\n  column: record_id\n- name: event_ts_present\n  type: not_null\n  column: event_ts\n- name: amount_non_negative\n  type: expression\n  expr: amount >= 0\n- name: currency_supported\n  type: allowed_values\n  column: currency\n  values:\n  - USD\n  - EUR\n  - GBP\n- name: status_known\n  type: not_null\n  column: status",
+      "functions": {}
+    },
+    {
+      "path": "reference/ingestion/feeds/general/provider_b.yml",
+      "symbol": null,
+      "startLine": 1,
+      "endLine": 35,
+      "language": "yml",
+      "code": "# Generated from use_cases/general.yml by tools/render_use_case.py. Do not edit.\nname: provider_b\nadapter: generic\nsource:\n  format: json\n  options: {}\nmapping:\n  record_id: id\n  account_id: account.number\n  event_ts: to_timestamp(occurred_at)\n  amount: CAST(amount.value AS DECIMAL(18,2))\n  currency: amount.currency\n  status: lower(state)\nkeys:\n- record_id\nrules:\n- name: record_id_present\n  type: not_null\n  column: record_id\n- name: event_ts_present\n  type: not_null\n  column: event_ts\n- name: amount_non_negative\n  type: expression\n  expr: amount >= 0\n- name: currency_supported\n  type: allowed_values\n  column: currency\n  values:\n  - USD\n  - EUR\n  - GBP\n- name: status_known\n  type: not_null\n  column: status",
+      "functions": {}
+    },
+    {
       "path": "reference/ingestion/src/capability_framework/adapters/provider_a.py",
       "symbol": "read",
       "startLine": 21,
@@ -64,6 +82,33 @@
       "functions": {
         "quarantine_reasons_sql": "Return a SQL expression producing an array of failed rule names (empty when valid)."
       }
+    },
+    {
+      "path": "reference/ingestion/sql/audit_system_tables.sql",
+      "symbol": null,
+      "startLine": 6,
+      "endLine": 34,
+      "language": "sql",
+      "code": "-- 1. Transformation runs: every run of the framework job, how it was triggered, and the result.\nWITH guide_jobs AS (\n  SELECT workspace_id, job_id, name\n  FROM system.lakeflow.jobs\n  WHERE tags['capability_guide_job'] = 'capability_guides_ingestion_framework'\n  QUALIFY row_number() OVER (PARTITION BY workspace_id, job_id ORDER BY change_time DESC) = 1\n)\nSELECT j.name AS job_name, r.run_id, r.trigger_type, r.run_type, r.result_state,\n       min(r.period_start_time) AS started_at, max(r.period_end_time) AS ended_at\nFROM system.lakeflow.job_run_timeline r\nJOIN guide_jobs j USING (workspace_id, job_id)\nWHERE r.period_start_time >= current_date() - INTERVAL 7 DAYS\nGROUP BY ALL\nORDER BY started_at DESC;\n\n-- 2. Pipeline updates: the streaming pipeline's updates, the identity they ran as, and the result.\nWITH guide_pipelines AS (\n  SELECT workspace_id, pipeline_id, name\n  FROM system.lakeflow.pipelines\n  WHERE tags['capability_guide_job'] = 'capability_guides_ingestion_streaming'\n  QUALIFY row_number() OVER (PARTITION BY workspace_id, pipeline_id ORDER BY change_time DESC) = 1\n)\nSELECT p.name AS pipeline_name, u.update_id, u.update_type, u.trigger_type, u.run_as_user_name, u.result_state,\n       min(u.period_start_time) AS started_at, max(u.period_end_time) AS ended_at\nFROM system.lakeflow.pipeline_update_timeline u\nJOIN guide_pipelines p USING (workspace_id, pipeline_id)\nWHERE u.period_start_time >= current_date() - INTERVAL 7 DAYS\nGROUP BY ALL\nORDER BY started_at DESC;",
+      "functions": {}
+    },
+    {
+      "path": "reference/ingestion/sql/audit_system_tables.sql",
+      "symbol": null,
+      "startLine": 36,
+      "endLine": 73,
+      "language": "sql",
+      "code": "-- 3. Audit log: who created, changed, started, or repaired the job and pipeline.\nWITH guide_resources AS (\n  SELECT CAST(job_id AS STRING) AS resource_id FROM system.lakeflow.jobs\n  WHERE tags['capability_guide_job'] LIKE 'capability_guides_%'\n  UNION\n  SELECT pipeline_id FROM system.lakeflow.pipelines\n  WHERE tags['capability_guide_job'] LIKE 'capability_guides_%'\n)\nSELECT event_time, user_identity.email AS actor, service_name, action_name,\n       coalesce(request_params['job_id'], request_params['pipeline_id']) AS resource_id,\n       response.status_code\nFROM system.access.audit\nWHERE event_date >= current_date() - INTERVAL 7 DAYS\n  AND service_name IN ('jobs', 'deltaPipelines')\n  AND action_name IN ('create', 'update', 'reset', 'edit', 'delete', 'runNow', 'submitRun', 'repairRun',\n                      'cancel', 'startUpdate', 'stop', 'changeJobAcl', 'changePipelineAcls')\n  AND coalesce(request_params['job_id'], request_params['pipeline_id']) IN (SELECT resource_id FROM guide_resources)\nORDER BY event_time DESC;\n\n-- 4. Lineage: which job or pipeline wrote each table in the schema, and from which source.\nSELECT target_table_full_name, coalesce(source_table_full_name, source_path) AS source,\n       entity_type, entity_id, created_by, max(event_time) AS last_seen\nFROM system.access.table_lineage\nWHERE target_table_catalog = :catalog\n  AND target_table_schema = :schema\n  AND event_date >= current_date() - INTERVAL 7 DAYS\nGROUP BY ALL\nORDER BY last_seen DESC;\n\n-- 5. Query activity: statements that read or wrote the framework's tables.\nSELECT start_time, executed_by, statement_type, execution_status, total_duration_ms,\n       read_rows, produced_rows, written_rows, client_application,\n       query_source.job_info.job_id AS job_id,\n       left(statement_text, 200) AS statement_preview\nFROM system.query.history\nWHERE start_time >= current_date() - INTERVAL 7 DAYS\n  AND statement_text ILIKE concat('%', :schema, '.transactions_%')\nORDER BY start_time DESC;",
+      "functions": {}
+    },
+    {
+      "path": "reference/ingestion/resources/quarantine.alert.yml",
+      "symbol": null,
+      "startLine": 1,
+      "endLine": 26,
+      "language": "yml",
+      "code": "# Alert when any feed quarantines more than the allowed share of rows in the last 24 hours.\nresources:\n  alerts:\n    capability_guides_quarantine_rate:\n      display_name: \"capability guides quarantine rate above ${var.quarantine_alert_pct}%\"\n      query_text: >-\n        SELECT coalesce(max(rows_quarantined * 100.0 / nullif(rows_read, 0)), 0) AS quarantine_pct\n        FROM `${var.catalog}`.`${resources.schemas.capability_guides_ingestion.name}`.audit_log\n        WHERE started_at >= current_timestamp() - INTERVAL 24 HOUR\n      warehouse_id: ${var.warehouse_id}\n      evaluation:\n        comparison_operator: GREATER_THAN\n        source:\n          name: quarantine_pct\n          display: quarantine_pct\n        threshold:\n          value:\n            double_value: ${var.quarantine_alert_pct}\n        notification:\n          notify_on_ok: true\n          subscriptions:\n            - user_email: ${var.notification_email}\n      schedule:\n        pause_status: UNPAUSED\n        quartz_cron_schedule: \"0 0 * * * ?\"\n        timezone_id: UTC",
+      "functions": {}
     }
   ],
   "dataops": [
@@ -151,7 +196,7 @@
       "startLine": 35,
       "endLine": 49,
       "language": "yml",
-      "code": "targets:\n  dev:\n    default: true\n    mode: development\n    presets:\n      tags:\n        release: ${var.release}\n  test:\n    presets:\n      name_prefix: \"[test] \"\n      tags:\n        environment: test\n        release: ${var.release}\n    variables:\n      environment: test",
+      "code": "  - level: CAN_RUN\n    service_principal_name: ${var.app_service_principal}\n\ntargets:\n  dev:\n    default: true\n    mode: development\n    presets:\n      tags:\n        release: ${var.release}\n  test:\n    presets:\n      name_prefix: \"[test] \"\n      tags:\n        environment: test",
       "functions": {}
     }
   ],

@@ -1,0 +1,1278 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Automated data documentation: one combined page per table</title>
+  <style>
+/* OD-LAYOUT-PRIMITIVES v1 — structure only: display, flex/grid, overflow, wrapping, ratio.
+   Put this @layer first; product CSS outside the layer always wins. */
+@layer od-layout {
+  :where(.od-stack,.od-row,.od-row-top,.od-cluster,.od-grid,.od-field,.od-stat,.od-cell,.od-tile) > :where(*) { min-width: 0; }
+
+  /* containers */
+  .od-stack   { display: flex; flex-direction: column; gap: var(--od-gap, 8px); }
+  .od-row     { display: flex; align-items: center; gap: var(--od-gap, 8px); }
+  .od-row-top { display: flex; align-items: flex-start; gap: var(--od-gap, 8px); }
+  .od-cluster { display: flex; flex-wrap: wrap; align-items: center; gap: var(--od-gap, 8px); }
+  .od-fill    { flex: 1 1 0; min-width: 0; }
+  .od-fixed   { flex: none; }
+  .od-grid    { display: grid; gap: var(--od-gap, 12px); grid-template-columns: repeat(var(--od-cols, 3), minmax(0, 1fr)); }
+
+  /* stacked information: each piece is its own line — never sibling inline spans */
+  .od-stat, .od-field, .od-cell { display: grid; gap: var(--od-gap, 2px); }
+  :where(.od-stat,.od-field,.od-cell) > :where(*) { display: block; }
+  .od-tile { display: grid; grid-template-rows: auto 1fr; }
+  :where(.od-tile) > :where(*) { display: block; }
+
+  /* media keeps its intrinsic ratio by default; never a distorted or cropped
+     cover by accident. height:auto lets the ratio win over an <img height="…">
+     attribute. Cropping to a uniform box is an explicit opt-in: set --od-ratio
+     AND add .od-media-cover together (per the core rule, only where a crop is
+     deliberate — tile thumbs, decorative fills — never on full-frame content). */
+  .od-media { display: block; width: 100%; height: auto; aspect-ratio: var(--od-ratio, auto); }
+  .od-media-cover { object-fit: cover; }
+
+  /* data text only — authored copy is rewritten to its budget instead */
+  .od-truncate { display: block; max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .od-clamp-2, .od-clamp-3 { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+  .od-clamp-2 { -webkit-line-clamp: 2; }
+  .od-clamp-3 { -webkit-line-clamp: 3; }
+  .od-lines-2 { min-height: calc(2 * 1.4em); }   /* block-level reservation for a shared baseline */
+  .od-nowrap  { white-space: nowrap; }           /* 数字+单位 · 价格+起 · 日期+星期 */
+  .od-keep    { word-break: keep-all; overflow-wrap: anywhere; } /* CJK labels break at spaces / <wbr> first */
+
+  /* screen skeleton (optional): bars take their own space, the middle scrolls — no padding guessed for chrome */
+  .od-screen { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; height: 100%; }
+  .od-scroll { overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
+
+  /* horizontal rail: the next item peeks at the edge; trailing room survives overflow */
+  .od-rail { display: flex; gap: var(--od-gap, 8px); overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none;
+             padding-inline: var(--od-rail-pad, 16px); scroll-padding-inline: var(--od-rail-pad, 16px); }
+  .od-rail::-webkit-scrollbar { display: none; }
+  :where(.od-rail) > :where(*) { flex: none; scroll-snap-align: start; }
+  :where(.od-rail) > :where(:last-child) { margin-inline-end: var(--od-rail-pad, 16px); }
+
+  .od-spacer { flex: none; visibility: hidden; pointer-events: none; }
+  .od-touch  { min-width: 44px; min-height: 44px; }
+}
+/* /OD-LAYOUT-PRIMITIVES v1 */
+  </style>
+  <style data-od-inline-asset="../assets/app.css">/* Design tokens — the only place colors, type, spacing, and motion are defined. */
+:root {
+  --c-bg: #ffffff;
+  --c-fg: #111111;
+  --c-accent: #1677ff;   /* large text, icons, focus, indicators only (~4:1 on white) */
+  --c-surface: #f7f8fa;
+  --c-muted: #6b7280;    /* 4.8:1 on white, 4.6:1 on surface */
+  --c-border: #d9dee7;
+
+  --font-sans: Inter, system-ui, -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  --fs-12: 0.75rem;
+  --fs-14: 0.875rem;
+  --fs-16: 1rem;
+  --fs-20: 1.25rem;
+  --fs-24: 1.5rem;
+  --fs-32: 2rem;
+  --fs-40: clamp(2rem, 1.4rem + 2.2vw, 2.5rem);
+
+  --s-4: 4px;  --s-8: 8px;  --s-12: 12px; --s-16: 16px;
+  --s-24: 24px; --s-32: 32px; --s-48: 48px; --s-64: 64px;
+
+  --radius: 8px;
+  --radius-sm: 4px;
+  --line: 1px solid var(--c-border);
+
+  --topbar-h: 56px;
+  --sidebar-w: 288px;
+  --content-max: 1200px;
+
+  --dur-fast: 150ms;
+  --dur: 200ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+
+  /* Syntax colors for reference code only (not UI chrome). Each is ≥ 4.5:1 on white and on --c-surface. */
+  --syn-kw: #cf222e;   /* keywords, SQL verbs, CLI flags */
+  --syn-str: #0a3069;  /* strings */
+  --syn-com: #57606a;  /* comments */
+  --syn-num: #0550ae;  /* numbers, booleans, None */
+  --syn-fn: #8250df;   /* function calls, decorators, commands */
+  --syn-key: #116329;  /* YAML / JSON keys, CSV header */
+  --syn-var: #953800;  /* bundle vars like ${bundle.target}, $VARS, :params */
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--c-bg);
+  color: var(--c-fg);
+  font-family: var(--font-sans);
+  font-size: var(--fs-16);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3, p, ul, ol, figure, blockquote { margin: 0; }
+ul, ol { padding: 0; }
+a { color: inherit; }
+button, input { font: inherit; color: inherit; }
+svg { flex: none; }
+
+:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; border-radius: var(--radius-sm); }
+
+.skip-link {
+  position: absolute; left: var(--s-16); top: -48px; z-index: 100;
+  background: var(--c-fg); color: var(--c-bg); padding: var(--s-8) var(--s-16);
+  border-radius: var(--radius); text-decoration: none;
+}
+.skip-link:focus { top: var(--s-8); }
+
+.eyebrow {
+  font-size: var(--fs-12); font-weight: 600; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--c-muted);
+}
+
+/* ── Top bar ─────────────────────────────── */
+.topbar {
+  position: sticky; top: 0; z-index: 30;
+  height: var(--topbar-h);
+  background: var(--c-bg);
+  border-bottom: var(--line);
+}
+.topbar-inner { height: 100%; padding-inline: var(--s-16); --od-gap: var(--s-12); }
+.brand { text-decoration: none; --od-gap: var(--s-12); font-weight: 600; font-size: var(--fs-16); }
+.brand-mark { width: 24px; height: 24px; fill: none; stroke: var(--c-accent); stroke-width: 1.5; stroke-linejoin: round; }
+.topbar-meta { max-width: 40%; font-size: var(--fs-14); color: var(--c-muted); }
+
+.icon-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px; border: 0; background: transparent;
+  border-radius: var(--radius); cursor: pointer;
+}
+.icon-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; }
+@media (hover: hover) { .icon-btn:hover { background: var(--c-surface); } }
+
+/* ── Layout ──────────────────────────────── */
+.layout { display: grid; grid-template-columns: var(--sidebar-w) minmax(0, 1fr); }
+.nav-toggle, .sidebar-close { display: none; }
+
+.sidebar {
+  position: sticky; top: var(--topbar-h);
+  height: calc(100vh - var(--topbar-h));
+  overflow-y: auto; overscroll-behavior: contain;
+  border-right: var(--line);
+  background: var(--c-bg);
+  padding: var(--s-24) var(--s-12) var(--s-48);
+}
+.sidebar-head { padding-inline: var(--s-12); margin-bottom: var(--s-8); }
+.side-home, .side-link {
+  display: block; position: relative;
+  padding: var(--s-8) var(--s-12);
+  border-radius: var(--radius);
+  text-decoration: none; font-size: var(--fs-14);
+  line-height: 1.4;
+}
+.side-home { font-weight: 600; margin-bottom: var(--s-16); }
+.side-group + .side-group { margin-top: var(--s-16); }
+.side-group-title { padding: var(--s-4) var(--s-12); font-size: var(--fs-12); font-weight: 600; color: var(--c-muted); letter-spacing: 0.02em; }
+.side-list { list-style: none; }
+.side-link[aria-current="page"], .side-home[aria-current="page"] { background: var(--c-surface); font-weight: 600; }
+.side-link[aria-current="page"]::before, .side-home[aria-current="page"]::before {
+  content: ""; position: absolute; left: 0; top: var(--s-8); bottom: var(--s-8);
+  width: 3px; border-radius: 2px; background: var(--c-accent);
+}
+@media (hover: hover) { .side-link:hover, .side-home:hover { background: var(--c-surface); } }
+
+.scrim { display: none; }
+
+.main { min-width: 0; padding: var(--s-48) var(--s-48) var(--s-64); outline: none; }
+.page { max-width: var(--content-max); margin-inline: auto; }
+.noscript { padding: var(--s-24); }
+
+/* ── Landing ─────────────────────────────── */
+.hero { padding-bottom: var(--s-32); border-bottom: var(--line); }
+.hero h1 { font-size: var(--fs-40); line-height: 1.15; letter-spacing: -0.02em; font-weight: 700; margin-top: var(--s-8); max-width: 20ch; }
+.hero-sub { margin-top: var(--s-16); font-size: var(--fs-20); line-height: 1.5; color: var(--c-muted); max-width: 62ch; }
+.hero-meta { margin-top: var(--s-16); font-size: var(--fs-14); color: var(--c-muted); --od-gap: var(--s-8); }
+.hero-meta .sep { color: var(--c-border); }
+
+.stats { --od-cols: 4; --od-gap: 0; margin-top: var(--s-32); border: var(--line); border-radius: var(--radius); }
+.stat { padding: var(--s-16) var(--s-24); --od-gap: var(--s-4); }
+.stat + .stat { border-left: var(--line); }
+.stat-num { font-size: var(--fs-32); font-weight: 700; line-height: 1.1; letter-spacing: -0.01em; white-space: nowrap; }
+.stat-label { font-size: var(--fs-14); color: var(--c-muted); }
+
+.toolbar { margin-top: var(--s-32); --od-gap: var(--s-16); }
+.search { --od-gap: var(--s-4); width: 100%; max-width: 420px; }
+.search label { font-size: var(--fs-14); font-weight: 600; }
+.search-box { position: relative; }
+.search-box svg { position: absolute; left: var(--s-12); top: 50%; width: 18px; height: 18px; transform: translateY(-50%); fill: none; stroke: var(--c-muted); stroke-width: 1.5; stroke-linecap: round; pointer-events: none; }
+.search input {
+  width: 100%; height: 44px; padding: 0 var(--s-12) 0 40px;
+  border: var(--line); border-radius: var(--radius); background: var(--c-bg);
+}
+.search input::placeholder { color: var(--c-muted); }
+.search input:focus-visible { outline-offset: 0; border-color: var(--c-accent); }
+
+.filters { --od-gap: var(--s-8); --od-rail-pad: 0px; padding-block: var(--s-4); }
+.chip {
+  display: inline-flex; align-items: center; min-height: 36px;
+  padding: 0 var(--s-12);
+  border: var(--line); border-radius: 999px;
+  background: var(--c-bg); font-size: var(--fs-14); cursor: pointer; white-space: nowrap;
+  transition: background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+}
+.chip[aria-pressed="true"] { background: var(--c-fg); border-color: var(--c-fg); color: var(--c-bg); }
+@media (hover: hover) { .chip[aria-pressed="false"]:hover { border-color: var(--c-fg); } }
+.chip-count { margin-left: var(--s-8); font-variant-numeric: tabular-nums; }
+
+.result-count { margin-top: var(--s-16); font-size: var(--fs-14); color: var(--c-muted); }
+
+.area-section { margin-top: var(--s-48); }
+.area-head { --od-gap: var(--s-4); margin-bottom: var(--s-16); }
+.area-head h2 { font-size: var(--fs-24); line-height: 1.3; font-weight: 700; letter-spacing: -0.01em; }
+.area-head p { color: var(--c-muted); max-width: 70ch; }
+
+.cards { --od-cols: 3; --od-gap: var(--s-16); }
+.card {
+  display: flex; flex-direction: column; gap: var(--s-12);
+  padding: var(--s-24);
+  border: var(--line); border-radius: var(--radius);
+  background: var(--c-bg); color: var(--c-fg); text-decoration: none;
+  transition: border-color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
+}
+@media (hover: hover) { .card:hover { border-color: var(--c-fg); } }
+.card-num { font-family: var(--font-mono); font-size: var(--fs-12); color: var(--c-muted); }
+.card h3 { font-size: var(--fs-20); line-height: 1.3; font-weight: 600; }
+.card-guide { font-size: var(--fs-14); line-height: 1.5; color: var(--c-muted); }
+.card-foot { margin-top: auto; padding-top: var(--s-12); border-top: var(--line); font-size: var(--fs-14); --od-gap: var(--s-12); }
+.card-arrow { width: 20px; height: 20px; fill: none; stroke: var(--c-accent); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+
+.status { --od-gap: var(--s-8); font-size: var(--fs-14); }
+.dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.dot.linked { background: var(--c-fg); }
+.dot.unlinked { border: 1.5px solid var(--c-muted); }
+.status .muted { color: var(--c-muted); }
+
+.empty {
+  margin-top: var(--s-48); padding: var(--s-48) var(--s-24);
+  border: 1px dashed var(--c-border); border-radius: var(--radius);
+  text-align: center; --od-gap: var(--s-12); align-items: center;
+}
+.empty h2 { font-size: var(--fs-20); }
+.empty p { color: var(--c-muted); }
+
+/* ── Buttons ─────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--s-8);
+  min-height: 44px; padding: 0 var(--s-16);
+  border-radius: var(--radius); border: 1px solid var(--c-fg);
+  font-size: var(--fs-14); font-weight: 600; text-decoration: none; cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+.btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+.btn-primary { background: var(--c-fg); color: var(--c-bg); }
+.btn-secondary { background: var(--c-bg); color: var(--c-fg); border-color: var(--c-border); }
+@media (hover: hover) {
+  .btn-primary:hover { background: var(--c-bg); color: var(--c-fg); }
+  .btn-secondary:hover { border-color: var(--c-fg); }
+}
+.btn[aria-disabled="true"] { background: var(--c-surface); color: var(--c-muted); border-color: var(--c-border); cursor: not-allowed; }
+
+/* ── One-pager ───────────────────────────── */
+.crumbs { font-size: var(--fs-14); color: var(--c-muted); --od-gap: var(--s-8); }
+.crumbs a { color: var(--c-fg); text-underline-offset: 3px; }
+.crumbs svg { width: 14px; height: 14px; fill: none; stroke: var(--c-muted); stroke-width: 1.5; }
+
+.op-head { margin-top: var(--s-24); padding-bottom: var(--s-32); border-bottom: var(--line); --od-gap: var(--s-24); }
+.op-title { --od-gap: var(--s-8); }
+.op-title h1 { font-size: var(--fs-40); line-height: 1.15; letter-spacing: -0.02em; font-weight: 700; max-width: 24ch; }
+.op-actions { --od-gap: var(--s-8); }
+
+.op-body { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: var(--s-48); margin-top: var(--s-32); }
+.op-section + .op-section { margin-top: var(--s-48); }
+.op-section h2 { font-size: var(--fs-20); font-weight: 700; line-height: 1.3; margin-bottom: var(--s-16); }
+
+.guide {
+  padding: var(--s-24); background: var(--c-surface); border-radius: var(--radius);
+  font-size: var(--fs-20); line-height: 1.5; max-width: 70ch;
+}
+.prose { max-width: 70ch; }
+
+.checklist { list-style: none; display: grid; gap: var(--s-12); max-width: 70ch; }
+.checklist li { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: var(--s-12); align-items: start; }
+.checklist svg { width: 20px; height: 20px; margin-top: 2px; fill: none; stroke: var(--c-accent); stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+
+.code-panel { border: var(--line); border-radius: var(--radius); overflow: hidden; }
+.tabs { --od-gap: 0; --od-rail-pad: 0px; border-bottom: var(--line); background: var(--c-surface); }
+.tab {
+  position: relative; min-height: 44px; padding: 0 var(--s-16);
+  border: 0; background: transparent; font-size: var(--fs-14); color: var(--c-muted); cursor: pointer; white-space: nowrap;
+}
+.tab[aria-selected="true"] { color: var(--c-fg); font-weight: 600; background: var(--c-bg); }
+.tab[aria-selected="true"]::after { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px; background: var(--c-accent); }
+@media (hover: hover) { .tab[aria-selected="false"]:hover { color: var(--c-fg); } }
+.code-bar { padding: var(--s-8) var(--s-8) var(--s-8) var(--s-16); border-bottom: var(--line); --od-gap: var(--s-12); }
+.code-file { font-family: var(--font-mono); font-size: var(--fs-12); color: var(--c-muted); }
+.code-lang { font-family: var(--font-mono); font-size: var(--fs-12); color: var(--c-muted); text-transform: uppercase; }
+.copy-btn { min-height: 36px; padding: 0 var(--s-12); }
+pre.code {
+  margin: 0; padding: var(--s-16);
+  overflow-x: auto; max-height: 560px;
+  background: var(--c-bg); font-family: var(--font-mono); font-size: 13px; line-height: 1.6;
+  tab-size: 4;
+}
+pre.code code { font-family: inherit; }
+
+.aside { --od-gap: var(--s-16); align-self: start; position: sticky; top: calc(var(--topbar-h) + var(--s-24)); }
+.panel { border: var(--line); border-radius: var(--radius); padding: var(--s-24); --od-gap: var(--s-12); }
+.panel h2 { font-size: var(--fs-16); font-weight: 700; }
+.panel p { font-size: var(--fs-14); color: var(--c-muted); }
+.panel code { font-family: var(--font-mono); font-size: var(--fs-12); background: var(--c-surface); padding: 2px var(--s-4); border-radius: var(--radius-sm); overflow-wrap: anywhere; color: var(--c-fg); }
+.product-list { list-style: none; display: grid; gap: var(--s-8); font-size: var(--fs-14); }
+.product-list li { padding-bottom: var(--s-8); border-bottom: var(--line); }
+.product-list li:last-child { border-bottom: 0; padding-bottom: 0; }
+.note { background: var(--c-surface); border-color: var(--c-surface); }
+.note h2 { --od-gap: var(--s-8); }
+.note svg { width: 18px; height: 18px; fill: none; stroke: var(--c-fg); stroke-width: 1.5; stroke-linecap: round; }
+.note p { color: var(--c-fg); }
+
+.muted { color: var(--c-muted); }
+.op-missing { font-size: var(--fs-24); }
+
+.talk-track {
+  max-width: 70ch; padding: var(--s-16) 0 var(--s-16) var(--s-24);
+  border-left: 2px solid var(--c-fg);
+  font-size: var(--fs-20); line-height: 1.5;
+}
+.faq { border-top: var(--line); max-width: 70ch; }
+.faq-item { border-bottom: var(--line); }
+.faq-item summary {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--s-16);
+  min-height: 48px; padding: var(--s-12) 0; cursor: pointer; font-weight: 600; list-style: none;
+}
+.faq-item summary::-webkit-details-marker { display: none; }
+.faq-item summary::after { content: "+"; flex: none; font-weight: 400; font-size: var(--fs-20); color: var(--c-muted); }
+.faq-item[open] summary::after { content: "–"; }
+.faq-item p { padding-bottom: var(--s-16); color: var(--c-fg); }
+.prep-list { display: grid; gap: var(--s-8); padding-left: var(--s-24); font-size: var(--fs-14); }
+
+.pager { margin-top: var(--s-64); padding-top: var(--s-24); border-top: var(--line); --od-cols: 2; --od-gap: var(--s-16); }
+.pager a {
+  display: grid; gap: var(--s-4); padding: var(--s-16); border: var(--line); border-radius: var(--radius); text-decoration: none;
+}
+.pager a.next { text-align: right; }
+.pager .eyebrow { display: block; }
+.pager-title { font-weight: 600; }
+@media (hover: hover) { .pager a:hover { border-color: var(--c-fg); } }
+
+/* ── Guides (explainer pages) ────────────── */
+.guide-body .main { padding: var(--s-48) var(--s-48) var(--s-64); }
+.guide .page { max-width: 1160px; }
+.guide-head { margin-top: var(--s-24); padding-bottom: var(--s-32); border-bottom: var(--line); }
+.guide-head h1 { font-size: var(--fs-40); line-height: 1.15; letter-spacing: -0.02em; font-weight: 700; margin-top: var(--s-8); max-width: 28ch; }
+.toc { margin-top: var(--s-24); --od-gap: var(--s-8); font-size: var(--fs-14); }
+.toc a { display: inline-flex; align-items: center; min-height: 36px; padding: 0 var(--s-12); border: var(--line); border-radius: 999px; text-decoration: none; }
+@media (hover: hover) { .toc a:hover { border-color: var(--c-fg); } }
+
+.guide-section { margin-top: var(--s-64); scroll-margin-top: calc(var(--topbar-h) + var(--s-24)); }
+.guide-section > h2 { font-size: var(--fs-24); line-height: 1.3; font-weight: 700; letter-spacing: -0.01em; margin-bottom: var(--s-12); }
+.guide-section > .prose { color: var(--c-fg); margin-bottom: var(--s-24); }
+
+.short-list { list-style: none; counter-reset: short; display: grid; gap: var(--s-16); grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); }
+.short-list li { counter-increment: short; padding: var(--s-24); border: var(--line); border-radius: var(--radius); display: grid; gap: var(--s-8); align-content: start; }
+.short-list li::before { content: counter(short, decimal-leading-zero); font-family: var(--font-mono); font-size: var(--fs-14); color: var(--c-muted); }
+.short-list h3 { font-size: var(--fs-16); font-weight: 700; }
+.short-list p { color: var(--c-fg); }
+
+.diagram { border: var(--line); border-radius: var(--radius); overflow: hidden; }
+.diagram-scroll { overflow-x: auto; overscroll-behavior-x: contain; padding: var(--s-24); background: var(--c-bg); }
+.diagram-scroll:focus-visible { outline-offset: -2px; }
+.d-svg { display: block; width: 100%; height: auto; min-width: 880px; }
+.d-svg-md { max-width: 760px; min-width: 640px; }
+.diagram figcaption {
+  padding: var(--s-12) var(--s-24); border-top: var(--line); background: var(--c-surface);
+  font-size: var(--fs-14); color: var(--c-fg); --od-gap: var(--s-8) var(--s-24);
+}
+.legend-item { --od-gap: var(--s-8); }
+.legend-item svg { width: 24px; height: 16px; flex: none; overflow: visible; }
+.svg-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+/* SVG shapes — palette only; meaning carried by line style and labels */
+.d-frame { fill: var(--c-surface); stroke: var(--c-border); stroke-width: 1; }
+.d-frame-inner { fill: var(--c-bg); stroke: var(--c-border); stroke-width: 1; }
+.d-metastore { fill: var(--c-surface); stroke: var(--c-fg); stroke-width: 1.5; }
+.d-lane { fill: var(--c-surface); stroke: var(--c-border); stroke-width: 1; }
+.d-box { fill: var(--c-bg); stroke: var(--c-fg); stroke-width: 1.5; }
+.d-surface-box { fill: var(--c-surface); stroke: var(--c-border); stroke-width: 1; }
+.d-prod { stroke: var(--c-accent); stroke-width: 2.5; }
+.d-line { fill: none; stroke: var(--c-fg); stroke-width: 1.5; }
+.d-dash { fill: none; stroke: var(--c-fg); stroke-width: 1.5; stroke-dasharray: 6 5; }
+.d-arrowhead { fill: var(--c-fg); }
+.d-arrowhead-muted { fill: var(--c-muted); }
+.d-gate { fill: var(--c-bg); stroke: var(--c-accent); stroke-width: 2; }
+.d-cell-own { fill: var(--c-fg); stroke: var(--c-fg); stroke-width: 1; }
+.d-cell-none { fill: var(--c-bg); stroke: var(--c-border); stroke-width: 1; stroke-dasharray: 4 4; }
+.d-cell-optional { fill: var(--c-surface); stroke: var(--c-fg); stroke-width: 1.5; stroke-dasharray: 1.5 3; stroke-linecap: round; }
+.d-prod-cell { stroke: var(--c-accent); stroke-width: 3; }
+
+.d-svg text { font-family: var(--font-sans); }
+.t { font-size: 13px; fill: var(--c-fg); }
+.t-strong { font-weight: 600; }
+.t-mono { font-family: var(--font-mono) !important; }
+.t-m { font-size: 12px; fill: var(--c-muted); }
+.t-m.t-mono { font-size: 11px; }
+.t-c { text-anchor: middle; }
+.t-label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; fill: var(--c-muted); }
+.t-gutter { font-size: 14px; font-weight: 700; fill: var(--c-fg); }
+.t-gutter-sub { font-size: 12px; fill: var(--c-muted); }
+.t-inv { font-size: 13px; font-weight: 600; fill: var(--c-bg); }
+.t-inv-m { font-size: 12px; fill: var(--c-border); }
+.t-inv-m.t-mono { font-size: 11px; }
+
+.table-title { font-size: var(--fs-16); font-weight: 700; margin: var(--s-32) 0 var(--s-12); }
+.table-wrap { overflow-x: auto; border: var(--line); border-radius: var(--radius); }
+.data-table { width: 100%; border-collapse: collapse; font-size: var(--fs-14); line-height: 1.5; min-width: 560px; }
+.data-table th { text-align: left; font-weight: 600; background: var(--c-surface); padding: var(--s-12) var(--s-16); border-bottom: var(--line); }
+.data-table td { padding: var(--s-12) var(--s-16); border-bottom: var(--line); vertical-align: top; }
+.data-table tr:last-child td { border-bottom: 0; }
+.data-table td:first-child { width: 36%; font-weight: 600; }
+.guide code, .data-table code {
+  font-family: var(--font-mono); font-size: 0.875em; background: var(--c-surface);
+  padding: 1px var(--s-4); border-radius: var(--radius-sm); overflow-wrap: anywhere;
+}
+.practice-list { list-style: none; display: grid; gap: var(--s-12); max-width: 80ch; }
+.practice-list li { padding-left: var(--s-16); border-left: 2px solid var(--c-border); }
+.next-step { margin-top: var(--s-24); }
+
+.guide-links { list-style: none; display: grid; gap: var(--s-8); font-size: var(--fs-14); }
+.guide-links a { font-weight: 600; text-underline-offset: 3px; }
+
+@media (max-width: 767px) {
+  .guide-body .main { padding: var(--s-24) var(--s-16) var(--s-48); }
+  .diagram-scroll { padding: var(--s-16); }
+  .diagram figcaption { padding: var(--s-12) var(--s-16); }
+  .data-table td:first-child { width: auto; }
+}
+@media print {
+  .diagram-scroll { overflow: visible; }
+  .d-svg { min-width: 0; }
+  .toc { display: none; }
+}
+
+/* ── Toast ───────────────────────────────── */
+.toast {
+  position: fixed; left: 50%; bottom: var(--s-24); z-index: 50;
+  padding: var(--s-12) var(--s-16); border-radius: var(--radius);
+  background: var(--c-fg); color: var(--c-bg); font-size: var(--fs-14);
+  opacity: 0; transform: translate(-50%, 8px); pointer-events: none;
+  transition: opacity var(--dur-fast) var(--ease-in), transform var(--dur-fast) var(--ease-in);
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); transition-duration: var(--dur); transition-timing-function: var(--ease-out); }
+
+/* ── Responsive ──────────────────────────── */
+@media (max-width: 1439px) {
+  .cards { --od-cols: 2; }
+}
+@media (max-width: 1279px) {
+  .op-body { grid-template-columns: minmax(0, 1fr); gap: var(--s-32); }
+  .aside { position: static; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 1023px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  .nav-toggle, .sidebar-close { display: inline-flex; }
+  .sidebar {
+    position: fixed; top: 0; left: 0; bottom: 0; z-index: 40;
+    width: min(320px, 86vw); height: 100%;
+    transform: translateX(-100%); visibility: hidden;
+    transition: transform var(--dur-fast) var(--ease-in), visibility 0s linear var(--dur-fast);
+    padding-top: var(--s-12);
+  }
+  .sidebar.open {
+    transform: none; visibility: visible;
+    transition: transform var(--dur) var(--ease-out), visibility 0s;
+  }
+  .scrim:not([hidden]) { display: block; position: fixed; inset: 0; z-index: 35; background: rgba(17, 17, 17, 0.4); }
+  .main { padding: var(--s-32) var(--s-24) var(--s-48); }
+  .stats { --od-cols: 2; }
+  .stat:nth-child(3) { border-left: 0; }
+  .stat:nth-child(n+3) { border-top: var(--line); }
+}
+@media (max-width: 767px) {
+  .main { padding: var(--s-24) var(--s-16) var(--s-48); }
+  .topbar-meta { display: none; }
+  .cards { --od-cols: 1; }
+  .aside { grid-template-columns: minmax(0, 1fr); }
+  .hero-sub, .guide { font-size: var(--fs-16); }
+  .op-actions { width: 100%; }
+  .op-actions .btn { flex: 1 1 auto; }
+  .pager { --od-cols: 1; }
+  .pager a.next { text-align: left; }
+  .filters { margin-inline: calc(-1 * var(--s-16)); --od-rail-pad: var(--s-16); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
+
+/* ── Print: the one-pager prints as one page of content ── */
+@media print {
+  .topbar, .sidebar, .scrim, .toast, .skip-link, .op-actions, .pager, .tabs, .copy-btn, .filters, .toolbar { display: none !important; }
+  .layout { display: block; }
+  .main { padding: 0; }
+  .op-body { grid-template-columns: minmax(0, 1fr); }
+  .aside { position: static; }
+  .code-tabpanel[hidden] { display: block !important; }
+  pre.code { max-height: none; white-space: pre-wrap; }
+  .card, .panel, .code-panel { break-inside: avoid; }
+}
+
+/* ── Walkthrough engine ──────────────────── */
+.wt [hidden] { display: none !important; }
+.wt-head { margin-top: var(--s-24); }
+.wt-head h1 { margin-top: var(--s-8); font-size: var(--fs-40); line-height: 1.15; letter-spacing: -0.02em; font-weight: 700; max-width: 24ch; outline: none; }
+.wt-summary { margin-top: var(--s-12); font-size: var(--fs-20); line-height: 1.5; color: var(--c-muted); max-width: 70ch; }
+.wt-mono { font-family: var(--font-mono); font-size: var(--fs-12); overflow-wrap: anywhere; }
+
+.wt-strip {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-16) var(--s-24);
+  margin-top: var(--s-24); padding: var(--s-16) var(--s-24);
+  border: var(--line); border-radius: var(--radius); background: var(--c-surface);
+}
+.wt-fact { display: grid; gap: var(--s-4); align-content: start; min-width: 0; }
+.wt-fact-gap { grid-column: 1 / -1; padding-top: var(--s-12); border-top: var(--line); }
+.wt-fact-k { font-size: var(--fs-12); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--c-muted); }
+.wt-fact-v { font-size: var(--fs-14); overflow-wrap: anywhere; }
+.wt-sub { color: var(--c-muted); }
+.wt-status { display: inline-flex; align-items: center; gap: var(--s-8); font-weight: 600; }
+.wt-dot { position: relative; flex: none; width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--c-fg); overflow: hidden; }
+.wt-dot.yes { background: var(--c-fg); }
+.wt-dot.partial::after { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 50%; background: var(--c-fg); }
+.wt-dot.no { border-color: var(--c-muted); }
+
+.wt-banner {
+  display: flex; align-items: flex-start; gap: var(--s-12); margin-top: var(--s-16);
+  padding: var(--s-12) var(--s-16); border: 1px dashed var(--c-muted); border-radius: var(--radius); font-size: var(--fs-14);
+}
+.wt-banner svg { width: 18px; height: 18px; margin-top: 2px; fill: none; stroke: var(--c-fg); stroke-width: 1.5; stroke-linecap: round; }
+
+.wt-body { display: grid; grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); gap: var(--s-32); margin-top: var(--s-24); align-items: start; }
+.wt-diagram { min-width: 0; }
+.wt-variant { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s-12); margin-bottom: var(--s-12); }
+.wt-variant-label { font-size: var(--fs-12); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--c-muted); }
+.wt-seg { display: inline-flex; padding: 2px; border: var(--line); border-radius: var(--radius); background: var(--c-surface); }
+.wt-seg-btn {
+  min-height: 36px; padding: 0 var(--s-16); border: 0; border-radius: 6px; background: transparent;
+  font-size: var(--fs-14); cursor: pointer; color: var(--c-muted);
+}
+.wt-seg-btn[aria-checked="true"] { background: var(--c-fg); color: var(--c-bg); font-weight: 600; }
+
+.wt-frame { border: var(--line); border-radius: var(--radius); background: var(--c-bg); overflow-x: auto; max-width: 100%; outline: none; }
+.wt-canvas { position: relative; padding: var(--s-32) var(--s-24); min-width: calc(var(--wt-cols, 6) * 150px + (var(--wt-cols, 6) - 1) * 48px + 48px); }
+.wt-grid { display: grid; column-gap: 48px; row-gap: 40px; position: relative; }
+.wt-edges, .wt-labels { position: absolute; left: 0; top: 0; pointer-events: none; }
+.wt-edges { z-index: 2; overflow: visible; }
+.wt-labels { z-index: 3; width: 100%; height: 100%; }
+
+.wt-group { position: relative; z-index: 0; margin: -14px; border-radius: var(--radius); pointer-events: none; }
+.wt-group.is-solid { border: 1px solid var(--c-muted); }
+.wt-group.is-dashed { border: 1px dashed var(--c-muted); }
+.wt-group-label {
+  position: absolute; left: var(--s-12); top: 0; transform: translateY(-50%);
+  padding: 0 var(--s-8); background: var(--c-bg); font-size: var(--fs-12); font-weight: 600;
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--c-muted); white-space: nowrap;
+}
+
+.wt-node {
+  position: relative; z-index: 1; display: flex; flex-direction: column; align-items: flex-start; gap: var(--s-4);
+  min-height: 84px; padding: var(--s-12); text-align: left; cursor: pointer;
+  border: 1px solid var(--c-border); border-radius: var(--radius); background: var(--c-bg); color: var(--c-fg);
+  transition: opacity var(--dur) var(--ease-out), border-color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
+}
+.wt-node:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; border-radius: var(--radius); }
+@media (hover: hover) { .wt-node:hover { border-color: var(--c-fg); } }
+.wt-node-kind { display: inline-flex; align-items: center; gap: var(--s-4); font-family: var(--font-mono); font-size: 0.6875rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--c-muted); }
+.wt-node-kind svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.wt-node-label { font-size: var(--fs-14); font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
+.wt-node-sub { font-size: var(--fs-12); line-height: 1.35; color: var(--c-muted); overflow-wrap: anywhere; }
+.wt-node-sub:empty { display: none; }
+.wt-node-tag { display: none; margin-top: auto; padding: 1px var(--s-8); border: 1px dashed var(--c-muted); border-radius: 999px; font-size: 0.6875rem; color: var(--c-muted); }
+.wt-node[data-kind="table"] { padding-top: var(--s-16); }
+.wt-node[data-kind="table"]::before { content: ""; position: absolute; left: -1px; right: -1px; top: -1px; height: 10px; border: 1px solid var(--c-border); border-radius: 50% / 100%; background: var(--c-surface); }
+.wt-node[data-kind="table"].is-active::before { border-color: var(--c-fg); }
+.wt-node[data-kind="gate"] { border-style: solid; border-left-width: 4px; border-left-color: var(--c-muted); }
+.wt-node[data-kind="person"] { border-radius: 24px 24px var(--radius) var(--radius); }
+.wt-node[data-kind="external"] { border-style: dashed; }
+.wt-node[data-kind="shared"], .wt-node[data-kind="config"] { background: var(--c-surface); }
+.wt-node.is-dim { opacity: 0.45; }
+.wt-node.is-active { border: 2px solid var(--c-fg); padding: 11px; outline: 2px solid var(--c-accent); outline-offset: 2px; }
+.wt-node.is-active[data-kind="gate"] { border-left-width: 4px; }
+.wt-node.is-selected { background: var(--c-surface); border-color: var(--c-fg); }
+.wt-node.is-notshown { border-style: dashed; }
+.wt-node.is-notshown .wt-node-tag { display: inline-block; }
+
+.wt-marker path { fill: var(--c-muted); }
+.wt-marker.is-active path { fill: var(--c-fg); }
+.wt-edge { stroke: var(--c-muted); stroke-width: 1.25; }
+.wt-edge.is-dashed { stroke-dasharray: 4 4; }
+.wt-edge.is-dim { stroke: var(--c-border); }
+.wt-edge.is-active { stroke: var(--c-fg); stroke-width: 2; stroke-dasharray: 6 6; animation: wt-flow 1.2s linear infinite; }
+@keyframes wt-flow { to { stroke-dashoffset: -12; } }
+.wt-edge-label {
+  position: absolute; transform: translate(-50%, -50%); padding: 1px var(--s-8);
+  border: var(--line); border-radius: 999px; background: var(--c-bg);
+  font-size: 0.6875rem; line-height: 1.4; color: var(--c-muted); white-space: nowrap;
+}
+.wt-edge-label.is-active { border-color: var(--c-fg); color: var(--c-fg); }
+.wt-edge-label.is-dim { opacity: 0.5; }
+
+.wt-rail { position: sticky; top: calc(var(--topbar-h) + var(--s-16)); max-height: calc(100vh - var(--topbar-h) - var(--s-32)); overflow-y: auto; display: grid; gap: var(--s-12); }
+.wt-count { font-size: var(--fs-12); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--c-muted); }
+.wt-steps { list-style: none; display: grid; border: var(--line); border-radius: var(--radius); overflow: hidden; }
+.wt-step + .wt-step { border-top: var(--line); }
+.wt-step-head {
+  display: flex; align-items: flex-start; gap: var(--s-12); width: 100%; min-height: 44px;
+  padding: var(--s-12) var(--s-16); border: 0; background: var(--c-bg); text-align: left; cursor: pointer;
+}
+.wt-step-head:focus-visible { outline-offset: -2px; }
+@media (hover: hover) { .wt-step:not(.is-current) .wt-step-head:hover { background: var(--c-surface); } }
+.wt-step-n {
+  flex: none; display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px;
+  border: 1px solid var(--c-border); border-radius: 50%; font-size: var(--fs-12); font-variant-numeric: tabular-nums; color: var(--c-muted);
+}
+.wt-step.is-past .wt-step-n { border-color: var(--c-fg); color: var(--c-fg); }
+.wt-step-title { font-size: var(--fs-14); line-height: 1.5; color: var(--c-muted); }
+.wt-step.is-current { background: var(--c-surface); }
+.wt-step.is-current .wt-step-head { background: var(--c-surface); cursor: default; }
+.wt-step.is-current .wt-step-n { background: var(--c-fg); border-color: var(--c-fg); color: var(--c-bg); }
+.wt-step.is-current .wt-step-title { font-weight: 700; color: var(--c-fg); font-size: var(--fs-16); }
+.wt-step-body { padding: 0 var(--s-16) var(--s-16) calc(var(--s-16) + 24px + var(--s-12)); display: grid; gap: var(--s-12); }
+.wt-step-body p { font-size: var(--fs-14); }
+.wt-notshown { padding: var(--s-12); border: 1px dashed var(--c-muted); border-radius: var(--radius); background: var(--c-bg); }
+.wt-notshown strong { font-size: var(--fs-12); letter-spacing: 0.06em; text-transform: uppercase; color: var(--c-muted); }
+.wt-notshown p { margin-top: var(--s-4); color: var(--c-muted); }
+.wt-nav { display: flex; gap: var(--s-8); }
+.wt-nav .btn { flex: 1 1 0; }
+.wt-nav .btn:disabled { background: var(--c-surface); color: var(--c-muted); border-color: var(--c-border); cursor: not-allowed; }
+.wt-hint { font-size: var(--fs-12); color: var(--c-muted); }
+
+.wt-scrim { position: fixed; inset: 0; z-index: 44; background: rgba(17, 17, 17, 0.4); }
+.wt-panel {
+  position: fixed; z-index: 45; top: var(--topbar-h); right: 0; bottom: 0; width: min(440px, 100%);
+  display: flex; flex-direction: column; background: var(--c-bg); border-left: var(--line); overflow: hidden;
+}
+.wt-panel-bar { display: flex; align-items: center; justify-content: space-between; padding: var(--s-8) var(--s-8) var(--s-8) var(--s-24); border-bottom: var(--line); }
+.wt-panel-body { display: grid; gap: var(--s-16); align-content: start; padding: var(--s-24); overflow-y: auto; }
+.wt-panel-body h2 { font-size: var(--fs-24); line-height: 1.3; letter-spacing: -0.01em; }
+.wt-panel-role { font-size: var(--fs-14); }
+.wt-panel-obj { display: grid; gap: var(--s-4); }
+.wt-code-wrap { border: var(--line); border-radius: var(--radius); overflow: hidden; }
+.wt-code-bar { display: flex; align-items: center; justify-content: space-between; gap: var(--s-8); padding: var(--s-4) var(--s-8) var(--s-4) var(--s-12); background: var(--c-surface); border-bottom: var(--line); }
+.wt-code-bar .btn { min-height: 32px; padding: 0 var(--s-12); font-size: var(--fs-12); }
+.wt-code-lang { font-family: var(--font-mono); font-size: var(--fs-12); color: var(--c-muted); }
+.wt-code { margin: 0; padding: var(--s-12); overflow: auto; max-height: 320px; font-family: var(--font-mono); font-size: var(--fs-12); line-height: 1.6; tab-size: 4; }
+.wt-panel-body .btn { justify-self: start; }
+
+@media (max-width: 1023px) {
+  .wt-body { grid-template-columns: minmax(0, 1fr); }
+  .wt-rail { position: static; max-height: none; overflow: visible; }
+  .wt-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .wt-panel { top: auto; left: 0; right: 0; width: auto; max-height: 80vh; border-left: 0; border-top: var(--line); border-radius: var(--radius) var(--radius) 0 0; }
+}
+@media (max-width: 767px) {
+  .wt-strip { grid-template-columns: minmax(0, 1fr); padding: var(--s-16); }
+  .wt-summary { font-size: var(--fs-16); }
+  .wt-canvas { padding: var(--s-24) var(--s-16); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wt-edge.is-active { animation: none; stroke-dasharray: none; }
+}
+
+/* ── Walkthrough entry points ────────────── */
+.due-section { margin-top: var(--s-32); padding-bottom: var(--s-8); }
+.due-section h2 { font-size: var(--fs-24); line-height: 1.3; font-weight: 700; letter-spacing: -0.01em; }
+.due-section > p { margin-top: var(--s-4); color: var(--c-muted); font-size: var(--fs-14); }
+.due-section .cards { margin-top: var(--s-16); }
+.due-card .card-foot { flex-wrap: wrap; }
+.due-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-8) var(--s-16); font-size: var(--fs-14); color: var(--c-muted); }
+.due-cta { font-size: var(--fs-14); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.side-link.has-wt { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-8); }
+.side-tag { flex: none; font-size: 0.6875rem; color: var(--c-muted); border: var(--line); border-radius: 999px; padding: 0 var(--s-8); }
+@media print { .wt-panel, .wt-scrim, .wt-rail .wt-nav { display: none !important; } }
+
+/* ── Syntax tokens (assets/highlight.js) ── */
+.tok-kw  { color: var(--syn-kw); }
+.tok-str { color: var(--syn-str); }
+.tok-com { color: var(--syn-com); font-style: italic; }
+.tok-num { color: var(--syn-num); }
+.tok-fn  { color: var(--syn-fn); }
+.tok-key { color: var(--syn-key); }
+.tok-var { color: var(--syn-var); }
+@media print { .tok-com { font-style: normal; } }
+
+/* ── Hover / focus info text (assets/tips.js) ── */
+.has-tip { cursor: help; text-decoration: underline dotted var(--c-muted); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+.has-tip:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; border-radius: var(--radius-sm); }
+.has-tip-svg { cursor: help; }
+.wt-node-kind[data-tip] { cursor: help; }
+.tip-pop {
+  position: fixed; z-index: 90; max-width: 300px;
+  padding: var(--s-8) var(--s-12); border-radius: var(--radius-sm);
+  background: var(--c-fg); color: var(--c-bg);
+  font-size: var(--fs-14); line-height: 1.45; font-weight: 400; text-align: left;
+  pointer-events: none; opacity: 0; transform: translateY(4px);
+  transition: opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+}
+.tip-pop.below { transform: translateY(-4px); }
+.tip-pop.show { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) { .tip-pop { transition: none; } }
+@media print { .tip-pop { display: none !important; } .has-tip { text-decoration: none; } }
+</style>
+<style data-import="layout-fix">
+main.main.guide { max-width: none; background: none; border-radius: 0; font-size: var(--fs-16); line-height: 1.5;
+  padding: var(--s-48) var(--s-48) var(--s-64); }
+@media (max-width: 720px) { main.main.guide { padding: var(--s-24) var(--s-16) var(--s-48); } }
+</style>
+</head>
+<body class="guide-body">
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="topbar">
+    <div class="topbar-inner od-row">
+      <a class="brand od-row od-fill" href="../">
+        <svg class="brand-mark od-fixed" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8l9-5 9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/><path d="M3 17l9 5 9-5"/></svg>
+        <span class="brand-text od-truncate">Databricks capability walkthrough</span>
+      </a>
+      <a class="btn btn-secondary od-fixed" href="../">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg><span>Walkthrough</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- Shared SVG defs: arrowheads used by every diagram -->
+  <svg width="0" height="0" class="svg-defs" aria-hidden="true" focusable="false">
+    <defs>
+      <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+        <path class="d-arrowhead" d="M0 0L10 5L0 10z"/>
+      </marker>
+      <marker id="arrow-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+        <path class="d-arrowhead-muted" d="M0 0L10 5L0 10z"/>
+      </marker>
+    </defs>
+  </svg>
+
+  <main id="main" class="main guide" tabindex="-1">
+    <article class="page">
+      <nav class="crumbs od-cluster" aria-label="Breadcrumb">
+        <a href="../">Overview</a>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        <span>Governance &amp; monitoring</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        <span>Guide</span>
+      </nav>
+
+      <header class="guide-head">
+        <p class="eyebrow">Walkthrough</p>
+        <h1>Automated data documentation</h1>
+        <p class="hero-sub">A job writes one documentation page per table covering schema, lineage, quality, ownership, and usage, and applies AI-drafted comments in Unity Catalog.</p>
+        <nav class="toc od-cluster" aria-label="On this page">
+          <a href="#short">The short version</a>
+          <a href="#inputs">Inputs to one page</a>
+          <a href="#anatomy">Anatomy of the page</a>
+          <a href="#refresh">Refresh</a>
+          <a href="#ai">AI descriptions</a>
+          <a href="#repo">Where it lives</a>
+          <a href="#demo">Demo steps</a>
+        </nav>
+      </header>
+
+      <!-- ───────── The short version ───────── -->
+      <section class="guide-section" id="short" aria-labelledby="h-short">
+        <h2 id="h-short">The short version</h2>
+        <ol class="short-list">
+          <li>
+            <h3>One job writes one page per table.</h3>
+            <p>It loops over every table in a schema and writes a single Markdown page for each, plus an index, into a Unity Catalog volume.</p>
+          </li>
+          <li>
+            <h3>Every page has the same five sections.</h3>
+            <p>Ownership, Schema, Quality, Lineage, and Usage guidance. Unity Catalog metadata, system tables, and one profile query fill them.</p>
+          </li>
+          <li>
+            <h3>Refresh means running the job again.</h3>
+            <p>The bundle defines no schedule. Run it on demand or from a release pipeline, and every page, comment, and the index are regenerated.</p>
+          </li>
+          <li>
+            <h3>AI-drafted descriptions are applied directly.</h3>
+            <p>The job writes them to Unity Catalog with <code>COMMENT ON</code> and <code>ALTER COLUMN</code>. This code has no owner-approval step, and the page footer says the text is an AI draft to review.</p>
+          </li>
+          
+        </ol>
+      </section>
+
+      <!-- ───────── Diagram 1: Inputs ───────── -->
+      <section class="guide-section" id="inputs" aria-labelledby="h-inputs">
+        <h2 id="h-inputs">Four inputs, one generator, one page</h2>
+        <p class="prose">The generator reads four kinds of facts about each table and hands them to a renderer. The renderer returns one Markdown page per table and one index for the schema.</p>
+        <figure class="diagram">
+          <div class="diagram-scroll" tabindex="0" role="group" aria-label="Inputs diagram, scrollable">
+            <svg viewBox="0 0 1100 380" class="d-svg" role="img" aria-labelledby="d1-title d1-desc">
+              <title id="d1-title">Four inputs feed generate_docs.py, which writes one page per table</title>
+              <desc id="d1-desc">Unity Catalog metadata, lineage and usage from system tables, a quality profile, and ownership feed generate_docs.py. The doc_render.py renderer turns them into one combined page per table, named table.md, and an index.md.</desc>
+
+              <rect class="d-box" x="24" y="24" width="250" height="64" rx="8"/>
+              <text class="t t-strong" x="40" y="50">UC metadata</text>
+              <text class="t-m" x="40" y="70">columns, types, tags</text>
+              <rect class="d-box" x="24" y="112" width="250" height="64" rx="8"/>
+              <text class="t t-strong" x="40" y="138">Lineage and usage</text>
+              <text class="t-m" x="40" y="158">system.access, system.query</text>
+              <rect class="d-box" x="24" y="200" width="250" height="64" rx="8"/>
+              <text class="t t-strong" x="40" y="226">Quality profile</text>
+              <text class="t-m" x="40" y="246">row count, nulls, key uniqueness</text>
+              <rect class="d-box" x="24" y="288" width="250" height="64" rx="8"/>
+              <text class="t t-strong" x="40" y="314">Ownership</text>
+              <text class="t-m" x="40" y="334">table_owner from information_schema</text>
+
+              <path class="d-line" d="M274 56H346V166H418" marker-end="url(#arrow)"/>
+              <path class="d-line" d="M274 144H346V180H418" marker-end="url(#arrow)"/>
+              <path class="d-line" d="M274 232H346V196H418" marker-end="url(#arrow)"/>
+              <path class="d-line" d="M274 320H346V210H418" marker-end="url(#arrow)"/>
+
+              <rect class="d-box d-prod" x="420" y="148" width="230" height="80" rx="8"/>
+              <text class="t t-c t-strong t-mono" x="535" y="180">generate_docs.py</text>
+              <text class="t-m t-c" x="535" y="202">loops over every table</text>
+
+              <path class="d-line" d="M650 188H724V150H798" marker-end="url(#arrow)"/>
+              <path class="d-line" d="M650 188H724V240H798" marker-end="url(#arrow)"/>
+              <text class="t-m" x="656" y="180">render</text>
+
+              <rect class="d-surface-box" x="800" y="118" width="276" height="64" rx="8"/>
+              <text class="t t-mono" x="816" y="144">&lt;table&gt;.md</text>
+              <text class="t-m" x="816" y="164">one combined page per table</text>
+              <rect class="d-surface-box" x="800" y="208" width="276" height="64" rx="8"/>
+              <text class="t t-mono" x="816" y="234">index.md</text>
+              <text class="t-m" x="816" y="254">table, owner, rows, summary</text>
+            </svg>
+          </div>
+          <figcaption class="od-cluster">
+            <span class="legend-item od-row"><svg viewBox="0 0 32 8" aria-hidden="true"><line class="d-line" x1="0" y1="4" x2="32" y2="4"/></svg><span>Data flow</span></span>
+            <span class="legend-item od-row"><svg viewBox="0 0 16 16" aria-hidden="true"><rect class="d-box d-prod" x="1" y="1" width="14" height="14" rx="3"/></svg><span>The job's core script</span></span>
+          </figcaption>
+        </figure>
+      </section>
+
+      <!-- ───────── Diagram 2: Anatomy ───────── -->
+      <section class="guide-section" id="anatomy" aria-labelledby="h-anatomy">
+        <h2 id="h-anatomy">Anatomy of a generated page</h2>
+        <p class="prose">Open any page and you see the same five headings in the same order. The right column shows where each section's facts come from.</p>
+        <figure class="diagram">
+          <div class="diagram-scroll" tabindex="0" role="group" aria-label="Page anatomy diagram, scrollable">
+            <svg viewBox="0 0 1100 500" class="d-svg" role="img" aria-labelledby="d2-title d2-desc">
+              <title id="d2-title">The five sections of a generated table page and their sources</title>
+              <desc id="d2-desc">A mock page titled with the table's full name has five sections. Ownership shows owner and tags from information_schema. Schema shows column, type, null rate, and description. Quality shows row count and key uniqueness from a profile query. Lineage shows upstream and downstream tables from system.access.table_lineage. Usage guidance shows readers, recent queries, and AI-drafted advice. A footer says descriptions are AI drafts to review.</desc>
+
+              <rect class="d-frame-inner" x="16" y="16" width="536" height="468" rx="8"/>
+              <text class="t t-mono" x="36" y="44"># &lt;catalog&gt;.&lt;schema&gt;.&lt;table&gt;</text>
+
+              <rect class="d-box" x="36" y="60" width="496" height="62" rx="8"/>
+              <text class="t t-strong" x="52" y="86">## Ownership</text>
+              <text class="t-m" x="52" y="106">Owner and tags</text>
+              <rect class="d-box" x="36" y="134" width="496" height="62" rx="8"/>
+              <text class="t t-strong" x="52" y="160">## Schema</text>
+              <text class="t-m" x="52" y="180">Column, type, null rate, description</text>
+              <rect class="d-box" x="36" y="208" width="496" height="62" rx="8"/>
+              <text class="t t-strong" x="52" y="234">## Quality</text>
+              <text class="t-m" x="52" y="254">Row count, key uniqueness</text>
+              <rect class="d-box" x="36" y="282" width="496" height="62" rx="8"/>
+              <text class="t t-strong" x="52" y="308">## Lineage</text>
+              <text class="t-m" x="52" y="328">Upstream and downstream tables</text>
+              <rect class="d-box" x="36" y="356" width="496" height="62" rx="8"/>
+              <text class="t t-strong" x="52" y="382">## Usage guidance</text>
+              <text class="t-m" x="52" y="402">Top readers, recent queries, AI-drafted advice</text>
+              <text class="t-m" x="36" y="454">Footer: descriptions are AI drafts to review.</text>
+
+              <rect class="d-surface-box" x="640" y="60" width="424" height="62" rx="8"/>
+              <text class="t t-mono" x="656" y="86">information_schema</text>
+              <text class="t-m" x="656" y="106">tables.table_owner, table_tags</text>
+              <rect class="d-surface-box" x="640" y="134" width="424" height="62" rx="8"/>
+              <text class="t t-mono" x="656" y="160">information_schema.columns</text>
+              <text class="t-m" x="656" y="180">plus null rates and ai_query descriptions</text>
+              <rect class="d-surface-box" x="640" y="208" width="424" height="62" rx="8"/>
+              <text class="t t-mono" x="656" y="234">profile()</text>
+              <text class="t-m" x="656" y="254">one query per table</text>
+              <rect class="d-surface-box" x="640" y="282" width="424" height="62" rx="8"/>
+              <text class="t t-mono" x="656" y="308">system.access.table_lineage</text>
+              <text class="t-m" x="656" y="328">upstream and downstream</text>
+              <rect class="d-surface-box" x="640" y="356" width="424" height="62" rx="8"/>
+              <text class="t t-mono" x="656" y="382">system.query.history</text>
+              <text class="t-m" x="656" y="402">top five readers over 30 days, three recent queries</text>
+
+              <line class="d-line" x1="638" y1="91" x2="534" y2="91" marker-end="url(#arrow)"/>
+              <line class="d-line" x1="638" y1="165" x2="534" y2="165" marker-end="url(#arrow)"/>
+              <line class="d-line" x1="638" y1="239" x2="534" y2="239" marker-end="url(#arrow)"/>
+              <line class="d-line" x1="638" y1="313" x2="534" y2="313" marker-end="url(#arrow)"/>
+              <line class="d-line" x1="638" y1="387" x2="534" y2="387" marker-end="url(#arrow)"/>
+            </svg>
+          </div>
+          <figcaption>Each lineage and usage query is wrapped so a missing or unreadable system table gives an empty section instead of a failed run. The Quality section is a profile query, not pipeline expectation pass rates.</figcaption>
+        </figure>
+      </section>
+
+      <!-- ───────── Diagram 3: Refresh ───────── -->
+      <section class="guide-section" id="refresh" aria-labelledby="h-refresh">
+        <h2 id="h-refresh">How a refresh happens</h2>
+        <p class="prose">The job has no schedule. Someone starts it on demand, or a release pipeline does. Each run rebuilds the sample tables, then regenerates everything.</p>
+        <figure class="diagram">
+          <div class="diagram-scroll" tabindex="0" role="group" aria-label="Refresh diagram, scrollable">
+            <svg viewBox="0 0 1100 330" class="d-svg" role="img" aria-labelledby="d3-title d3-desc">
+              <title id="d3-title">Refresh by rerunning the job</title>
+              <desc id="d3-desc">A person running on demand or a release pipeline starts the job capability-guides-documentation-refresh. A schedule is shown dashed because the bundle defines none. The job runs build_sample_tables, then generate_docs. The second task writes the pages and index to a volume, applies Unity Catalog comments, and appends a row to documentation_refresh_log.</desc>
+
+              <rect class="d-lane" x="300" y="16" width="520" height="268" rx="8"/>
+              <text class="t-label" x="316" y="40">JOB · CAPABILITY-GUIDES-DOCUMENTATION-REFRESH</text>
+
+              <rect class="d-box" x="24" y="50" width="200" height="64" rx="8"/>
+              <text class="t t-strong" x="40" y="76">Run on demand</text>
+              <text class="t-m" x="40" y="96">a person starts the job</text>
+              <rect class="d-box" x="24" y="138" width="200" height="64" rx="8"/>
+              <text class="t t-strong" x="40" y="164">Release pipeline</text>
+              <text class="t-m" x="40" y="184">runs it on each release</text>
+              <rect class="d-surface-box" x="24" y="226" width="200" height="56" rx="8"/>
+              <text class="t t-strong" x="40" y="250">Schedule</text>
+              <text class="t-m" x="40" y="268">none defined in the bundle</text>
+
+              <path class="d-line" d="M224 82H270V170H328" marker-end="url(#arrow)"/>
+              <path class="d-line" d="M224 170H328" marker-end="url(#arrow)"/>
+              <path class="d-dash" d="M224 254H270V170"/>
+
+              <rect class="d-box" x="330" y="130" width="200" height="80" rx="8"/>
+              <text class="t t-c t-strong t-mono" x="430" y="162">build_sample_tables</text>
+              <text class="t-m t-c" x="430" y="184">task 1 · bronze, silver, gold</text>
+              <rect class="d-box d-prod" x="590" y="130" width="200" height="80" rx="8"/>
+              <text class="t t-c t-strong t-mono" x="690" y="162">generate_docs</text>
+              <text class="t-m t-c" x="690" y="184">task 2 · the refresh</text>
+              <line class="d-line" x1="530" y1="170" x2="588" y2="170" marker-end="url(#arrow)"/>
+              <text class="t-m" x="544" y="162">then</text>
+
+              <path class="d-line" d="M790 170H830V62H868" marker-end="url(#arrow)"/>
+              <line class="d-line" x1="790" y1="170" x2="868" y2="170" marker-end="url(#arrow)"/>
+              <path class="d-line" d="M790 170H830V278H868" marker-end="url(#arrow)"/>
+
+              <rect class="d-surface-box" x="870" y="30" width="206" height="64" rx="8"/>
+              <text class="t t-strong" x="886" y="56">Pages and index</text>
+              <text class="t-m" x="886" y="76">in the docs volume</text>
+              <rect class="d-surface-box" x="870" y="138" width="206" height="64" rx="8"/>
+              <text class="t t-strong" x="886" y="164">UC comments</text>
+              <text class="t-m" x="886" y="184">tables and columns</text>
+              <rect class="d-surface-box" x="870" y="246" width="206" height="64" rx="8"/>
+              <text class="t t-mono" x="886" y="272">documentation_refresh_log</text>
+              <text class="t-m" x="886" y="292">one row per refresh</text>
+            </svg>
+          </div>
+          <figcaption class="od-cluster">
+            <span class="legend-item od-row"><svg viewBox="0 0 32 8" aria-hidden="true"><line class="d-line" x1="0" y1="4" x2="32" y2="4"/></svg><span>Runs / writes</span></span>
+            <span class="legend-item od-row"><svg viewBox="0 0 32 8" aria-hidden="true"><line class="d-dash" x1="0" y1="4" x2="32" y2="4"/></svg><span>Not configured</span></span>
+          </figcaption>
+        </figure>
+      </section>
+
+      <!-- ───────── Diagram 4: AI descriptions ───────── -->
+      <section class="guide-section" id="ai" aria-labelledby="h-ai">
+        <h2 id="h-ai">What the AI step does with its output</h2>
+        <p class="prose">The generator asks a Foundation Model endpoint to draft descriptions, then uses the answer twice: in the page text and as Unity Catalog comments. The comments are written in the same run, with nothing in between.</p>
+        <figure class="diagram">
+          <div class="diagram-scroll" tabindex="0" role="group" aria-label="AI description diagram, scrollable">
+            <svg viewBox="0 0 1100 330" class="d-svg" role="img" aria-labelledby="d4-title d4-desc">
+              <title id="d4-title">AI drafts are written straight to Unity Catalog comments</title>
+              <desc id="d4-desc">generate_docs.py sends a prompt with the table name, row count, upstream tables, and column null rates to ai_query. The answer comes back as JSON with a table description, column descriptions, and usage guidance. The text goes into the page. The same text is applied directly with COMMENT ON TABLE and ALTER COLUMN COMMENT. There is no owner-approval step in the code. If the call or the JSON parse fails, the page is written without descriptions and the failure is counted.</desc>
+
+              <rect class="d-box" x="24" y="100" width="180" height="72" rx="8"/>
+              <text class="t t-c t-strong t-mono" x="114" y="130">generate_docs.py</text>
+              <text class="t-m t-c" x="114" y="150">per table</text>
+              <line class="d-line" x1="204" y1="136" x2="288" y2="136" marker-end="url(#arrow)"/>
+              <text class="t-m" x="222" y="128">prompt</text>
+
+              <rect class="d-box" x="290" y="100" width="200" height="72" rx="8"/>
+              <text class="t t-c t-strong t-mono" x="390" y="130">ai_query</text>
+              <text class="t-m t-c" x="390" y="150">Foundation Model endpoint</text>
+              <line class="d-line" x1="490" y1="136" x2="578" y2="136" marker-end="url(#arrow)"/>
+
+              <rect class="d-box" x="580" y="100" width="190" height="72" rx="8"/>
+              <text class="t t-c t-strong" x="675" y="130">JSON drafts</text>
+              <text class="t-m t-c" x="675" y="150">table, columns, usage</text>
+
+              <path class="d-line" d="M770 136H820V62H868" marker-end="url(#arrow)"/>
+              <path class="d-line" d="M770 136H820V210H868" marker-end="url(#arrow)"/>
+              <text class="t-m" x="828" y="136">applied directly</text>
+
+              <rect class="d-surface-box" x="870" y="30" width="206" height="64" rx="8"/>
+              <text class="t t-strong" x="886" y="56">Page text</text>
+              <text class="t-m" x="886" y="76">Schema and Usage sections</text>
+              <rect class="d-box d-prod" x="870" y="178" width="206" height="64" rx="8"/>
+              <text class="t t-strong" x="886" y="204">UC comments</text>
+              <text class="t-m" x="886" y="224">COMMENT ON, ALTER COLUMN</text>
+              <text class="t-m" x="828" y="270">no owner-approval step in the code</text>
+
+              <text class="t-m" x="24" y="300">If the call or the JSON parse fails, the page is still written without descriptions and the failure is counted.</text>
+            </svg>
+          </div>
+          <figcaption>The endpoint is the <code>model_endpoint</code> bundle variable (default <code>databricks-claude-opus-4-8</code>). Add an owner-review step before the comment writes if descriptions must be approved first.</figcaption>
+        </figure>
+      </section>
+
+      <!-- ───────── Diagram 5: App vs repo ───────── -->
+
+      <!-- ───────── Where it lives ───────── -->
+      <section class="guide-section" id="repo" aria-labelledby="h-repo">
+        <h2 id="h-repo">Where it lives</h2>
+        <p class="prose">Paths are relative to <code>reference/documentation/</code> in the capability-walkthrough repo.</p>
+        <div class="table-wrap" tabindex="0" role="region" aria-labelledby="h-repo">
+          <table class="data-table">
+            <thead><tr><th scope="col">Concept</th><th scope="col">Where</th></tr></thead>
+            <tbody>
+              <tr><td>Generator loop, profile, AI call, comments</td><td><code>src/generate_docs.py</code></td></tr>
+              <tr><td>Page and index renderer (no Spark, unit tested)</td><td><code>src/doc_render.py</code>, <code>tests/test_doc_render.py</code></td></tr>
+              <tr><td>Sample tables to document: <code>bronze_orders</code>, <code>silver_orders</code>, <code>gold_daily_revenue</code></td><td><code>src/build_sample_tables.py</code>, <code>use_cases/general.yml</code></td></tr>
+              <tr><td>Job <code>capability-guides-documentation-refresh</code>, two tasks, no schedule</td><td><code>resources/job.yml</code></td></tr>
+              <tr><td>Schema and docs volume</td><td><code>resources/schema.yml</code>, <code>databricks.yml</code></td></tr>
+              <tr><td>Generated pages and index</td><td><code>/Volumes/&lt;catalog&gt;/capability_guides_documentation/docs/&lt;table&gt;.md</code></td></tr>
+              <tr><td>Refresh record</td><td><code>&lt;catalog&gt;.capability_guides_documentation.documentation_refresh_log</code></td></tr>
+              <tr><td>Written guide</td><td><code>guides/documentation-generation.md</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ───────── Demo steps ───────── -->
+      <section class="guide-section" id="demo" aria-labelledby="h-demo">
+        <h2 id="h-demo">Demo steps</h2>
+        <ol class="practice-list">
+          <li><strong>Run the job.</strong> Start <code>capability-guides-documentation-refresh</code>. It builds the three sample tables, then runs <code>generate_docs</code>.</li>
+          <li><strong>Open the index.</strong> Open <code>index.md</code> in the docs volume to see every table with owner, row count, and summary.</li>
+          <li><strong>Open one page.</strong> Open <code>silver_orders.md</code> and point out Ownership, Schema, Quality, Lineage, and Usage guidance on one page.</li>
+          <li><strong>Show the comments landed.</strong> Open <code>silver_orders</code> in Catalog Explorer. The table and column descriptions match the page.</li>
+          <li><strong>Check the refresh log.</strong> Query <code>documentation_refresh_log</code> for <code>refresh_ts</code>, <code>tables_documented</code>, <code>comments_applied</code>, <code>ai_failures</code>, <code>status</code>, and <code>run_user</code>.</li>
+          <li><strong>Run it again.</strong> Each run regenerates every page and adds a log row. State plainly that nothing runs it on a timer.</li>
+        </ol>
+      </section>
+
+      <!-- ───────── Gaps ───────── -->
+
+      <nav class="pager od-grid" aria-label="Related guides">
+        <a class="prev" href="../guides/monitoring"><span class="eyebrow">Related guide</span><span class="pager-title">Monitoring</span></a>
+        <a class="next" href="../guides/legacy-conversion"><span class="eyebrow">Related guide</span><span class="pager-title">Legacy conversion</span></a>
+      </nav>
+    </article>
+  </main>
+  <script>/*
+ * Hover definitions. Keys are matched case-insensitively against product names,
+ * diagram labels, and code-formatted terms. Keep each definition to one or two
+ * plain sentences. Longer keys win over shorter ones ("Unity Catalog" before "Catalog").
+ */
+window.GLOSSARY = {
+  // Platform and governance
+  "Unity Catalog": "Databricks' governance layer. It holds catalogs, schemas, tables, and grants, and records lineage and audit for every workspace attached to the metastore.",
+  "Metastore": "The top-level Unity Catalog container for a region. Every workspace in the region attaches to the same one.",
+  "Catalog": "The first level of the Unity Catalog namespace (catalog.schema.table). Here, one catalog per environment.",
+  "Workspace": "A Databricks environment with its own users, compute, and network rules. Here, one per environment.",
+  "binding": "Workspace-catalog binding. An isolated catalog is visible only in the workspaces it is bound to, regardless of grants.",
+  "managed location": "The cloud storage path where Unity Catalog writes a catalog's managed tables.",
+  "bucket": "The environment's cloud storage container (S3 bucket, ADLS container, or GCS bucket).",
+  "Service principal": "A non-human identity used by automation. Deploys and jobs run as it, so ownership doesn't leave with a person.",
+  "run_as": "The identity a job or pipeline runs under. In prod this is the environment's service principal.",
+  "System tables": "Account-wide tables under system.* that record jobs, billing, audit, lineage, and compute across every workspace.",
+  "Delta Sharing": "An open protocol for sharing live tables with other accounts, regions, or platforms without copying the data.",
+  "Delta time travel": "Querying or restoring an earlier version of a Delta table from its transaction log.",
+  "RESTORE": "Rolls a Delta table back to an earlier version or timestamp.",
+  "Compute policies": "Rules that cap cluster size and require tags, set by admins.",
+  "Serverless budget policies": "Tags applied to serverless usage so cost is attributed to a team or environment.",
+  "Serverless compute": "Compute that Databricks provisions and scales for you, with no clusters to manage.",
+  "Account console": "Where account admins manage workspaces, metastores, identities, and billing.",
+  "Managed Iceberg tables": "Iceberg tables stored and governed by Unity Catalog.",
+  "Unity Catalog Iceberg REST catalog": "An Iceberg REST endpoint that lets external engines read Unity Catalog tables.",
+  "Credential vending": "Unity Catalog hands external engines short-lived, scoped storage credentials, so they never hold long-lived keys.",
+
+  // Data engineering
+  "Lakeflow Declarative Pipelines": "Declare tables and their dependencies in SQL or Python; Databricks runs, orders, retries, and monitors them.",
+  "Lakeflow Jobs": "Databricks' orchestrator. A job runs tasks such as notebooks, pipelines, and SQL on a schedule or trigger, with retries and alerts.",
+  "Lakeflow Pipelines Editor": "The in-workspace editor for authoring and debugging declarative pipelines.",
+  "Auto Loader": "Incrementally picks up new files from cloud storage or a volume, tracking which files it has already processed.",
+  "Structured Streaming": "Spark's streaming engine; the same code runs as a micro-batch or continuously.",
+  "continuous": "Pipeline setting. true keeps the pipeline running for low latency; false runs triggered batches.",
+  "triggered": "A pipeline update that processes what's available and then stops.",
+  "streaming table": "A table that is fed incrementally, processing only new input on each update.",
+  "materialized view": "A precomputed query result that the pipeline keeps up to date.",
+  "expectations": "Data quality rules on a pipeline table. Rows can be kept and counted, dropped, or fail the update.",
+  "quarantine": "Rows that failed validation, kept in their own table with the reason, so the good rows still load.",
+  "audit_log": "One row per feed run, success or failure, written by the shared framework.",
+  "for_each": "A job task that runs the same task once per input, here once per feed.",
+  "adapter": "The only provider-specific Python: it maps one provider's raw format to the shared schema.",
+  "MERGE": "An upsert: update matching rows and insert new ones in one statement.",
+  "Unity Catalog volumes": "Governed storage for files (landing zones, artifacts) inside Unity Catalog.",
+  "Unity Catalog lineage": "Automatic table- and column-level lineage captured for every query.",
+  "Lakebridge": "Databricks Labs migration tooling: assesses and transpiles legacy SQL workloads.",
+  "sqlglot": "An open-source SQL parser and transpiler, used in this repo for the conversion step.",
+  "dbldatagen": "Databricks Labs synthetic data generator. All demo data here is synthetic.",
+
+  // Developer experience and CI/CD
+  "Declarative Automation Bundles": "Bundles (formerly Databricks Asset Bundles) define jobs, pipelines, and apps as YAML in Git and deploy them per target.",
+  "bundle": "A Declarative Automation Bundle: jobs, pipelines, and config in Git, deployed with databricks bundle deploy -t <target>.",
+  "Databricks Connect": "Runs local IDE code against Databricks compute, so you can debug and unit test from VS Code.",
+  "Databricks CLI": "The databricks command-line tool for bundles, jobs, and workspace operations.",
+  "Databricks Git folders": "Git-backed folders in the workspace for cloning, branching, and committing.",
+  "GitHub Actions": "GitHub's CI/CD runner. The workflow tests and deploys the bundle.",
+  "Workload identity federation": "CI authenticates to Databricks with a short-lived GitHub OIDC token instead of a stored secret.",
+  "OIDC": "OpenID Connect. GitHub issues a short-lived token that Databricks trusts, so no long-lived secret is stored.",
+  "Approval": "A GitHub environment with required reviewers. The deploy waits until a named person approves.",
+  "Smoke run": "A quick run right after deploy that proves the release works before it is promoted.",
+  "pytest": "The Python test runner used for unit tests in CI and locally.",
+  "workflow_dispatch": "A manual trigger on a GitHub workflow. Here it redeploys a chosen ref.",
+
+  // ML and AI
+  "MLflow": "Tracks experiments, logs models, and serves as the model registry in Unity Catalog.",
+  "MLflow 3": "The current MLflow release, with deployment jobs and GenAI tracing.",
+  "Model Serving": "Hosts models and agents behind a secured, autoscaling REST endpoint.",
+  "AI Gateway": "Governs model endpoints: rate limits, guardrails, usage tracking, inference tables, and fallback.",
+  "Inference tables": "Request and response logs from a serving endpoint, written to a Unity Catalog table.",
+  "Data quality monitoring": "Profiles a table or inference log over time and writes drift and quality metrics.",
+  "Feature Engineering in Unity Catalog": "Feature tables in Unity Catalog with point-in-time lookups for training and serving.",
+  "Agent Framework": "Databricks tooling to author, log, deploy, and monitor agents.",
+  "AI/BI Genie": "Natural-language questions over governed tables, answered with generated SQL.",
+  "Unity Catalog metric views": "Governed metric and dimension definitions, with synonyms, defined once in YAML.",
+  "Managed MCP servers": "Databricks-hosted MCP endpoints that expose Unity Catalog functions and other tools to agents under the caller's identity."
+};
+</script>
+  <script>/*
+ * Hover / focus info text.
+ * Any element with data-tip="..." shows a floating tooltip on hover, keyboard focus, or tap.
+ * One fixed-position popover is reused, so tooltips are never clipped by scrolling frames.
+ *
+ * Tips.term(text)   → HTML for a term, with a tooltip when the glossary has it
+ * Tips.lookup(text) → definition for an exact glossary key (case-insensitive) or null
+ * Tips.annotate(root) → adds tooltips to SVG diagram labels and <code> terms found in the glossary
+ */
+(function () {
+  "use strict";
+
+  const G = window.GLOSSARY || {};
+  const keys = Object.keys(G).sort((a, b) => b.length - a.length);
+  const lower = Object.fromEntries(keys.map((k) => [k.toLowerCase(), k]));
+  const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  const reEsc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const matchers = keys.map((k) => [k, new RegExp(`(^|[^\\w])${reEsc(k)}($|[^\\w])`, "i")]);
+
+  function lookup(text) {
+    const k = lower[String(text || "").trim().toLowerCase()];
+    return k ? G[k] : null;
+  }
+
+  // First glossary term contained in the text (longest keys first).
+  function find(text) {
+    const t = String(text || "");
+    for (const [k, re] of matchers) if (re.test(t)) return { key: k, tip: G[k] };
+    return null;
+  }
+
+  function term(text) {
+    const tip = lookup(text);
+    return tip
+      ? `<span class="has-tip" tabindex="0" data-tip="${esc(tip)}">${esc(text)}</span>`
+      : esc(text);
+  }
+
+  /* ── Floating popover ── */
+  let pop = null;
+  let owner = null;
+
+  function ensurePop() {
+    if (pop) return pop;
+    pop = document.createElement("div");
+    pop.className = "tip-pop";
+    pop.id = "tip-pop";
+    pop.setAttribute("role", "tooltip");
+    pop.hidden = true;
+    document.body.appendChild(pop);
+    return pop;
+  }
+
+  function show(el) {
+    const text = el.getAttribute("data-tip");
+    if (!text) return;
+    const p = ensurePop();
+    owner = el;
+    p.textContent = text;
+    p.hidden = false;
+    el.setAttribute("aria-describedby", p.id);
+    const r = el.getBoundingClientRect();
+    const pw = p.offsetWidth;
+    const ph = p.offsetHeight;
+    const margin = 8;
+    let left = r.left + r.width / 2 - pw / 2;
+    left = Math.max(margin, Math.min(left, window.innerWidth - pw - margin));
+    let top = r.top - ph - margin;
+    let below = false;
+    if (top < margin) { top = r.bottom + margin; below = true; }
+    p.style.left = `${Math.round(left)}px`;
+    p.style.top = `${Math.round(top)}px`;
+    p.classList.toggle("below", below);
+    requestAnimationFrame(() => p.classList.add("show"));
+  }
+
+  function hide() {
+    if (!pop || pop.hidden) return;
+    pop.classList.remove("show");
+    pop.hidden = true;
+    if (owner) owner.removeAttribute("aria-describedby");
+    owner = null;
+  }
+
+  const tipTarget = (e) => (e.target && e.target.closest ? e.target.closest("[data-tip]") : null);
+
+  function bind() {
+    if (bind.done) return;
+    bind.done = true;
+    document.addEventListener("pointerover", (e) => {
+      if (e.pointerType === "touch") return;
+      const el = tipTarget(e);
+      if (el && el !== owner) show(el);
+      else if (!el) hide();
+    });
+    document.documentElement.addEventListener("pointerleave", hide);
+    document.addEventListener("focusin", (e) => { const el = tipTarget(e); if (el) show(el); });
+    document.addEventListener("focusout", (e) => { if (tipTarget(e) === owner) hide(); });
+    document.addEventListener("pointerdown", (e) => {
+      if (e.pointerType !== "touch") return;
+      const el = tipTarget(e);
+      if (el && el !== owner) show(el); else hide();
+    });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") hide(); });
+    window.addEventListener("scroll", hide, true);
+    window.addEventListener("resize", hide);
+  }
+
+  /* ── Auto-annotation for static guide pages and diagrams ── */
+  function annotate(root) {
+    const scope = root || document;
+    scope.querySelectorAll("svg.d-svg text").forEach((t) => {
+      if (t.hasAttribute("data-tip")) return;
+      const hit = find(t.textContent);
+      if (hit) { t.setAttribute("data-tip", `${hit.key}: ${hit.tip}`); t.classList.add("has-tip-svg"); }
+    });
+    scope.querySelectorAll(".data-table code, .practice-list code, .prose code, .product-list li").forEach((c) => {
+      if (c.hasAttribute("data-tip") || c.closest("[data-tip]")) return;
+      const tip = lookup(c.textContent) || (find(c.textContent) || {}).tip;
+      if (tip) { c.setAttribute("data-tip", tip); c.setAttribute("tabindex", "0"); c.classList.add("has-tip"); }
+    });
+  }
+
+  window.Tips = { lookup, find, term, annotate, hide };
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => { bind(); annotate(document); });
+  } else { bind(); annotate(document); }
+})();
+</script>
+</body>
+</html>

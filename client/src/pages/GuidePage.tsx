@@ -16,6 +16,8 @@ import { Link, useParams } from 'react-router';
 import { AutoLoaderDrop } from '../components/AutoLoaderDrop.tsx';
 import { CodeBlock } from '../components/CodeBlock.tsx';
 import { getGuide } from '../data/guides.ts';
+import designedWalkthroughs from '../data/walkthroughs/designed.json';
+import { getWalkthrough } from '../data/walkthroughs/index.ts';
 import {
   latestSuccessfulRun,
   runStatus,
@@ -62,7 +64,7 @@ export function GuidePage() {
 
           <section>
             <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">Guide intent</p>
-            <h2 className="mt-3 text-2xl font-semibold tracking-tight">What this guide demonstrates</h2>
+            <h2 className="mt-3 text-2xl font-semibold tracking-tight">What you&apos;ll see</h2>
             <p className="mt-4 max-w-3xl text-base leading-7">{guide.acceptanceCriteria}</p>
           </section>
 
@@ -152,6 +154,7 @@ export function GuidePage() {
               )}
               {!artifacts && !error && !planned && <p className="text-sm text-muted-foreground">Loading artifacts…</p>}
               {error && <p className="text-sm text-muted-foreground">{error}</p>}
+              <WalkthroughLinks slug={guide.slug} />
               {artifacts && (
                 <>
                   <ArtifactAnchor
@@ -419,5 +422,44 @@ function ArtifactAnchor({
       </div>
       <ArrowUpRight className="size-4 shrink-0" />
     </a>
+  );
+}
+
+const designed = new Set<string>(designedWalkthroughs);
+
+function WalkthroughLinks({ slug }: { slug: string }) {
+  const hasDesigned = designed.has(slug);
+  const data = getWalkthrough(slug);
+  if (!hasDesigned && !data) return null;
+  const className =
+    'flex items-center gap-3 rounded-lg border border-foreground p-3 transition-colors hover:bg-muted/50';
+  return (
+    <>
+      {hasDesigned && (
+        // Designed walkthroughs are static pages served next to the app, so they open with a plain link.
+        <a href={`${import.meta.env.BASE_URL}walkthroughs/${slug}.html`} className={className}>
+          <MapIcon className="size-4 shrink-0" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium">Visual walkthrough</p>
+            <p className="text-xs text-muted-foreground">Diagrams and steps for this guide</p>
+          </div>
+          <ArrowUpRight className="size-4 shrink-0" />
+        </a>
+      )}
+      {data && (
+        <Link to={`/walkthroughs/${slug}`} className={className}>
+          <MapIcon className="size-4 shrink-0" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium">
+              {hasDesigned ? 'Rules, quarantine, alerts, and audit' : 'Visual walkthrough'}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {hasDesigned ? 'Row-level flow and system table queries' : 'Diagrams and steps for this guide'}
+            </p>
+          </div>
+          <ArrowUpRight className="size-4 shrink-0" />
+        </Link>
+      )}
+    </>
   );
 }

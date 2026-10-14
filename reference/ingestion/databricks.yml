@@ -22,6 +22,9 @@ variables:
   environment:
     description: Environment label recorded in tags
     default: dev
+  quarantine_alert_pct:
+    description: Alert when any feed quarantines more than this percent of rows in 24 hours
+    default: 5
   release:
     description: Release identifier (CI sets the Git commit SHA) recorded in resource tags
     default: local

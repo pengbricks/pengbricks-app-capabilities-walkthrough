@@ -5,7 +5,7 @@ seed: 42
 tags:
   domain: sales
   data_owner_team: data-platform
-  sensitivity: internal
+  sensitivity: low
 tables:
   - name: bronze_orders
     kind: generate          # generated with dbldatagen from the column specs below
