@@ -7,7 +7,7 @@ Each guides_<name>.html becomes client/public/walkthroughs/<guide-slug>.html, se
 glossary hover script) and removes what does not belong in this public, generic app:
   - the Status section and its table-of-contents link
   - references to another app's screens (#/... routes, "App screen", "Interactive walkthrough")
-  - tracker and evaluation wording, and customer feed names
+  - tracker and evaluation wording, and source-specific feed names
 Links are rewritten to the app's guide pages and to sibling walkthroughs.
 """
 
@@ -28,7 +28,7 @@ SLUGS = {"batch-and-real-time": "batch-real-time-ingestion"}
 DROP_ELEMENT = re.compile(
     r"App screen|Also in the app|Show it in the app|Interactive walkthrough|Tracker gap|Feed names|"
     r"No app screen|No combined page on the app screen|Evaluation Guide|in the tracker|#/[a-z][a-z-]*(?:/[a-z-]+)?</code>|"
-    r"Gap:</strong>|>Gap:|Guidewire|PolicyCenter|Property Prefill|app screen|tracker|Name the gap",
+    r"Gap:</strong>|>Gap:|app screen|tracker|Name the gap",
     re.I,
 )
 # Sections about the source tracker or another app, removed whole along with their contents links.
