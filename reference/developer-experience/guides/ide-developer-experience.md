@@ -1,4 +1,4 @@
-# IDE and developer experience
+# Developer workflow in the IDE
 
 ## Overview
 

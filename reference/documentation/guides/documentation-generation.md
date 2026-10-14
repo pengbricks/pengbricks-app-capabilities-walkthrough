@@ -1,4 +1,4 @@
-# Documentation generation
+# Automated data documentation
 
 ## Overview
 

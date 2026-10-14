@@ -1,4 +1,4 @@
-# Batch and real-time ingestion
+# Batch and streaming ingestion
 
 ## Overview
 

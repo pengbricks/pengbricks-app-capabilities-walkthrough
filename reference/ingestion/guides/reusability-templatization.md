@@ -1,4 +1,4 @@
-# Reusability / templatization
+# Reusable ingestion templates
 
 ## Overview
 

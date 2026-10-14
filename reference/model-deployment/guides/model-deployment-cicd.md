@@ -1,4 +1,4 @@
-# Model deployment through CI/CD
+# Model release pipeline
 
 ## Overview
 

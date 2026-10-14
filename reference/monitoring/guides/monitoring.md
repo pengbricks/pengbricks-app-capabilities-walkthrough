@@ -1,4 +1,4 @@
-# Monitoring
+# Platform observability
 
 ## Overview
 

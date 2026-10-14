@@ -15,7 +15,7 @@ describe('guide catalog', () => {
   });
 
   it('resolves a guide by slug', () => {
-    expect(getGuide('configuration-vs-code')?.title).toBe('Configuration vs code');
+    expect(getGuide('configuration-vs-code')?.title).toBe('Configuration-driven ingestion');
   });
 
   it('groups ingestion framework guides together', () => {

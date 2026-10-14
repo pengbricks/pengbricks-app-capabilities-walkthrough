@@ -1,4 +1,4 @@
-# GitHub integration and CI/CD
+# GitHub-based CI/CD
 
 ## Overview
 

@@ -23,7 +23,7 @@ export type Guide = {
 export const guides: readonly Guide[] = [
   {
     slug: 'configuration-vs-code',
-    title: 'Configuration vs code',
+    title: 'Configuration-driven ingestion',
     category: 'Ingestion',
     summary: 'Separate provider-specific adapters from reusable control-plane services.',
     acceptanceCriteria:
@@ -36,7 +36,7 @@ export const guides: readonly Guide[] = [
   },
   {
     slug: 'reusability-templatization',
-    title: 'Reusability / templatization',
+    title: 'Reusable ingestion templates',
     category: 'Ingestion',
     summary: 'Prove that a second source can be onboarded without rebuilding the framework.',
     acceptanceCriteria:
@@ -49,7 +49,7 @@ export const guides: readonly Guide[] = [
   },
   {
     slug: 'batch-real-time-ingestion',
-    title: 'Batch and real-time ingestion',
+    title: 'Batch and streaming ingestion',
     category: 'Ingestion',
     summary: 'Demonstrate priority batch and supported streaming ingestion patterns.',
     acceptanceCriteria:
@@ -62,7 +62,7 @@ export const guides: readonly Guide[] = [
   },
   {
     slug: 'ide-developer-experience',
-    title: 'IDE and developer experience',
+    title: 'Developer workflow in the IDE',
     category: 'CI/CD & Version Control Guides',
     summary: 'Capture a representative author, debug, and test workflow.',
     acceptanceCriteria:
@@ -75,7 +75,7 @@ export const guides: readonly Guide[] = [
   },
   {
     slug: 'github-cicd',
-    title: 'GitHub integration and CI/CD',
+    title: 'GitHub-based CI/CD',
     category: 'CI/CD & Version Control Guides',
     summary: 'Promote one traceable release across development and test.',
     acceptanceCriteria:
@@ -88,7 +88,7 @@ export const guides: readonly Guide[] = [
   },
   {
     slug: 'versioning',
-    title: 'Versioning',
+    title: 'Data contract versioning',
     category: 'CI/CD & Version Control Guides',
     summary: 'Show compatible evolution and governed breaking-change handling.',
     acceptanceCriteria:
@@ -101,7 +101,7 @@ export const guides: readonly Guide[] = [
   },
   {
     slug: 'model-deployment-cicd',
-    title: 'Model deployment and CI/CD',
+    title: 'Model release pipeline',
     category: 'ML Guides',
     summary: 'Release an approved model through an auditable automated path.',
     acceptanceCriteria:
@@ -114,7 +114,7 @@ export const guides: readonly Guide[] = [
   },
   {
     slug: 'dataops',
-    title: 'DataOps',
+    title: 'Pipeline operations',
     category: 'CI/CD & Version Control Guides',
     summary: 'Exercise day-two controls across isolated environments.',
     acceptanceCriteria:
@@ -127,7 +127,7 @@ export const guides: readonly Guide[] = [
   },
   {
     slug: 'documentation-generation',
-    title: 'Documentation generation',
+    title: 'Automated data documentation',
     category: 'Governance/Monitoring',
     summary: 'Generate governed technical and usage documentation from platform metadata.',
     acceptanceCriteria:
@@ -140,7 +140,7 @@ export const guides: readonly Guide[] = [
   },
   {
     slug: 'monitoring',
-    title: 'Monitoring',
+    title: 'Platform observability',
     category: 'Governance/Monitoring',
     summary: 'Unify operational, usage, cost, and audit signals.',
     acceptanceCriteria:
@@ -153,7 +153,7 @@ export const guides: readonly Guide[] = [
   },
   {
     slug: 'user-experience',
-    title: 'User experience',
+    title: 'Assistant user experience',
     category: 'AI Guides',
     summary: 'Observe representative users completing core discovery tasks.',
     acceptanceCriteria:
@@ -166,7 +166,7 @@ export const guides: readonly Guide[] = [
   },
   {
     slug: 'ontology',
-    title: 'Ontology',
+    title: 'Business terms and synonyms',
     category: 'AI Guides',
     summary: 'Improve discovery through governed concepts and synonyms.',
     acceptanceCriteria:
@@ -179,7 +179,7 @@ export const guides: readonly Guide[] = [
   },
   {
     slug: 'agent-framework-support',
-    title: 'Agent framework support',
+    title: 'Agents, MCP, and model gateway',
     category: 'AI Guides',
     summary: 'Evaluate governed MCP, A2A, and model-gateway operations end to end.',
     acceptanceCriteria:
@@ -192,7 +192,7 @@ export const guides: readonly Guide[] = [
   },
   {
     slug: 'agent-build-deployment',
-    title: 'Ease of agent build and deployment',
+    title: 'Building and shipping agents',
     category: 'AI Guides',
     summary: 'Document the full assistant build-to-operations lifecycle.',
     acceptanceCriteria:
@@ -205,7 +205,7 @@ export const guides: readonly Guide[] = [
   },
   {
     slug: 'data-ingestion-feature-preparation',
-    title: 'Data ingestion and feature preparation',
+    title: 'Feature preparation from source data',
     category: 'Ingestion',
     summary: 'Create reproducible, governed model inputs from source data.',
     acceptanceCriteria:
@@ -218,7 +218,7 @@ export const guides: readonly Guide[] = [
   },
   {
     slug: 'model-training-compatibility',
-    title: 'Model training and compatibility',
+    title: 'Training and bringing existing models',
     category: 'ML Guides',
     summary: 'Reproduce baseline model behavior in the target runtime.',
     acceptanceCriteria:
@@ -231,7 +231,7 @@ export const guides: readonly Guide[] = [
   },
   {
     slug: 'experiment-tracking',
-    title: 'Experiment tracking and reproducibility',
+    title: 'Reproducible experiments',
     category: 'ML Guides',
     summary: 'Replay a recorded experiment from tracked inputs.',
     acceptanceCriteria:
@@ -244,7 +244,7 @@ export const guides: readonly Guide[] = [
   },
   {
     slug: 'real-time-scoring',
-    title: 'Real-time or on-demand scoring',
+    title: 'Online model scoring',
     category: 'ML Guides',
     summary: 'Measure a secured online inference path under normal and failure conditions.',
     acceptanceCriteria:
@@ -257,7 +257,7 @@ export const guides: readonly Guide[] = [
   },
   {
     slug: 'model-performance-drift',
-    title: 'Model performance and drift monitoring',
+    title: 'Model quality and drift',
     category: 'ML Guides',
     summary: 'Detect a simulated breach and route action to the owner.',
     acceptanceCriteria:
@@ -270,7 +270,7 @@ export const guides: readonly Guide[] = [
   },
   {
     slug: 'operational-support',
-    title: 'Operational support',
+    title: 'Support and recovery',
     category: 'Governance/Monitoring',
     summary: 'Exercise support ownership and a representative recovery path.',
     acceptanceCriteria: 'Demonstrate triage, restart/recovery, resiliency approach, support escalation, and ownership.',
@@ -278,7 +278,7 @@ export const guides: readonly Guide[] = [
   },
   {
     slug: 'iceberg-support',
-    title: 'Iceberg support',
+    title: 'Apache Iceberg interoperability',
     category: 'General Guides',
     summary: 'Validate governed Iceberg interoperability and table evolution.',
     acceptanceCriteria:
@@ -291,7 +291,7 @@ export const guides: readonly Guide[] = [
   },
   {
     slug: 'external-integrations',
-    title: 'External tool integrations',
+    title: 'Partner tool integrations',
     category: 'General Guides',
     summary: 'Connect two priority tools through supported integration patterns.',
     acceptanceCriteria: 'Demonstrate at least two priority integrations using supported patterns.',
@@ -303,7 +303,7 @@ export const guides: readonly Guide[] = [
   },
   {
     slug: 'legacy-conversion',
-    title: 'Legacy conversion',
+    title: 'Legacy workload migration',
     category: 'General Guides',
     summary: 'Assess conversion coverage and the remaining human effort.',
     acceptanceCriteria:
@@ -316,7 +316,7 @@ export const guides: readonly Guide[] = [
   },
   {
     slug: 'data-sharing',
-    title: 'Data sharing',
+    title: 'Governed data sharing',
     category: 'Governance/Monitoring',
     summary: 'Exercise governed sharing, entitlement, and revocation.',
     acceptanceCriteria:
@@ -329,7 +329,7 @@ export const guides: readonly Guide[] = [
   },
   {
     slug: 'platform-administration',
-    title: 'Platform administration',
+    title: 'Workspace and account administration',
     category: 'Governance/Monitoring',
     summary: 'Walk through the core enterprise administration operating model.',
     acceptanceCriteria:

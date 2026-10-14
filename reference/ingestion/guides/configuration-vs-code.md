@@ -1,4 +1,4 @@
-# Configuration vs code
+# Configuration-driven ingestion
 
 ## Overview
 

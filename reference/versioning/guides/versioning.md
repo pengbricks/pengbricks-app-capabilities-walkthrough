@@ -1,4 +1,4 @@
-# Versioning
+# Data contract versioning
 
 ## Overview
 

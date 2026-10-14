@@ -1028,11 +1028,11 @@ export function EnvironmentSeparationPage() {
         <nav className="pager od-grid" aria-label="Related guides">
           <Link className="prev" to="/guides/github-cicd">
             <span className="eyebrow">Related guide</span>
-            <span className="pager-title">GitHub integration and CI/CD</span>
+            <span className="pager-title">GitHub-based CI/CD</span>
           </Link>
           <Link className="next" to="/guides/dataops">
             <span className="eyebrow">Related guide</span>
-            <span className="pager-title">DataOps</span>
+            <span className="pager-title">Pipeline operations</span>
           </Link>
         </nav>
       </article>
