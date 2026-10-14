@@ -4,6 +4,7 @@ export type ArtifactLink = { label: string; url: string };
 
 export type CodeHighlight = {
   label: string;
+  notes: string[];
   path: string;
   symbol: string | null;
   language: string;
@@ -48,6 +49,7 @@ export type GuideArtifacts = {
   code: ArtifactLink[];
   docs: ArtifactLink[];
   walkthroughs: ArtifactLink[];
+  autoLoaderDrop: boolean;
   highlights: CodeHighlight[];
   jobs: GuideJob[];
   recordedRuns: RecordedRun[];
@@ -107,4 +109,52 @@ export async function startQuickRun(slug: string, jobKey: string): Promise<JobRu
     throw new Error(body.detail ?? `Quick run failed (${response.status})`);
   }
   return (await response.json()) as JobRun;
+}
+
+export type DropSample = { label: string; path: string; content: string };
+
+export type DropResult = {
+  path: string;
+  records: number;
+  pipelineUrl: string;
+  updateId?: string;
+  updateUrl?: string;
+  note?: string;
+};
+
+export type FlowMetrics = {
+  flow: string;
+  rowsWritten: number | null;
+  droppedRecords: number | null;
+  expectations: { name: string; passed: number | null; failed: number | null }[];
+};
+
+export type DropStatus = { state: string; flows: FlowMetrics[] };
+
+async function errorDetail(response: Response, fallback: string): Promise<string> {
+  const body = (await response.json().catch(() => ({}))) as { detail?: string };
+  return body.detail ?? `${fallback} (${response.status})`;
+}
+
+export async function loadDropSamples(slug: string): Promise<DropSample[] | null> {
+  const response = await fetch(`${API}/${slug}/drop`);
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error(await errorDetail(response, 'Samples are unavailable'));
+  return ((await response.json()) as { samples: DropSample[] }).samples;
+}
+
+export async function dropDocument(slug: string, content: string): Promise<DropResult> {
+  const response = await fetch(`${API}/${slug}/drop`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content }),
+  });
+  if (!response.ok) throw new Error(await errorDetail(response, 'Drop failed'));
+  return (await response.json()) as DropResult;
+}
+
+export async function dropStatus(slug: string, updateId: string): Promise<DropStatus> {
+  const response = await fetch(`${API}/${slug}/drop/updates/${updateId}`);
+  if (!response.ok) throw new Error(await errorDetail(response, 'Status is unavailable'));
+  return (await response.json()) as DropStatus;
 }

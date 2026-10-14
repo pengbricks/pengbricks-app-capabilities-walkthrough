@@ -62,6 +62,7 @@ def canonical(spark, spec: dict[str, Any], rows: int, seed_offset: int = 0, id_o
     import dbldatagen as dg
     from pyspark.sql import functions as F
 
+    # A fixed seed per spec (plus an offset per feed) makes every run produce the same rows.
     generator = dg.DataGenerator(
         spark,
         name=f"{spec['name']}_{spec['entity']['name']}",
@@ -69,10 +70,12 @@ def canonical(spark, spec: dict[str, Any], rows: int, seed_offset: int = 0, id_o
         partitions=4,
         randomSeedMethod="hash_fieldname",
         randomSeed=int(spec["seed"]) + seed_offset,
-    ).withIdOutput()
+    ).withIdOutput()  # keep `id`: expression columns and bad-row rules use it
+    # Each spec column becomes one dbldatagen column definition.
     for column in spec["entity"]["columns"]:
         generator = generator.withColumn(column["name"], spark_type(column["type"]), **column_options(column))
     df = generator.build()
+    # Streaming batches shift ids so each batch has new keys.
     if id_offset:
         df = df.withColumn("id", F.col("id") + F.lit(id_offset))
         for column in spec["entity"]["columns"]:

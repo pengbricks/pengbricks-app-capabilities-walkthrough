@@ -17,12 +17,10 @@ export function GuideCard({ guide, number }: { guide: Guide; number: number }) {
         <p className="line-clamp-3 text-sm leading-6 text-muted-foreground">{guide.acceptanceCriteria}</p>
       </CardContent>
       <CardFooter className="mx-5 flex items-center gap-3 border-t px-0 py-4 text-sm">
-        <span className="size-2 rounded-full border border-muted-foreground" aria-hidden="true" />
-        <span className="text-muted-foreground">Run not linked</span>
-        <span className="ml-auto text-xs text-muted-foreground">{guide.evidence.length} artifacts</span>
+        <span className="text-xs text-muted-foreground">{guide.evidence.length} artifacts</span>
         <Link
           to={`/guides/${guide.slug}`}
-          className="after:absolute after:inset-0"
+          className="ml-auto after:absolute after:inset-0"
           aria-label={`Open ${guide.title} guide`}
         >
           <ArrowRight className="brand-mark size-4 transition-transform group-hover:translate-x-0.5" />

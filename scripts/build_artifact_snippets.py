@@ -19,6 +19,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 INDEX = ROOT / "server" / "artifacts.json"
 OUTPUT = ROOT / "server" / "artifact_snippets.json"
+SAMPLES_OUTPUT = ROOT / "server" / "artifact_samples.json"
 MAX_LINES = 40
 
 
@@ -59,19 +60,39 @@ def build() -> str:
     return json.dumps(snippets, indent=2) + "\n"
 
 
+def build_samples() -> str:
+    """Embed Auto Loader example documents so the app can prefill its drop panel."""
+    index = json.loads(INDEX.read_text(encoding="utf-8"))
+    samples = {
+        slug: [
+            {"label": item["label"], "path": item["path"], "content": (ROOT / item["path"]).read_text(encoding="utf-8").strip()}
+            for item in guide["autoLoaderDrop"]["samples"]
+        ]
+        for slug, guide in sorted(index["guides"].items())
+        if guide.get("autoLoaderDrop")
+    }
+    return json.dumps(samples, indent=2) + "\n"
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
     rendered = build()
+    samples = build_samples()
     if args.check:
-        if not OUTPUT.exists() or OUTPUT.read_text(encoding="utf-8") != rendered:
-            print("server/artifact_snippets.json is stale. Run: python scripts/build_artifact_snippets.py")
+        stale = [
+            path.name for path, text in ((OUTPUT, rendered), (SAMPLES_OUTPUT, samples))
+            if not path.exists() or path.read_text(encoding="utf-8") != text
+        ]
+        if stale:
+            print(f"Stale: {', '.join(stale)}. Run: python scripts/build_artifact_snippets.py")
             return 1
         print("Artifact snippets are current.")
         return 0
     OUTPUT.write_text(rendered, encoding="utf-8")
-    print(f"Wrote {OUTPUT.relative_to(ROOT)}")
+    SAMPLES_OUTPUT.write_text(samples, encoding="utf-8")
+    print(f"Wrote {OUTPUT.relative_to(ROOT)} and {SAMPLES_OUTPUT.relative_to(ROOT)}")
     return 0
 
 

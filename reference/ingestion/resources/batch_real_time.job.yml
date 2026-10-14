@@ -14,6 +14,8 @@ resources:
           default: ${var.catalog}
         - name: schema
           default: ${resources.schemas.capability_guides_ingestion.name}
+        - name: use_case
+          default: ${var.use_case}
       environments:
         - environment_key: framework
           spec:
@@ -25,6 +27,10 @@ resources:
         - task_key: batch_ingest
           run_job_task:
             job_id: ${resources.jobs.capability_guides_ingestion_framework.id}
+            job_parameters:
+              catalog: "{{job.parameters.catalog}}"
+              schema: "{{job.parameters.schema}}"
+              use_case: "{{job.parameters.use_case}}"
 
         - task_key: land_stream_events
           environment_key: framework
@@ -33,7 +39,7 @@ resources:
             parameters:
               - --catalog={{job.parameters.catalog}}
               - --schema={{job.parameters.schema}}
-              - --use-case-file=${workspace.file_path}/use_cases/${var.use_case}.yml
+              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
               - --mode=stream
 
         - task_key: streaming_pipeline

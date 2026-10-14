@@ -12,6 +12,7 @@ def simulate_transient_failure(dbutils, catalog: str, schema: str, run_id: str) 
     """Fail the first attempt of a run so the job's retry policy is exercised; later attempts pass."""
     marker = f"/Volumes/{catalog}/{schema}/landing/_markers/transient-{run_id}"
     try:
+        # The marker exists only after the first attempt, so a retry passes.
         dbutils.fs.ls(marker)
         print("Retry attempt: transient condition cleared")
     except Exception:

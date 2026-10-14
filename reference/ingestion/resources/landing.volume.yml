@@ -5,3 +5,7 @@ resources:
       schema_name: ${resources.schemas.capability_guides_ingestion.name}
       name: landing
       comment: Landing zone for generated provider files and streaming events
+      grants:
+        # Lets the app's "Drop into Auto Loader" panel write example documents.
+        - principal: ${var.app_service_principal}
+          privileges: [READ_VOLUME, WRITE_VOLUME]

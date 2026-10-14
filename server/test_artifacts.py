@@ -33,6 +33,7 @@ def test_every_artifact_path_exists() -> None:
 def test_snippets_are_current() -> None:
     builder = load_snippet_builder()
     assert builder.OUTPUT.read_text(encoding="utf-8") == builder.build()
+    assert builder.SAMPLES_OUTPUT.read_text(encoding="utf-8") == builder.build_samples()
 
 
 def test_artifacts_fall_back_to_static_links_without_workspace(monkeypatch) -> None:
@@ -82,3 +83,41 @@ def test_quick_run_rejects_jobs_outside_the_guide() -> None:
 
 def test_unknown_guide_is_404() -> None:
     assert client.get("/api/capability-guides/artifacts/not-a-guide").status_code == 404
+
+
+def test_drop_rejects_invalid_json() -> None:
+    response = client.post("/api/capability-guides/artifacts/batch-real-time-ingestion/drop", json={"content": "{not json"})
+    assert response.status_code == 400
+
+
+def test_drop_is_only_offered_where_configured() -> None:
+    assert client.get("/api/capability-guides/artifacts/monitoring/drop").status_code == 404
+    samples = client.get("/api/capability-guides/artifacts/batch-real-time-ingestion/drop").json()["samples"]
+    assert [sample["label"] for sample in samples] == ["Valid event", "Event that fails expectations"]
+
+
+def test_drop_writes_to_the_pipeline_landing_path_and_starts_an_update(monkeypatch) -> None:
+    uploads = []
+    job = SimpleNamespace(job_id=9, settings=SimpleNamespace(name="brt", tags={"capability_guide_job": "capability_guides_batch_real_time"}))
+    full_job = SimpleNamespace(settings=SimpleNamespace(tasks=[SimpleNamespace(pipeline_task=None), SimpleNamespace(pipeline_task=SimpleNamespace(pipeline_id="p1"))]))
+    fake = SimpleNamespace(
+        config=SimpleNamespace(host="https://workspace.example.com"),
+        jobs=SimpleNamespace(list=lambda: [job], get=lambda job_id: full_job),
+        pipelines=SimpleNamespace(
+            get=lambda pipeline_id: SimpleNamespace(spec=SimpleNamespace(configuration={"landing_events_path": "/Volumes/c/s/landing/events/"})),
+            start_update=lambda pipeline_id: SimpleNamespace(update_id="u1"),
+        ),
+        files=SimpleNamespace(upload=lambda path, stream, overwrite: uploads.append((path, stream.read().decode()))),
+    )
+    monkeypatch.setattr(artifacts, "workspace_client", lambda: fake)
+    monkeypatch.setattr(artifacts, "directory", artifacts.JobDirectory())
+
+    body = client.post(
+        "/api/capability-guides/artifacts/batch-real-time-ingestion/drop",
+        json={"content": '{"event_id": "E1", "amount": 1}'},
+    ).json()
+
+    path, written = uploads[0]
+    assert path.startswith("/Volumes/c/s/landing/events/app-drops/drop-")
+    assert '"event_ts"' in written
+    assert body["updateUrl"] == "https://workspace.example.com/pipelines/p1/updates/u1"

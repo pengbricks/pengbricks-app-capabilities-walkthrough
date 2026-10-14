@@ -33,12 +33,14 @@ def validate_use_case(spec: dict[str, Any]) -> None:
 
 def render_feed(spec: dict[str, Any], feed: dict[str, Any]) -> dict[str, Any]:
     """Render the framework feed config for one feed. Output is deterministic for a given spec."""
+    # The rendered config is everything the shared framework needs; nothing else is per feed.
     return {
         "name": feed["name"],
         "adapter": feed.get("adapter", "generic"),
         "source": {"format": feed["format"], "options": dict(feed.get("options", {}))},
         "mapping": {column: feed["mapping"][column] for column in CANONICAL_COLUMNS},
-        "keys": list(spec["entity"]["keys"]),
+        "keys": list(spec["entity"]["keys"]),  # merge keys are shared across feeds
+        # Shared rules first, then any rules specific to this feed.
         "rules": [dict(rule) for rule in spec.get("rules", [])] + [dict(rule) for rule in feed.get("rules", [])],
     }
 

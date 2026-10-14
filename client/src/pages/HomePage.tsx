@@ -39,15 +39,9 @@ export function HomePage() {
           Databricks capability walkthrough
         </h1>
         <p className="mt-5 max-w-3xl text-lg leading-8 text-muted-foreground">
-          One page per guide: what to demonstrate, which Databricks capabilities apply, the reference implementation,
-          and the run that proves it.
+          One page per guide: what to demonstrate, which Databricks capabilities apply, and the reference
+          implementation behind it.
         </p>
-
-        <div className="mt-8 grid overflow-hidden rounded-lg sm:grid-cols-3">
-          <Stat value={guides.length.toString()} label="Capability guides" />
-          <Stat value={categories.length.toString()} label="Demo areas" />
-          <Stat value={`0/${guides.length}`} label="Runs linked" />
-        </div>
       </section>
 
       <section id="guide-library" className="scroll-mt-20 pt-10">
@@ -141,15 +135,6 @@ export function HomePage() {
           </Card>
         )}
       </section>
-    </div>
-  );
-}
-
-function Stat({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="border-b p-4 last:border-b-0 sm:odd:border-r lg:border-b-0 lg:border-r lg:last:border-r-0">
-      <p className="text-3xl font-bold tracking-tight">{value}</p>
-      <p className="mt-1 text-sm text-muted-foreground">{label}</p>
     </div>
   );
 }

@@ -12,6 +12,7 @@ resources:
         landing_events_path: /Volumes/${var.catalog}/${resources.schemas.capability_guides_ingestion.name}/landing/events/
         catalog: ${var.catalog}
         schema: ${resources.schemas.capability_guides_ingestion.name}
+        use_case: ${var.use_case}
       tags:
         capability_guide_job: capability_guides_ingestion_streaming
         capability_guide_use_case: ${var.use_case}

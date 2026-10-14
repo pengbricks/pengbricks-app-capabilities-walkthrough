@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
+import { AutoLoaderDrop } from '../components/AutoLoaderDrop.tsx';
 import { getGuide } from '../data/guides.ts';
 import {
   latestSuccessfulRun,
@@ -78,6 +79,8 @@ export function GuidePage() {
               ))}
             </div>
           </section>
+
+          {artifacts?.autoLoaderDrop && <AutoLoaderDrop slug={guide.slug} />}
 
           {artifacts && artifacts.highlights.length > 0 && (
             <section className="mt-10">
@@ -150,7 +153,9 @@ export function GuidePage() {
             </CardContent>
           </Card>
 
-          {artifacts && <RunsCard slug={guide.slug} artifacts={artifacts} onChange={() => void reload()} />}
+          {artifacts && (artifacts.jobs.length > 0 || artifacts.recordedRuns.length > 0) && (
+            <RunsCard slug={guide.slug} artifacts={artifacts} onChange={() => void reload()} />
+          )}
         </aside>
       </div>
     </div>
@@ -310,6 +315,13 @@ function CodeExcerpt({ highlight }: { highlight: CodeHighlight }) {
           <ArrowUpRight className="size-3" />
         </a>
       </figcaption>
+      {highlight.notes.length > 0 && (
+        <ul className="list-disc space-y-1 border-b px-4 py-3 pl-8 text-xs leading-5 text-muted-foreground">
+          {highlight.notes.map((note) => (
+            <li key={note}>{note}</li>
+          ))}
+        </ul>
+      )}
       <pre className="max-h-96 overflow-auto bg-muted/40 p-4 text-xs leading-5">
         <code>{highlight.code}</code>
       </pre>

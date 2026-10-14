@@ -37,18 +37,22 @@ def run_feed(spark, config: FeedConfig, catalog: str, schema: str, run_id: str) 
     try:
         from pyspark.sql import functions as F
 
+        # 1. Read and map: the adapter named in the feed config returns canonical columns.
         mapped = get_adapter(config.adapter)(spark, config, config.landing_path(catalog, schema))
         mapped = mapped.withColumn("source_feed", F.lit(config.name)).withColumn("ingest_run_id", F.lit(run_id))
+        # 2. Validate: the same configured rules apply to every feed.
         valid, quarantined = split_valid(mapped, config.rules)
 
         record.rows_read = mapped.count()
         record.rows_quarantined = quarantined.count()
         record.rows_valid = record.rows_read - record.rows_quarantined
 
+        # 3. Quarantine rejected rows with the names of the rules they failed.
         quarantined.withColumn("quarantined_at", F.current_timestamp()).write.mode("append").saveAsTable(
             f"{prefix}.transactions_quarantine"
         )
 
+        # 4. Upsert valid rows by feed and key, so reruns of the same files are idempotent.
         silver = f"{prefix}.transactions_silver"
         deduped = valid.dropDuplicates(["source_feed", *config.keys])
         deduped.createOrReplaceTempView("incoming_valid")
@@ -60,7 +64,9 @@ def run_feed(spark, config: FeedConfig, catalog: str, schema: str, run_id: str) 
         record.finish("SUCCEEDED")
         return record
     except Exception as error:
+        # Record the failure, then re-raise so the job's retry and alert policies apply.
         record.finish("FAILED", f"{type(error).__name__}: {error}")
         raise
     finally:
+        # 5. Audit every run, successful or not.
         write_audit(spark, f"{prefix}.audit_log", record)

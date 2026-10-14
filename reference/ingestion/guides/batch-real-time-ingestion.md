@@ -41,6 +41,7 @@ flowchart LR
 - `resources/streaming.pipeline.yml`: serverless, triggered pipeline
 - `resources/batch_real_time.job.yml`: the orchestrating job
 - `src/record_ingestion_metrics.py`: latency, throughput, and update metrics
+- `samples/*.json`: example documents for the Auto Loader drop (one valid, one that fails expectations)
 
 ## Demo steps
 
@@ -53,7 +54,13 @@ flowchart LR
    ```sql
    SELECT * FROM <catalog>.<schema>.ingestion_latency_by_minute ORDER BY ingested_minute DESC;
    ```
-7. Explain the latency number honestly. The pipeline runs in triggered mode, so latency includes the wait for the update to start. For seconds-level latency, set `continuous: true` on the pipeline. For sub-second operational paths, use real-time mode or Zerobus ingest.
+7. Drop a document and watch it flow. On the guide page, use **Drop a document into Auto Loader**: pick **Valid event**, press **Drop into Auto Loader**, and open **Watch the pipeline update**. When the update completes, the panel shows rows written per dataset and expectation results. Then drop **Event that fails expectations** and show `amount_non_negative` and `currency_supported` failing and the row dropped before `events_silver`. From a terminal, the same thing is:
+   ```bash
+   databricks fs cp samples/valid_event.json \
+     dbfs:/Volumes/<catalog>/<schema>/landing/events/manual/valid_event.json --profile <profile>
+   databricks pipelines start-update <pipeline-id> --profile <profile>
+   ```
+8. Explain the latency number honestly. The pipeline runs in triggered mode, so latency includes the wait for the update to start. For seconds-level latency, set `continuous: true` on the pipeline. For sub-second operational paths, use real-time mode or Zerobus ingest.
 
 ## Artifacts produced
 

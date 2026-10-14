@@ -4,3 +4,6 @@ resources:
       catalog_name: ${var.catalog}
       name: ${var.schema}
       comment: Tables produced by the capability guide ingestion reference code
+      grants:
+        - principal: ${var.app_service_principal}
+          privileges: [USE_SCHEMA]

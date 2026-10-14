@@ -87,7 +87,7 @@ class RunStore:
         if self._initialized:
             return
         with conn.cursor() as cur:
-            cur.execute("SELECT 1 FROM information_schema.schemata WHERE schema_name = %s", (self.schema,))
+            cur.execute("SELECT 1 FROM pg_namespace WHERE nspname = %s", (self.schema,))
             if cur.fetchone() is None:
                 cur.execute(f'CREATE SCHEMA "{self.schema}"')
             cur.execute(

@@ -1,0 +1,14 @@
+{
+  "batch-real-time-ingestion": [
+    {
+      "label": "Valid event",
+      "path": "reference/ingestion/samples/valid_event.json",
+      "content": "{\"event_id\": \"DEMO-0001\", \"account_id\": \"ACCT-00042\", \"amount\": 125.5, \"currency\": \"USD\", \"status\": \"approved\"}"
+    },
+    {
+      "label": "Event that fails expectations",
+      "path": "reference/ingestion/samples/rejected_event.json",
+      "content": "{\"event_id\": \"DEMO-0002\", \"account_id\": \"ACCT-00042\", \"amount\": -40.0, \"currency\": \"XXX\", \"status\": \"approved\"}"
+    }
+  ]
+}

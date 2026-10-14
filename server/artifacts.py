@@ -45,6 +45,7 @@ def highlights(slug: str, entry: dict[str, Any]) -> list[dict[str, Any]]:
     return [
         {
             "label": item["label"],
+            "notes": item.get("notes", []),
             "path": snippet["path"],
             "symbol": snippet["symbol"],
             "language": snippet["language"],
@@ -137,6 +138,7 @@ def get_artifacts(slug: str) -> dict[str, Any]:
         "bundleUrl": repo_url(entry["bundle"]).replace("/blob/", "/tree/"),
         "code": [{"label": item["label"], "url": repo_url(item["path"])} for item in entry["code"]],
         "docs": entry.get("docs", []),
+        "autoLoaderDrop": bool(entry.get("autoLoaderDrop")),
         "walkthroughs": [{"label": item["label"], "url": repo_url(item["path"])} for item in entry.get("walkthroughs", [])],
         "highlights": highlights(slug, entry),
         "recordedRuns": entry.get("recordedRuns", []),
@@ -214,3 +216,142 @@ def quick_run(slug: str, request: QuickRunRequest) -> dict[str, Any]:
     except Exception as error:
         logger.warning("Lakebase run tracking failed for quick run %s: %s", started.run_id, error)
     return summary
+
+
+# --- Auto Loader drop: write an example document into a pipeline's landing path ---
+
+SAMPLES_PATH = Path(__file__).with_name("artifact_samples.json")
+MAX_DROP_BYTES = 64 * 1024
+MAX_DROP_RECORDS = 20
+
+
+@lru_cache(maxsize=1)
+def load_samples() -> dict[str, list[dict[str, Any]]]:
+    return json.loads(SAMPLES_PATH.read_text(encoding="utf-8"))
+
+
+def drop_config(slug: str) -> dict[str, Any]:
+    config = guide_entry(slug).get("autoLoaderDrop")
+    if not config:
+        raise HTTPException(status_code=404, detail="This guide has no Auto Loader drop")
+    return config
+
+
+def pipeline_for(w, job_key: str) -> tuple[str, str]:
+    """Find the pipeline a guide job runs, and its landing path, from the deployed job."""
+    found = directory.jobs(w).get(job_key)
+    if not found:
+        raise HTTPException(status_code=404, detail="The reference job is not deployed in this workspace")
+    job = w.jobs.get(job_id=found["jobId"])
+    pipeline_id = next(
+        (task.pipeline_task.pipeline_id for task in job.settings.tasks or [] if task.pipeline_task), None
+    )
+    if not pipeline_id:
+        raise HTTPException(status_code=404, detail="The reference job has no pipeline task")
+    configuration = w.pipelines.get(pipeline_id=pipeline_id).spec.configuration or {}
+    landing = configuration.get("landing_events_path", "")
+    if not landing.startswith("/Volumes/"):
+        raise HTTPException(status_code=500, detail="The pipeline has no landing_events_path volume configured")
+    return pipeline_id, landing.rstrip("/") + "/"
+
+
+def parse_drop(content: str) -> list[dict[str, Any]]:
+    if len(content.encode("utf-8")) > MAX_DROP_BYTES:
+        raise HTTPException(status_code=413, detail="Documents are limited to 64 KB")
+    try:
+        parsed = json.loads(content)
+    except json.JSONDecodeError as error:
+        raise HTTPException(status_code=400, detail=f"Not valid JSON: {error.msg} at line {error.lineno}") from error
+    records = parsed if isinstance(parsed, list) else [parsed]
+    if not records or len(records) > MAX_DROP_RECORDS or not all(isinstance(r, dict) for r in records):
+        raise HTTPException(status_code=400, detail=f"Send one JSON object or a list of up to {MAX_DROP_RECORDS} objects")
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+    # Stamp the event time so the pipeline's latency column measures this drop.
+    return [{**record, "event_ts": record.get("event_ts") or now} for record in records]
+
+
+@router.get("/artifacts/{slug}/drop")
+def get_drop(slug: str) -> dict[str, Any]:
+    drop_config(slug)
+    return {"samples": load_samples().get(slug, [])}
+
+
+class DropRequest(BaseModel):
+    content: str
+
+
+@router.post("/artifacts/{slug}/drop")
+def drop_document(slug: str, request: DropRequest) -> dict[str, Any]:
+    import io
+    import uuid
+
+    config = drop_config(slug)
+    records = parse_drop(request.content)
+    w = workspace_client()
+    host = w.config.host.rstrip("/")
+    pipeline_id, landing = pipeline_for(w, config["jobKey"])
+
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
+    path = f"{landing}app-drops/drop-{stamp}-{uuid.uuid4().hex[:8]}.json"
+    body = "\n".join(json.dumps(record) for record in records) + "\n"
+    try:
+        w.files.upload(path, io.BytesIO(body.encode("utf-8")), overwrite=False)
+    except Exception as error:
+        logger.warning("Auto Loader drop failed for %s: %s", slug, error)
+        raise HTTPException(status_code=502, detail="Could not write to the landing volume. Check the app's volume grants.") from error
+
+    response: dict[str, Any] = {
+        "path": path,
+        "records": len(records),
+        "pipelineUrl": f"{host}/pipelines/{pipeline_id}",
+    }
+    try:
+        update = w.pipelines.start_update(pipeline_id=pipeline_id)
+        response["updateId"] = update.update_id
+        response["updateUrl"] = f"{host}/pipelines/{pipeline_id}/updates/{update.update_id}"
+    except Exception as error:  # usually an update is already running; it or the next one picks the file up
+        logger.info("Pipeline update not started for %s: %s", slug, error)
+        response["note"] = "An update is already running. Auto Loader picks the file up in the next update."
+    return response
+
+
+def flow_metrics(w, pipeline_id: str, update_id: str) -> list[dict[str, Any]]:
+    """Rows written and expectation results per flow, from the pipeline event log."""
+    flows: dict[str, dict[str, Any]] = {}
+    events = w.pipelines.list_pipeline_events(
+        pipeline_id=pipeline_id, filter=f"update_id = '{update_id}' AND event_type = 'flow_progress'", max_results=100
+    )
+    for event in events:
+        details = (event.as_dict() if hasattr(event, "as_dict") else {}).get("details") or {}
+        progress = details.get("flow_progress") or {}
+        metrics = progress.get("metrics") or {}
+        if progress.get("status") != "COMPLETED" or event.origin is None:
+            continue
+        name = (event.origin.flow_name or "").split(".")[-1]
+        quality = progress.get("data_quality") or {}
+        flows.setdefault(name, {
+            "flow": name,
+            "rowsWritten": metrics.get("num_output_rows"),
+            "droppedRecords": quality.get("dropped_records"),
+            "expectations": [
+                {"name": item.get("name"), "passed": item.get("passed_records"), "failed": item.get("failed_records")}
+                for item in quality.get("expectations") or []
+            ],
+        })
+    return sorted(flows.values(), key=lambda flow: flow["flow"])
+
+
+@router.get("/artifacts/{slug}/drop/updates/{update_id}")
+def drop_status(slug: str, update_id: str) -> dict[str, Any]:
+    config = drop_config(slug)
+    w = workspace_client()
+    pipeline_id, _ = pipeline_for(w, config["jobKey"])
+    update = w.pipelines.get_update(pipeline_id=pipeline_id, update_id=update_id).update
+    state = update.state.value if update and update.state else "UNKNOWN"
+    response: dict[str, Any] = {"state": state, "flows": []}
+    if state == "COMPLETED":
+        try:
+            response["flows"] = flow_metrics(w, pipeline_id, update_id)
+        except Exception as error:
+            logger.warning("Pipeline event lookup failed for %s: %s", update_id, error)
+    return response
