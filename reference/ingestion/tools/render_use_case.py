@@ -3,7 +3,7 @@
     python tools/render_use_case.py use_cases/general.yml          # write feeds/general/*.yml
     python tools/render_use_case.py use_cases/general.yml --check  # fail if committed feeds drifted
 
-A new tenant or use case is one new spec file plus one run of this script.
+A new use case is one new spec file plus one run of this script.
 """
 
 from __future__ import annotations

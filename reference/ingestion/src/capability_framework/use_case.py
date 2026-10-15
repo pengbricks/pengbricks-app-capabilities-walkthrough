@@ -1,4 +1,4 @@
-"""Use-case specs: one YAML file per tenant or use case drives data, feeds, rules, and tags."""
+"""Use-case specs: one YAML file per use case drives data, feeds, rules, and tags."""
 
 from __future__ import annotations
 

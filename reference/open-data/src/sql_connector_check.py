@@ -52,7 +52,7 @@ def main() -> None:
     path = http_path(args.warehouse_id)
     record("connection_settings", "INFO", path, f"databricks-sql-connector {version('databricks-sql-connector')}; host {host}; http_path {path}; identity {identity}")
 
-    table = f"{args.catalog}.{args.schema}.orders"
+    table = f"{args.catalog}.{args.schema}.sharing_orders"
     started = time.time()
     with sql.connect(server_hostname=host, http_path=path, credentials_provider=provider) as connection:
         with connection.cursor() as cursor:

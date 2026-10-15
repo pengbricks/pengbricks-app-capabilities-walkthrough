@@ -9,7 +9,7 @@ A user uploads a spreadsheet to a volume folder named after their login and join
 | Guide goal | Artifact |
 |---|---|
 | File in a per-user location | `/Volumes/<catalog>/<schema>/uploads/<user>/account_targets.csv` |
-| Join to a governed table | `byod_joined`, a full outer join of the file and `customers` |
+| Join to a governed table | `byod_joined`, a full outer join of the file and `analyst_customers` |
 | Unmatched keys stay visible | `match_status` is `matched`, `upload_only`, or `governed_only` |
 | Match counts | `byod_match_counts`: 450 matched, 30 upload_only, 4,550 governed_only |
 
@@ -17,7 +17,7 @@ A user uploads a spreadsheet to a volume folder named after their login and join
 
 ```mermaid
 flowchart LR
-  gen[generate_data] --> cust[(customers)]
+  gen[generate_data] --> cust[(analyst_customers)]
   gen --> up[simulate_upload]
   up --> csv[/uploads/user/account_targets.csv/]
   csv --> join[join_to_governed]

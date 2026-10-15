@@ -4,7 +4,7 @@
 
 Give every guide a concise one-pager, runnable reference code, and a link to an actual Databricks run. Artifacts must be safe for a public repository, reproducible from a tagged release, and explicit when a run has not yet been completed.
 
-Guides stay general and provider-neutral. Future tenant, dataset, and schema differences will be supplied through configuration after the multi-tenant contract is defined.
+Guides stay general and provider-neutral. Dataset and schema differences are supplied through configuration.
 
 ## Standard artifact set
 
@@ -50,7 +50,7 @@ artifacts/
       usage.md
 ```
 
-The app reads an artifact index rather than embedding guide-specific links in components. Tenant or dataset keys remain optional reserved fields until the multi-tenant design is implemented.
+The app reads an artifact index rather than embedding guide-specific links in components.
 
 ## Generation workflow
 

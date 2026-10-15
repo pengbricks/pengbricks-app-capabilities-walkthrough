@@ -65,7 +65,7 @@ sequenceDiagram
 
 - Tables: `on_call` (5 rows), `support_incidents`, `support_work_items` (25 rows)
 - Jobs: `capability_guides_operational_support` and `capability_guides_support_repair`
-- Reference runs: support run 207301928882917 ended as succeeded with one failed task. Repair run 272044088631319 repaired it as repair 1080614604838017, and the original run finished as SUCCESS.
+- Reference runs: support run 787779100759308 ended as succeeded with one failed task. Repair run 473831755972947 repaired it as repair 305177685386087, and the original run finished as SUCCESS.
 
 ## Limitations and next steps
 

@@ -15,7 +15,7 @@ variables:
     description: Address that receives failure and drift alerts
   schema:
     description: Schema for source data, feature tables, models, and monitoring tables
-    default: capability_guides_ml_lifecycle
+    default: capability_guides
   use_case:
     description: Use-case spec under use_cases/ that drives data, features, models, and thresholds
     default: general
@@ -36,7 +36,8 @@ targets:
     presets:
       tags:
         release: ${var.release}
-
+    variables:
+      schema: dev_${workspace.current_user.short_name}_capability_guides
   test:
     presets:
       name_prefix: "[test] "

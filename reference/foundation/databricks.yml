@@ -1,0 +1,27 @@
+# Owns the one schema every capability guide bundle writes to. Deploy this bundle first.
+bundle:
+  name: capability-guides-foundation
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Unity Catalog catalog that holds the shared guide schema
+  app_service_principal:
+    description: Application ID of the Databricks App service principal that reads guide artifacts
+  schema:
+    description: Shared schema for every guide bundle
+    default: capability_guides
+
+permissions:
+  - level: CAN_MANAGE
+    user_name: ${workspace.current_user.userName}
+
+targets:
+  dev:
+    default: true
+    mode: development
+  test:
+    presets:
+      name_prefix: "[test] "

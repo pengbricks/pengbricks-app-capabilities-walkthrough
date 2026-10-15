@@ -2,5 +2,5 @@ resources:
   schemas:
     capability_guides_access_prod:
       catalog_name: ${var.catalog}
-      name: ${var.schema}_access_prod
+      name: ${var.access_schema_base}_prod
       comment: "Prod-like schema, read-only, object-level grants for the reader group"

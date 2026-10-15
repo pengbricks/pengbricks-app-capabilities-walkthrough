@@ -12,8 +12,8 @@ SELECT o.order_id                                        AS order_number,
        o.unit_price,
        CAST(o.quantity * o.unit_price AS DECIMAL(12, 2)) AS order_total,
        CASE WHEN o.quantity * o.unit_price >= 1000 THEN 'large' ELSE 'standard' END AS order_size
-FROM orders o
-JOIN customers c ON o.customer_id = c.customer_id
+FROM analyst_orders o
+JOIN analyst_customers c ON o.customer_id = c.customer_id
 WHERE o.status = 'completed'
   AND o.order_ts >= '2026-01-01';
 

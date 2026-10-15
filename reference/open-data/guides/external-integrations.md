@@ -18,12 +18,12 @@ This guide shows two ways tools connect to Databricks. First, a client queries a
 flowchart LR
   subgraph A[Pattern A: SQL Connector]
     APP[Python client] -- OAuth --> WH[Serverless SQL warehouse]
-    WH --> UC[(orders table)]
+    WH --> UC[(sharing_orders table)]
   end
   subgraph B[Pattern B: Lakehouse Federation]
     Q[Spark SQL] --> CONN[UC connection]
     CONN --> PG[(Lakebase Postgres)]
-    Q --> UC2[(products table)]
+    Q --> UC2[(sharing_products table)]
   end
   APP --> IC[integration_checks]
   Q --> IC
@@ -50,7 +50,7 @@ All code is in `reference/open-data/`.
 
 ## Artifacts produced
 
-- Table `<catalog>.<schema>.integration_checks`, plus `orders` and `products` as sample data.
+- Table `<catalog>.<schema>.integration_checks`, plus `sharing_orders` and `sharing_products` as sample data.
 - Table `capability_guides_external.external_orders` in the Lakebase `databricks_postgres` database.
 - Job: `capability_guides_external_integrations` and its runs. The connection is created and dropped inside the run.
 

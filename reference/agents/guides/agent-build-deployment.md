@@ -22,7 +22,7 @@ Model Serving is no longer the recommended place for new agents. The October 12,
 
 ```mermaid
 flowchart LR
-  P[prepare_tool<br/>orders, mask, order_status] --> L[log_and_register<br/>local test, log_model, UC version]
+  P[prepare_tool<br/>agent_orders, agent_mask_email, order_status] --> L[log_and_register<br/>local test, log_model, UC version]
   L --> R[(UC model<br/>support_assistant v3<br/>alias champion)]
   R --> D[deploy_endpoint<br/>Small, scale to zero]
   D --> E[Model Serving endpoint]
@@ -45,7 +45,7 @@ flowchart LR
 ## Demo steps
 
 1. Open `src/agent/assistant.py` and show the tool definition and the `@mlflow.trace` spans.
-2. Run `capability_guides_agent_build`. `prepare_tool` creates the orders table, the email mask, and `order_status`.
+2. Run `capability_guides_agent_build`. `prepare_tool` creates the `agent_orders` table, the `agent_mask_email` mask, and `order_status`.
 3. Open `log_and_register` output: the local answer, the trace count, and the registered version.
 4. In Catalog Explorer, open `support_assistant`. Show version 3, the `champion` alias, and the declared resources.
 5. Open the endpoint in Serving. Show workload size Small and scale to zero.

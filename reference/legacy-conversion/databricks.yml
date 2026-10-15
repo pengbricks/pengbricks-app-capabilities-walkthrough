@@ -16,7 +16,7 @@ variables:
     default: general
   schema:
     description: Schema that holds the legacy tables, converted outputs, and assessment tables.
-    default: capability_guides_legacy_conversion
+    default: capability_guides
 
 permissions:
   - level: CAN_MANAGE
@@ -28,7 +28,8 @@ targets:
   dev:
     default: true
     mode: development
-
+    variables:
+      schema: dev_${workspace.current_user.short_name}_capability_guides
   test:
     presets:
       name_prefix: "[test] "

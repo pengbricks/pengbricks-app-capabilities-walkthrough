@@ -13,7 +13,7 @@ variables:
     description: Address that receives failure alerts from the administration job
   schema:
     description: Schema for this bundle's tables
-    default: capability_guides_platform_ops
+    default: capability_guides
   use_case:
     description: Use-case spec under use_cases/ that drives admin settings, error classes, and the on-call map
     default: general
@@ -34,6 +34,8 @@ targets:
     presets:
       tags:
         release: ${var.release}
+    variables:
+      schema: dev_${workspace.current_user.short_name}_capability_guides
   test:
     presets:
       name_prefix: "[test] "

@@ -1,7 +1,7 @@
 """Bring your own data: simulate an upload to a per-user volume path, then join it to a governed table.
 
 --step upload   write a CSV to /Volumes/<catalog>/<schema>/uploads/<user>/<file>
---step join     full outer join the upload to customers; keep unmatched keys on both sides
+--step join     full outer join the upload to analyst_customers; keep unmatched keys on both sides
 """
 
 from __future__ import annotations
@@ -35,7 +35,7 @@ def main() -> None:
 
     if args.step == "upload":
         os.makedirs(os.path.dirname(path), exist_ok=True)
-        # Keys 0..matched-1 exist in customers. Keys from unmatched_start up do not.
+        # Keys 0..matched-1 exist in analyst_customers. Keys from unmatched_start up do not.
         keys = [f"{spec['key_prefix']}{i:06d}" for i in range(int(spec["matched_keys"]))]
         keys += [f"{spec['key_prefix']}{int(spec['unmatched_start']) + i:06d}" for i in range(int(spec["unmatched_keys"]))]
         with open(path, "w", newline="", encoding="utf-8") as handle:
@@ -51,7 +51,7 @@ def main() -> None:
         .withColumn("customer_id", F.trim("customer_id"))
         .withColumn("in_upload", F.lit(True))
     )
-    governed = spark.table(f"{fq}.customers").select("customer_id", "region", "segment").withColumn("in_governed", F.lit(True))
+    governed = spark.table(f"{fq}.analyst_customers").select("customer_id", "region", "segment").withColumn("in_governed", F.lit(True))
     joined = (
         uploaded.join(governed, "customer_id", "full_outer")
         .withColumn("in_upload", F.coalesce("in_upload", F.lit(False)))

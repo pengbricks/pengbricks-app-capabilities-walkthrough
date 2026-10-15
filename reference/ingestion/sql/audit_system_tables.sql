@@ -1,6 +1,6 @@
 -- Audit the ingestion framework from Databricks system tables.
 -- Parameters: :catalog and :schema are the bundle's catalog and schema
--- (in development mode the schema is prefixed, e.g. dev_<user>_capability_guides_ingestion).
+-- (in development mode the schema is prefixed, e.g. dev_<user>_capability_guides).
 -- System tables are account-wide; add a workspace_id filter to scope to one workspace.
 
 -- 1. Transformation runs: every run of the framework job, how it was triggered, and the result.

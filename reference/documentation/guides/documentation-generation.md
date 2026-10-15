@@ -4,7 +4,7 @@
 
 Success criterion: generate and refresh documentation containing schema, lineage, quality, ownership, and usage guidance.
 
-This guide deploys one serverless job. The job builds a bronze, silver, and gold table chain from a spec file, then writes a markdown page for every table in the schema and applies AI-drafted descriptions back to Unity Catalog as table and column comments. Each run overwrites the pages and adds a row to a log table, so a refresh is one job run.
+This guide deploys one serverless job. The job builds a bronze, silver, and gold table chain from a spec file, then writes a markdown page for each table the spec lists and applies AI-drafted descriptions back to Unity Catalog as table and column comments. Each run overwrites the pages and adds a row to a log table, so a refresh is one job run.
 
 ## What this shows
 
@@ -41,7 +41,7 @@ flowchart LR
 ## Reference code
 
 - `reference/documentation/databricks.yml`: bundle, variables, targets, permissions
-- `reference/documentation/resources/schema.yml`: schema and `docs` volume
+- `reference/documentation/resources/schema.yml`: the `docs` volume in the shared guide schema
 - `reference/documentation/resources/job.yml`: job `capability_guides_documentation_refresh` (serverless, two tasks)
 - `reference/documentation/use_cases/general.yml`: domain spec (tables, column specs, row counts, seed, tags)
 - `reference/documentation/src/build_sample_tables.py`: spec-driven table build with `dbldatagen`
@@ -64,7 +64,7 @@ flowchart LR
 
 ## Artifacts produced
 
-- Tables in the schema: `bronze_orders`, `silver_orders`, `gold_daily_revenue`, `documentation_refresh_log`
+- Tables this bundle adds to the shared guide schema: `bronze_orders`, `silver_orders`, `gold_daily_revenue`, `documentation_refresh_log`
 - Volume files in `/Volumes/<catalog>/<schema>/docs/`: `bronze_orders.md`, `silver_orders.md`, `gold_daily_revenue.md`, `index.md`
 - Unity Catalog table comments and column comments on the three sample tables, plus tags from the spec
 - One job run per refresh, with the task output showing each table documented
@@ -76,4 +76,4 @@ flowchart LR
 - Descriptions are drafts from table metadata and profile numbers, not from business knowledge. Review them before treating them as authoritative. Each run overwrites existing comments.
 - Key uniqueness checks the first id-like column only.
 - If `dbldatagen` fails on serverless, `build_sample_tables.py` falls back to a seeded Python generator that reads the same spec. The run used `dbldatagen`.
-- Next steps: document an existing schema by pointing the job at it, add a human-edited override file so reviewed comments are kept, and schedule the job.
+- Next steps: document more tables by adding them to the spec (the job documents only the tables the spec lists, because the guide schema is shared with other bundles), add a human-edited override file so reviewed comments are kept, and schedule the job.

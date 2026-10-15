@@ -28,7 +28,7 @@ flowchart TB
 
 ## Parameters: what changes at each layer
 
-Nothing tenant-specific is hard-coded in a job, task, or pipeline. Each layer takes parameters from the one above it:
+Nothing use-case-specific is hard-coded in a job, task, or pipeline. Each layer takes parameters from the one above it:
 
 | Layer | Set when | Parameters in this bundle | Example override |
 |---|---|---|---|
@@ -40,10 +40,10 @@ Nothing tenant-specific is hard-coded in a job, task, or pipeline. Each layer ta
 | Pipeline configuration | deploy | `landing_events_path`, `catalog`, `schema`, `use_case`, read in SQL as `${landing_events_path}` | `--var` at deploy |
 | Tags | deploy | `capability_guide_job`, `capability_guide_use_case`, `environment`, `release` | `--var use_case=...` |
 
-Two ways to add a tenant or use case:
+Two ways to add a use case:
 
 - **Same deployment, new run:** commit `use_cases/<spec>.yml` and the rendered `feeds/<spec>/`, redeploy files, then run with `--params use_case=<spec>` (or use **Run now with different parameters** on the job page). Tables land in the deployment's schema.
-- **Isolated deployment:** deploy with `--var use_case=<spec> --var schema=<tenant_schema>`. The tenant gets its own schema, volume, jobs, pipeline, and tags.
+- **Separate deployment:** deploy with `--var use_case=<spec> --var schema=<schema>`. The use case gets its own schema, volume, jobs, pipeline, and tags.
 
 ## Reference code
 
@@ -60,7 +60,7 @@ Two ways to add a tenant or use case:
 4. Open the latest framework run. `land_files` sets the task value `feeds` from the spec, and `ingest_each_feed` iterates over it.
 5. Compare the `compare_feeds` output for both feeds: same columns, same rules, similar quarantine rates.
 6. Show the parameter layers (table above): run the framework job with `--params use_case=general`, then point out where `{{job.parameters.use_case}}` flows into task parameters and `for_each` inputs.
-7. Show tenant reuse: `databricks bundle deploy --var use_case=<new-spec> --var schema=<tenant-schema>` stamps out the same jobs with new data, feeds, and tags.
+7. Show reuse: `databricks bundle deploy --var use_case=<new-spec> --var schema=<schema>` stamps out the same jobs with new data, feeds, and tags.
 
 ## Artifacts produced
 
@@ -71,4 +71,3 @@ Two ways to add a tenant or use case:
 ## Limitations and next steps
 
 - Provider shapes are described as SQL over canonical columns. Very irregular sources may still need an adapter.
-- Multi-tenant isolation (per-tenant catalogs, grants, and Lakebase schemas) is planned. Today, isolation is by schema and the `use_case` variable.

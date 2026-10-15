@@ -1,4 +1,7 @@
-"""Generate documentation for every table in a schema and apply descriptions as UC comments."""
+"""Generate documentation for the sample tables listed in the use-case spec and apply descriptions as UC comments.
+
+The schema is shared with other bundles, so only tables named in the spec are documented.
+"""
 import os
 import sys
 from datetime import datetime, timezone
@@ -48,8 +51,10 @@ def draft_descriptions(spark, endpoint, fq, cols, prof, upstream):
     return parse_ai_json(rows[0]["r"]) if rows else {}
 
 
-def main(catalog, schema, endpoint, volume_path, src_dir):
+def main(catalog, schema, endpoint, volume_path, src_dir, spec_path):
     _import_helpers(src_dir)
+    from spec_helpers import load_spec
+    spec_tables = [t["name"] for t in load_spec(spec_path)["tables"]]
     from pyspark.sql import SparkSession
     spark = SparkSession.builder.getOrCreate()
     started = datetime.now(timezone.utc)
@@ -59,8 +64,9 @@ def main(catalog, schema, endpoint, volume_path, src_dir):
         refresh_ts TIMESTAMP, tables_documented INT, comments_applied INT, ai_failures INT,
         model_endpoint STRING, volume_path STRING, status STRING, run_user STRING)""")
 
+    in_list = ", ".join(f"'{sql_str(n)}'" for n in spec_tables)
     tables = spark.sql(f"""SELECT table_name, table_owner FROM `{catalog}`.information_schema.tables
-        WHERE table_schema = '{sql_str(schema)}' AND table_name <> '{LOG_TABLE}' AND table_type IN ('MANAGED','EXTERNAL')
+        WHERE table_schema = '{sql_str(schema)}' AND table_name IN ({in_list}) AND table_type IN ('MANAGED','EXTERNAL')
         ORDER BY table_name""").collect()
     os.makedirs(volume_path, exist_ok=True)
 
@@ -129,4 +135,4 @@ def main(catalog, schema, endpoint, volume_path, src_dir):
 
 
 if __name__ == "__main__":
-    main(*sys.argv[1:6])
+    main(*sys.argv[1:7])

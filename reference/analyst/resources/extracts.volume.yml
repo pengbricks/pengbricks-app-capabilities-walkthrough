@@ -2,6 +2,6 @@ resources:
   volumes:
     capability_guides_analyst_extracts:
       catalog_name: ${var.catalog}
-      schema_name: ${resources.schemas.capability_guides_analyst.name}
+      schema_name: ${var.schema}
       name: extracts
       comment: Extract files for external partners

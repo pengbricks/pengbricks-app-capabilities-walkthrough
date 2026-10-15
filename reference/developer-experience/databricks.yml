@@ -13,7 +13,7 @@ variables:
     description: Application ID of the app service principal that triggers the job.
   schema:
     description: Schema for the output table.
-    default: capability_guides_developer_experience
+    default: capability_guides
   use_case:
     description: Name of the spec in use_cases/ that defines the dataset.
     default: general
@@ -37,6 +37,8 @@ targets:
   dev:
     default: true
     mode: development
+    variables:
+      schema: dev_${workspace.current_user.short_name}_capability_guides
   test:
     presets:
       name_prefix: "[test] "

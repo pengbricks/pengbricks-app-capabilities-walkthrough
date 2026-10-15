@@ -4,7 +4,7 @@ resources:
       display_name: "capability guide job failures in the last ${var.alert_window_hours}h"
       query_text: >-
         SELECT count(*) AS failed_runs
-        FROM `${var.catalog}`.`${resources.schemas.ops.name}`.ops_failures
+        FROM `${var.catalog}`.`${var.schema}`.ops_failures
         WHERE is_capability_guide_job
         AND end_time >= current_timestamp() - INTERVAL ${var.alert_window_hours} HOUR
       warehouse_id: ${var.warehouse_id}

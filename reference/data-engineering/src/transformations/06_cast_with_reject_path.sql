@@ -10,7 +10,7 @@ SELECT
   status,
   try_cast(amount_raw AS DECIMAL(12,2)) AS amount,
   try_cast(quantity_raw AS INT)         AS quantity
-FROM orders
+FROM de_orders
 WHERE try_cast(amount_raw AS DECIMAL(12,2)) IS NOT NULL
   AND try_cast(quantity_raw AS INT) IS NOT NULL;
 
@@ -23,6 +23,6 @@ SELECT
     CASE WHEN try_cast(amount_raw AS DECIMAL(12,2)) IS NULL THEN 'amount not numeric' END,
     CASE WHEN try_cast(quantity_raw AS INT) IS NULL THEN 'quantity not an integer' END
   ) AS reject_reason
-FROM orders
+FROM de_orders
 WHERE try_cast(amount_raw AS DECIMAL(12,2)) IS NULL
    OR try_cast(quantity_raw AS INT) IS NULL;

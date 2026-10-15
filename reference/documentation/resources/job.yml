@@ -19,7 +19,7 @@ resources:
             python_file: ../src/build_sample_tables.py
             parameters:
               - ${var.catalog}
-              - ${resources.schemas.documentation.name}
+              - ${var.schema}
               - ${workspace.file_path}/use_cases/${var.use_case}.yml
               - ${workspace.file_path}/src
         - task_key: generate_docs
@@ -30,7 +30,8 @@ resources:
             python_file: ../src/generate_docs.py
             parameters:
               - ${var.catalog}
-              - ${resources.schemas.documentation.name}
+              - ${var.schema}
               - ${var.model_endpoint}
-              - /Volumes/${var.catalog}/${resources.schemas.documentation.name}/${resources.volumes.docs.name}
+              - /Volumes/${var.catalog}/${var.schema}/${resources.volumes.docs.name}
               - ${workspace.file_path}/src
+              - ${workspace.file_path}/use_cases/${var.use_case}.yml

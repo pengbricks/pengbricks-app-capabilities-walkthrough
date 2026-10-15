@@ -12,7 +12,7 @@ def main() -> None:
     parser.add_argument("--schema", required=True)
     parser.add_argument("--src", required=True, help="Path to this bundle's src folder")
     parser.add_argument("--spec", required=True)
-    parser.add_argument("--tables", default="customers,products,orders")
+    parser.add_argument("--tables", default="analyst_customers,analyst_products,analyst_orders")
     args = parser.parse_args()
     sys.path.insert(0, args.src)
 

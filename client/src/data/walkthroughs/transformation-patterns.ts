@@ -38,7 +38,7 @@ export const walkthrough: Walkthrough = {
         type: 'flow',
         title: 'From spec to checked views',
         description:
-          'The use-case spec feeds generate_sources, which writes the customers, orders, and regions tables. The pipeline reads those tables and writes 14 materialized views. check_row_counts reads both the sources and the views and writes tp_view_counts.',
+          'The use-case spec feeds generate_sources, which writes the de_customers, de_orders, and regions tables. The pipeline reads those tables and writes 14 materialized views. check_row_counts reads both the sources and the views and writes tp_view_counts.',
         lanes: [
           { label: 'Configuration in Git', fromRow: 0, toRow: 0 },
           { label: 'Lakeflow job', fromRow: 1, toRow: 1 },
@@ -50,7 +50,7 @@ export const walkthrough: Walkthrough = {
           { id: 'gen', label: 'generate_sources', mono: true, sub: 'dbldatagen, fixed seed', col: 0, row: 1 },
           { id: 'pipe', label: 'Pipeline update', sub: 'full refresh', col: 1, row: 1, kind: 'highlight' },
           { id: 'check', label: 'check_row_counts', mono: true, sub: 'fail on any mismatch', col: 2, row: 1 },
-          { id: 'src', label: 'customers, orders', mono: true, sub: 'plus regions lookup', col: 0, row: 2, kind: 'store' },
+          { id: 'src', label: 'de_customers, de_orders', mono: true, sub: 'plus regions lookup', col: 0, row: 2, kind: 'store' },
           { id: 'mvs', label: 'tp_* views', mono: true, sub: '14 materialized views', col: 1, row: 2, kind: 'store' },
           { id: 'counts', label: 'tp_view_counts', mono: true, sub: 'actual vs expected', col: 2, row: 2, kind: 'store' },
         ],
@@ -137,14 +137,14 @@ export const walkthrough: Walkthrough = {
       id: 'casting',
       heading: 'Casting with a reject path',
       prose:
-        'The orders table stores amounts and quantities as text. Values such as N/A and abc fail to cast. They go to a reject table with the reason, and the job checks that valid and rejected rows add up to every order.',
+        'The de_orders table stores amounts and quantities as text. Values such as N/A and abc fail to cast. They go to a reject table with the reason, and the job checks that valid and rejected rows add up to every order.',
       diagram: {
         type: 'flow',
         title: 'Valid rows and rejected rows',
         description:
-          'The orders table is cast with try_cast. A row whose amount and quantity both cast goes to tp_cast_valid, 11,476 rows. Any other row goes to tp_cast_rejects with a reject reason, 524 rows. Downstream running totals, pivot, last record, and iteration views read only tp_cast_valid.',
+          'The de_orders table is cast with try_cast. A row whose amount and quantity both cast goes to tp_cast_valid, 11,476 rows. Any other row goes to tp_cast_rejects with a reject reason, 524 rows. Downstream running totals, pivot, last record, and iteration views read only tp_cast_valid.',
         nodes: [
-          { id: 'orders', label: 'orders', mono: true, sub: '12,000 rows', col: 0, row: 0, kind: 'store' },
+          { id: 'orders', label: 'de_orders', mono: true, sub: '12,000 rows', col: 0, row: 0, kind: 'store' },
           { id: 'gate', label: 'Both casts succeed?', sub: 'try_cast', col: 1, row: 0, kind: 'gate' },
           { id: 'valid', label: 'tp_cast_valid', mono: true, sub: '11,476 rows', col: 2, row: 0, kind: 'store' },
           { id: 'rejects', label: 'tp_cast_rejects', mono: true, sub: '524 rows, with reason', col: 2, row: 1, kind: 'store' },

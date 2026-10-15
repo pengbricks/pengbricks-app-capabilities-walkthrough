@@ -2,6 +2,6 @@ resources:
   volumes:
     capability_guides_analyst_uploads:
       catalog_name: ${var.catalog}
-      schema_name: ${resources.schemas.capability_guides_analyst.name}
+      schema_name: ${var.schema}
       name: uploads
       comment: Per-user upload folders. Each user writes to a folder named after their login

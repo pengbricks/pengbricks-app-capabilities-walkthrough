@@ -15,7 +15,7 @@ variables:
     description: Address that receives failure alerts
   schema:
     description: Schema for the sample data, tool, agent model, and records
-    default: capability_guides_agents
+    default: capability_guides
   use_case:
     description: Use-case spec under use_cases/ that drives data, the tool, agents, and gateway services
     default: general
@@ -36,6 +36,8 @@ targets:
     presets:
       tags:
         release: ${var.release}
+    variables:
+      schema: dev_${workspace.current_user.short_name}_capability_guides
   test:
     presets:
       name_prefix: "[test] "

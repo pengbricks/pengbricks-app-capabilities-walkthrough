@@ -3,7 +3,7 @@ resources:
     capability_guides_scd_pipeline:
       name: capability-guides-scd
       catalog: ${var.catalog}
-      schema: ${resources.schemas.capability_guides_data_engineering.name}
+      schema: ${var.schema}
       serverless: true
       continuous: false
       channel: CURRENT

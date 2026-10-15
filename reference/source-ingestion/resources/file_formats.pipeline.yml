@@ -3,12 +3,12 @@ resources:
     capability_guides_file_formats_pipeline:
       name: capability-guides-file-formats
       catalog: ${var.catalog}
-      schema: ${resources.schemas.capability_guides_source_ingestion.name}
+      schema: ${var.schema}
       serverless: true
       continuous: false
       channel: CURRENT
       configuration:
-        formats_path: /Volumes/${var.catalog}/${resources.schemas.capability_guides_source_ingestion.name}/landing/formats
+        formats_path: /Volumes/${var.catalog}/${var.schema}/source_landing/formats
         excel_sheet: Orders
       tags:
         capability_guide_use_case: ${var.use_case}

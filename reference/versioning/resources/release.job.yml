@@ -17,7 +17,7 @@ resources:
         - name: catalog
           default: ${var.catalog}
         - name: schema
-          default: ${resources.schemas.capability_guides_versioning.name}
+          default: ${var.schema}
         - name: release
           default: ${var.release}
       environments:

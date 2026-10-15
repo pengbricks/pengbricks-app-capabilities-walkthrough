@@ -27,7 +27,7 @@ def main() -> None:
     spark.sql(
         f"CREATE OR REPLACE VIEW {view} "
         f"COMMENT 'Orders for one region without personal data. This is the only orders object the share exposes.' AS "
-        f"SELECT {columns} FROM {prefix}.orders WHERE region = '{sharing['view_region']}'"
+        f"SELECT {columns} FROM {prefix}.sharing_orders WHERE region = '{sharing['view_region']}'"
     )
     print(f"{view}: {spark.table(view).count()} rows")
 

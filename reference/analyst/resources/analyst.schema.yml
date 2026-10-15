@@ -1,9 +1,0 @@
-resources:
-  schemas:
-    capability_guides_analyst:
-      catalog_name: ${var.catalog}
-      name: ${var.schema}
-      comment: Tables, views, and files produced by the analyst capability guides
-      grants:
-        - principal: ${var.app_service_principal}
-          privileges: [USE_SCHEMA]

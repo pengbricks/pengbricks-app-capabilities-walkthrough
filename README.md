@@ -8,7 +8,7 @@ Every guide uses the same evidence contract:
 2. A versioned reference implementation.
 3. A link to the actual Databricks run and trace.
 
-Guides are general and not tied to a tenant, provider, or dataset. Multi-tenant support with generated, use-case-specific schemas is a future extension. Code and run links remain visibly pending until real artifacts are connected.
+Guides are general and not tied to a provider or dataset. Code and run links remain visibly pending until real artifacts are connected.
 
 ## Local development
 

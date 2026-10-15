@@ -14,7 +14,7 @@ One job trains a small model, registers it in Unity Catalog, deploys it to a Mod
 | How does it scale? | The endpoint is `Small` with scale-to-zero on. See "Scaling approach" below. |
 | Is anything left running? | `capability_guides_realtime_scoring_teardown` deletes the endpoint and confirms it is no longer listed. |
 
-Reference run (job `capability_guides_realtime_scoring`, run 1082287396068690):
+Reference run (job `capability_guides_realtime_scoring`, run 208262950906005):
 
 | Phase | Requests | p50 | p95 | Max |
 |---|---|---|---|---|

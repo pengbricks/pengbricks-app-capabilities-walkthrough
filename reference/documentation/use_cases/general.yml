@@ -1,11 +1,11 @@
 # Domain spec for the sample tables. Code in src/ is generic; change this file (or add a sibling
-# file and pass --var use_case=<name>) to stamp out a different tenant or use case.
+# file and pass --var use_case=<name>) to stamp out a different use case.
 use_case: general
 seed: 42
 tags:
   domain: sales
   data_owner_team: data-platform
-  sensitivity: low
+  sensitivity: internal   # the workspace tag policy only allows pii, internal, public
 tables:
   - name: bronze_orders
     kind: generate          # generated with dbldatagen from the column specs below

@@ -11,7 +11,7 @@ variables:
     description: Application ID of the Databricks App service principal that triggers quick runs
   schema:
     description: Schema for this bundle's tables and registered model
-    default: capability_guides_realtime_scoring
+    default: capability_guides
   use_case:
     description: Use-case spec under use_cases/ that drives the training data and request shapes
     default: general
@@ -32,6 +32,8 @@ targets:
     presets:
       tags:
         release: ${var.release}
+    variables:
+      schema: dev_${workspace.current_user.short_name}_capability_guides
   test:
     presets:
       name_prefix: "[test] "

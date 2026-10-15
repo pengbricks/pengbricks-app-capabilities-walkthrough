@@ -9,7 +9,7 @@ export const walkthrough: Walkthrough = {
   shortVersion: [
     {
       title: 'The view is the governance.',
-      body: 'orders_west_v keeps one region (1,531 of 5,000 orders) and leaves out customer_email. The share exposes the view, not the orders table.',
+      body: 'orders_west_v keeps one region (1,531 of 5,000 orders) and leaves out customer_email. The share exposes the view, not the sharing_orders table.',
     },
     {
       title: 'The recipient needs only a credential file.',
@@ -38,16 +38,16 @@ export const walkthrough: Walkthrough = {
         type: 'flow',
         title: 'From governed view to revoked access',
         description:
-          'The prepare_data task creates the orders and products tables and the orders_west_v view. The share_and_read task creates a share and a token recipient, grants SELECT, exchanges the activation link for a credential file, reads the view and the table with the delta-sharing client, revokes the grant, confirms the read fails, and drops the recipient. Results go to sharing_audit. The collect_audit_events task copies audit events to sharing_audit_events.',
+          'The prepare_data task creates the sharing_orders and sharing_products tables and the orders_west_v view. The share_and_read task creates a share and a token recipient, grants SELECT, exchanges the activation link for a credential file, reads the view and the table with the delta-sharing client, revokes the grant, confirms the read fails, and drops the recipient. Results go to sharing_audit. The collect_audit_events task copies audit events to sharing_audit_events.',
         lanes: [
           { label: 'Provider objects', fromRow: 0, toRow: 0 },
           { label: 'Sharing lifecycle', fromRow: 1, toRow: 1 },
           { label: 'Recorded evidence', fromRow: 2, toRow: 2 },
         ],
         nodes: [
-          { id: 'orders', label: 'orders', mono: true, sub: '5,000 rows, comments', col: 0, row: 0, kind: 'store' },
+          { id: 'orders', label: 'sharing_orders', mono: true, sub: '5,000 rows, comments', col: 0, row: 0, kind: 'store' },
           { id: 'view', label: 'orders_west_v', mono: true, sub: 'West only, no email', col: 1, row: 0, kind: 'highlight' },
-          { id: 'products', label: 'products', mono: true, sub: '3 rows', col: 2, row: 0, kind: 'store' },
+          { id: 'products', label: 'sharing_products', mono: true, sub: '3 rows', col: 2, row: 0, kind: 'store' },
           { id: 'share', label: 'Share + recipient', sub: 'token, open sharing', col: 0, row: 1 },
           { id: 'grant', label: 'GRANT SELECT', sub: 'on the share', col: 1, row: 1 },
           { id: 'read', label: 'delta-sharing read', sub: 'credential file only', col: 2, row: 1 },
@@ -76,17 +76,17 @@ export const walkthrough: Walkthrough = {
       id: 'visibility',
       heading: 'What the recipient can see',
       prose:
-        'The share lists the view and the products table under a neutral schema name, so the recipient never sees the provider schema. The orders table and the customer_email column are not in the share.',
+        'The share lists the view and the sharing_products table under a neutral schema name, so the recipient never sees the provider schema. The sharing_orders table and the customer_email column are not in the share.',
       diagram: {
         type: 'matrix',
         title: 'Provider objects and what reaches the recipient',
         description:
-          'orders has 5,000 rows and is visible to the provider only. orders_west_v has 1,531 rows without customer_email and is visible to the recipient. products has 3 rows and is visible to both. Column customer_email is provider only.',
+          'sharing_orders has 5,000 rows and is visible to the provider only. orders_west_v has 1,531 rows without customer_email and is visible to the recipient. sharing_products has 3 rows and is visible to both. Column customer_email is provider only.',
         corner: 'Object ↓ · Who →',
         columns: ['Provider', 'Recipient'],
         rows: [
           {
-            label: 'orders',
+            label: 'sharing_orders',
             sub: 'all regions, all columns',
             cells: [
               { state: 'own', text: '5,000 rows' },
@@ -105,12 +105,12 @@ export const walkthrough: Walkthrough = {
             label: 'customer_email',
             sub: 'personal data column',
             cells: [
-              { state: 'own', text: 'in orders' },
+              { state: 'own', text: 'in sharing_orders' },
               { state: 'none', text: 'never shared' },
             ],
           },
           {
-            label: 'products',
+            label: 'sharing_products',
             sub: 'list prices',
             cells: [
               { state: 'own', text: '3 rows' },
@@ -133,7 +133,7 @@ export const walkthrough: Walkthrough = {
       steps: [
         {
           title: 'Ask for the files',
-          body: 'POST to the share endpoint’s query path for the products table with the bearer token.',
+          body: 'POST to the share endpoint’s query path for the sharing_products table with the bearer token.',
         },
         {
           title: 'Compare paths',

@@ -1,10 +1,4 @@
 resources:
-  schemas:
-    ops:
-      name: ${var.schema}
-      catalog_name: ${var.catalog}
-      comment: Monitoring tables for the capability guides (ops_*).
-
   jobs:
     capability_guides_monitoring_snapshot:
       name: capability-guides-monitoring-snapshot
@@ -26,7 +20,7 @@ resources:
         - name: catalog
           default: ${var.catalog}
         - name: schema
-          default: ${resources.schemas.ops.name}
+          default: ${var.schema}
         - name: lookback_days
           default: "${var.lookback_days}"
         - name: audit_lookback_days

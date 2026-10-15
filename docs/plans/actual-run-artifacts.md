@@ -2,7 +2,7 @@
 
 Every guide must link its reference code and walkthrough to an actual execution. The unit is an **artifact**: a small, typed record that connects a guide, release, environment, Databricks resource, immutable run identifier, and supporting outputs. Screenshots may illustrate an artifact, but they never replace the underlying run link or machine-readable record.
 
-Future multi-tenant use cases may supply tenant-specific datasets, generated schemas, and runs through the same generic guide and artifact interfaces.
+Other use cases can supply their own datasets, schemas, and runs through the same guide and artifact interfaces.
 
 ## Per-guide artifact set
 
@@ -93,7 +93,7 @@ The public projection omits raw workspace IDs, actor identities, request bodies,
 
 - **Screenshots**: optional, cropped to the relevant state, timestamped, accessible, and redacted. Record the source artifact ID and capture time.
 - **Metrics**: preserve structured JSON, CSV, MLflow metrics, pipeline event-log results, or bounded system-table query results. Include units, time window, aggregation, and thresholds.
-- **Logs**: retain only the minimal relevant excerpt or governed log URI. Include task/request correlation and timestamps; exclude secrets, tokens, payloads, PII, and unrelated tenant data.
+- **Logs**: retain only the minimal relevant excerpt or governed log URI. Include task/request correlation and timestamps; exclude secrets, tokens, payloads, PII, and unrelated data.
 - **Documentation and demo steps**: pin to the same release SHA as the run. State prerequisites, expected outputs, cleanup, preview/GA status where relevant, and any region or feature limitations.
 
 ## Pending and verified

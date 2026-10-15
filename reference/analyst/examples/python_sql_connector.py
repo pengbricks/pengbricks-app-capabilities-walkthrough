@@ -15,6 +15,6 @@ with sql.connect(
     http_path=f"/sql/1.0/warehouses/{os.environ['DATABRICKS_WAREHOUSE_ID']}",
     credentials_provider=lambda: cfg.authenticate,
 ) as conn, conn.cursor() as cursor:
-    cursor.execute("SELECT region, COUNT(*) FROM <catalog>.<schema>.customers GROUP BY region")
+    cursor.execute("SELECT region, COUNT(*) FROM <catalog>.<schema>.analyst_customers GROUP BY region")
     for row in cursor.fetchall():
         print(row)

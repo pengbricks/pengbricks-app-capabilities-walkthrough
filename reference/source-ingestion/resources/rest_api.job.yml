@@ -15,7 +15,7 @@ resources:
         - name: catalog
           default: ${var.catalog}
         - name: schema
-          default: ${resources.schemas.capability_guides_source_ingestion.name}
+          default: ${var.schema}
         - name: use_case
           default: ${var.use_case}
       environments:

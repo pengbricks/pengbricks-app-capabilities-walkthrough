@@ -7,7 +7,7 @@ Both tools connect through the same ODBC or JDBC driver as every other client. P
 ```sas
 libname dbx odbc noprompt="DSN=Databricks;" schema=<schema>;
 proc sql;
-  select region, count(*) as customers from dbx.customers group by region;
+  select region, count(*) as customers from dbx.analyst_customers group by region;
 quit;
 ```
 

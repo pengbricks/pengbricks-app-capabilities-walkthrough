@@ -1,13 +1,7 @@
 resources:
-  schemas:
-    documentation:
-      catalog_name: ${var.catalog}
-      name: ${var.schema}
-      comment: Sample tables and generated documentation for the documentation-generation guide.
-
   volumes:
     docs:
       catalog_name: ${var.catalog}
-      schema_name: ${resources.schemas.documentation.name}
+      schema_name: ${var.schema}
       name: docs
       comment: Generated markdown documentation pages, one per table plus an index.

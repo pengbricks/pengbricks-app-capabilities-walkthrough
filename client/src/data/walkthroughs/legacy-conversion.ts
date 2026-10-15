@@ -33,7 +33,7 @@ export const walkthrough: Walkthrough = {
       id: 'flow',
       heading: 'Assess, convert, reconcile, record',
       prose:
-        'Each task reads the previous task output and writes tables to the bundle schema. The convert task also reads hand-written replacements for steps it cannot convert, and the test task also reads generated sample data.',
+        'Each task reads the previous task output and writes tables to the shared guide schema. The convert task also reads hand-written replacements for steps it cannot convert, and the test task also reads generated sample data.',
       diagram: {
         type: 'flow',
         title: 'The four tasks and the tables they write',

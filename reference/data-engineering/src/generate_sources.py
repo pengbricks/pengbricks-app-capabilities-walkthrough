@@ -24,7 +24,7 @@ def main() -> None:
     spark.createDataFrame(regions).write.mode("overwrite").saveAsTable(f"{prefix}.regions")
     print(f"regions: {len(regions)} rows")
 
-    for offset, name in enumerate(("customers", "orders")):
+    for offset, name in enumerate(("de_customers", "de_orders")):
         table = spec["tables"][name]
         df = build_frame(spark, name, int(spec["seed"]) + offset, int(table["rows"]), table["columns"]).drop("id")
         df.write.mode("overwrite").saveAsTable(f"{prefix}.{name}")

@@ -1,4 +1,4 @@
-# Use-case spec: the only file a new tenant or use case needs to author.
+# Use-case spec: the only file a new use case needs to author.
 # tools/render_use_case.py renders feeds/<use_case>/*.yml from it, and
 # src/generate_landing.py generates deterministic sample data from it with dbldatagen.
 name: general

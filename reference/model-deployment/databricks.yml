@@ -15,7 +15,7 @@ variables:
     description: Address that receives failure alerts
   schema:
     description: Schema for the model, training data, and release history
-    default: capability_guides_model_deployment
+    default: capability_guides
   use_case:
     description: Use-case spec under use_cases/ that drives data, label, model name, and features
     default: general
@@ -52,6 +52,7 @@ targets:
       tags:
         release: ${var.release}
     variables:
+      schema: dev_${workspace.current_user.short_name}_capability_guides
       min_auc: 0.75
       max_auc_regression: 0.02
       serving_workload_size: Small

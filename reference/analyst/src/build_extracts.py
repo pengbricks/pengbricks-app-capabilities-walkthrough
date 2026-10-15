@@ -32,8 +32,8 @@ def main() -> None:
     fq = f"{args.catalog}.{args.schema}"
 
     # The extract table also backs the dashboard, so the dashboard and the files share one filter.
-    orders = spark.table(f"{fq}.orders").alias("o")
-    customers = spark.table(f"{fq}.customers").alias("c")
+    orders = spark.table(f"{fq}.analyst_orders").alias("o")
+    customers = spark.table(f"{fq}.analyst_customers").alias("c")
     extract = (
         orders.join(customers, "customer_id")
         .where(

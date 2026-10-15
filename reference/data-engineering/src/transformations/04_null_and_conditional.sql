@@ -12,4 +12,4 @@ SELECT
        WHEN segment = 'consumer'   THEN 'self_serve'
        ELSE 'review' END                             AS service_level,
   if(region_code IS NULL AND segment IS NULL, 'incomplete', 'ok') AS profile_status
-FROM customers;
+FROM de_customers;

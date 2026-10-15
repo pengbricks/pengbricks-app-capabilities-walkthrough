@@ -1,9 +1,0 @@
-resources:
-  schemas:
-    capability_guides_source_ingestion:
-      catalog_name: ${var.catalog}
-      name: ${var.schema}
-      comment: Tables produced by the capability guide source ingestion reference code
-      grants:
-        - principal: ${var.app_service_principal}
-          privileges: [USE_SCHEMA]

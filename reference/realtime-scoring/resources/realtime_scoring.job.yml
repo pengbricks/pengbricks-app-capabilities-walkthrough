@@ -14,7 +14,7 @@ resources:
         - name: catalog
           default: ${var.catalog}
         - name: schema
-          default: ${resources.schemas.realtime_scoring.name}
+          default: ${var.schema}
         - name: use_case
           default: ${var.use_case}
         - name: endpoint_name

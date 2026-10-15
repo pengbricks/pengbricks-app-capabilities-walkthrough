@@ -18,7 +18,7 @@ monthly = spark.sql(
     f"""
     SELECT c.region, DATE_TRUNC('MONTH', o.order_ts) AS month,
            CAST(SUM(o.quantity * o.unit_price) AS DOUBLE) AS revenue
-    FROM {fq}.orders o JOIN {fq}.customers c USING (customer_id)
+    FROM {fq}.analyst_orders o JOIN {fq}.analyst_customers c USING (customer_id)
     WHERE o.status IN ('completed', 'shipped')
     GROUP BY 1, 2
     """

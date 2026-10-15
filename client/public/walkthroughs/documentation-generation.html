@@ -795,7 +795,7 @@ main.main.guide { max-width: none; background: none; border-radius: 0; font-size
         <ol class="short-list">
           <li>
             <h3>One job writes one page per table.</h3>
-            <p>It loops over every table in a schema and writes a single Markdown page for each, plus an index, into a Unity Catalog volume.</p>
+            <p>It loops over the sample tables listed in the spec, in the shared guide schema, and writes a single Markdown page for each, plus an index, into a Unity Catalog volume.</p>
           </li>
           <li>
             <h3>Every page has the same five sections.</h3>
@@ -843,7 +843,7 @@ main.main.guide { max-width: none; background: none; border-radius: 0; font-size
 
               <rect class="d-box d-prod" x="420" y="148" width="230" height="80" rx="8"/>
               <text class="t t-c t-strong t-mono" x="535" y="180">generate_docs.py</text>
-              <text class="t-m t-c" x="535" y="202">loops over every table</text>
+              <text class="t-m t-c" x="535" y="202">loops over spec tables</text>
 
               <path class="d-line" d="M650 188H724V150H798" marker-end="url(#arrow)"/>
               <path class="d-line" d="M650 188H724V240H798" marker-end="url(#arrow)"/>
@@ -1038,8 +1038,8 @@ main.main.guide { max-width: none; background: none; border-radius: 0; font-size
               <tr><td>Sample tables to document: <code>bronze_orders</code>, <code>silver_orders</code>, <code>gold_daily_revenue</code></td><td><code>src/build_sample_tables.py</code>, <code>use_cases/general.yml</code></td></tr>
               <tr><td>Job <code>capability-guides-documentation-refresh</code>, two tasks, no schedule</td><td><code>resources/job.yml</code></td></tr>
               <tr><td>Schema and docs volume</td><td><code>resources/schema.yml</code>, <code>databricks.yml</code></td></tr>
-              <tr><td>Generated pages and index</td><td><code>/Volumes/&lt;catalog&gt;/capability_guides_documentation/docs/&lt;table&gt;.md</code></td></tr>
-              <tr><td>Refresh record</td><td><code>&lt;catalog&gt;.capability_guides_documentation.documentation_refresh_log</code></td></tr>
+              <tr><td>Generated pages and index</td><td><code>/Volumes/&lt;catalog&gt;/&lt;schema&gt;/docs/&lt;table&gt;.md</code></td></tr>
+              <tr><td>Refresh record</td><td><code>&lt;catalog&gt;.&lt;schema&gt;.documentation_refresh_log</code></td></tr>
               <tr><td>Written guide</td><td><code>guides/documentation-generation.md</code></td></tr>
             </tbody>
           </table>
@@ -1051,7 +1051,7 @@ main.main.guide { max-width: none; background: none; border-radius: 0; font-size
         <h2 id="h-demo">Demo steps</h2>
         <ol class="practice-list">
           <li><strong>Run the job.</strong> Start <code>capability-guides-documentation-refresh</code>. It builds the three sample tables, then runs <code>generate_docs</code>.</li>
-          <li><strong>Open the index.</strong> Open <code>index.md</code> in the docs volume to see every table with owner, row count, and summary.</li>
+          <li><strong>Open the index.</strong> Open <code>index.md</code> in the docs volume to see each documented table with owner, row count, and summary.</li>
           <li><strong>Open one page.</strong> Open <code>silver_orders.md</code> and point out Ownership, Schema, Quality, Lineage, and Usage guidance on one page.</li>
           <li><strong>Show the comments landed.</strong> Open <code>silver_orders</code> in Catalog Explorer. The table and column descriptions match the page.</li>
           <li><strong>Check the refresh log.</strong> Query <code>documentation_refresh_log</code> for <code>refresh_ts</code>, <code>tables_documented</code>, <code>comments_applied</code>, <code>ai_failures</code>, <code>status</code>, and <code>run_user</code>.</li>

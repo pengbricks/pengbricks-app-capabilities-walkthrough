@@ -38,7 +38,7 @@ export const walkthrough: Walkthrough = {
         type: 'flow',
         title: 'From orders to files and dashboard',
         description:
-          'build_extracts joins orders to customers, filters by region, status, and date range, and writes extract_orders. It then writes an xlsx workbook and a pipe-delimited file to the extracts volume and records both in extract_manifest. The AI/BI dashboard reads extract_orders. schedule_dashboard creates a weekly schedule and a subscription for the notification address.',
+          'build_extracts joins analyst_orders to analyst_customers, filters by region, status, and date range, and writes extract_orders. It then writes an xlsx workbook and a pipe-delimited file to the extracts volume and records both in extract_manifest. The AI/BI dashboard reads extract_orders. schedule_dashboard creates a weekly schedule and a subscription for the notification address.',
         lanes: [
           { label: 'Job tasks', fromRow: 0, toRow: 0 },
           { label: 'Outputs', fromRow: 1, toRow: 2 },
@@ -91,7 +91,7 @@ export const walkthrough: Walkthrough = {
           { state: 'own', label: 'Present' },
           { state: 'none', label: 'Not part of the format' },
         ],
-        caption: 'Run 797763214748014. Files are in the extracts volume under partner/.',
+        caption: 'Run 480047373211928. Files are in the extracts volume under partner/.',
       },
     },
     {

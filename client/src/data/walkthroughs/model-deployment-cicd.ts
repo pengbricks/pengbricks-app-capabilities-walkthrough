@@ -45,7 +45,7 @@ export const walkthrough: Walkthrough = {
         ],
         nodes: [
           { id: 'train', label: 'train_and_register', sub: 'MLflow 3, dbldatagen', mono: true, col: 0, row: 0 },
-          { id: 'uc', label: 'churn_classifier', sub: 'UC model version', mono: true, col: 1, row: 0, kind: 'store' },
+          { id: 'uc', label: 'release_churn_classifier', sub: 'UC model version', mono: true, col: 1, row: 0, kind: 'store' },
           { id: 'tests', label: 'run_tests', sub: 'AUC, signature, champion', mono: true, col: 2, row: 0, kind: 'highlight' },
           { id: 'chal', label: '@challenger', sub: 'alias on tested version', mono: true, col: 3, row: 0, kind: 'store' },
           { id: 'gate', label: 'approval_gate', sub: 'approved_by set?', mono: true, col: 4, row: 0, kind: 'gate' },
@@ -168,12 +168,12 @@ export const walkthrough: Walkthrough = {
       id: 'run',
       heading: 'The reference run',
       prose:
-        'The reference run promoted churn_classifier version 4. The endpoint served version 4, and scoring took about 87 ms per request. The release row records approved_by.',
+        'The reference run promoted release_churn_classifier version 4. The endpoint served version 4, and scoring took about 87 ms per request. The release row records approved_by.',
       table: {
         caption: 'Reference run results',
         columns: ['Item', 'Value'],
         rows: [
-          ['Model', 'churn_classifier, version 4'],
+          ['Model', 'release_churn_classifier, version 4'],
           ['Holdout AUC', '0.95'],
           ['Version served by the endpoint', '4'],
           ['Scoring latency', 'About 87 ms'],

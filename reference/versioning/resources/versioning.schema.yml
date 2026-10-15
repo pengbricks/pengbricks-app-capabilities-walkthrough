@@ -1,6 +1,0 @@
-resources:
-  schemas:
-    capability_guides_versioning:
-      catalog_name: ${var.catalog}
-      name: ${var.schema}
-      comment: Tables and views produced by the capability guide versioning reference code

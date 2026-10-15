@@ -4,7 +4,7 @@ name: general
 seed: 20261014
 
 data:
-  table: orders
+  table: agent_orders
   rows: 500
   id_offset: 1000            # order_id = id + id_offset
   columns:
@@ -22,7 +22,7 @@ tool:
   parameter: p_order_id
   parameter_comment: Numeric order id, for example 1042
   sample_order_id: 1042
-  mask_function: mask_email
+  mask_function: agent_mask_email
   pii_group: capability_guides_pii_readers
 
 prompt: >-

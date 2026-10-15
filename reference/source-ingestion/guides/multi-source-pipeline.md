@@ -20,8 +20,8 @@ One Lakeflow Declarative Pipeline reads three sources in three shapes: a databas
 flowchart LR
   subgraph Prepare[prepare_inputs task]
     gen[dbldatagen] --> dbt[(ms_db_customers)]
-    gen --> csv[/landing/multi_source/files/]
-    api[authenticated API client] --> json[/landing/multi_source/api/]
+    gen --> csv[/source_landing/multi_source/files/]
+    api[authenticated API client] --> json[/source_landing/multi_source/api/]
   end
   subgraph LDP[combine_sources: one Lakeflow Declarative Pipeline]
     dbt --> sdb[stg_db_customers<br/>materialized view]

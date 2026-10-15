@@ -38,7 +38,7 @@ export const walkthrough: Walkthrough = {
         type: 'flow',
         title: 'Three sources into one table',
         description:
-          'prepare_inputs writes the ms_db_customers Delta table, a CSV file in the landing volume, and JSON-lines API pages in the landing volume. In the pipeline, stg_db_customers is a materialized view over the extract. stg_files_customers and stg_api_users are Auto Loader streaming tables. All three feed customers_conformed, which feeds customers_by_source. verify_conformed checks the counts.',
+          'prepare_inputs writes the ms_db_customers Delta table, a CSV file in the source_landing volume, and JSON-lines API pages in the source_landing volume. In the pipeline, stg_db_customers is a materialized view over the extract. stg_files_customers and stg_api_users are Auto Loader streaming tables. All three feed customers_conformed, which feeds customers_by_source. verify_conformed checks the counts.',
         lanes: [
           { label: 'Inputs', fromRow: 0, toRow: 2 },
           { label: 'Lakeflow Declarative Pipeline', fromRow: 0, toRow: 2 },

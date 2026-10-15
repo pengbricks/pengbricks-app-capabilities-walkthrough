@@ -2,6 +2,9 @@
 # Code under src/ stays generic; swap this file to change the domain.
 name: general
 seed: 20261014
+# Row/column-security tables live in the shared schema, so they carry this prefix there (gov_customers,
+# gov_orders). The access demo schemas are separate and keep the plain names.
+shared_table_prefix: gov_
 
 tables:
   customers:

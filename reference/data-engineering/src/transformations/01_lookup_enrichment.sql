@@ -9,5 +9,5 @@ SELECT
   CASE WHEN c.region_code IS NULL THEN 'missing_code'
        WHEN r.region_code IS NULL THEN 'unmatched_code'
        ELSE 'matched' END AS lookup_status
-FROM customers c
+FROM de_customers c
 LEFT JOIN regions r ON c.region_code = r.region_code;

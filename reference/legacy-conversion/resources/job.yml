@@ -1,10 +1,4 @@
 resources:
-  schemas:
-    guide_schema:
-      catalog_name: ${var.catalog}
-      name: ${var.schema}
-      comment: Legacy conversion capability guide outputs.
-
   jobs:
     capability_guides_legacy_conversion_assessment:
       name: capability-guides-legacy-conversion-assessment
@@ -16,7 +10,7 @@ resources:
         - name: catalog
           default: ${var.catalog}
         - name: schema
-          default: ${resources.schemas.guide_schema.name}
+          default: ${var.schema}
         - name: use_case
           default: ${var.use_case}
       environments:

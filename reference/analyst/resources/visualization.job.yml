@@ -12,7 +12,7 @@ resources:
         - name: catalog
           default: ${var.catalog}
         - name: schema
-          default: ${resources.schemas.capability_guides_analyst.name}
+          default: ${var.schema}
         - name: use_case
           default: ${var.use_case}
       environments:
@@ -34,7 +34,7 @@ resources:
               - --schema={{job.parameters.schema}}
               - --src=${workspace.file_path}/src
               - --spec=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
-              - --tables=customers,orders
+              - --tables=analyst_customers,analyst_orders
 
         - task_key: create_views
           depends_on:

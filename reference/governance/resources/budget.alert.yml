@@ -5,7 +5,7 @@ resources:
       display_name: "capability guides 7-day spend above ${var.budget_threshold_usd} USD"
       query_text: >-
         SELECT coalesce(sum(cost_usd), 0) AS spend_7d_usd
-        FROM `${var.catalog}`.`${resources.schemas.capability_guides_governance.name}`.cost_usage_enriched
+        FROM `${var.catalog}`.`${var.schema}`.cost_usage_enriched
         WHERE usage_date >= date_sub(current_date(), 7)
       warehouse_id: ${var.warehouse_id}
       evaluation:

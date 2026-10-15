@@ -2,7 +2,7 @@
 
 ## Overview
 
-The job generates two tables from the use-case spec (`customers` with 5,000 rows and `orders` with 20,000), then applies Unity Catalog policies: column masks on `customers.email` and `customers.national_id`, an attribute row filter on `orders.sensitivity`, and a dynamic row filter on `customers.region` that reads a mapping table keyed on `session_user()`. It then tests the policies for several identities and writes the policy inventory from `information_schema`.
+The job generates two tables from the use-case spec (`gov_customers` with 5,000 rows and `gov_orders` with 20,000), then applies Unity Catalog policies: column masks on `gov_customers.email` and `gov_customers.national_id`, an attribute row filter on `gov_orders.sensitivity`, and a dynamic row filter on `gov_customers.region` that reads a mapping table keyed on `session_user()`. It then tests the policies for several identities and writes the policy inventory from `information_schema`.
 
 ## What this shows
 
@@ -32,7 +32,7 @@ Reference run results for customer CUST-000001 and row counts:
 ```mermaid
 flowchart LR
   S[use_cases/general.yml] --> G[generate_data: dbldatagen]
-  G --> T[(customers, orders)]
+  G --> T[(gov_customers, gov_orders)]
   M[(region_access)] --> F
   P[create_policies] --> F[row filters]
   P --> K[column masks]
@@ -74,7 +74,7 @@ The job runs as the deploying user, an admin, so the real policies let every row
 ## Artifacts produced
 
 - Job `capability-guides-row-column-security` (key `capability_guides_row_column_security`)
-- Tables `customers`, `orders`, `region_access`, `policy_test_results`, `policy_inventory`; functions `mask_email`, `mask_national_id`, `filter_orders_sensitivity`, `filter_customers_region`
+- Tables `gov_customers`, `gov_orders`, `region_access`, `policy_test_results`, `policy_inventory`; functions `mask_email`, `mask_national_id`, `filter_orders_sensitivity`, `filter_customers_region`
 
 ## Limitations and next steps
 

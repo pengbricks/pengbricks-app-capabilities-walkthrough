@@ -99,3 +99,9 @@ def test_percentile_and_budget():
     assert percentile([1, 2, 3, 4, 5], 95) == 5
     assert percentile([], 95) == 0.0
     assert over_budget(100.6, 50) and not over_budget(50, 50)
+
+
+def test_shared_schema_tables_are_prefixed_but_demo_tables_keep_names():
+    assert SPEC["shared_table_prefix"] == "gov_"
+    assert set(SPEC["tables"]) == {"customers", "orders"}
+    assert set(SPEC["access"]["rows_per_table"]) == {"customers", "orders"}

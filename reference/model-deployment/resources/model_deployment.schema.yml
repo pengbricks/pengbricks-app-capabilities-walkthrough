@@ -1,6 +1,0 @@
-resources:
-  schemas:
-    capability_guides_model_deployment:
-      catalog_name: ${var.catalog}
-      name: ${var.schema}
-      comment: Model, training data, and release history produced by the model deployment CI/CD guide

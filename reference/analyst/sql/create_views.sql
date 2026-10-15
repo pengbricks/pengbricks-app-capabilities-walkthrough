@@ -8,7 +8,7 @@ AS
 SELECT CAST(DATE_TRUNC('MONTH', order_ts) AS DATE) AS month,
        COUNT(*) AS orders,
        CAST(SUM(quantity * unit_price) AS DECIMAL(18, 2)) AS revenue
-FROM orders
+FROM analyst_orders
 WHERE status IN ('completed', 'shipped')
 GROUP BY 1;
 
@@ -19,6 +19,6 @@ SELECT c.region,
        c.segment,
        COUNT(*) AS orders,
        CAST(SUM(o.quantity * o.unit_price) AS DECIMAL(18, 2)) AS revenue
-FROM orders o JOIN customers c USING (customer_id)
+FROM analyst_orders o JOIN analyst_customers c USING (customer_id)
 WHERE o.status IN ('completed', 'shipped')
 GROUP BY c.region, c.segment;

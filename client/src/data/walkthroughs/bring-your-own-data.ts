@@ -33,12 +33,12 @@ export const walkthrough: Walkthrough = {
       id: 'flow',
       heading: 'From upload to joined table',
       prose:
-        'The job creates the customers table, writes the CSV, reads it back with a header and inferred types, and joins on customer_id after trimming whitespace.',
+        'The job creates the analyst_customers table, writes the CSV, reads it back with a header and inferred types, and joins on customer_id after trimming whitespace.',
       diagram: {
         type: 'flow',
         title: 'Upload, join, count',
         description:
-          'generate_data writes the customers table. simulate_upload writes account_targets.csv to the uploads volume under a folder named after the current user. join_to_governed reads the CSV, full outer joins it to customers on customer_id, and writes byod_joined and byod_match_counts. The task fails if no key matches.',
+          'generate_data writes the analyst_customers table. simulate_upload writes account_targets.csv to the uploads volume under a folder named after the current user. join_to_governed reads the CSV, full outer joins it to analyst_customers on customer_id, and writes byod_joined and byod_match_counts. The task fails if no key matches.',
         lanes: [
           { label: 'Job tasks', fromRow: 0, toRow: 0 },
           { label: 'Storage', fromRow: 1, toRow: 1 },
@@ -47,7 +47,7 @@ export const walkthrough: Walkthrough = {
           { id: 'gen', label: 'generate_data', mono: true, col: 0, row: 0 },
           { id: 'upload', label: 'simulate_upload', mono: true, sub: 'writes the CSV', col: 1, row: 0 },
           { id: 'join', label: 'join_to_governed', mono: true, sub: 'full outer join', col: 2, row: 0, kind: 'highlight' },
-          { id: 'customers', label: 'customers', mono: true, sub: 'governed table', col: 0, row: 1, kind: 'store' },
+          { id: 'customers', label: 'analyst_customers', mono: true, sub: 'governed table', col: 0, row: 1, kind: 'store' },
           { id: 'csv', label: 'uploads/<user>/', mono: true, sub: 'account_targets.csv', col: 1, row: 1, kind: 'store' },
           { id: 'joined', label: 'byod_joined', mono: true, sub: 'every key, with status', col: 2, row: 1, kind: 'store' },
           { id: 'counts', label: 'byod_match_counts', mono: true, sub: 'one row per status', col: 3, row: 1, kind: 'store' },
@@ -77,9 +77,9 @@ export const walkthrough: Walkthrough = {
         type: 'matrix',
         title: 'Match status and counts',
         description:
-          'matched: the key is in the upload and the customers table, 450 keys. upload_only: the key is in the upload but not in customers, 30 keys. governed_only: the key is in customers but not in the upload, 4,550 keys.',
+          'matched: the key is in the upload and the analyst_customers table, 450 keys. upload_only: the key is in the upload but not in analyst_customers, 30 keys. governed_only: the key is in analyst_customers but not in the upload, 4,550 keys.',
         corner: 'Status ↓ · Present in →',
-        columns: ['Upload', 'customers', 'Keys'],
+        columns: ['Upload', 'analyst_customers', 'Keys'],
         rows: [
           { label: 'matched', sub: 'in both', cells: [{ state: 'own', text: 'yes' }, { state: 'own', text: 'yes' }, { state: 'own', text: '450' }] },
           { label: 'upload_only', sub: 'check the key', cells: [{ state: 'own', text: 'yes' }, { state: 'none', text: 'no' }, { state: 'optional', text: '30' }] },
@@ -90,7 +90,7 @@ export const walkthrough: Walkthrough = {
           { state: 'optional', label: 'Needs a look' },
           { state: 'none', label: 'Absent' },
         ],
-        caption: 'Run 933824869009411. 480 uploaded rows: 450 matched plus 30 upload_only.',
+        caption: 'Run 283267119841726. 480 uploaded rows: 450 matched plus 30 upload_only.',
       },
     },
     {

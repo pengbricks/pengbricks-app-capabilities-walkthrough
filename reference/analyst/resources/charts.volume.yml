@@ -2,6 +2,6 @@ resources:
   volumes:
     capability_guides_analyst_charts:
       catalog_name: ${var.catalog}
-      schema_name: ${resources.schemas.capability_guides_analyst.name}
+      schema_name: ${var.schema}
       name: charts
       comment: Chart images saved by the visualization notebook

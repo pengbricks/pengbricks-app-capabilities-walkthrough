@@ -33,7 +33,7 @@ def main() -> None:
 
     cfg = load_spec(args.use_case_file)["sftp"]
     ns = f"{args.catalog}.{args.schema}"
-    volume = f"/Volumes/{args.catalog}/{args.schema}/landing"
+    volume = f"/Volumes/{args.catalog}/{args.schema}/source_landing"
     target = f"{volume}/sftp"
     spark.sql(
         f"CREATE TABLE IF NOT EXISTS {ns}.sftp_transfer_log (run_id STRING, transferred_at TIMESTAMP, remote_path STRING, "

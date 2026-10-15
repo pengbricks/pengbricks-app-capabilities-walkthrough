@@ -68,7 +68,7 @@ flowchart LR
 
 ## Artifacts produced
 
-- Model `<catalog>.<schema>.churn_classifier` with versions, `@challenger` and `@champion` aliases, and tags
+- Model `<catalog>.<schema>.release_churn_classifier` with versions, `@challenger` and `@champion` aliases, and tags
 - Table `churn_training_data` (seeded) and `model_release_history`
 - MLflow experiment with a training run per release
 - Endpoint `capability-guides-model-<target>` (small, scale-to-zero)

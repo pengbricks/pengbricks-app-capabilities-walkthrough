@@ -43,7 +43,7 @@ bands = spec.get("bands")
 if bands:
     out = add_band(out, value, bands["column"], [(t["min"], t["label"]) for t in bands["thresholds"]], bands["default"])
 
-spark.sql(f"CREATE SCHEMA IF NOT EXISTS `{catalog}`.`{schema}`")
+# The schema is owned by the foundation bundle; this job only writes its table into it.
 target = f"`{catalog}`.`{schema}`.`{spec['output_table']}`"
 out.write.mode("overwrite").saveAsTable(target)
 

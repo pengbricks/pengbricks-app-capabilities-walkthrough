@@ -70,7 +70,7 @@ export const walkthrough: Walkthrough = {
           { kind: 'highlight', label: 'Support action' },
           { kind: 'store', label: 'Delta table' },
         ],
-        caption: 'Reference run: fragile_step failed, the repair job reran it as repair 1080614604838017, and the original run finished as SUCCESS.',
+        caption: 'Reference run: fragile_step failed, the repair job reran it as repair 305177685386087, and the original run finished as SUCCESS.',
       },
     },
     {

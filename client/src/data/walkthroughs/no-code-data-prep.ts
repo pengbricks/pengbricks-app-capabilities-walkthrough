@@ -38,11 +38,11 @@ export const walkthrough: Walkthrough = {
         type: 'flow',
         title: 'Visual data prep operators',
         description:
-          'Two Source operators read orders and customers. A Filter operator keeps completed orders from 2026-01-01. A Join operator links the filtered orders to customers on customer_id. A Select operator renames columns. A Custom columns operator adds order_total and order_size. An Output operator writes the table prep_flow_output_designer to Unity Catalog.',
+          'Two Source operators read analyst_orders and analyst_customers. A Filter operator keeps completed orders from 2026-01-01. A Join operator links the filtered orders to analyst_customers on customer_id. A Select operator renames columns. A Custom columns operator adds order_total and order_size. An Output operator writes the table prep_flow_output_designer to Unity Catalog.',
         nodes: [
-          { id: 'orders', label: 'Source: orders', sub: 'Browse existing', col: 0, row: 0 },
+          { id: 'orders', label: 'analyst_orders', sub: 'Source, browse existing', col: 0, row: 0 },
           { id: 'filter', label: 'Filter', sub: 'completed, from 2026-01-01', col: 1, row: 0 },
-          { id: 'customers', label: 'Source: customers', sub: 'Browse existing', col: 1, row: 1 },
+          { id: 'customers', label: 'analyst_customers', sub: 'Source, browse existing', col: 1, row: 1 },
           { id: 'join', label: 'Join', sub: 'on customer_id', col: 2, row: 0, kind: 'highlight' },
           { id: 'select', label: 'Select', sub: 'rename columns', col: 3, row: 0 },
           { id: 'custom', label: 'Custom columns', sub: 'order_total, order_size', col: 4, row: 0 },
@@ -71,11 +71,11 @@ export const walkthrough: Walkthrough = {
         type: 'matrix',
         title: 'Operator and SQL equivalent',
         description:
-          'Source maps to FROM orders and customers. Filter maps to WHERE status = completed and order_ts >= 2026-01-01. Join maps to JOIN customers ON customer_id. Select maps to column aliases such as order_number and sales_region. Custom columns maps to order_total and order_size expressions.',
+          'Source maps to FROM analyst_orders and analyst_customers. Filter maps to WHERE status = completed and order_ts >= 2026-01-01. Join maps to JOIN analyst_customers ON customer_id. Select maps to column aliases such as order_number and sales_region. Custom columns maps to order_total and order_size expressions.',
         corner: 'Operator ↓ · Form →',
         columns: ['In Designer', 'In SQL'],
         rows: [
-          { label: 'Source', sub: 'two tables', cells: [{ state: 'own', text: 'Browse existing' }, { state: 'own', text: 'FROM orders o' }] },
+          { label: 'Source', sub: 'two tables', cells: [{ state: 'own', text: 'Browse existing' }, { state: 'own', text: 'FROM analyst_orders o' }] },
           { label: 'Filter', sub: 'two conditions', cells: [{ state: 'own', text: 'condition builder' }, { state: 'own', text: 'WHERE status = ...' }] },
           { label: 'Join', sub: 'inner', cells: [{ state: 'own', text: 'pick matching columns' }, { state: 'own', text: 'JOIN ... ON' }] },
           { label: 'Select', sub: 'rename', cells: [{ state: 'own', text: 'Rename field' }, { state: 'own', text: 'AS sales_region' }] },
@@ -92,7 +92,7 @@ export const walkthrough: Walkthrough = {
       steps: [
         {
           title: 'Reference numbers',
-          body: 'prep_flow_summary holds the SQL output counts: 99,710 rows, 5,000 customers, a total of 138,172,774.00 (run 770669008949852).',
+          body: 'prep_flow_summary holds the SQL output counts: 99,710 rows, 5,000 customers, a total of 138,172,774.00 (run 577542446375509).',
           code: 'SELECT * FROM <catalog>.<schema>.prep_flow_summary;',
         },
         {

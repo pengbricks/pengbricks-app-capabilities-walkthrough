@@ -1,4 +1,4 @@
-"""Create the sample orders and products tables from the use-case spec."""
+"""Create the sample sharing_orders and sharing_products tables from the use-case spec."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ def main() -> None:
     from databricks.sdk.runtime import spark
 
     spec = load_spec(args.use_case_file)
-    write_tables(spark, spec, f"{args.catalog}.{args.schema}", ["orders", "products"])
+    write_tables(spark, spec, f"{args.catalog}.{args.schema}", ["sharing_orders", "sharing_products"])
 
 
 if __name__ == "__main__":

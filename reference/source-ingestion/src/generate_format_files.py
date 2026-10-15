@@ -24,7 +24,7 @@ def main() -> None:
 
     spec = load_spec(args.use_case_file)
     options = spec["file_formats"]
-    volume_root = f"/Volumes/{args.catalog}/{args.schema}/landing/formats"
+    volume_root = f"/Volumes/{args.catalog}/{args.schema}/source_landing/formats"
     shutil.rmtree(volume_root, ignore_errors=True)  # idempotent: each run rewrites every file
     # Volumes do not support random-access writes (zip files need them), so build locally, then copy.
     root = tempfile.mkdtemp(prefix="formats_")

@@ -21,7 +21,7 @@ The checks are rows in `format_ingestion_checks`. The `verify_tables` task fails
 ```mermaid
 flowchart LR
   spec[use_cases/general.yml<br/>dbldatagen, fixed seed] --> gen[generate_files]
-  gen --> vol[/Volume: landing/formats/]
+  gen --> vol[/Volume: source_landing/formats/]
   vol --> csv[csv/] --> t1[(fmt_customers_csv)]
   vol --> pipe[pipe/] --> t2[(fmt_orders_pipe)]
   vol --> xl[excel/<br/>sheet Orders] --> t3[(fmt_orders_excel)]
@@ -49,7 +49,7 @@ flowchart LR
    ```
 4. Show the single sheet:
    ```sql
-   SELECT * FROM read_files('/Volumes/<catalog>/<schema>/landing/formats/excel/',
+   SELECT * FROM read_files('/Volumes/<catalog>/<schema>/source_landing/formats/excel/',
      format => 'excel', operation => 'listSheets', schemaEvolutionMode => 'none');
    DESCRIBE TABLE <catalog>.<schema>.fmt_orders_excel;
    ```
@@ -68,7 +68,7 @@ flowchart LR
 
 - Job `capability-guides-file-formats` (tag `capability_guide_job: capability_guides_file_formats`) and pipeline `capability-guides-file-formats`
 - Seven pipeline tables above plus `format_ingestion_checks`
-- Sample files in the `landing` volume under `formats/`
+- Sample files in the `source_landing` volume under `formats/`
 
 ## Limitations and next steps
 

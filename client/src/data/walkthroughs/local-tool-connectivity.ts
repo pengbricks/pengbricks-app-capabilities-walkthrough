@@ -21,7 +21,7 @@ export const walkthrough: Walkthrough = {
     },
     {
       title: 'The job runs the connector.',
-      body: 'Run 335256858614154 connected as the job identity, counted 5,000 customers across 4 regions, and took 1.56 s.',
+      body: 'Run 936695289546560 connected as the job identity, counted 5,000 customers across 4 regions, and took 1.56 s.',
     },
     {
       title: 'Permissions follow the identity.',
@@ -99,12 +99,12 @@ export const walkthrough: Walkthrough = {
         type: 'flow',
         title: 'Connector check task',
         description:
-          'generate_data writes customers. sql_connector_check builds a Databricks SDK Config, opens a SQL connector connection to the warehouse, selects current_user and a count by region, and writes one row to connectivity_check. The task fails if the connector returns no rows.',
+          'generate_data writes analyst_customers. sql_connector_check builds a Databricks SDK Config, opens a SQL connector connection to the warehouse, selects current_user and a count by region, and writes one row to connectivity_check. The task fails if the connector returns no rows.',
         nodes: [
           { id: 'gen', label: 'generate_data', mono: true, col: 0, row: 0 },
           { id: 'cfg', label: 'Config()', mono: true, sub: 'job identity or M2M', col: 1, row: 0 },
           { id: 'conn', label: 'sql.connect()', mono: true, sub: 'warehouse HTTP path', col: 2, row: 0, kind: 'highlight' },
-          { id: 'q', label: 'SELECT ... GROUP BY', sub: 'customers by region', col: 3, row: 0 },
+          { id: 'q', label: 'SELECT ... GROUP BY', sub: 'analyst_customers, region', col: 3, row: 0 },
           { id: 'rec', label: 'connectivity_check', mono: true, sub: 'auth mode, rows, seconds', col: 3, row: 1, kind: 'store' },
         ],
         edges: [

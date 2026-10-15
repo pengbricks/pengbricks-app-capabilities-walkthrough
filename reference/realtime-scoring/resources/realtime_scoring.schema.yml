@@ -1,9 +1,0 @@
-resources:
-  schemas:
-    realtime_scoring:
-      catalog_name: ${var.catalog}
-      name: ${var.schema}
-      comment: Registered model and measurement tables for the online scoring guide
-      grants:
-        - principal: ${var.app_service_principal}
-          privileges: [USE_SCHEMA]

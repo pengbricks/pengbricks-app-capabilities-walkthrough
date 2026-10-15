@@ -38,7 +38,7 @@ export const walkthrough: Walkthrough = {
         type: 'flow',
         title: 'The file format job',
         description:
-          'generate_files writes customers.csv, orders.txt, orders_workbook.xlsx, customers_nested.json, and orders.xml into folders in the landing volume. The ingest_formats pipeline reads each folder with Auto Loader into fmt_customers_csv, fmt_orders_pipe, fmt_orders_excel, fmt_customers_json, and fmt_orders_xml. Two materialized views explode the JSON contacts and the XML lines. verify_tables compares every table with the spec and writes format_ingestion_checks.',
+          'generate_files writes customers.csv, orders.txt, orders_workbook.xlsx, customers_nested.json, and orders.xml into folders in the source_landing volume. The ingest_formats pipeline reads each folder with Auto Loader into fmt_customers_csv, fmt_orders_pipe, fmt_orders_excel, fmt_customers_json, and fmt_orders_xml. Two materialized views explode the JSON contacts and the XML lines. verify_tables compares every table with the spec and writes format_ingestion_checks.',
         lanes: [
           { label: 'Landing volume', fromRow: 0, toRow: 0 },
           { label: 'Lakeflow Declarative Pipeline', fromRow: 1, toRow: 2 },

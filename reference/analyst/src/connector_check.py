@@ -32,7 +32,7 @@ def main() -> None:
             cursor.execute("SELECT current_user() AS who, current_catalog() AS cat")
             who, _ = cursor.fetchone()
             cursor.execute(
-                f"SELECT region, COUNT(*) AS customers FROM {args.catalog}.{args.schema}.customers GROUP BY region ORDER BY region"
+                f"SELECT region, COUNT(*) AS customers FROM {args.catalog}.{args.schema}.analyst_customers GROUP BY region ORDER BY region"
             )
             rows = cursor.fetchall()
     seconds = round(time.perf_counter() - start, 2)
@@ -40,7 +40,7 @@ def main() -> None:
     print(f"Connected as {who} using {auth_mode}; {len(rows)} regions, {total} customers in {seconds}s")
 
     spark.createDataFrame(
-        [(auth_mode, who, f"{args.catalog}.{args.schema}.customers", total, len(rows), seconds, args.run_id)],
+        [(auth_mode, who, f"{args.catalog}.{args.schema}.analyst_customers", total, len(rows), seconds, args.run_id)],
         "auth_mode STRING, connected_as STRING, table_name STRING, rows_counted BIGINT, groups_returned INT, seconds DOUBLE, run_id STRING",
     ).write.mode("append").saveAsTable(f"{args.catalog}.{args.schema}.connectivity_check")
     if total == 0:

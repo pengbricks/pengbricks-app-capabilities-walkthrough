@@ -4,7 +4,7 @@ name: general
 seed: 20261014
 
 tables:
-  orders:
+  sharing_orders:
     comment: Customer orders. Source table for the governed share and the Iceberg table.
     rows: 5000
     columns:
@@ -15,7 +15,7 @@ tables:
       - {name: amount, type: "decimal(12,2)", min: 10, max: 2500, comment: Order total in USD}
       - {name: customer_email, type: string, expr: "concat('buyer', cast(id % 400 AS STRING), '@example.com')", comment: Customer contact. Personal data, never shared}
       - {name: order_ts, type: timestamp, begin: "2026-09-01 00:00:00", end: "2026-09-30 23:59:59", interval: "1 minute", comment: When the order was placed}
-  products:
+  sharing_products:
     comment: Product tiers and list prices. Shared whole.
     rows: 3
     columns:
@@ -29,7 +29,7 @@ sharing:
   view_name: orders_west_v
   view_region: West
   view_columns: [order_id, region, product, quantity, amount, order_ts]
-  shared_table: products
+  shared_table: sharing_products
   # system.access.audit lags the event by several minutes; the job waits up to this long.
   audit_wait_seconds: 900
 
@@ -43,7 +43,7 @@ iceberg:
 
 integrations:
   sql_connector:
-    query_table: orders
+    query_table: sharing_orders
   federation:
     # Lakebase Postgres project used as the "external" database.
     lakebase_project: capability-guides

@@ -13,7 +13,7 @@ resources:
         - name: catalog
           default: ${var.catalog}
         - name: schema
-          default: ${resources.schemas.capability_guides_genie.name}
+          default: ${var.schema}
         - name: use_case
           default: ${var.use_case}
         - name: warehouse_id

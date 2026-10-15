@@ -105,7 +105,7 @@ def main() -> None:
         record("query_external_table", "PASS" if ok else "FAIL", str(fed["n"]), f"Federated query returned {fed['n']} rows, total {fed['total']}; Postgres reports {pg_count} rows, total {pg_sum}")
 
         joined = spark.sql(
-            f"SELECT p.product, count(*) AS orders FROM {source} o JOIN {args.catalog}.{args.schema}.products p ON o.product = p.product GROUP BY p.product"
+            f"SELECT p.product, count(*) AS orders FROM {source} o JOIN {args.catalog}.{args.schema}.sharing_products p ON o.product = p.product GROUP BY p.product"
         ).collect()
         joined_total = sum(r["orders"] for r in joined)
         record("join_with_uc_table", "PASS" if joined_total == pg_count else "FAIL", str(joined_total), f"Join with {args.catalog}.{args.schema}.products returned {len(joined)} products covering {joined_total} rows")

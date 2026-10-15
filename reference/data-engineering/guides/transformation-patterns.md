@@ -24,7 +24,7 @@ One Lakeflow Declarative Pipeline written in SQL holds ten common ETL patterns, 
 ```mermaid
 flowchart LR
   spec[use_cases/general.yml] --> gen[generate_sources<br/>dbldatagen]
-  gen --> src[(customers, orders, regions)]
+  gen --> src[(de_customers, de_orders, regions)]
   src --> pipe[Declarative Pipeline<br/>10 SQL files]
   pipe --> mv[(14 materialized views)]
   mv --> chk[check_row_counts]

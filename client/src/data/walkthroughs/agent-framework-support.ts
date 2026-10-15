@@ -50,7 +50,7 @@ export const walkthrough: Walkthrough = {
           { id: 'server', label: 'Managed MCP server', sub: '/api/2.0/mcp/functions', col: 1, row: 1, kind: 'surface' },
           { id: 'grants', label: 'EXECUTE on function', sub: 'checked per caller', col: 2, row: 1, kind: 'gate' },
           { id: 'fn', label: 'order_status', sub: 'UC SQL function', mono: true, col: 2, row: 2 },
-          { id: 'orders', label: 'orders', sub: 'email column masked', mono: true, col: 3, row: 2, kind: 'store' },
+          { id: 'orders', label: 'agent_orders', sub: 'email column masked', mono: true, col: 3, row: 2, kind: 'store' },
         ],
         edges: [
           { from: 'task', to: 'rpc' },

@@ -11,5 +11,5 @@ con <- dbConnect(
 # For M2M, set DATABRICKS_CLIENT_ID and DATABRICKS_CLIENT_SECRET (odbc::databricks() reads them) or
 # pass AuthMech = 11, Auth_Flow = 1, Auth_Client_ID, Auth_Client_Secret.
 
-dbGetQuery(con, "SELECT region, COUNT(*) AS customers FROM <catalog>.<schema>.customers GROUP BY region")
+dbGetQuery(con, "SELECT region, COUNT(*) AS customers FROM <catalog>.<schema>.analyst_customers GROUP BY region")
 dbDisconnect(con)

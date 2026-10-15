@@ -15,8 +15,8 @@ schema <- dbutils.widgets.get("schema")
 
 # COMMAND ----------
 # Aggregate in Spark, then collect the small result into a local R data frame.
-orders <- tbl(sc, in_catalog(catalog, schema, "orders"))
-customers <- tbl(sc, in_catalog(catalog, schema, "customers"))
+orders <- tbl(sc, in_catalog(catalog, schema, "analyst_orders"))
+customers <- tbl(sc, in_catalog(catalog, schema, "analyst_customers"))
 
 by_region <- orders %>%
   filter(status %in% c("completed", "shipped")) %>%

@@ -5,4 +5,4 @@ resources:
       file_path: ../src/monitoring.lvdash.json
       warehouse_id: ${var.warehouse_id}
       dataset_catalog: ${var.catalog}
-      dataset_schema: ${resources.schemas.ops.name}
+      dataset_schema: ${var.schema}

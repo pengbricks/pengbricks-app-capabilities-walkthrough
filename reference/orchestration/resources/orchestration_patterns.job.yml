@@ -34,7 +34,7 @@ resources:
         - name: catalog
           default: ${var.catalog}
         - name: schema
-          default: ${resources.schemas.guide_schema.name}
+          default: ${var.schema}
         - name: use_case
           default: ${var.use_case}
         - name: min_valid_rows

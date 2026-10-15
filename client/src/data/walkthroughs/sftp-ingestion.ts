@@ -38,7 +38,7 @@ export const walkthrough: Walkthrough = {
         type: 'flow',
         title: 'The SFTP job',
         description:
-          'setup_secrets creates the secret scope. fetch_files reads the credentials, connects to the SFTP server, copies new files to the landing volume, and writes sftp_transfer_log. The ingest_files task runs a Lakeflow Declarative Pipeline whose Auto Loader streaming tables read the volume: sftp_text_files and sftp_binary_files. refetch_finds_nothing runs the fetch again and fails if it copies a file. verify_tables compares copied and ingested file counts.',
+          'setup_secrets creates the secret scope. fetch_files reads the credentials, connects to the SFTP server, copies new files to the source_landing volume, and writes sftp_transfer_log. The ingest_files task runs a Lakeflow Declarative Pipeline whose Auto Loader streaming tables read the volume: sftp_text_files and sftp_binary_files. refetch_finds_nothing runs the fetch again and fails if it copies a file. verify_tables compares copied and ingested file counts.',
         lanes: [
           { label: 'Lakeflow job tasks', fromRow: 0, toRow: 0 },
           { label: 'Data and credentials', fromRow: 1, toRow: 2 },
@@ -51,7 +51,7 @@ export const walkthrough: Walkthrough = {
           { id: 'verify', label: 'verify_tables', mono: true, col: 4, row: 0 },
           { id: 'scope', label: 'Secret scope', sub: 'capability-guides', col: 0, row: 1, kind: 'store' },
           { id: 'server', label: 'SFTP server', sub: 'test.rebex.net', col: 1, row: 1, kind: 'surface' },
-          { id: 'volume', label: 'Volume', sub: 'landing/sftp', col: 2, row: 1, kind: 'store' },
+          { id: 'volume', label: 'Volume', sub: 'source_landing/sftp', col: 2, row: 1, kind: 'store' },
           { id: 'log', label: 'sftp_transfer_log', mono: true, col: 1, row: 2, kind: 'store' },
           { id: 'text', label: 'sftp_text_files', mono: true, sub: '2 rows', col: 2, row: 2, kind: 'store' },
           { id: 'bin', label: 'sftp_binary_files', mono: true, sub: '15 rows', col: 3, row: 2, kind: 'store' },

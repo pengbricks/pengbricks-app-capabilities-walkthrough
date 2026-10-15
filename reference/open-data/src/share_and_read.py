@@ -71,7 +71,7 @@ def main() -> None:
         dbutils.jobs.taskValues.set(key="final_action", value="createShare")
         record("share_created", "BLOCKED", "0", f"{me} lacks CREATE SHARE on metastore {metastore}. A metastore admin must run: GRANT CREATE SHARE, CREATE RECIPIENT ON METASTORE TO `{me}`. The steps below did not run in this workspace.")
         view_rows = spark.table(f"{prefix}.{view}").count()
-        record("governed_view_ready", "PASS", str(view_rows), f"{prefix}.{view} limits orders to region {cfg['view_region']} ({view_rows} of {spark.table(f'{prefix}.orders').count()} rows) and omits customer_email")
+        record("governed_view_ready", "PASS", str(view_rows), f"{prefix}.{view} limits orders to region {cfg['view_region']} ({view_rows} of {spark.table(f'{prefix}.sharing_orders').count()} rows) and omits customer_email")
         record("replication_required", "INFO", "false", "No, by design: Delta Sharing gives the recipient pre-signed URLs to the provider's own files, so the provider keeps one copy. Not verified in this workspace because the share could not be created.")
         append_rows(spark, audit_table, rows, COLUMNS, replace_where="guide = 'data-sharing'")
         return
@@ -110,7 +110,7 @@ def main() -> None:
         "read_view_filtered",
         "PASS" if ok else "FAIL",
         str(len(view_df)),
-        f"Read {len(view_df)} of {spark.table(f'{prefix}.orders').count()} orders rows; regions {sorted(set(view_df['region']))}; "
+        f"Read {len(view_df)} of {spark.table(f'{prefix}.sharing_orders').count()} orders rows; regions {sorted(set(view_df['region']))}; "
         f"columns {list(view_df.columns)}; customer_email absent: {'customer_email' not in view_df.columns}",
     )
 

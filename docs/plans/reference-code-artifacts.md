@@ -2,13 +2,13 @@
 
 ## Objective
 
-Create public-safe, provider-neutral reference artifacts that let each guide connect four things: the guide steps, reusable code, generated documentation, and an actual Databricks run. Artifact contracts must allow future tenant-specific datasets and generated schemas without embedding an institution, provider, or customer name.
+Create public-safe, provider-neutral reference artifacts that let each guide connect four things: the guide steps, reusable code, generated documentation, and an actual Databricks run. Artifacts must not embed an institution, provider, or customer name.
 
 ## Design Rules
 
 - Keep source-specific behavior in configuration, mappings, and thin adapters.
 - Reuse validation, audit, quarantine, orchestration, retry, and error contracts.
-- Parameterize `tenant_id`, `dataset_id`, source, target, quality policy, and environment; use neutral sample values.
+- Parameterize `dataset_id`, source, target, quality policy, and environment; use neutral sample values.
 - Use synthetic or openly licensed sample data only, with no workspace identifiers, credentials, or customer metadata in Git.
 - Link code to an immutable commit SHA and runs to the corresponding Databricks job or pipeline update.
 - Call all deliverables **artifacts** in the app, repository, automation, and documentation.
@@ -60,7 +60,7 @@ Existing public-safe examples may be promoted into this structure incrementally;
 
 ### 2. Parameterized pipelines
 
-- Implement one pipeline factory driven by `tenant_id`, `dataset_id`, `environment`, and manifest path.
+- Implement one pipeline factory driven by `dataset_id`, `environment`, and manifest path.
 - Support batch as the primary path and a compatible streaming mode without duplicating transformation logic.
 - Add standard correlation, source, ingestion-time, release, and configuration-version fields.
 - Keep adapter interfaces narrow: read, normalize, and return the canonical input contract.
@@ -115,7 +115,6 @@ runs:
     started_at: <iso-8601>
     status: succeeded
 configuration:
-  tenant_id: sample
   dataset_id: representative_feed_a
   manifest_version: 1
 owner: <team-or-role>
@@ -143,7 +142,6 @@ The public repository stores the contract and safe metadata. Run URLs may requir
 - Demo steps include success, controlled failure, retry or repair, quarantine review, and audit review where relevant.
 - Documentation identifies Databricks capabilities used, required permissions, owner, limitations, and refresh date.
 - A second dataset is onboarded through configuration and mappings without changes to shared framework code.
-- Tenant and dataset parameters demonstrate future multi-tenant readiness without claiming a current multi-tenant implementation.
 
 ## Exit Criteria
 

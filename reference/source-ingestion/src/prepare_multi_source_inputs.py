@@ -33,7 +33,7 @@ def main() -> None:
     spec = load_spec(args.use_case_file)
     ms = spec["multi_source"]
     ns = f"{args.catalog}.{args.schema}"
-    root = f"/Volumes/{args.catalog}/{args.schema}/landing/multi_source"
+    root = f"/Volumes/{args.catalog}/{args.schema}/source_landing/multi_source"
     shutil.rmtree(root, ignore_errors=True)
 
     # 1. Database extract

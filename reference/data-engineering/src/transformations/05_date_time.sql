@@ -11,7 +11,7 @@ WITH parsed AS (
       try_to_date(ship_date_raw, 'MM/dd/yyyy'),
       try_to_date(ship_date_raw, 'dd.MM.yyyy')
     ) AS ship_date
-  FROM orders
+  FROM de_orders
 )
 SELECT
   order_id,

@@ -38,7 +38,7 @@ export const walkthrough: Walkthrough = {
         type: 'flow',
         title: 'One source of numbers',
         description:
-          'generate_data writes customers and orders. create_views defines v_revenue_by_month and v_revenue_by_region_segment. notebook_charts reads the views, saves two PNG files to the charts volume, and writes chart_totals. The published dashboard reads the same views. confirm_totals runs the dashboard dataset queries, compares their totals with the views and with chart_totals, and writes totals_check.',
+          'generate_data writes analyst_customers and analyst_orders. create_views defines v_revenue_by_month and v_revenue_by_region_segment. notebook_charts reads the views, saves two PNG files to the charts volume, and writes chart_totals. The published dashboard reads the same views. confirm_totals runs the dashboard dataset queries, compares their totals with the views and with chart_totals, and writes totals_check.',
         lanes: [
           { label: 'Job tasks', fromRow: 0, toRow: 0 },
           { label: 'Governed objects', fromRow: 1, toRow: 2 },
@@ -90,7 +90,7 @@ export const walkthrough: Walkthrough = {
           { label: 'by_region_segment', sub: 'region and segment', cells: [{ state: 'own', text: '246,476,934.00' }, { state: 'own', text: '246,476,934.00' }, { state: 'own', text: '246,476,934.00' }] },
         ],
         legend: [{ state: 'own', label: 'Matches the view total' }],
-        caption: 'Run 975475851271421. The two views slice the same orders, so both totals are equal.',
+        caption: 'Run 152844643966943. The two views slice the same orders, so both totals are equal.',
       },
     },
     {

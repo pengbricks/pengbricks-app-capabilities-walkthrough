@@ -3,15 +3,15 @@ resources:
     capability_guides_ingestion_streaming:
       name: capability-guides-ingestion-streaming
       catalog: ${var.catalog}
-      schema: ${resources.schemas.capability_guides_ingestion.name}
+      schema: ${var.schema}
       serverless: true
       continuous: false
       photon: true
       channel: CURRENT
       configuration:
-        landing_events_path: /Volumes/${var.catalog}/${resources.schemas.capability_guides_ingestion.name}/landing/events/
+        landing_events_path: /Volumes/${var.catalog}/${var.schema}/landing/events/
         catalog: ${var.catalog}
-        schema: ${resources.schemas.capability_guides_ingestion.name}
+        schema: ${var.schema}
         use_case: ${var.use_case}
       tags:
         capability_guide_job: capability_guides_ingestion_streaming

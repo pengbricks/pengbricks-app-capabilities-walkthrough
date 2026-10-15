@@ -1,4 +1,4 @@
-"""Create the sample orders table, the PII mask, and the Unity Catalog function that agents call as a tool.
+"""Create the sample orders table (named by the spec, agent_orders), the PII mask, and the Unity Catalog function that agents call as a tool.
 
 Idempotent: reruns overwrite the table and replace the function and mask.
 """

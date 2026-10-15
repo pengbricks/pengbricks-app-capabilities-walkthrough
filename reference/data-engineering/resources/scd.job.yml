@@ -12,7 +12,7 @@ resources:
         - name: catalog
           default: ${var.catalog}
         - name: schema
-          default: ${resources.schemas.capability_guides_data_engineering.name}
+          default: ${var.schema}
         - name: use_case
           default: ${var.use_case}
       environments:

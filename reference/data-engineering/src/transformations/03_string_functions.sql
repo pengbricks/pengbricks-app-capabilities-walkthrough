@@ -10,4 +10,4 @@ SELECT
   length(trim(last_name))                                            AS last_name_length,
   replace(trim(last_name), '''', '')                                 AS last_name_no_quote,
   instr(email, '@')                                                  AS at_position
-FROM customers;
+FROM de_customers;

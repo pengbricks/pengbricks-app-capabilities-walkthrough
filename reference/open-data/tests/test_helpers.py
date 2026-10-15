@@ -61,7 +61,7 @@ def test_column_comment_escapes_quotes():
 
 def test_spec_view_columns_exclude_personal_data_and_exist():
     spec = load_spec(str(SPEC))
-    names = {c["name"] for c in spec["tables"]["orders"]["columns"]}
+    names = {c["name"] for c in spec["tables"]["sharing_orders"]["columns"]}
     assert set(spec["sharing"]["view_columns"]) <= names
     assert "customer_email" not in spec["sharing"]["view_columns"]
     assert all("comment" in c for t in spec["tables"].values() for c in t["columns"])

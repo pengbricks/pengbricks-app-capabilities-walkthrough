@@ -21,7 +21,7 @@ flowchart LR
   scope[(secret scope<br/>capability-guides)] --> fetch
   server[SFTP server<br/>test.rebex.net] --> fetch[fetch_files<br/>paramiko]
   log[(sftp_transfer_log)] --> fetch
-  fetch --> vol[/Volume: landing/sftp/]
+  fetch --> vol[/Volume: source_landing/sftp/]
   fetch --> log
   vol --> al[Auto Loader<br/>Lakeflow Declarative Pipeline]
   al --> text[(sftp_text_files)]

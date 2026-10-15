@@ -38,7 +38,7 @@ export const walkthrough: Walkthrough = {
         type: 'flow',
         title: 'From spec to policies',
         description:
-          'The use-case spec drives generate_data, which writes customers and orders with dbldatagen. create_policies writes the region_access mapping table, creates two mask functions and two filter functions, and attaches them with ALTER TABLE. test_policies runs the same queries for several identities. policy_inventory reads information_schema.',
+          'The use-case spec drives generate_data, which writes gov_customers and gov_orders with dbldatagen. create_policies writes the region_access mapping table, creates two mask functions and two filter functions, and attaches them with ALTER TABLE. test_policies runs the same queries for several identities. policy_inventory reads information_schema.',
         lanes: [
           { label: 'Spec and data', fromRow: 0, toRow: 0 },
           { label: 'Policies', fromRow: 1, toRow: 2 },
@@ -46,7 +46,7 @@ export const walkthrough: Walkthrough = {
         nodes: [
           { id: 'spec', label: 'Use-case spec', sub: 'general.yml', col: 0, row: 0 },
           { id: 'gen', label: 'generate_data', mono: true, sub: 'dbldatagen, fixed seed', col: 1, row: 0 },
-          { id: 'tables', label: 'customers, orders', mono: true, sub: '5,000 and 20,000 rows', col: 2, row: 0, kind: 'store' },
+          { id: 'tables', label: 'gov_ tables', mono: true, sub: '5,000 and 20,000 rows', col: 2, row: 0, kind: 'store' },
           { id: 'map', label: 'region_access', mono: true, sub: 'principal to region', col: 0, row: 1, kind: 'store' },
           { id: 'create', label: 'create_policies', mono: true, col: 1, row: 1, kind: 'highlight' },
           { id: 'mask', label: 'Column masks', sub: 'email, national_id', col: 2, row: 1, kind: 'surface' },
@@ -168,10 +168,10 @@ export const walkthrough: Walkthrough = {
         caption: 'policy_inventory from the reference run',
         columns: ['Policy', 'Table and column'],
         rows: [
-          ['Column mask', 'customers.email (mask_email)'],
-          ['Column mask', 'customers.national_id (mask_national_id)'],
-          ['Row filter', 'customers.region (filter_customers_region)'],
-          ['Row filter', 'orders.sensitivity (filter_orders_sensitivity)'],
+          ['Column mask', 'gov_customers.email (mask_email)'],
+          ['Column mask', 'gov_customers.national_id (mask_national_id)'],
+          ['Row filter', 'gov_customers.region (filter_customers_region)'],
+          ['Row filter', 'gov_orders.sensitivity (filter_orders_sensitivity)'],
         ],
       },
       steps: [

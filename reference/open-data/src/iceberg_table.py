@@ -30,14 +30,14 @@ def main() -> None:
         print(f"[{status}] {check}: {detail}")
 
     spark.sql(f"DROP TABLE IF EXISTS {table}")
-    seed = build_table(spark, spec, "orders", rows=int(cfg["seed_rows"]))
+    seed = build_table(spark, spec, "sharing_orders", rows=int(cfg["seed_rows"]))
     seed.createOrReplaceTempView("iceberg_seed")
     spark.sql(f"CREATE TABLE {table} USING ICEBERG AS SELECT * FROM iceberg_seed")
     provider = spark.sql(f"DESCRIBE EXTENDED {table}").filter("col_name = 'Provider'").first()
     record("create_managed_iceberg", "PASS", str(spark.table(table).count()), f"{table} created with USING ICEBERG; provider {provider['data_type'] if provider else 'iceberg'}; {cfg['seed_rows']} rows")
 
     # Write: append a second batch with a different seed.
-    build_table(spark, spec, "orders", rows=int(cfg["extra_rows"]), seed_offset=1).writeTo(table).append()
+    build_table(spark, spec, "sharing_orders", rows=int(cfg["extra_rows"]), seed_offset=1).writeTo(table).append()
     after_append = spark.table(table).count()
     record("append", "PASS" if after_append == cfg["seed_rows"] + cfg["extra_rows"] else "FAIL", str(after_append), f"Appended {cfg['extra_rows']} rows; table has {after_append}")
     v_before_evolve = max(r["version"] for r in spark.sql(f"DESCRIBE HISTORY {table}").collect())

@@ -1,4 +1,4 @@
--- SQL exploration over the governed orders, customers, and products tables.
+-- SQL exploration over the governed analyst_orders, analyst_customers, and analyst_products tables.
 -- Parameters :catalog and :schema come from the job. Each statement saves its result so the run leaves artifacts.
 USE CATALOG IDENTIFIER(:catalog);
 USE SCHEMA IDENTIFIER(:schema);
@@ -10,7 +10,7 @@ SELECT c.region,
        COUNT(*) AS orders,
        SUM(o.quantity * o.unit_price) AS revenue,
        ROUND(100 * SUM(o.quantity * o.unit_price) / SUM(SUM(o.quantity * o.unit_price)) OVER (), 2) AS pct_of_total
-FROM orders o JOIN customers c USING (customer_id)
+FROM analyst_orders o JOIN analyst_customers c USING (customer_id)
 WHERE o.status IN ('completed', 'shipped')
 GROUP BY c.region, c.segment;
 
@@ -18,7 +18,7 @@ GROUP BY c.region, c.segment;
 CREATE OR REPLACE TABLE sql_top_customers AS
 WITH revenue AS (
   SELECT c.customer_id, c.region, SUM(o.quantity * o.unit_price) AS revenue
-  FROM orders o JOIN customers c USING (customer_id)
+  FROM analyst_orders o JOIN analyst_customers c USING (customer_id)
   WHERE o.status IN ('completed', 'shipped')
   GROUP BY c.customer_id, c.region
 )
@@ -30,7 +30,7 @@ QUALIFY RANK() OVER (ORDER BY revenue DESC) <= 20;
 CREATE OR REPLACE TABLE sql_monthly_running_total AS
 WITH monthly AS (
   SELECT DATE_TRUNC('MONTH', order_ts) AS month, SUM(quantity * unit_price) AS revenue
-  FROM orders
+  FROM analyst_orders
   WHERE status IN ('completed', 'shipped')
   GROUP BY 1
 )

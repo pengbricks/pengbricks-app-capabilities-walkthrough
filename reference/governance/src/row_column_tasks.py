@@ -24,12 +24,18 @@ def names(args, spec):
     return policy, q
 
 
+def shared_table(spec, table: str) -> str:
+    """Physical name in the shared schema: the spec's logical table name plus the bundle prefix."""
+    return f"{spec.get('shared_table_prefix', '')}{table}"
+
+
 def generate_data(args, spark) -> None:
     spec = load_spec(args.use_case_file)
     for table in spec["tables"]:
         # Drop first: a table that already carries a mask or filter cannot be overwritten in place.
-        spark.sql(f"DROP TABLE IF EXISTS {qualified(args.catalog, args.schema, table)}")
-        print(f"{table}: {write_table(spark, spec, args.catalog, args.schema, table)} rows")
+        target = shared_table(spec, table)
+        spark.sql(f"DROP TABLE IF EXISTS {qualified(args.catalog, args.schema, target)}")
+        print(f"{target}: {write_table(spark, spec, args.catalog, args.schema, table, target=target)} rows")
 
 
 def create_policies(args, spark) -> None:
@@ -55,20 +61,20 @@ def create_policies(args, spark) -> None:
     for item in policy["masked_columns"]:
         function = q(f"mask_{item['column']}")
         spark.sql(mask_function_sql(function, item["mask"], role, admin))
-        spark.sql(f"ALTER TABLE {q(item['table'])} ALTER COLUMN {qualified(item['column'])} SET MASK {function}")
-        print(f"mask {function} on {item['table']}.{item['column']}")
+        spark.sql(f"ALTER TABLE {q(shared_table(spec, item['table']))} ALTER COLUMN {qualified(item['column'])} SET MASK {function}")
+        print(f"mask {function} on {shared_table(spec, item['table'])}.{item['column']}")
 
     # Row filter by attribute.
     attribute = policy["attribute_filter"]
     function = q(f"filter_{attribute['table']}_{attribute['column']}")
     spark.sql(attribute_filter_sql(function, attribute["hidden_value"], admin))
-    spark.sql(f"ALTER TABLE {q(attribute['table'])} SET ROW FILTER {function} ON ({qualified(attribute['column'])})")
+    spark.sql(f"ALTER TABLE {q(shared_table(spec, attribute['table']))} SET ROW FILTER {function} ON ({qualified(attribute['column'])})")
 
     # Dynamic row filter: permitted regions come from the mapping table, keyed on session_user().
     dynamic = policy["dynamic_filter"]
     function = q(f"filter_{dynamic['table']}_{dynamic['column']}")
     spark.sql(dynamic_filter_sql(function, q(mapping), role, admin))
-    spark.sql(f"ALTER TABLE {q(dynamic['table'])} SET ROW FILTER {function} ON ({qualified(dynamic['column'])})")
+    spark.sql(f"ALTER TABLE {q(shared_table(spec, dynamic['table']))} SET ROW FILTER {function} ON ({qualified(dynamic['column'])})")
     print("policies applied")
 
 
@@ -93,7 +99,7 @@ def _identity_rows(args, spark, spec) -> list[dict]:
     for label, mode, session, member in identities:
         # 'actual' reads through the real policies; the others apply the same logic to the unfiltered
         # rows (the job identity is an admin, so the real policies let every row through).
-        cust, orders = q(dyn["table"]), q(attr["table"])
+        cust, orders = q(shared_table(spec, dyn["table"])), q(shared_table(spec, attr["table"]))
         if mode == "actual":
             cust_where, order_where = "true", "true"
             email_expr, id_expr = email_col, id_col
@@ -140,10 +146,12 @@ def test_policies(args, spark) -> None:
 def policy_inventory(args, spark) -> None:
     spec = load_spec(args.use_case_file)
     info = f"{qualified(args.catalog)}.information_schema"
+    # The schema is shared with other bundles: inventory only this bundle's tables.
+    mine = ", ".join("'" + shared_table(spec, t) + "'" for t in spec["tables"])
     masks = run_sql_rows(spark, f"""SELECT table_name, column_name AS target, mask_name AS policy_function
-        FROM {info}.column_masks WHERE table_schema = '{args.schema}'""")
+        FROM {info}.column_masks WHERE table_schema = '{args.schema}' AND table_name IN ({mine})""")
     filters = run_sql_rows(spark, f"""SELECT table_name, target_columns AS target, filter_name AS policy_function
-        FROM {info}.row_filters WHERE table_schema = '{args.schema}'""")
+        FROM {info}.row_filters WHERE table_schema = '{args.schema}' AND table_name IN ({mine})""")
     rows = [{"policy_type": "column mask", **r} for r in masks] + [{"policy_type": "row filter", **r} for r in filters]
     write_rows(spark, args.catalog, args.schema, "policy_inventory", rows,
                "policy_type string, table_name string, target string, policy_function string")

@@ -17,8 +17,8 @@ A business user builds a visual data prep in Lakeflow Designer: browse tables, f
 
 ```mermaid
 flowchart LR
-  o[Source: orders] --> f[Filter] --> j[Join]
-  c[Source: customers] --> j
+  o[Source: analyst_orders] --> f[Filter] --> j[Join]
+  c[Source: analyst_customers] --> j
   j --> s[Select: rename] --> d[Custom columns] --> out[Output: prep_flow_output_designer]
   sql[sql/prep_flow_output.sql] --> ref[(prep_flow_output)]
   out -. compare .- ref
@@ -31,11 +31,11 @@ flowchart LR
 
 ## Demo steps
 
-1. Run the job once so `orders`, `customers`, and `prep_flow_output` exist.
+1. Run the job once so `analyst_orders`, `analyst_customers`, and `prep_flow_output` exist.
 2. In the sidebar, click **New** and choose **Visual data prep**.
-3. Click **Select source operator**, choose **Browse existing**, and pick `orders`. Add a second Source for `customers`.
-4. Add a **Filter** after `orders`. Add two conditions: `status` **Is equal to** `completed`, and `order_ts` after 2026-01-01. Click **Apply**.
-5. Add a **Join**. Connect the filter and the `customers` Source to it. Match `customer_id` to `customer_id`. Click **Apply**.
+3. Click **Select source operator**, choose **Browse existing**, and pick `analyst_orders`. Add a second Source for `analyst_customers`.
+4. Add a **Filter** after `analyst_orders`. Add two conditions: `status` **Is equal to** `completed`, and `order_ts` after 2026-01-01. Click **Apply**.
+5. Add a **Join**. Connect the filter and the `analyst_customers` Source to it. Match `customer_id` to `customer_id`. Click **Apply**.
 6. Add a **Select** operator. Rename `order_id` to `order_number`, `region` to `sales_region`, and `segment` to `customer_segment`. Click **Apply**.
 7. Add **Custom columns**. Create `order_total` as `quantity * unit_price` and `order_size` as `large` when the total is 1000 or more, else `standard`.
 8. Add an **Output** operator. Choose type **Table**, name it `prep_flow_output_designer`, pick the guide schema, and keep write mode **Overwrite**. Click **Run all**.

@@ -4,7 +4,7 @@ name: general
 seed: 20261014
 
 model:
-  name: churn_classifier
+  name: release_churn_classifier
   description: Predicts whether a customer churns within 90 days
 
 data:

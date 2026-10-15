@@ -3,12 +3,12 @@ resources:
     capability_guides_sftp_pipeline:
       name: capability-guides-sftp
       catalog: ${var.catalog}
-      schema: ${resources.schemas.capability_guides_source_ingestion.name}
+      schema: ${var.schema}
       serverless: true
       continuous: false
       channel: CURRENT
       configuration:
-        sftp_path: /Volumes/${var.catalog}/${resources.schemas.capability_guides_source_ingestion.name}/landing/sftp
+        sftp_path: /Volumes/${var.catalog}/${var.schema}/source_landing/sftp
       tags:
         capability_guide_use_case: ${var.use_case}
       libraries:

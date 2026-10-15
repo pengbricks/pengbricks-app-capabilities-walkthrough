@@ -19,7 +19,7 @@ One job runs four checks on a Databricks workspace in us-west-2. A Python client
 ```mermaid
 flowchart LR
   subgraph Tool["Governed tool"]
-    T[orders table<br/>column mask] --> F[UC function order_status]
+    T[agent_orders table<br/>column mask] --> F[UC function order_status]
     F --> M[Managed MCP server<br/>/api/2.0/mcp/functions]
   end
   subgraph Agents["Handoff"]
@@ -63,8 +63,8 @@ flowchart LR
 
 ## Artifacts produced
 
-- Tables in the guide schema: `orders`, `mcp_tool_call`, `agent_handoff_trace`, `gateway_comparison`, `gateway_burst`, `gateway_audit_counts`, `gateway_usage_by_service`, `agent_capability_matrix`, and `agents_gateway_a_payload` / `agents_gateway_b_payload`
-- Unity Catalog function `order_status` and mask function `mask_email`
+- Tables in the guide schema: `agent_orders`, `mcp_tool_call`, `agent_handoff_trace`, `gateway_comparison`, `gateway_burst`, `gateway_audit_counts`, `gateway_usage_by_service`, `agent_capability_matrix`, and `agents_gateway_a_payload` / `agents_gateway_b_payload`
+- Unity Catalog function `order_status` and mask function `agent_mask_email`
 - Two Unity Gateway model services (created by the job, deleted by the teardown job)
 - Run: `capability_guides_agent_gateway`
 

@@ -18,7 +18,7 @@ One job runs SQL exploration on a SQL warehouse, a Python notebook that round-tr
 ```mermaid
 flowchart LR
   spec[use_cases/general.yml] --> gen[generate_data]
-  gen --> base[(customers, orders)]
+  gen --> base[(analyst_customers, analyst_orders)]
   base --> sql[sql_exploration]
   base --> py[python_pandas_roundtrip]
   base --> big[large_aggregation]

@@ -7,21 +7,21 @@ from datetime import datetime, timezone
 
 # view -> (pattern, SQL that computes the expected row count from the source tables or its upstream view)
 CHECKS = [
-    ("tp_lookup_enrichment", "lookup enrichment", "SELECT count(*) FROM {s}.customers"),
+    ("tp_lookup_enrichment", "lookup enrichment", "SELECT count(*) FROM {s}.de_customers"),
     ("tp_join_inner", "inner join",
-     "SELECT count(*) FROM {s}.orders o JOIN {s}.customers c ON o.customer_id = c.customer_id"),
-    ("tp_join_left", "left join", "SELECT count(*) FROM {s}.orders"),
+     "SELECT count(*) FROM {s}.de_orders o JOIN {s}.de_customers c ON o.customer_id = c.customer_id"),
+    ("tp_join_left", "left join", "SELECT count(*) FROM {s}.de_orders"),
     ("tp_join_full", "full join",
-     "SELECT (SELECT count(*) FROM {s}.orders) + (SELECT count(*) FROM {s}.customers c "
-     "WHERE NOT EXISTS (SELECT 1 FROM {s}.orders o WHERE o.customer_id = c.customer_id))"),
-    ("tp_string_functions", "string functions", "SELECT count(*) FROM {s}.customers"),
-    ("tp_null_conditional", "null detection and conditional logic", "SELECT count(*) FROM {s}.customers"),
-    ("tp_date_time", "date and time handling", "SELECT count(*) FROM {s}.orders"),
+     "SELECT (SELECT count(*) FROM {s}.de_orders) + (SELECT count(*) FROM {s}.de_customers c "
+     "WHERE NOT EXISTS (SELECT 1 FROM {s}.de_orders o WHERE o.customer_id = c.customer_id))"),
+    ("tp_string_functions", "string functions", "SELECT count(*) FROM {s}.de_customers"),
+    ("tp_null_conditional", "null detection and conditional logic", "SELECT count(*) FROM {s}.de_customers"),
+    ("tp_date_time", "date and time handling", "SELECT count(*) FROM {s}.de_orders"),
     ("tp_cast_valid", "casting, valid rows",
-     "SELECT count(*) FROM {s}.orders WHERE try_cast(amount_raw AS DECIMAL(12,2)) IS NOT NULL "
+     "SELECT count(*) FROM {s}.de_orders WHERE try_cast(amount_raw AS DECIMAL(12,2)) IS NOT NULL "
      "AND try_cast(quantity_raw AS INT) IS NOT NULL"),
     ("tp_cast_rejects", "casting, reject table",
-     "SELECT count(*) FROM {s}.orders WHERE try_cast(amount_raw AS DECIMAL(12,2)) IS NULL "
+     "SELECT count(*) FROM {s}.de_orders WHERE try_cast(amount_raw AS DECIMAL(12,2)) IS NULL "
      "OR try_cast(quantity_raw AS INT) IS NULL"),
     ("tp_running_totals", "aggregation with running totals",
      "SELECT count(*) FROM (SELECT DISTINCT category, order_date FROM {s}.tp_cast_valid)"),
@@ -53,7 +53,7 @@ def main() -> None:
             failures.append(view)
 
     # One more check: valid + rejected rows account for every order.
-    total = spark.sql(f"SELECT count(*) FROM {scope}.orders").first()[0]
+    total = spark.sql(f"SELECT count(*) FROM {scope}.de_orders").first()[0]
     valid = next(r[3] for r in rows if r[1] == "tp_cast_valid")
     rejected = next(r[3] for r in rows if r[1] == "tp_cast_rejects")
     print(f"casting split: {valid} valid + {rejected} rejected = {valid + rejected} of {total} orders")

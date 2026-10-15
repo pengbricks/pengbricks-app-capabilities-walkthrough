@@ -10,7 +10,7 @@ The code is complete, but the workspace where this guide was run (a shared metas
 
 | Guide topic | Artifact |
 |---|---|
-| Governed share and recipient setup | `orders` table with column comments, view `orders_west_v` that keeps one region and drops `customer_email`, `products` table, share and token recipient created in `share_and_read.py` |
+| Governed share and recipient setup | `sharing_orders` table with column comments, view `orders_west_v` that keeps one region and drops `customer_email`, `sharing_products` table, share and token recipient created in `share_and_read.py` |
 | Entitlement and revocation run | `GRANT SELECT ON SHARE`, a read with `delta_sharing.load_as_pandas`, `REVOKE`, a second read that must fail, recipient dropped |
 | Replication requirement decision | `sharing_audit` row `replication_required` (`false`: data is shared in place) |
 | Audit events | `sharing_audit_events`, from `system.access.audit` |
@@ -20,8 +20,8 @@ The code is complete, but the workspace where this guide was run (a shared metas
 ```mermaid
 flowchart LR
   subgraph Provider
-    O[(orders table)] --> V[orders_west_v view]
-    P[(products table)]
+    O[(sharing_orders table)] --> V[orders_west_v view]
+    P[(sharing_products table)]
     V --> S[Share]
     P --> S
     S --> R[Token recipient]
@@ -58,7 +58,7 @@ All code is in `reference/open-data/`.
 
 ## Artifacts produced
 
-- Tables in `<catalog>.<schema>`: `orders`, `products`, `sharing_audit`, `sharing_audit_events`.
+- Tables in `<catalog>.<schema>`: `sharing_orders`, `sharing_products`, `sharing_audit`, `sharing_audit_events`.
 - View: `orders_west_v`.
 - Share `capability_guides_orders_share` and recipient `capability_guides_partner`, created by the job. The recipient is dropped at the end of every run, which invalidates the credential. The share stays so you can inspect its contents.
 - Job: `capability_guides_data_sharing` and its runs.

@@ -2,7 +2,7 @@ resources:
   volumes:
     capability_guides_ingestion_landing:
       catalog_name: ${var.catalog}
-      schema_name: ${resources.schemas.capability_guides_ingestion.name}
+      schema_name: ${var.schema}
       name: landing
       comment: Landing zone for generated provider files and streaming events
       grants:

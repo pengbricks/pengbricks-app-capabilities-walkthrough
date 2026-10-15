@@ -59,7 +59,9 @@ def table_frame(spark, spec: dict[str, Any], table: str, rows: int | None = None
     return generator.build().drop("id")
 
 
-def write_table(spark, spec: dict[str, Any], catalog: str, schema: str, table: str, rows: int | None = None) -> int:
+def write_table(spark, spec: dict[str, Any], catalog: str, schema: str, table: str, rows: int | None = None,
+                target: str | None = None) -> int:
+    """Write the spec table `table` to `target` (defaults to the same name)."""
     df = table_frame(spark, spec, table, rows)
-    df.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"`{catalog}`.`{schema}`.`{table}`")
+    df.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"`{catalog}`.`{schema}`.`{target or table}`")
     return df.count()

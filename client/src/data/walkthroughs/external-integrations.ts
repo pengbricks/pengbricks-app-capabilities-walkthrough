@@ -38,7 +38,7 @@ export const walkthrough: Walkthrough = {
         type: 'flow',
         title: 'Client to warehouse, and Databricks to Postgres',
         description:
-          'Task prepare_data creates the orders and products tables. Task sql_connector_client connects a Python client to a serverless SQL warehouse with the job identity and queries orders. Task lakehouse_federation seeds a table in a Lakebase Postgres database, creates a Unity Catalog connection to it, queries it through the connection, joins it with products, and drops the connection. Both tasks write to integration_checks.',
+          'Task prepare_data creates the sharing_orders and sharing_products tables. Task sql_connector_client connects a Python client to a serverless SQL warehouse with the job identity and queries sharing_orders. Task lakehouse_federation seeds a table in a Lakebase Postgres database, creates a Unity Catalog connection to it, queries it through the connection, joins it with products, and drops the connection. Both tasks write to integration_checks.',
         lanes: [
           { label: 'Pattern A: SQL Connector', fromRow: 0, toRow: 0 },
           { label: 'Pattern B: Federation', fromRow: 1, toRow: 1 },
@@ -47,11 +47,11 @@ export const walkthrough: Walkthrough = {
         nodes: [
           { id: 'client', label: 'Python client', sub: 'databricks-sql-connector', col: 0, row: 0, kind: 'highlight' },
           { id: 'warehouse', label: 'SQL warehouse', sub: 'serverless', col: 1, row: 0, kind: 'surface' },
-          { id: 'orders', label: 'orders', mono: true, sub: '5,000 rows', col: 2, row: 0, kind: 'store' },
+          { id: 'orders', label: 'sharing_orders', mono: true, sub: '5,000 rows', col: 2, row: 0, kind: 'store' },
           { id: 'spark', label: 'Spark SQL', sub: 'job task', col: 0, row: 1 },
           { id: 'conn', label: 'UC connection', sub: 'POSTGRESQL', col: 1, row: 1, kind: 'surface' },
           { id: 'pg', label: 'Lakebase Postgres', sub: 'external_orders, 200 rows', col: 2, row: 1, kind: 'store' },
-          { id: 'products', label: 'products', mono: true, sub: 'joined in Spark', col: 3, row: 1, kind: 'store' },
+          { id: 'products', label: 'sharing_products', mono: true, sub: 'joined in Spark', col: 3, row: 1, kind: 'store' },
           { id: 'checks', label: 'integration_checks', mono: true, sub: 'one row per check', col: 1, row: 2, kind: 'store' },
         ],
         edges: [
@@ -138,7 +138,7 @@ export const walkthrough: Walkthrough = {
           },
           {
             label: 'Join with UC table',
-            sub: 'against products',
+            sub: 'against sharing_products',
             cells: [
               { state: 'own', text: 'Passed' },
               { state: 'own', text: '3 products' },

@@ -1,9 +1,9 @@
 resources:
   schemas:
-    capability_guides_platform_ops:
+    capability_guides:
       catalog_name: ${var.catalog}
       name: ${var.schema}
-      comment: Tables produced by the platform administration and operational support guides
+      comment: Shared schema for every capability guide bundle. Tables that could collide carry a bundle prefix.
       grants:
         - principal: ${var.app_service_principal}
           privileges: [USE_SCHEMA]

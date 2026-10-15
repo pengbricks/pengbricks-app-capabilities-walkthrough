@@ -13,7 +13,7 @@ tables:
       - {region_code: SW, region_name: Southwest, time_zone: America/Denver}
       - {region_code: W, region_name: West, time_zone: America/Los_Angeles}
 
-  customers:
+  de_customers:
     rows: 2000
     columns:
       - {name: customer_id, type: string, expr: "concat('C-', lpad(cast(id AS STRING), 5, '0'))"}
@@ -28,7 +28,7 @@ tables:
         type: string
         expr: "CASE id % 3 WHEN 0 THEN date_format(date_add(DATE'2024-01-01', cast(id % 700 AS INT)), 'yyyy-MM-dd') WHEN 1 THEN date_format(date_add(DATE'2024-01-01', cast(id % 700 AS INT)), 'MM/dd/yyyy') ELSE date_format(date_add(DATE'2024-01-01', cast(id % 700 AS INT)), 'dd.MM.yyyy') END"
 
-  orders:
+  de_orders:
     rows: 12000
     columns:
       - {name: order_id, type: string, expr: "concat('O-', lpad(cast(id AS STRING), 7, '0'))"}

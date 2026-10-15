@@ -5,7 +5,7 @@ resources:
       display_name: "capability guides quarantine rate above ${var.quarantine_alert_pct}%"
       query_text: >-
         SELECT coalesce(max(rows_quarantined * 100.0 / nullif(rows_read, 0)), 0) AS quarantine_pct
-        FROM `${var.catalog}`.`${resources.schemas.capability_guides_ingestion.name}`.audit_log
+        FROM `${var.catalog}`.`${var.schema}`.audit_log
         WHERE started_at >= current_timestamp() - INTERVAL 24 HOUR
       warehouse_id: ${var.warehouse_id}
       evaluation:

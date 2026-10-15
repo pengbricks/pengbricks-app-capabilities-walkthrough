@@ -38,13 +38,13 @@ export const walkthrough: Walkthrough = {
         type: 'flow',
         title: 'The build job',
         description:
-          'prepare_tool creates the sample orders, the email mask, and the order_status function. log_and_register tests the agent locally, logs it with its declared resources, registers a version in Unity Catalog, and sets the champion alias. deploy_endpoint creates or updates a Small scale-to-zero Model Serving endpoint and waits for READY. call_and_record sends two requests with return_trace, checks for the tool span, and appends a row to agent_build_record. The teardown job deletes the endpoint.',
+          'prepare_tool creates the sample agent_orders table, the agent_mask_email mask, and the order_status function. log_and_register tests the agent locally, logs it with its declared resources, registers a version in Unity Catalog, and sets the champion alias. deploy_endpoint creates or updates a Small scale-to-zero Model Serving endpoint and waits for READY. call_and_record sends two requests with return_trace, checks for the tool span, and appends a row to agent_build_record. The teardown job deletes the endpoint.',
         lanes: [
           { label: 'Build', fromRow: 0, toRow: 0 },
           { label: 'Serve and record', fromRow: 1, toRow: 1 },
         ],
         nodes: [
-          { id: 'prep', label: 'prepare_tool', sub: 'orders, mask, function', mono: true, col: 0, row: 0 },
+          { id: 'prep', label: 'prepare_tool', sub: 'table, mask, function', mono: true, col: 0, row: 0 },
           { id: 'log', label: 'log_and_register', sub: 'local test, log_model', mono: true, col: 1, row: 0, kind: 'highlight' },
           { id: 'uc', label: 'support_assistant', sub: 'UC version 3, champion', mono: true, col: 2, row: 0, kind: 'store' },
           { id: 'deploy', label: 'deploy_endpoint', sub: 'Small, scale to zero', mono: true, col: 3, row: 0 },
@@ -117,7 +117,7 @@ export const walkthrough: Walkthrough = {
           ['chat model', 'databricks-claude-haiku-5-5'],
           ['tool', 'order_status, a Unity Catalog SQL function'],
           ['packages', 'mlflow 3.17.1, databricks-sdk 0.152.0, openai 3.31.0, httpx 0.27.0'],
-          ['declared resources', 'chat endpoint, function, orders table, SQL warehouse'],
+          ['declared resources', 'chat endpoint, function, agent_orders table, SQL warehouse'],
           ['endpoint', 'capability-guides-support-assistant, Small, scale to zero'],
           ['trace spans', 'predict, chat_model, uc_function_tool'],
           ['owners', 'agent owner, tool owner, on-call (roles from the spec)'],

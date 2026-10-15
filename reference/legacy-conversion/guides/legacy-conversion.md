@@ -88,7 +88,7 @@ Statuses used by the convert task:
 
 ## Artifacts produced
 
-All tables are in the bundle schema (`capability_guides_legacy_conversion` by default; the dev target adds a per-user prefix).
+All tables are in the bundle schema (`capability_guides` by default, shared with the other guide bundles; the dev target uses `dev_<user>_capability_guides`).
 
 | Table | Contents |
 |---|---|

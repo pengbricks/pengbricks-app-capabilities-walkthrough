@@ -10,7 +10,7 @@ resources:
         environment: ${var.environment}
       parameters:
         - name: table
-          default: ${var.catalog}.${resources.schemas.capability_guides_ingestion.name}.transactions_silver
+          default: ${var.catalog}.${var.schema}.transactions_silver
         - name: version
           default: ""
       tasks:

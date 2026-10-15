@@ -9,5 +9,5 @@ url <- paste0(
   "AuthMech=11;Auth_Flow=2"            # OAuth U2M. M2M: Auth_Flow=1;OAuth2ClientId=...;OAuth2Secret=...
 )
 con <- dbConnect(drv, url)
-dbGetQuery(con, "SELECT COUNT(*) AS orders FROM <catalog>.<schema>.orders")
+dbGetQuery(con, "SELECT COUNT(*) AS orders FROM <catalog>.<schema>.analyst_orders")
 dbDisconnect(con)

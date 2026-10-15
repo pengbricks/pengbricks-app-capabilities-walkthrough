@@ -38,7 +38,7 @@ export const walkthrough: Walkthrough = {
         type: 'flow',
         title: 'From use-case spec to analysis tables',
         description:
-          'The use-case spec feeds generate_data, which writes customers and orders. Three tasks then run in parallel: sql_exploration writes three SQL result tables, python_pandas_roundtrip writes pandas_region_trend, and large_aggregation writes events_large, events_large_customer_month, and large_aggregation_timing. An R notebook is shown separately because it needs classic compute.',
+          'The use-case spec feeds generate_data, which writes analyst_customers and analyst_orders. Three tasks then run in parallel: sql_exploration writes three SQL result tables, python_pandas_roundtrip writes pandas_region_trend, and large_aggregation writes events_large, events_large_customer_month, and large_aggregation_timing. An R notebook is shown separately because it needs classic compute.',
         lanes: [
           { label: 'Setup', fromRow: 0, toRow: 0 },
           { label: 'Analysis tasks', fromRow: 1, toRow: 1 },
@@ -47,7 +47,7 @@ export const walkthrough: Walkthrough = {
         nodes: [
           { id: 'spec', label: 'Use-case spec', sub: 'use_cases/general.yml', col: 0, row: 0 },
           { id: 'gen', label: 'generate_data', mono: true, sub: 'dbldatagen, fixed seed', col: 1, row: 0 },
-          { id: 'base', label: 'customers, orders', mono: true, sub: '5,000 and 200,000 rows', col: 2, row: 0, kind: 'store' },
+          { id: 'base', label: 'analyst_* tables', mono: true, sub: '5,000 and 200,000 rows', col: 2, row: 0, kind: 'store' },
           { id: 'sql', label: 'sql_exploration', mono: true, sub: 'SQL warehouse', col: 0, row: 1 },
           { id: 'py', label: 'python_pandas_roundtrip', mono: true, sub: 'serverless notebook', col: 1, row: 1, kind: 'highlight' },
           { id: 'big', label: 'large_aggregation', mono: true, sub: '6,000,000 rows, timed', col: 2, row: 1, kind: 'highlight' },
@@ -142,7 +142,7 @@ export const walkthrough: Walkthrough = {
           { label: 'percentiles_by_type', sub: 'percentile_approx', cells: [{ state: 'own', text: '4' }, { state: 'own', text: '0.83' }] },
         ],
         legend: [{ state: 'own', label: 'Recorded in large_aggregation_timing' }],
-        caption: 'Run 481836460537272. Timings vary with warehouse and serverless load, so compare reruns in the timing table.',
+        caption: 'Run 1119284534838043. Timings vary with warehouse and serverless load, so compare reruns in the timing table.',
       },
     },
     {
@@ -159,7 +159,7 @@ export const walkthrough: Walkthrough = {
         },
         {
           strong: 'Same governed tables.',
-          text: 'The R notebook reads the same orders and customers tables, so Unity Catalog permissions apply unchanged.',
+          text: 'The R notebook reads the same analyst_orders and analyst_customers tables, so Unity Catalog permissions apply unchanged.',
         },
       ],
     },

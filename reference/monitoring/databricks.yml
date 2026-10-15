@@ -16,7 +16,7 @@ variables:
     description: Address that receives job failure emails and the SQL alert.
   schema:
     description: Schema that holds the ops_* tables.
-    default: capability_guides_monitoring
+    default: capability_guides
   use_case:
     description: Label written to the capability_guide_use_case job tag. Dashboard filters on it.
     default: general
@@ -25,11 +25,13 @@ targets:
   dev:
     default: true
     mode: development
+    variables:
+      schema: dev_${workspace.current_user.short_name}_capability_guides
   test:
     presets:
       name_prefix: "[test] "
     variables:
-      schema: ${var.schema}_test
+      schema: test_capability_guides
 
 permissions:
   - level: CAN_MANAGE

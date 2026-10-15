@@ -15,7 +15,10 @@ variables:
     description: Address that receives the budget alert
   schema:
     description: Base schema name for this bundle's tables
-    default: capability_guides_governance
+    default: capability_guides
+  access_schema_base:
+    description: Base name of the two access demo schemas (<base>_dev, <base>_prod); dev mode adds the user prefix once
+    default: capability_guides_access
   use_case:
     description: Use-case spec under use_cases/ that drives sample data, policies, and tags
     default: general
@@ -42,6 +45,8 @@ targets:
     presets:
       tags:
         release: ${var.release}
+    variables:
+      schema: dev_${workspace.current_user.short_name}_capability_guides
   test:
     presets:
       name_prefix: "[test] "

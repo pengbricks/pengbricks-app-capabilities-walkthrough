@@ -4,6 +4,7 @@ Each folder under `reference/` is a self-contained Declarative Automation Bundle
 
 | Bundle | Guides |
 |---|---|
+| `foundation/` | Owns the shared `capability_guides` schema; deploy first |
 | `ingestion/` | Configuration-driven ingestion, Reusable ingestion templates, Batch and streaming ingestion, Pipeline operations |
 | `monitoring/` | Platform observability |
 | `developer-experience/` | Developer workflow in the IDE |
@@ -36,11 +37,12 @@ databricks bundle deploy --target dev --profile <profile> --var ...
 databricks bundle run <job-key> --target dev --profile <profile> --var ...
 ```
 
-Each workspace deploys its own copy. Runs, tables, and run history stay in that workspace.
+Each workspace deploys its own copy. Runs, tables, and run history stay in that workspace. Deploy `foundation/` first: it creates the shared schema every other bundle writes to.
 
 ## Conventions
 
-- **Variables:** `catalog`, `warehouse_id`, and `app_service_principal` have no defaults because they belong to the target workspace. Schema names default to `capability_guides_<bundle>` and may be overridden.
+- **Variables:** `catalog`, `warehouse_id`, and `app_service_principal` have no defaults because they belong to the target workspace.
+- **One shared schema:** every bundle writes to `capability_guides` (`dev_<user>_capability_guides` in development, `test_capability_guides` in test), owned by `foundation/`. Bundles don't declare schemas. Names other bundles also use carry a bundle prefix (for example `analyst_orders`, `source_landing`); check the schema's existing tables before adding one. The access-management guide keeps its own dev and prod demo schemas on purpose.
 - **Compute:** serverless jobs, serverless Lakeflow Declarative Pipelines, and serverless SQL warehouses only.
 - **App access:** top-level bundle `permissions` give the app service principal `CAN_RUN`, which maps to `CAN_MANAGE_RUN` on jobs. The app's quick run button triggers jobs with that identity.
 - **Discovery:** every job carries the tag `capability_guide_job: <job-key>`. The app maps guides to job keys in `client/src/data/artifacts.ts` and finds the deployed job by tag, so no job IDs are configured.

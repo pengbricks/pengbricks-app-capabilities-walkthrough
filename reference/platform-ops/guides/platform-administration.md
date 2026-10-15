@@ -53,7 +53,7 @@ flowchart LR
 
 - Table: `admin_actions` (111 rows across 3 runs in the reference workspace; 53 rows per run)
 - Objects: workspace group `capability-guides-analysts`, cluster policy `capability-guides-policy`
-- Reference run: job `capability_guides_platform_admin`, run 390971828825052. Task results: 8 workspace rows ok, 12 capacity rows ok, 16 audit rows ok, 9 failed-run rows flagged, 1 budget policy `not_allowed`, 1 schema grant `not_allowed`.
+- Reference run: job `capability_guides_platform_admin`, run 306932051442801. Task results: 8 workspace rows ok, 12 capacity rows ok, 16 audit rows ok, 9 failed-run rows flagged, 1 budget policy `not_allowed`, 1 schema grant `not_allowed`.
 
 ## Limitations and next steps
 
