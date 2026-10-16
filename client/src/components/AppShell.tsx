@@ -9,7 +9,7 @@ export function AppShell() {
         Skip to content
       </a>
       <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-[1200px] items-center gap-4 px-5 lg:px-8">
+        <div className="mx-auto flex h-14 max-w-[1440px] items-center gap-4 px-5 lg:px-8">
           <Link to="/" className="flex min-w-0 items-center gap-3" aria-label="Capability Atlas home">
             <Layers3 className="brand-mark size-6 shrink-0" />
             <span className="min-w-0">
@@ -42,7 +42,7 @@ export function AppShell() {
         <Outlet />
       </main>
 
-      <footer className="mx-auto max-w-[1200px] px-5 py-8 lg:px-8">
+      <footer className="mx-auto max-w-[1440px] px-5 py-8 lg:px-8">
         <Separator />
         <div className="flex flex-col gap-2 pt-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <p>Databricks capability guides</p>

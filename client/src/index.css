@@ -116,6 +116,7 @@ body,
 .walkthrough .svg-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 /* Inline on a guide page: the guide column sets the width, and the first section sits under the title. */
 .walkthrough.walkthrough-inline .guide-section:first-child { padding-top: 0; }
+.walkthrough.walkthrough-inline .guide-section { padding-top: 2.5rem; }
 .walkthrough .page { max-width: 1200px; margin: 0 auto; padding: clamp(1.5rem, 4vw, 3rem) clamp(1.25rem, 3vw, 2rem) 4rem; }
 .walkthrough .crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem; font-size: 0.8125rem; color: var(--muted-foreground); }
 .walkthrough .crumbs a { color: var(--foreground); text-underline-offset: 3px; }
@@ -147,7 +148,7 @@ body,
 .walkthrough .diagram:fullscreen .diagram-scroll { flex: 1; padding: 3rem 1.5rem 1.5rem; }
 .walkthrough .diagram:fullscreen .d-svg { width: 100%; max-width: none; min-width: 0; height: 100%; }
 .walkthrough .diagram::backdrop { background: var(--background); }
-.walkthrough .d-svg { display: block; width: 100%; min-width: 860px; height: auto; }
+.walkthrough .d-svg { display: block; width: 100%; max-width: 1100px; min-width: 860px; height: auto; margin-inline: auto; }
 .walkthrough .d-svg-md { max-width: 760px; min-width: 620px; }
 .walkthrough figcaption { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; border-top: 1px solid var(--border); padding: 0.75rem clamp(0.75rem, 2vw, 1.5rem); font-size: 0.75rem; color: var(--muted-foreground); background: var(--muted); }
 .walkthrough .legend-item { display: flex; align-items: center; gap: 0.5rem; }

@@ -34,7 +34,7 @@ export function HomePage() {
   }, [category, query]);
 
   return (
-    <div className="mx-auto max-w-[1200px] px-5 py-10 lg:px-8 lg:py-14">
+    <div className="mx-auto max-w-[1440px] px-5 py-10 lg:px-8 lg:py-14">
       <section className="border-b pb-8">
         <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Platform guides</p>
         <h1 className="mt-2 max-w-3xl text-4xl font-bold tracking-[-0.03em] sm:text-5xl">
@@ -105,7 +105,7 @@ export function HomePage() {
                     </h2>
                     <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">{categoryBlurbs[area]}</p>
                   </div>
-                  <div className="grid gap-4 md:grid-cols-2">
+                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                     {areaGuides.map((guide) => (
                       <GuideCard key={guide.slug} guide={guide} />
                     ))}

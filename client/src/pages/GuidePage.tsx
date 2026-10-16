@@ -1,4 +1,16 @@
-import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Separator } from '@databricks/appkit-ui/react';
+import {
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Separator,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@databricks/appkit-ui/react';
 import {
   ArrowLeft,
   ArrowUpRight,
@@ -15,7 +27,7 @@ import {
   Workflow,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, useParams, useSearchParams } from 'react-router';
 import { AutoLoaderDrop } from '../components/AutoLoaderDrop.tsx';
 import { CodeBlock } from '../components/CodeBlock.tsx';
 import { getGuide } from '../data/guides.ts';
@@ -37,6 +49,7 @@ export function GuidePage() {
   const { slug } = useParams();
   const guide = getGuide(slug);
   const { data: artifacts, error, planned, reload } = useGuideArtifacts(guide?.slug);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   if (!guide) {
     return (
@@ -50,152 +63,196 @@ export function GuidePage() {
     );
   }
 
+  const hasWalkthrough = Boolean(getWalkthrough(guide.slug)) || designed.has(guide.slug);
+  const tabs = hasWalkthrough ? ['walkthrough', 'run', 'reference'] : ['run', 'reference'];
+  const requested = searchParams.get('tab');
+  const tab = requested && tabs.includes(requested) ? requested : tabs[0];
+  const startHere = artifacts?.workspace?.startHere;
+
   return (
-    <div className="mx-auto max-w-[1200px] px-5 py-8 lg:px-8 lg:py-12">
-      <Button variant="ghost" size="sm" className="-ml-3 mb-7" asChild>
+    <div className="mx-auto max-w-[1440px] px-5 py-6 lg:px-8 lg:py-8">
+      <Button variant="ghost" size="sm" className="-ml-3 mb-4" asChild>
         <Link to="/#guide-library">
           <ArrowLeft className="size-4" />
           All guides
         </Link>
       </Button>
 
-      <header>
-        <Badge variant="secondary">{guide.category}</Badge>
-        <h1 className="mt-5 max-w-3xl text-4xl font-semibold tracking-[-0.03em] sm:text-5xl">{guide.title}</h1>
-        <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-foreground">{guide.summary}</p>
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <Badge variant="secondary">{guide.category}</Badge>
+          <h1 className="mt-3 text-3xl font-semibold tracking-[-0.03em] sm:text-4xl">{guide.title}</h1>
+          <p className="mt-2 max-w-3xl text-base leading-7 text-muted-foreground">{guide.summary}</p>
+        </div>
+        {startHere && (
+          <Button variant="outline" asChild>
+            <a href={startHere.url} target="_blank" rel="noreferrer">
+              <NotebookPen className="size-4" />
+              Open 00_start_here
+              <ArrowUpRight className="size-3.5" />
+            </a>
+          </Button>
+        )}
       </header>
 
-      <div className="mt-10 grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <article className="min-w-0">
-          <GuideWalkthrough slug={guide.slug} />
+      {/* The walkthrough gets the full width; runs and reference material sit in their own tabs. */}
+      <Tabs
+        value={tab}
+        onValueChange={(value) => setSearchParams(value === tabs[0] ? {} : { tab: value }, { replace: true })}
+        className="mt-6"
+      >
+        <TabsList>
+          {hasWalkthrough && <TabsTrigger value="walkthrough">Walkthrough</TabsTrigger>}
+          <TabsTrigger value="run">Run it</TabsTrigger>
+          <TabsTrigger value="reference">Reference</TabsTrigger>
+        </TabsList>
 
-          {artifacts?.autoLoaderDrop && <AutoLoaderDrop slug={guide.slug} />}
+        {hasWalkthrough && (
+          <TabsContent value="walkthrough" className="mt-6">
+            <GuideWalkthrough slug={guide.slug} />
+          </TabsContent>
+        )}
 
-          <Separator className="my-12" />
-
-          {/* Reference material follows the walkthrough: what the run produces, the code, and the docs. */}
-          <section>
-            <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">Reference</p>
-            <h2 className="mt-3 text-2xl font-semibold tracking-tight">What you&apos;ll see</h2>
-            <p className="mt-4 max-w-3xl text-base leading-7">{guide.acceptanceCriteria}</p>
-          </section>
-
-          <section className="mt-10">
-            <h2 className="text-2xl font-semibold tracking-tight">What the run produces</h2>
-            <div className="mt-5 grid gap-3">
-              {guide.evidence.map((item, index) => (
-                <div key={item} className="flex gap-4 rounded-xl border bg-card p-4">
-                  <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
-                    {index + 1}
-                  </span>
-                  <p className="self-center text-sm font-medium">{item}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {artifacts && artifacts.highlights.length > 0 && (
-            <section className="mt-10">
-              <h2 className="text-2xl font-semibold tracking-tight">Key functions</h2>
-              <div className="mt-5 grid gap-5">
-                {artifacts.highlights.map((highlight) => (
-                  <CodeExcerpt key={`${highlight.path}:${highlight.symbol ?? ''}`} highlight={highlight} />
-                ))}
-              </div>
-            </section>
-          )}
-
-          {artifacts && artifacts.tools.length > 0 && (
-            <section className="mt-10">
-              <h2 className="text-2xl font-semibold tracking-tight">Extensions and tools</h2>
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                {artifacts.tools.map((tool) => (
-                  <div key={tool.url} className="flex flex-col rounded-lg border p-4">
-                    <a
-                      href={tool.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex items-center gap-1 text-sm font-medium hover:underline"
-                    >
-                      {tool.label}
-                      <ArrowUpRight className="size-3.5" />
-                    </a>
-                    <p className="mt-1 flex-1 text-xs leading-5 text-muted-foreground">{tool.description}</p>
-                    <a
-                      href={tool.docsUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-2 text-xs underline-offset-2 hover:underline"
-                    >
-                      Documentation
-                    </a>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {artifacts && artifacts.docs.length > 0 && (
-            <section className="mt-10">
-              <h2 className="text-2xl font-semibold tracking-tight">Databricks documentation</h2>
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                {artifacts.docs.map((doc) => (
-                  <ArtifactAnchor key={doc.url} icon={BookOpen} title={doc.label} url={doc.url} />
-                ))}
-              </div>
-            </section>
-          )}
-        </article>
-
-        <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">
-          {artifacts && (artifacts.workspace || artifacts.jobs.length > 0 || artifacts.recordedRuns.length > 0) && (
+        <TabsContent value="run" className="mt-6 space-y-8">
+          {artifacts && (artifacts.workspace || artifacts.jobs.length > 0 || artifacts.recordedRuns.length > 0) ? (
             <RunsCard slug={guide.slug} artifacts={artifacts} onChange={() => void reload()} />
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              {error ??
+                (planned
+                  ? 'An actual run is planned for this guide.'
+                  : artifacts
+                    ? 'This guide has no job.'
+                    : 'Loading runs…')}
+            </p>
           )}
+          {artifacts?.autoLoaderDrop && <AutoLoaderDrop slug={guide.slug} />}
+        </TabsContent>
 
-          <Card className="gap-4 py-5 shadow-none">
-            <CardHeader className="px-5">
-              <CardTitle className="text-base">Reference code</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 px-5">
-              {planned && (
-                <p className="text-sm text-muted-foreground">
-                  Reference code and an actual run are planned for this guide.
-                </p>
-              )}
-              {!artifacts && !error && !planned && <p className="text-sm text-muted-foreground">Loading artifacts…</p>}
-              {error && <p className="text-sm text-muted-foreground">{error}</p>}
-              {artifacts && (
-                <>
-                  <ArtifactAnchor
-                    icon={FileText}
-                    title="One-pager and demo steps"
-                    description="Guide walkthrough"
-                    url={artifacts.onePagerUrl}
-                  />
-                  <ArtifactAnchor
-                    icon={FileCode2}
-                    title="Reference code"
-                    description="Deployable bundle on GitHub"
-                    url={artifacts.bundleUrl}
-                  />
-                  {artifacts.code.map((item) => (
-                    <a
-                      key={item.url}
-                      href={item.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="block truncate pl-10 text-xs text-muted-foreground underline-offset-2 hover:underline"
-                    >
-                      {item.label}
-                    </a>
+        <TabsContent value="reference" className="mt-6">
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
+            <article className="min-w-0">
+              <section>
+                <h2 className="text-2xl font-semibold tracking-tight">What you&apos;ll see</h2>
+                <p className="mt-4 max-w-3xl text-base leading-7">{guide.acceptanceCriteria}</p>
+              </section>
+
+              <section className="mt-10">
+                <h2 className="text-2xl font-semibold tracking-tight">What the run produces</h2>
+                <div className="mt-5 grid gap-3">
+                  {guide.evidence.map((item, index) => (
+                    <div key={item} className="flex gap-4 rounded-xl border bg-card p-4">
+                      <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
+                        {index + 1}
+                      </span>
+                      <p className="self-center text-sm font-medium">{item}</p>
+                    </div>
                   ))}
-                </>
+                </div>
+              </section>
+
+              {artifacts && artifacts.highlights.length > 0 && (
+                <section className="mt-10">
+                  <h2 className="text-2xl font-semibold tracking-tight">Key functions</h2>
+                  <div className="mt-5 grid gap-5">
+                    {artifacts.highlights.map((highlight) => (
+                      <CodeExcerpt key={`${highlight.path}:${highlight.symbol ?? ''}`} highlight={highlight} />
+                    ))}
+                  </div>
+                </section>
               )}
-              <WalkthroughLinks slug={guide.slug} />
-            </CardContent>
-          </Card>
-        </aside>
-      </div>
+
+              {artifacts && artifacts.tools.length > 0 && (
+                <section className="mt-10">
+                  <h2 className="text-2xl font-semibold tracking-tight">Extensions and tools</h2>
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                    {artifacts.tools.map((tool) => (
+                      <div key={tool.url} className="flex flex-col rounded-lg border p-4">
+                        <a
+                          href={tool.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center gap-1 text-sm font-medium hover:underline"
+                        >
+                          {tool.label}
+                          <ArrowUpRight className="size-3.5" />
+                        </a>
+                        <p className="mt-1 flex-1 text-xs leading-5 text-muted-foreground">{tool.description}</p>
+                        <a
+                          href={tool.docsUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-2 text-xs underline-offset-2 hover:underline"
+                        >
+                          Documentation
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {artifacts && artifacts.docs.length > 0 && (
+                <section className="mt-10">
+                  <h2 className="text-2xl font-semibold tracking-tight">Databricks documentation</h2>
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                    {artifacts.docs.map((doc) => (
+                      <ArtifactAnchor key={doc.url} icon={BookOpen} title={doc.label} url={doc.url} />
+                    ))}
+                  </div>
+                </section>
+              )}
+            </article>
+
+            <aside className="lg:sticky lg:top-24 lg:self-start">
+              <Card className="gap-4 py-5 shadow-none">
+                <CardHeader className="px-5">
+                  <CardTitle className="text-base">Reference code</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 px-5">
+                  {planned && (
+                    <p className="text-sm text-muted-foreground">
+                      Reference code and an actual run are planned for this guide.
+                    </p>
+                  )}
+                  {!artifacts && !error && !planned && (
+                    <p className="text-sm text-muted-foreground">Loading artifacts…</p>
+                  )}
+                  {error && <p className="text-sm text-muted-foreground">{error}</p>}
+                  {artifacts && (
+                    <>
+                      <ArtifactAnchor
+                        icon={FileText}
+                        title="One-pager and demo steps"
+                        description="Guide walkthrough"
+                        url={artifacts.onePagerUrl}
+                      />
+                      <ArtifactAnchor
+                        icon={FileCode2}
+                        title="Reference code"
+                        description="Deployable bundle on GitHub"
+                        url={artifacts.bundleUrl}
+                      />
+                      {artifacts.code.map((item) => (
+                        <a
+                          key={item.url}
+                          href={item.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block truncate pl-10 text-xs text-muted-foreground underline-offset-2 hover:underline"
+                        >
+                          {item.label}
+                        </a>
+                      ))}
+                    </>
+                  )}
+                  <WalkthroughLinks slug={guide.slug} />
+                </CardContent>
+              </Card>
+            </aside>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
@@ -233,7 +290,7 @@ function DesignedWalkthrough({ slug }: { slug: string }) {
         const style = doc.createElement('style');
         style.id = 'embedded-walkthrough';
         style.textContent =
-          '.skip-link, .topbar, .crumbs, .guide-head > h1, .guide-head > .eyebrow { display: none !important; } main.main { padding-top: 0 !important; } html { overflow: hidden; }';
+          '.skip-link, .topbar, .crumbs, .guide-head > h1, .guide-head > .eyebrow { display: none !important; } main.main.guide { padding: 0 0 2rem !important; } .guide .page { max-width: none !important; } .guide-head { margin-top: 0 !important; padding-bottom: 1.5rem !important; } .guide-section { margin-top: 2.5rem !important; } .d-svg { max-width: 1100px; margin-inline: auto; } html { overflow: hidden; }';
         doc.head.appendChild(style);
       }
       element.style.height = `${doc.documentElement.scrollHeight}px`;
@@ -255,7 +312,7 @@ function DesignedWalkthrough({ slug }: { slug: string }) {
       ref={frame}
       title="Visual walkthrough"
       src={`${import.meta.env.BASE_URL}walkthroughs/${slug}.html`}
-      className="w-full rounded-xl border"
+      className="w-full"
       allow="fullscreen"
       style={{ height: '80vh' }}
     />
@@ -270,7 +327,7 @@ function RunsCard({ slug, artifacts, onChange }: { slug: string; artifacts: Guid
     <Card className="gap-4 py-5 shadow-none">
       <CardHeader className="px-5">
         <CardTitle className="flex items-center justify-between text-base">
-          {hasJobs ? 'Run it' : 'Workspace artifacts'}
+          {hasJobs ? 'In this workspace' : 'Workspace artifacts'}
           {artifacts.live && (
             <Badge variant="outline" className="gap-1 font-normal">
               <Database className="size-3" />
@@ -282,22 +339,28 @@ function RunsCard({ slug, artifacts, onChange }: { slug: string; artifacts: Guid
       <CardContent className="space-y-3 px-5">
         {artifacts.workspace && <WorkspaceLinksBlock links={artifacts.workspace} />}
 
-        {artifacts.live && hasJobs && anyDeployed
-          ? artifacts.jobs.map((job) => <JobRow key={job.key} slug={slug} job={job} onChange={onChange} />)
-          : null}
+        {artifacts.live && hasJobs && anyDeployed ? (
+          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+            {artifacts.jobs.map((job) => (
+              <JobRow key={job.key} slug={slug} job={job} onChange={onChange} />
+            ))}
+          </div>
+        ) : null}
 
         {(!artifacts.live || !anyDeployed) && artifacts.recordedRuns.length > 0 && (
           <div className="space-y-2">
             <p className="text-xs text-muted-foreground">Reference workspace</p>
-            {artifacts.recordedRuns.map((run) => (
-              <ArtifactAnchor
-                key={run.url}
-                icon={PlayCircle}
-                title={run.label}
-                description={`${run.workspace} · ${new Date(run.recordedAt).toLocaleDateString()}`}
-                url={run.url}
-              />
-            ))}
+            <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+              {artifacts.recordedRuns.map((run) => (
+                <ArtifactAnchor
+                  key={run.url}
+                  icon={PlayCircle}
+                  title={run.label}
+                  description={`${run.workspace} · ${new Date(run.recordedAt).toLocaleDateString()}`}
+                  url={run.url}
+                />
+              ))}
+            </div>
           </div>
         )}
 
@@ -333,7 +396,7 @@ function RunsCard({ slug, artifacts, onChange }: { slug: string; artifacts: Guid
 // The deployed copy of the guide in this workspace: start with 00_start_here, or open the pipelines.
 function WorkspaceLinksBlock({ links }: { links: WorkspaceLinks }) {
   return (
-    <div className="space-y-2">
+    <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
       {links.startHere ? (
         <ArtifactAnchor
           icon={NotebookPen}
