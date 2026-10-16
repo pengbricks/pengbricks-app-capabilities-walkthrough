@@ -18,4 +18,4 @@ resources:
         capability_guide_use_case: ${var.use_case}
       libraries:
         - glob:
-            include: ../src/pipeline/**
+            include: ../guides/batch-real-time-ingestion/pipeline/**

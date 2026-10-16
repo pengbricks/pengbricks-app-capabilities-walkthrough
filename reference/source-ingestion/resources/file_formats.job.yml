@@ -19,24 +19,10 @@ resources:
           default: ${var.schema}
         - name: use_case
           default: ${var.use_case}
-      environments:
-        - environment_key: tools
-          spec:
-            environment_version: "4"
-            dependencies:
-              - dbldatagen==0.4.0.post1
-              - pyyaml>=6
-              - openpyxl>=3.1
       tasks:
         - task_key: generate_files
-          environment_key: tools
-          spark_python_task:
-            python_file: ../src/generate_format_files.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --src-dir=${workspace.file_path}/src
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+          notebook_task:
+            notebook_path: ../guides/file-format-ingestion/01_generate_files.py
 
         - task_key: ingest_formats
           depends_on:
@@ -45,15 +31,18 @@ resources:
             pipeline_id: ${resources.pipelines.capability_guides_file_formats_pipeline.id}
             full_refresh: true
 
-        - task_key: verify_tables
+        - task_key: inspect_pipeline
           depends_on:
             - task_key: ingest_formats
-          environment_key: tools
-          spark_python_task:
-            python_file: ../src/verify_format_tables.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --src-dir=${workspace.file_path}/src
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
-              - --run-id={{job.run_id}}
+          notebook_task:
+            notebook_path: ../guides/file-format-ingestion/02_run_pipeline.py
+            base_parameters:
+              run_pipeline: "false"
+
+        - task_key: verify_tables
+          depends_on:
+            - task_key: inspect_pipeline
+          notebook_task:
+            notebook_path: ../guides/file-format-ingestion/03_verify_tables.py
+            base_parameters:
+              run_id: "{{job.run_id}}"

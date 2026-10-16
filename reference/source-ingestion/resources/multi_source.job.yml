@@ -19,25 +19,10 @@ resources:
           default: ${var.schema}
         - name: use_case
           default: ${var.use_case}
-      environments:
-        - environment_key: tools
-          spec:
-            environment_version: "4"
-            dependencies:
-              - dbldatagen==0.4.0.post1
-              - pyyaml>=6
-              - requests>=2.31
-              - pandas
       tasks:
         - task_key: prepare_inputs
-          environment_key: tools
-          spark_python_task:
-            python_file: ../src/prepare_multi_source_inputs.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --src-dir=${workspace.file_path}/src
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+          notebook_task:
+            notebook_path: ../guides/multi-source-pipeline/01_prepare_inputs.py
 
         - task_key: combine_sources
           depends_on:
@@ -46,14 +31,16 @@ resources:
             pipeline_id: ${resources.pipelines.capability_guides_multi_source_pipeline.id}
             full_refresh: true
 
-        - task_key: verify_conformed
+        - task_key: inspect_pipeline
           depends_on:
             - task_key: combine_sources
-          environment_key: tools
-          spark_python_task:
-            python_file: ../src/verify_multi_source.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --src-dir=${workspace.file_path}/src
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+          notebook_task:
+            notebook_path: ../guides/multi-source-pipeline/02_run_pipeline.py
+            base_parameters:
+              run_pipeline: "false"
+
+        - task_key: verify_conformed
+          depends_on:
+            - task_key: inspect_pipeline
+          notebook_task:
+            notebook_path: ../guides/multi-source-pipeline/03_verify_conformed.py

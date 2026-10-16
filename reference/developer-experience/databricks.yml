@@ -8,7 +8,7 @@ variables:
   catalog:
     description: Unity Catalog catalog for the output table.
   warehouse_id:
-    description: SQL warehouse ID for the sql_checks task.
+    description: SQL warehouse ID (unused by the job tasks, kept for parity with the other bundles).
   app_service_principal:
     description: Application ID of the app service principal that triggers the job.
   schema:

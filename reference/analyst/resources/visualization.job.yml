@@ -15,59 +15,31 @@ resources:
           default: ${var.schema}
         - name: use_case
           default: ${var.use_case}
-      environments:
-        - environment_key: analyst
-          spec:
-            environment_version: "4"
-            dependencies:
-              - dbldatagen==0.4.0.post1
-              - pyyaml>=6
-              - matplotlib>=3.8
-              - databricks-sdk>=0.70
+        - name: warehouse_id
+          default: ${var.warehouse_id}
+        - name: dashboard_id
+          default: ${resources.dashboards.revenue_overview_dashboard.id}
       tasks:
         - task_key: generate_data
-          environment_key: analyst
-          spark_python_task:
-            python_file: ../src/generate_data.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --src=${workspace.file_path}/src
-              - --spec=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
-              - --tables=analyst_customers,analyst_orders
+          notebook_task:
+            notebook_path: ../guides/in-platform-visualization/01_generate_data.py
 
         - task_key: create_views
           depends_on:
             - task_key: generate_data
-          sql_task:
-            warehouse_id: ${var.warehouse_id}
-            file:
-              path: ../sql/create_views.sql
-            parameters:
-              catalog: "{{job.parameters.catalog}}"
-              schema: "{{job.parameters.schema}}"
+          notebook_task:
+            notebook_path: ../guides/in-platform-visualization/02_create_views.py
 
         - task_key: notebook_charts
           depends_on:
             - task_key: create_views
-          environment_key: analyst
           notebook_task:
-            notebook_path: ../src/notebooks/charts.py
-            base_parameters:
-              catalog: "{{job.parameters.catalog}}"
-              schema: "{{job.parameters.schema}}"
+            notebook_path: ../guides/in-platform-visualization/03_notebook_charts.py
 
         - task_key: confirm_totals
           depends_on:
             - task_key: notebook_charts
-          environment_key: analyst
-          spark_python_task:
-            python_file: ../src/confirm_totals.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --src=${workspace.file_path}/src
-              - --warehouse-id=${var.warehouse_id}
-              - --dashboard-id=${resources.dashboards.revenue_overview_dashboard.id}
-              - --dashboard-file=${workspace.file_path}/src/dashboards/visualization.lvdash.json
-              - --run-id={{job.run_id}}
+          notebook_task:
+            notebook_path: ../guides/in-platform-visualization/04_confirm_totals.py
+            base_parameters:
+              run_id: "{{job.run_id}}"

@@ -114,6 +114,8 @@ body,
 
 /* Walkthrough pages (ported from the design handoff). */
 .walkthrough .svg-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+/* Inline on a guide page: the guide column sets the width, and the first section sits under the title. */
+.walkthrough.walkthrough-inline .guide-section:first-child { padding-top: 0; }
 .walkthrough .page { max-width: 1200px; margin: 0 auto; padding: clamp(1.5rem, 4vw, 3rem) clamp(1.25rem, 3vw, 2rem) 4rem; }
 .walkthrough .crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem; font-size: 0.8125rem; color: var(--muted-foreground); }
 .walkthrough .crumbs a { color: var(--foreground); text-underline-offset: 3px; }

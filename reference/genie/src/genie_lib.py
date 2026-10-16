@@ -157,6 +157,13 @@ def build_serialized_space(
     return json.dumps(space)
 
 
+def split_existing(space_ids: list[str]) -> tuple[str | None, list[str]]:
+    """Pick the space to reuse (the first id, in the API's listing order) and the duplicates to delete."""
+    if not space_ids:
+        return None, []
+    return space_ids[0], list(space_ids[1:])
+
+
 # ---------- Conversation API client ----------
 
 
@@ -193,10 +200,15 @@ class GenieClient:
             if not token:
                 return found
 
-    def create_space(self, title: str, description: str, warehouse_id: str, serialized_space: str) -> str:
-        for old_id in self.find_space_ids(title):  # reruns replace the space this guide created before
-            self._call("DELETE", f"/api/2.0/genie/spaces/{old_id}")
+    def upsert_space(self, title: str, description: str, warehouse_id: str, serialized_space: str) -> str:
+        """Update the space with this title in place, or create it. Extra spaces with the same title are deleted."""
+        keep, extra = split_existing(self.find_space_ids(title))
         body = {"title": title, "description": description, "warehouse_id": warehouse_id, "serialized_space": serialized_space}
+        for old_id in extra:
+            self._call("DELETE", f"/api/2.0/genie/spaces/{old_id}")
+        if keep:
+            self._call("PATCH", f"/api/2.0/genie/spaces/{keep}", body)
+            return keep
         return self._call("POST", "/api/2.0/genie/spaces", body)["space_id"]
 
     def ask(self, space_id: str, text: str, conversation_id: str | None = None, timeout_s: int = 420) -> dict[str, Any]:
@@ -255,3 +267,13 @@ def answer_parts(message: dict[str, Any]) -> tuple[str | None, str]:
 
 def run_sql_rows(spark: Any, sql: str) -> list[tuple[Any, ...]]:
     return [tuple(row) for row in spark.sql(sql).collect()]
+
+
+SPACES_SCHEMA = "run_id string, guide string, role string, space_id string, url string, title string, created_at string"
+
+
+def register_space(spark: Any, base: str, table: str, row: tuple[str, ...]) -> None:
+    """Keep one row per (guide, role) in the spaces table, so a rerun replaces its own entry."""
+    spark.sql(f"CREATE TABLE IF NOT EXISTS {base}.{table} ({SPACES_SCHEMA})")
+    spark.sql(f"DELETE FROM {base}.{table} WHERE guide = {sql_str(row[1])} AND role = {sql_str(row[2])}")
+    spark.createDataFrame([row], SPACES_SCHEMA).write.mode("append").saveAsTable(f"{base}.{table}")

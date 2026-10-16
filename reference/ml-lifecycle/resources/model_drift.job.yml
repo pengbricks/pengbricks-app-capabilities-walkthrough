@@ -19,51 +19,24 @@ resources:
           default: ${var.schema}
         - name: use_case
           default: ${var.use_case}
-      environments:
-        - environment_key: ml
-          spec:
-            environment_version: "4"
-            dependencies:
-              - mlflow>=3.1
-              - scikit-learn>=1.4
-              - dbldatagen==0.4.0.post1
-              - pyyaml>=6
-              - databricks-sdk>=0.70
+        - name: experiment
+          default: ${resources.experiments.ml_lifecycle_experiment.name}
       tasks:
         - task_key: train_baseline
-          environment_key: ml
-          spark_python_task:
-            python_file: ../src/md_train_baseline.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --src-dir=${workspace.file_path}/src
-              - --spec=${workspace.file_path}/use_cases/${var.use_case}.yml
-              - --experiment=${resources.experiments.ml_lifecycle_experiment.name}
+          notebook_task:
+            notebook_path: ../guides/model-performance-drift/01_train_baseline.py
 
         - task_key: score_batches
           depends_on:
             - task_key: train_baseline
-          environment_key: ml
-          spark_python_task:
-            python_file: ../src/md_score_batches.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --src-dir=${workspace.file_path}/src
-              - --spec=${workspace.file_path}/use_cases/${var.use_case}.yml
+          notebook_task:
+            notebook_path: ../guides/model-performance-drift/02_score_batches.py
 
         - task_key: detect_drift
           depends_on:
             - task_key: score_batches
-          environment_key: ml
-          spark_python_task:
-            python_file: ../src/md_detect_drift.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --src-dir=${workspace.file_path}/src
-              - --spec=${workspace.file_path}/use_cases/${var.use_case}.yml
+          notebook_task:
+            notebook_path: ../guides/model-performance-drift/03_detect_drift.py
 
         - task_key: breach_check
           depends_on:
@@ -77,13 +50,5 @@ resources:
           depends_on:
             - task_key: breach_check
               outcome: "true"
-          environment_key: ml
-          spark_python_task:
-            python_file: ../src/md_retrain_candidate.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --src-dir=${workspace.file_path}/src
-              - --spec=${workspace.file_path}/use_cases/${var.use_case}.yml
-              - --experiment=${resources.experiments.ml_lifecycle_experiment.name}
-              - --first-breach-batch={{tasks.detect_drift.values.first_breach_batch}}
+          notebook_task:
+            notebook_path: ../guides/model-performance-drift/04_retrain_candidate.py

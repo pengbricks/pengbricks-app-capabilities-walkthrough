@@ -2,7 +2,13 @@ import { Button } from '@databricks/appkit-ui/react';
 import { Link, useParams } from 'react-router';
 import { FlowDiagramView, MatrixDiagramView } from '../../components/WalkthroughDiagram.tsx';
 import { getWalkthrough } from '../../data/walkthroughs/index.ts';
-import type { Diagram, FlowDiagram, MatrixDiagram, WalkthroughSection } from '../../data/walkthroughs/types.ts';
+import type {
+  Diagram,
+  FlowDiagram,
+  MatrixDiagram,
+  Walkthrough,
+  WalkthroughSection,
+} from '../../data/walkthroughs/types.ts';
 
 export function WalkthroughPage() {
   const { slug } = useParams();
@@ -45,21 +51,7 @@ export function WalkthroughPage() {
           </nav>
         </header>
 
-        <section className="guide-section" id="short" aria-labelledby="h-short">
-          <h2 id="h-short">The short version</h2>
-          <ol className="short-list">
-            {walkthrough.shortVersion.map((item) => (
-              <li key={item.title}>
-                <h3>{item.title}</h3>
-                <p>{item.body}</p>
-              </li>
-            ))}
-          </ol>
-        </section>
-
-        {walkthrough.sections.map((section) => (
-          <Section key={section.id} section={section} />
-        ))}
+        <WalkthroughBody walkthrough={walkthrough} />
 
         {walkthrough.related.length > 0 && (
           <nav className="pager" aria-label="Related guides">
@@ -73,6 +65,29 @@ export function WalkthroughPage() {
         )}
       </article>
     </div>
+  );
+}
+
+// The walkthrough content without page chrome, so a guide page can lead with it.
+export function WalkthroughBody({ walkthrough }: { walkthrough: Walkthrough }) {
+  return (
+    <>
+      <section className="guide-section" id="short" aria-labelledby="h-short">
+        <h2 id="h-short">The short version</h2>
+        <ol className="short-list">
+          {walkthrough.shortVersion.map((item) => (
+            <li key={item.title}>
+              <h3>{item.title}</h3>
+              <p>{item.body}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      {walkthrough.sections.map((section) => (
+        <Section key={section.id} section={section} />
+      ))}
+    </>
   );
 }
 

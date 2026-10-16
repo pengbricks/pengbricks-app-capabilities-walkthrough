@@ -18,44 +18,21 @@ resources:
           default: ${var.use_case}
         - name: warehouse_id
           default: ${var.warehouse_id}
-      environments:
-        - environment_key: genie
-          spec:
-            environment_version: "4"
-            dependencies:
-              - databricks-sdk>=0.70
-              - dbldatagen==0.4.0.post1
-              - pyyaml>=6
       tasks:
         - task_key: prepare_data
-          environment_key: genie
-          spark_python_task:
-            python_file: ../src/setup_data.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+          notebook_task:
+            notebook_path: ../guides/user-experience/01_prepare_data.py
 
         - task_key: prepare_semantics
           depends_on:
             - task_key: prepare_data
-          environment_key: genie
-          spark_python_task:
-            python_file: ../src/apply_semantics.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+          notebook_task:
+            notebook_path: ../guides/user-experience/02_prepare_semantics.py
 
         - task_key: run_user_session
           depends_on:
             - task_key: prepare_semantics
-          environment_key: genie
-          spark_python_task:
-            python_file: ../src/run_ux_session.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
-              - --warehouse-id={{job.parameters.warehouse_id}}
-              - --run-id={{job.run_id}}
+          notebook_task:
+            notebook_path: ../guides/user-experience/03_run_user_session.py
+            base_parameters:
+              run_id: "{{job.run_id}}"

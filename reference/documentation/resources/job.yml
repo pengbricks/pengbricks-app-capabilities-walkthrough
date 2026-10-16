@@ -5,33 +5,22 @@ resources:
       tags:
         capability_guide_job: capability_guides_documentation_refresh
         capability_guide_use_case: ${var.use_case}
-      environments:
-        - environment_key: default
-          spec:
-            environment_version: "3"
-            dependencies:
-              - dbldatagen
-              - pyyaml
+      max_concurrent_runs: 1
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${var.schema}
+        - name: use_case
+          default: ${var.use_case}
+        - name: model_endpoint
+          default: ${var.model_endpoint}
       tasks:
         - task_key: build_sample_tables
-          environment_key: default
-          spark_python_task:
-            python_file: ../src/build_sample_tables.py
-            parameters:
-              - ${var.catalog}
-              - ${var.schema}
-              - ${workspace.file_path}/use_cases/${var.use_case}.yml
-              - ${workspace.file_path}/src
+          notebook_task:
+            notebook_path: ../guides/documentation-generation/01_build_sample_tables.py
         - task_key: generate_docs
           depends_on:
             - task_key: build_sample_tables
-          environment_key: default
-          spark_python_task:
-            python_file: ../src/generate_docs.py
-            parameters:
-              - ${var.catalog}
-              - ${var.schema}
-              - ${var.model_endpoint}
-              - /Volumes/${var.catalog}/${var.schema}/${resources.volumes.docs.name}
-              - ${workspace.file_path}/src
-              - ${workspace.file_path}/use_cases/${var.use_case}.yml
+          notebook_task:
+            notebook_path: ../guides/documentation-generation/02_generate_docs.py

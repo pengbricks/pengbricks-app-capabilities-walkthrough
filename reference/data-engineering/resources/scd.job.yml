@@ -15,66 +15,48 @@ resources:
           default: ${var.schema}
         - name: use_case
           default: ${var.use_case}
-      environments:
-        - environment_key: default
-          spec:
-            environment_version: "4"
-            dependencies:
-              - dbldatagen==0.4.0.post1
-              - pyyaml>=6
-              - openpyxl>=3.1
       tasks:
         - task_key: prepare_initial
-          environment_key: default
-          spark_python_task:
-            python_file: ../src/prepare_changes.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
-              - --phase=initial
+          notebook_task:
+            notebook_path: ../guides/scd-change-capture/01_prepare_initial.py
         - task_key: pipeline_initial
           depends_on:
             - task_key: prepare_initial
           pipeline_task:
             pipeline_id: ${resources.pipelines.capability_guides_scd_pipeline.id}
             full_refresh: true
-        - task_key: counts_before
+        - task_key: inspect_initial
           depends_on:
             - task_key: pipeline_initial
-          environment_key: default
-          spark_python_task:
-            python_file: ../src/record_scd_counts.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
-              - --phase=before
+          notebook_task:
+            notebook_path: ../guides/scd-change-capture/02_run_pipeline_initial.py
+            base_parameters:
+              run_pipeline: "false"
+        - task_key: counts_before
+          depends_on:
+            - task_key: inspect_initial
+          notebook_task:
+            notebook_path: ../guides/scd-change-capture/03_counts_before.py
         - task_key: prepare_changes
           depends_on:
             - task_key: counts_before
-          environment_key: default
-          spark_python_task:
-            python_file: ../src/prepare_changes.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
-              - --phase=changes
+          notebook_task:
+            notebook_path: ../guides/scd-change-capture/04_prepare_changes.py
         - task_key: pipeline_changes
           depends_on:
             - task_key: prepare_changes
           pipeline_task:
             pipeline_id: ${resources.pipelines.capability_guides_scd_pipeline.id}
             full_refresh: false
-        - task_key: counts_after
+        - task_key: inspect_changes
           depends_on:
             - task_key: pipeline_changes
-          environment_key: default
-          spark_python_task:
-            python_file: ../src/record_scd_counts.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
-              - --phase=after
+          notebook_task:
+            notebook_path: ../guides/scd-change-capture/05_run_pipeline_changes.py
+            base_parameters:
+              run_pipeline: "false"
+        - task_key: counts_after
+          depends_on:
+            - task_key: inspect_changes
+          notebook_task:
+            notebook_path: ../guides/scd-change-capture/06_counts_after.py

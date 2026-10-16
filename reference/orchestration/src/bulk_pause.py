@@ -1,6 +1,6 @@
-"""Pause and resume every scheduled job tagged `capability_guide_job` in one operation.
+"""Helpers for the bulk pause notebooks (guides/orchestration-patterns/08 to 11).
 
-phases:
+Phases, one notebook each:
   prepare  create a small scheduled probe job (so there is an unpaused schedule), record states ("before")
   pause    set every UNPAUSED schedule to PAUSED, record the jobs it changed, then re-read states ("after_pause")
   resume   restore only the jobs this run paused, then re-read states ("after_resume")
@@ -11,7 +11,6 @@ Every state is written to <catalog>.<schema>.bulk_pause_log, so the before and a
 
 from __future__ import annotations
 
-import argparse
 from datetime import datetime, timezone
 
 import guide_lib as g
@@ -59,6 +58,8 @@ def set_status(w, job: dict, status: str) -> None:
 
 def log(spark, table: str, run_id: str, phase: str, jobs: list[dict]) -> None:
     now = datetime.now(timezone.utc)
+    # Replace this run's rows for the phase, so rerunning a phase by hand does not duplicate them.
+    spark.sql(f"DELETE FROM {table} WHERE job_run_id = '{run_id}' AND phase = '{phase}'")
     rows = [(run_id, phase, j["job_id"], j["job_name"], j["tag_value"], j["schedule_status"], now) for j in jobs]
     if rows:
         spark.createDataFrame(rows, LOG_SCHEMA).write.mode("append").saveAsTable(table)
@@ -70,8 +71,7 @@ def log(spark, table: str, run_id: str, phase: str, jobs: list[dict]) -> None:
 def ensure_probe(w) -> None:
     from databricks.sdk.service.jobs import CronSchedule, PauseStatus, Task, NotebookTask
 
-    for job in w.jobs.list(name=PROBE_KEY):
-        w.jobs.delete(job_id=job.job_id)
+    delete_probe(w)
     # Yearly schedule that is unpaused but will not fire during the demo; the notebook path is a placeholder.
     w.jobs.create(
         name=PROBE_KEY,
@@ -81,52 +81,6 @@ def ensure_probe(w) -> None:
     )
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--catalog", required=True)
-    parser.add_argument("--schema", required=True)
-    parser.add_argument("--run-id", required=True)
-    parser.add_argument("--phase", required=True, choices=["prepare", "pause", "resume", "cleanup"])
-    args = parser.parse_args()
-
-    from databricks.sdk import WorkspaceClient
-    from databricks.sdk.runtime import spark
-
-    w = WorkspaceClient()
-    table = f"{args.catalog}.{args.schema}.bulk_pause_log"
-    spark.sql(f"CREATE TABLE IF NOT EXISTS {table} ({LOG_SCHEMA})")
-
-    if args.phase == "prepare":
-        ensure_probe(w)
-        log(spark, table, args.run_id, "before", tagged_scheduled_jobs(w))
-
-    elif args.phase == "pause":
-        jobs = tagged_scheduled_jobs(w)
-        to_pause = g.plan_pause_change(jobs, "PAUSED")
-        for job in to_pause:
-            set_status(w, job, "PAUSED")
-        # Remember exactly which jobs this run changed, so resume restores only those.
-        log(spark, table, args.run_id, "paused_by_run", [{**j, "schedule_status": "UNPAUSED"} for j in to_pause])
-        log(spark, table, args.run_id, "after_pause", tagged_scheduled_jobs(w))
-
-    elif args.phase == "resume":
-        changed = {
-            row.job_id: row
-            for row in spark.sql(
-                f"SELECT job_id FROM {table} WHERE job_run_id = '{args.run_id}' AND phase = 'paused_by_run'"
-            ).collect()
-        }
-        jobs = tagged_scheduled_jobs(w)
-        for job in jobs:
-            if job["job_id"] in changed:
-                set_status(w, job, "UNPAUSED")
-        log(spark, table, args.run_id, "after_resume", tagged_scheduled_jobs(w))
-
-    else:
-        for job in w.jobs.list(name=PROBE_KEY):
-            w.jobs.delete(job_id=job.job_id)
-        print("deleted probe job")
-
-
-if __name__ == "__main__":
-    main()
+def delete_probe(w) -> None:
+    for job in w.jobs.list(name=PROBE_KEY):
+        w.jobs.delete(job_id=job.job_id)

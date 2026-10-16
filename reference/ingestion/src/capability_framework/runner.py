@@ -27,6 +27,11 @@ def ensure_tables(spark, catalog: str, schema: str) -> None:
     spark.sql(f"CREATE TABLE IF NOT EXISTS {prefix}.audit_log ({AUDIT_SCHEMA})")
 
 
+def quarantine_replace_where(feed: str) -> str:
+    """Delta replaceWhere predicate that scopes a quarantine write to one feed's rows."""
+    return f"source_feed = '{feed.replace(chr(39), chr(39) * 2)}'"
+
+
 class TransientSourceError(RuntimeError):
     """A retryable failure, such as a source that is briefly unavailable."""
 
@@ -48,10 +53,11 @@ def run_feed(spark, config: FeedConfig, catalog: str, schema: str, run_id: str) 
         record.rows_quarantined = quarantined.count()
         record.rows_valid = record.rows_read - record.rows_quarantined
 
-        # 3. Quarantine rejected rows with the names of the rules they failed.
-        quarantined.withColumn("quarantined_at", F.current_timestamp()).write.mode("append").saveAsTable(
-            f"{prefix}.transactions_quarantine"
-        )
+        # 3. Quarantine rejected rows with the names of the rules they failed. The feed's rows are
+        #    replaced, not appended, so rerunning the same files leaves one copy of each rejected row.
+        quarantined.withColumn("quarantined_at", F.current_timestamp()).write.mode("overwrite").option(
+            "replaceWhere", quarantine_replace_where(config.name)
+        ).saveAsTable(f"{prefix}.transactions_quarantine")
 
         # 4. Upsert valid rows by feed and key, so reruns of the same files are idempotent.
         silver = f"{prefix}.transactions_silver"

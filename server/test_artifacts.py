@@ -61,7 +61,7 @@ def test_live_runs_are_found_by_tag(monkeypatch) -> None:
     )
     fake = SimpleNamespace(
         config=SimpleNamespace(host="https://workspace.example.com/"),
-        jobs=SimpleNamespace(list=lambda: [job], list_runs=lambda job_id, limit: [run]),
+        jobs=SimpleNamespace(list=lambda **_: [job], list_runs=lambda job_id, limit: [run]),
     )
     monkeypatch.setattr(artifacts, "workspace_client", lambda: fake)
     monkeypatch.setattr(artifacts, "directory", artifacts.JobDirectory())
@@ -102,7 +102,7 @@ def test_drop_writes_to_the_pipeline_landing_path_and_starts_an_update(monkeypat
     full_job = SimpleNamespace(settings=SimpleNamespace(tasks=[SimpleNamespace(pipeline_task=None), SimpleNamespace(pipeline_task=SimpleNamespace(pipeline_id="p1"))]))
     fake = SimpleNamespace(
         config=SimpleNamespace(host="https://workspace.example.com"),
-        jobs=SimpleNamespace(list=lambda: [job], get=lambda job_id: full_job),
+        jobs=SimpleNamespace(list=lambda **_: [job], get=lambda job_id: full_job),
         pipelines=SimpleNamespace(
             get=lambda pipeline_id: SimpleNamespace(spec=SimpleNamespace(configuration={"landing_events_path": "/Volumes/c/s/landing/events/"})),
             start_update=lambda pipeline_id: SimpleNamespace(update_id="u1"),
@@ -121,3 +121,35 @@ def test_drop_writes_to_the_pipeline_landing_path_and_starts_an_update(monkeypat
     assert path.startswith("/Volumes/c/s/landing/events/app-drops/drop-")
     assert '"event_ts"' in written
     assert body["updateUrl"] == "https://workspace.example.com/pipelines/p1/updates/u1"
+
+
+def test_workspace_links_point_at_the_deployed_code_and_pipelines(monkeypatch) -> None:
+    root = "/Workspace/Users/someone/.bundle/capability-guides-ingestion/dev"
+    settings = SimpleNamespace(
+        name="streaming",
+        tags={"capability_guide_job": "capability_guides_batch_real_time"},
+        deployment=SimpleNamespace(metadata_file_path=f"{root}/state/metadata.json"),
+        tasks=[SimpleNamespace(pipeline_task=SimpleNamespace(pipeline_id="p1")), SimpleNamespace(pipeline_task=None)],
+    )
+    guide_dir = f"{root}/files/guides/batch-real-time-ingestion"
+    folders = {f"{root}/files": ("DIRECTORY", 11), guide_dir: ("DIRECTORY", 13), f"{guide_dir}/00_start_here": ("NOTEBOOK", 14)}
+
+    def get_status(path):
+        kind, object_id = folders.get(path, ("FILE", 12))
+        return SimpleNamespace(object_type=SimpleNamespace(value=kind), object_id=object_id)
+
+    fake = SimpleNamespace(
+        config=SimpleNamespace(host="https://workspace.example.com"),
+        jobs=SimpleNamespace(list=lambda **_: [SimpleNamespace(job_id=42, settings=settings)], list_runs=lambda job_id, limit: []),
+        workspace=SimpleNamespace(get_status=get_status),
+        pipelines=SimpleNamespace(get=lambda pipeline_id: SimpleNamespace(name="[dev someone] streaming pipeline")),
+    )
+    monkeypatch.setattr(artifacts, "workspace_client", lambda: fake)
+    monkeypatch.setattr(artifacts, "directory", artifacts.JobDirectory())
+
+    links = client.get("/api/capability-guides/artifacts/batch-real-time-ingestion").json()["workspace"]
+
+    assert links["folder"] == {"label": "Guide folder", "path": guide_dir, "url": "https://workspace.example.com/browse/folders/13"}
+    assert links["startHere"]["url"] == "https://workspace.example.com/editor/notebooks/14"
+    assert links["files"] and all(item["url"] == "https://workspace.example.com/editor/files/12" for item in links["files"])
+    assert links["pipelines"] == [{"label": "streaming pipeline", "url": "https://workspace.example.com/pipelines/p1"}]

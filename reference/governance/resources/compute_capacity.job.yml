@@ -20,67 +20,30 @@ resources:
           default: "40"
         - name: range_rows
           default: "200000000"
-      environments:
-        - environment_key: gov
-          spec:
-            environment_version: "4"
-            dependencies:
-              - databricks-sdk>=0.70
-              - pyyaml>=6
+        - name: warehouse_id
+          default: ${var.warehouse_id}
       tasks:
         - task_key: read_settings
-          environment_key: gov
-          spark_python_task:
-            python_file: ../src/compute_tasks.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --warehouse-id=${var.warehouse_id}
-              - --queries={{job.parameters.queries}}
-              - --range-rows={{job.parameters.range_rows}}
-              - --step=read_settings
+          notebook_task:
+            notebook_path: ../guides/compute-capacity-management/01_read_settings.py
 
         - task_key: create_load_warehouse
           depends_on:
             - task_key: read_settings
-          environment_key: gov
-          spark_python_task:
-            python_file: ../src/compute_tasks.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --warehouse-id=${var.warehouse_id}
-              - --queries={{job.parameters.queries}}
-              - --range-rows={{job.parameters.range_rows}}
-              - --step=create_load_warehouse
+          notebook_task:
+            notebook_path: ../guides/compute-capacity-management/02_create_load_warehouse.py
 
         - task_key: generate_load
           depends_on:
             - task_key: create_load_warehouse
-          environment_key: gov
-          spark_python_task:
-            python_file: ../src/compute_tasks.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --warehouse-id=${var.warehouse_id}
-              - --queries={{job.parameters.queries}}
-              - --range-rows={{job.parameters.range_rows}}
-              - --step=generate_load
+          notebook_task:
+            notebook_path: ../guides/compute-capacity-management/03_generate_load.py
 
         - task_key: analyze_load
           depends_on:
             - task_key: generate_load
-          environment_key: gov
-          spark_python_task:
-            python_file: ../src/compute_tasks.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --warehouse-id=${var.warehouse_id}
-              - --queries={{job.parameters.queries}}
-              - --range-rows={{job.parameters.range_rows}}
-              - --step=analyze_load
+          notebook_task:
+            notebook_path: ../guides/compute-capacity-management/04_analyze_load.py
 
         - task_key: delete_load_warehouse
           depends_on:
@@ -88,13 +51,5 @@ resources:
             - task_key: generate_load
             - task_key: analyze_load
           run_if: ALL_DONE
-          environment_key: gov
-          spark_python_task:
-            python_file: ../src/compute_tasks.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --warehouse-id=${var.warehouse_id}
-              - --queries={{job.parameters.queries}}
-              - --range-rows={{job.parameters.range_rows}}
-              - --step=delete_load_warehouse
+          notebook_task:
+            notebook_path: ../guides/compute-capacity-management/05_delete_load_warehouse.py

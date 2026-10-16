@@ -15,37 +15,31 @@ resources:
           default: ${var.schema}
         - name: use_case
           default: ${var.use_case}
-      environments:
-        - environment_key: default
-          spec:
-            environment_version: "4"
-            dependencies:
-              - databricks-sdk>=0.70
       tasks:
         - task_key: prepare
-          environment_key: default
-          spark_python_task:
-            python_file: ../src/bulk_pause.py
-            parameters: ["--catalog={{job.parameters.catalog}}", "--schema={{job.parameters.schema}}", "--run-id={{job.run_id}}", "--phase=prepare"]
+          notebook_task:
+            notebook_path: ../guides/orchestration-patterns/08_bulk_pause_prepare.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
         - task_key: pause_all
           depends_on:
             - task_key: prepare
-          environment_key: default
-          spark_python_task:
-            python_file: ../src/bulk_pause.py
-            parameters: ["--catalog={{job.parameters.catalog}}", "--schema={{job.parameters.schema}}", "--run-id={{job.run_id}}", "--phase=pause"]
+          notebook_task:
+            notebook_path: ../guides/orchestration-patterns/09_bulk_pause_pause_all.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
         - task_key: resume_all
           depends_on:
             - task_key: pause_all
-          environment_key: default
-          spark_python_task:
-            python_file: ../src/bulk_pause.py
-            parameters: ["--catalog={{job.parameters.catalog}}", "--schema={{job.parameters.schema}}", "--run-id={{job.run_id}}", "--phase=resume"]
+          notebook_task:
+            notebook_path: ../guides/orchestration-patterns/10_bulk_pause_resume_all.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
         - task_key: cleanup_probe
           depends_on:
             - task_key: resume_all
           run_if: ALL_DONE
-          environment_key: default
-          spark_python_task:
-            python_file: ../src/bulk_pause.py
-            parameters: ["--catalog={{job.parameters.catalog}}", "--schema={{job.parameters.schema}}", "--run-id={{job.run_id}}", "--phase=cleanup"]
+          notebook_task:
+            notebook_path: ../guides/orchestration-patterns/11_bulk_pause_cleanup_probe.py
+            base_parameters:
+              run_id: "{{job.run_id}}"

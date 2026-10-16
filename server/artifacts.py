@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import threading
 import time
 from datetime import datetime, timezone
@@ -76,14 +77,88 @@ class JobDirectory:
             if time.time() - self._loaded_at < JOB_CACHE_SECONDS:
                 return self._jobs
             found: dict[str, dict[str, Any]] = {}
-            for job in w.jobs.list():
-                tags = (job.settings.tags or {}) if job.settings else {}
+            for job in w.jobs.list(expand_tasks=True):
+                settings = job.settings
+                tags = (settings.tags or {}) if settings else {}
                 key = tags.get(JOB_TAG)
                 if key and key not in found:
-                    found[key] = {"jobId": job.job_id, "name": job.settings.name}
+                    found[key] = {
+                        "jobId": job.job_id,
+                        "name": settings.name,
+                        "filesRoot": bundle_files_root(settings),
+                        "pipelineIds": [task.pipeline_task.pipeline_id for task in getattr(settings, "tasks", None) or [] if task.pipeline_task],
+                    }
             self._jobs = found
             self._loaded_at = time.time()
             return found
+
+
+def bundle_files_root(settings) -> str | None:
+    """The workspace folder a bundle deployed its files to, from the job's deployment metadata."""
+    deployment = getattr(settings, "deployment", None)
+    path = getattr(deployment, "metadata_file_path", None) if deployment else None
+    if not path or not path.endswith("/state/metadata.json"):
+        return None
+    return path[: -len("/state/metadata.json")] + "/files"
+
+
+WORKSPACE_PAGES = {"DIRECTORY": "browse/folders", "NOTEBOOK": "editor/notebooks", "FILE": "editor/files"}
+
+
+def workspace_object(w, path: str):
+    """The workspace object at a path, or None if it is missing or the app can't read it."""
+    try:
+        return w.workspace.get_status(path)
+    except Exception as error:
+        logger.info("Workspace lookup failed for %s: %s", path, error)
+        return None
+
+
+def workspace_url(w, host: str, path: str) -> str:
+    """A browser link to a workspace object; falls back to the path form if the app can't read it."""
+    status = workspace_object(w, path)
+    kind = status.object_type.value if status and status.object_type else None
+    if kind in WORKSPACE_PAGES and status.object_id:
+        return f"{host}/{WORKSPACE_PAGES[kind]}/{status.object_id}"
+    return f"{host}/#workspace{path}"
+
+
+def workspace_links(w, host: str, slug: str, entry: dict[str, Any], deployed: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """Links to the deployed sample code and the pipelines a guide's jobs run, in this workspace.
+
+    The guide's own folder (guides/<slug>, which opens with 00_start_here) is preferred; bundles
+    without one link to the bundle's root folder.
+    """
+    root = next((job["filesRoot"] for job in deployed if job.get("filesRoot")), None)
+    if root is None:
+        return None
+    guide_dir = f"{root}/guides/{slug}"
+    has_guide_dir = workspace_object(w, guide_dir) is not None
+    folder_path = guide_dir if has_guide_dir else root
+    start_here = f"{guide_dir}/00_start_here"
+    start = workspace_url(w, host, start_here) if has_guide_dir and workspace_object(w, start_here) else None
+    bundle = entry["bundle"].rstrip("/") + "/"
+    files = [
+        {"label": item["label"], "url": workspace_url(w, host, f"{root}/{item['path'][len(bundle):]}")}
+        for item in entry["code"]
+        if item["path"].startswith(bundle)
+    ]
+    pipelines = []
+    for pipeline_id in dict.fromkeys(pid for job in deployed for pid in job.get("pipelineIds", [])):
+        try:
+            name = w.pipelines.get(pipeline_id=pipeline_id).name
+        except Exception as error:
+            logger.info("Pipeline lookup failed for %s: %s", pipeline_id, error)
+            name = None
+        # Development-mode deployments prefix names with "[dev <user>]"; the guide shows the bundle's name.
+        label = re.sub(r"^\[[^\]]*\]\s*", "", name) if name else "Pipeline"
+        pipelines.append({"label": label, "url": f"{host}/pipelines/{pipeline_id}"})
+    return {
+        "folder": {"label": "Guide folder" if has_guide_dir else "Sample code folder", "path": folder_path, "url": workspace_url(w, host, folder_path)},
+        "startHere": {"label": "00_start_here", "url": start} if start else None,
+        "files": files,
+        "pipelines": pipelines,
+    }
 
 
 directory = JobDirectory()
@@ -171,6 +246,9 @@ def get_artifacts(slug: str) -> dict[str, Any]:
                 item["runs"] = runs
                 records.extend(to_record(slug, job["key"], found["jobId"], run, "observed") for run in runs)
             response["jobs"].append(item)
+        links = workspace_links(w, host, slug, entry, [deployed[job["key"]] for job in entry["jobs"] if job["key"] in deployed])
+        if links:
+            response["workspace"] = links
         response["live"] = True
     except Exception as error:  # Workspace access is optional for the public static view.
         logger.warning("Live artifact lookup failed for %s: %s", slug, error)

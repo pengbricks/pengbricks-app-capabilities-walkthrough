@@ -27,49 +27,29 @@ resources:
           default: ${var.schema}
         - name: use_case
           default: ${var.use_case}
-      environments:
-        - environment_key: framework
-          spec:
-            environment_version: "4"
-            dependencies:
-              - dbldatagen==0.4.0.post1
-              - pyyaml>=6
       tasks:
         - task_key: land_files
-          environment_key: framework
-          spark_python_task:
-            python_file: ../src/generate_landing.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
-              - --mode=batch
+          notebook_task:
+            notebook_path: ../guides/dataops/01_land_files.py
 
         - task_key: ingest_with_retry
           depends_on:
             - task_key: land_files
-          environment_key: framework
           max_retries: 2
           min_retry_interval_millis: 15000
           retry_on_timeout: true
-          spark_python_task:
-            python_file: ../src/run_feed.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --feeds-dir=${workspace.file_path}/feeds/{{job.parameters.use_case}}
-              - --feed=provider_a
-              - --run-id={{job.run_id}}
-              - --simulate-transient-failure=true
+          notebook_task:
+            notebook_path: ../guides/dataops/02_ingest_with_retry.py
+            base_parameters:
+              feed: provider_a
+              run_id: "{{job.run_id}}"
+              simulate_transient_failure: "true"
 
         - task_key: record_audit_trail
           depends_on:
             - task_key: ingest_with_retry
-          environment_key: framework
-          spark_python_task:
-            python_file: ../src/dataops_audit_trail.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --job-id={{job.id}}
-              - --run-id={{job.run_id}}
+          notebook_task:
+            notebook_path: ../guides/dataops/03_record_audit_trail.py
+            base_parameters:
+              job_id: "{{job.id}}"
+              run_id: "{{job.run_id}}"

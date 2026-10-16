@@ -19,87 +19,45 @@ resources:
           default: ${var.schema}
         - name: use_case
           default: ${var.use_case}
-      environments:
-        - environment_key: sdk
-          spec:
-            environment_version: "4"
-            dependencies:
-              - databricks-sdk>=0.70
-              - pyyaml>=6
       tasks:
         - task_key: init_ledger
-          environment_key: sdk
-          spark_python_task:
-            python_file: ../src/platform_admin.py
-            parameters:
-              - --task=init_ledger
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
-              - --run-id={{job.run_id}}
+          notebook_task:
+            notebook_path: ../guides/platform-administration/01_init_ledger.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
         - task_key: workspace_checks
           depends_on: [{task_key: init_ledger}]
-          environment_key: sdk
-          spark_python_task:
-            python_file: ../src/platform_admin.py
-            parameters:
-              - --task=workspace_checks
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
-              - --run-id={{job.run_id}}
+          notebook_task:
+            notebook_path: ../guides/platform-administration/02_workspace_checks.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
         - task_key: roles
           depends_on: [{task_key: workspace_checks}]
-          environment_key: sdk
-          spark_python_task:
-            python_file: ../src/platform_admin.py
-            parameters:
-              - --task=roles
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
-              - --run-id={{job.run_id}}
+          notebook_task:
+            notebook_path: ../guides/platform-administration/03_roles.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
         - task_key: policies
           depends_on: [{task_key: roles}]
-          environment_key: sdk
-          spark_python_task:
-            python_file: ../src/platform_admin.py
-            parameters:
-              - --task=policies
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
-              - --run-id={{job.run_id}}
+          notebook_task:
+            notebook_path: ../guides/platform-administration/04_policies.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
         - task_key: capacity
           depends_on: [{task_key: policies}]
-          environment_key: sdk
-          spark_python_task:
-            python_file: ../src/platform_admin.py
-            parameters:
-              - --task=capacity
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
-              - --run-id={{job.run_id}}
+          notebook_task:
+            notebook_path: ../guides/platform-administration/05_capacity.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
         - task_key: audit_access
           depends_on: [{task_key: capacity}]
-          environment_key: sdk
-          spark_python_task:
-            python_file: ../src/platform_admin.py
-            parameters:
-              - --task=audit_access
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
-              - --run-id={{job.run_id}}
+          notebook_task:
+            notebook_path: ../guides/platform-administration/06_audit_access.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
         - task_key: routine_support
           depends_on: [{task_key: audit_access}]
-          environment_key: sdk
-          spark_python_task:
-            python_file: ../src/platform_admin.py
-            parameters:
-              - --task=routine_support
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
-              - --run-id={{job.run_id}}
+          notebook_task:
+            notebook_path: ../guides/platform-administration/07_routine_support.py
+            base_parameters:
+              run_id: "{{job.run_id}}"

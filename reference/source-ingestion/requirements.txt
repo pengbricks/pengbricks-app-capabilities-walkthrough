@@ -1,0 +1,8 @@
+dbldatagen==0.4.0.post1
+pyyaml>=6
+openpyxl>=3.1
+requests>=2.31
+pandas
+databricks-sdk>=0.100
+psycopg2-binary>=2.9
+paramiko>=3.4

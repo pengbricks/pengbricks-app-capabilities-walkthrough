@@ -18,89 +18,41 @@ resources:
           default: ${var.catalog}
         - name: schema
           default: ${var.schema}
+        - name: use_case
+          default: ${var.use_case}
         - name: release
           default: ${var.release}
-      environments:
-        - environment_key: contracts
-          spec:
-            environment_version: "4"
-            dependencies:
-              - dbldatagen==0.4.0.post1
-              - pyyaml>=6
       tasks:
         - task_key: generate_data
-          environment_key: contracts
-          spark_python_task:
-            python_file: ../src/generate_data.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --src-dir=${workspace.file_path}/src
-              - --contracts-dir=${workspace.file_path}/contracts
-              - --use-case-file=${workspace.file_path}/use_cases/${var.use_case}.yml
+          notebook_task:
+            notebook_path: ../guides/versioning/01_generate_data.py
 
         - task_key: compatibility_gate
           depends_on:
             - task_key: generate_data
-          environment_key: contracts
-          spark_python_task:
-            python_file: ../src/compatibility_gate.py
-            parameters:
-              - --src-dir=${workspace.file_path}/src
-              - --contracts-dir=${workspace.file_path}/contracts
-              - --use-case-file=${workspace.file_path}/use_cases/${var.use_case}.yml
+          notebook_task:
+            notebook_path: ../guides/versioning/02_compatibility_gate.py
 
         - task_key: apply_v1
           depends_on:
             - task_key: compatibility_gate
-          environment_key: contracts
-          spark_python_task:
-            python_file: ../src/apply_v1.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --release={{job.parameters.release}}
-              - --src-dir=${workspace.file_path}/src
-              - --contracts-dir=${workspace.file_path}/contracts
-              - --use-case-file=${workspace.file_path}/use_cases/${var.use_case}.yml
+          notebook_task:
+            notebook_path: ../guides/versioning/03_apply_v1.py
 
         - task_key: apply_v2
           depends_on:
             - task_key: apply_v1
-          environment_key: contracts
-          spark_python_task:
-            python_file: ../src/apply_v2.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --release={{job.parameters.release}}
-              - --src-dir=${workspace.file_path}/src
-              - --contracts-dir=${workspace.file_path}/contracts
-              - --use-case-file=${workspace.file_path}/use_cases/${var.use_case}.yml
+          notebook_task:
+            notebook_path: ../guides/versioning/04_apply_v2.py
 
         - task_key: show_traceability
           depends_on:
             - task_key: apply_v2
-          environment_key: contracts
-          spark_python_task:
-            python_file: ../src/show_traceability.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --src-dir=${workspace.file_path}/src
-              - --contracts-dir=${workspace.file_path}/contracts
-              - --use-case-file=${workspace.file_path}/use_cases/${var.use_case}.yml
+          notebook_task:
+            notebook_path: ../guides/versioning/05_show_traceability.py
 
         - task_key: notify_consumers
           depends_on:
             - task_key: show_traceability
-          environment_key: contracts
-          spark_python_task:
-            python_file: ../src/notify_consumers.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --release={{job.parameters.release}}
-              - --src-dir=${workspace.file_path}/src
-              - --contracts-dir=${workspace.file_path}/contracts
-              - --use-case-file=${workspace.file_path}/use_cases/${var.use_case}.yml
+          notebook_task:
+            notebook_path: ../guides/versioning/06_notify_consumers.py

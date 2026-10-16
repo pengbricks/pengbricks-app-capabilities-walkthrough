@@ -19,51 +19,26 @@ resources:
           default: ${var.schema}
         - name: use_case
           default: ${var.use_case}
-      environments:
-        - environment_key: default
-          spec:
-            environment_version: "4"
-            dependencies:
-              - dbldatagen==0.4.0.post1
-              - pyyaml>=6
-              - databricks-sdk>=0.70
       tasks:
         - task_key: build_chain
-          environment_key: default
-          spark_python_task:
-            python_file: ../src/obs_build_chain.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+          notebook_task:
+            notebook_path: ../guides/data-observability/01_build_chain.py
         - task_key: read_lineage
           depends_on:
             - task_key: build_chain
-          environment_key: default
-          spark_python_task:
-            python_file: ../src/obs_lineage.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --run-id={{job.run_id}}
+          notebook_task:
+            notebook_path: ../guides/data-observability/02_read_lineage.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
         - task_key: detect_schema_drift
           depends_on:
             - task_key: build_chain
-          environment_key: default
-          spark_python_task:
-            python_file: ../src/obs_schema_drift.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
-              - --run-id={{job.run_id}}
+          notebook_task:
+            notebook_path: ../guides/data-observability/03_detect_schema_drift.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
         - task_key: detect_data_drift
-          environment_key: default
-          spark_python_task:
-            python_file: ../src/obs_data_drift.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
-              - --run-id={{job.run_id}}
-              - --assets-dir=${workspace.file_path}/monitor_assets
+          notebook_task:
+            notebook_path: ../guides/data-observability/04_detect_data_drift.py
+            base_parameters:
+              run_id: "{{job.run_id}}"

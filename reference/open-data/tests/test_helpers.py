@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import pytest
 
 from open_data.checks import check_row, scrub
-from open_data.sharing import activation_token, credential_profile, file_urls, served_from_source, strip_query
+from open_data.sharing import activation_exchange_url, activation_token, credential_profile, file_urls, served_from_source, strip_query
 from open_data.spec import column_comment_sql, column_options, load_spec
 
 SPEC = Path(__file__).resolve().parents[1] / "use_cases" / "general.yml"
@@ -21,9 +21,21 @@ def test_activation_token_is_the_query_string():
     assert activation_token("https://host/delta_sharing/retrieve_config.html?AAAA123") == "AAAA123"
 
 
+def test_activation_exchange_url_uses_the_link_host():
+    url = "https://abc.opensharing.eastus2.example.net/opensharing/retrieve_config.html?bm9uY2U/MTIz+x=="
+    assert activation_exchange_url(url) == (
+        "https://abc.opensharing.eastus2.example.net/api/2.1/unity-catalog/public/data_sharing_activation/bm9uY2U%2FMTIz%2Bx%3D%3D"
+    )
+
+
 def test_file_urls_skips_metadata_lines():
     body = "\n".join([json.dumps({"protocol": {}}), json.dumps({"file": {"url": "https://b/p/t1/a.parquet?sig=1"}}), ""])
     assert file_urls(body) == ["https://b/p/t1/a.parquet?sig=1"]
+
+
+def test_file_urls_reads_delta_format_responses():
+    body = json.dumps({"file": {"id": "1", "deltaSingleAction": {"add": {"path": "https://b/p/t1/b.parquet?sig=2"}}}})
+    assert file_urls(body) == ["https://b/p/t1/b.parquet?sig=2"]
 
 
 def test_served_from_source_requires_every_file_under_table_path():
@@ -72,17 +84,33 @@ def test_blocked_is_a_valid_status():
 
 
 def test_missing_privilege_detection():
-    import importlib
+    from open_data.sharing import is_missing_privilege
 
-    module = importlib.import_module("share_and_read")
+    module = type("m", (), {"is_missing_privilege": staticmethod(is_missing_privilege)})
     assert module.is_missing_privilege("PERMISSION_DENIED: User does not have CREATE SHARE on Metastore 'm'")
     assert not module.is_missing_privilege("TABLE_OR_VIEW_NOT_FOUND")
 
 
 def test_federation_helpers():
-    from federation_check import is_missing_privilege, remote_query_sql, seed_sql
+    from open_data.federation import is_missing_privilege, remote_query_sql, seed_sql
 
     assert remote_query_sql("c", "db", "SELECT 1") == "remote_query('c', database => 'db', query => 'SELECT 1')"
     assert is_missing_privilege("PERMISSION_DENIED: User does not have CREATE CATALOG on Metastore 'm'")
     statements = seed_sql("s", "t", 10)
     assert statements[1] == "DROP TABLE IF EXISTS s.t" and "generate_series(1, 10)" in statements[-1]
+
+
+def test_audit_event_query_starts_a_minute_early():
+    from open_data.sharing import audit_event_query
+
+    query = audit_event_query(1000, "my_share", "my_recipient")
+    assert "timestamp_seconds(940)" in query and "%my_share%" in query and "%my_recipient%" in query
+
+
+def test_iceberg_and_connector_helpers():
+    from open_data.connector import http_path
+    from open_data.iceberg import catalog_properties
+
+    props = catalog_properties("https://h/", "cat", "/api/2.1/unity-catalog/iceberg-rest", "tok")
+    assert props["uri"] == "https://h/api/2.1/unity-catalog/iceberg-rest" and props["header.X-Iceberg-Access-Delegation"] == "vended-credentials"
+    assert http_path("abc") == "/sql/1.0/warehouses/abc"

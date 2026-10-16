@@ -18,71 +18,37 @@ resources:
           default: ${var.use_case}
         - name: warehouse_id
           default: ${var.warehouse_id}
-      environments:
-        - environment_key: genie
-          spec:
-            environment_version: "4"
-            dependencies:
-              - databricks-sdk>=0.70
-              - dbldatagen==0.4.0.post1
-              - pyyaml>=6
       tasks:
         - task_key: generate_data
-          environment_key: genie
-          spark_python_task:
-            python_file: ../src/setup_data.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
-              - --recreate
+          notebook_task:
+            notebook_path: ../guides/ontology/01_generate_data.py
 
         - task_key: ask_before
           depends_on:
             - task_key: generate_data
-          environment_key: genie
-          spark_python_task:
-            python_file: ../src/ask_questions.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
-              - --warehouse-id={{job.parameters.warehouse_id}}
-              - --stage=baseline
-              - --run-id={{job.run_id}}
+          notebook_task:
+            notebook_path: ../guides/ontology/02_ask_before.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
 
         - task_key: add_semantics
           depends_on:
             - task_key: ask_before
-          environment_key: genie
-          spark_python_task:
-            python_file: ../src/apply_semantics.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+          notebook_task:
+            notebook_path: ../guides/ontology/03_add_semantics.py
 
         - task_key: ask_after
           depends_on:
             - task_key: add_semantics
-          environment_key: genie
-          spark_python_task:
-            python_file: ../src/ask_questions.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
-              - --warehouse-id={{job.parameters.warehouse_id}}
-              - --stage=enhanced
-              - --run-id={{job.run_id}}
+          notebook_task:
+            notebook_path: ../guides/ontology/04_ask_after.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
 
         - task_key: compare_answers
           depends_on:
             - task_key: ask_after
-          environment_key: genie
-          spark_python_task:
-            python_file: ../src/summarize_comparison.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --run-id={{job.run_id}}
+          notebook_task:
+            notebook_path: ../guides/ontology/05_compare_answers.py
+            base_parameters:
+              run_id: "{{job.run_id}}"

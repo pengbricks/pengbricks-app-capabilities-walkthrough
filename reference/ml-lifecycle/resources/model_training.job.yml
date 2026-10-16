@@ -21,53 +21,24 @@ resources:
           default: ${var.use_case}
         - name: release
           default: ${var.release}
-      environments:
-        - environment_key: ml
-          spec:
-            environment_version: "4"
-            dependencies:
-              - mlflow>=3.1
-              - scikit-learn>=1.4
-              - dbldatagen==0.4.0.post1
-              - pyyaml>=6
-              - databricks-sdk>=0.70
+        - name: experiment
+          default: ${resources.experiments.ml_lifecycle_experiment.name}
+        - name: volume
+          default: ${resources.volumes.legacy_models.name}
       tasks:
         - task_key: export_legacy_model
-          environment_key: ml
-          spark_python_task:
-            python_file: ../src/mt_export_legacy_model.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --src-dir=${workspace.file_path}/src
-              - --spec=${workspace.file_path}/use_cases/${var.use_case}.yml
-              - --volume=${resources.volumes.legacy_models.name}
+          notebook_task:
+            notebook_path: ../guides/model-training-compatibility/01_export_legacy_model.py
 
         - task_key: train_native
           depends_on:
             - task_key: export_legacy_model
-          environment_key: ml
-          spark_python_task:
-            python_file: ../src/mt_train_native.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --src-dir=${workspace.file_path}/src
-              - --spec=${workspace.file_path}/use_cases/${var.use_case}.yml
-              - --release={{job.parameters.release}}
-              - --experiment=${resources.experiments.ml_lifecycle_experiment.name}
+          notebook_task:
+            notebook_path: ../guides/model-training-compatibility/02_train_native.py
 
         - task_key: import_legacy_model
           depends_on:
             - task_key: export_legacy_model
-          environment_key: ml
-          spark_python_task:
-            python_file: ../src/mt_import_legacy_model.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --src-dir=${workspace.file_path}/src
-              - --spec=${workspace.file_path}/use_cases/${var.use_case}.yml
-              - --volume=${resources.volumes.legacy_models.name}
-              - --release={{job.parameters.release}}
-              - --experiment=${resources.experiments.ml_lifecycle_experiment.name}
+          notebook_task:
+            notebook_path: ../guides/model-training-compatibility/03_import_legacy_model.py
+

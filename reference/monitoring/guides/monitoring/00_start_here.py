@@ -1,0 +1,52 @@
+# Databricks notebook source
+# MAGIC %md
+# MAGIC # Platform observability
+# MAGIC
+# MAGIC This guide gives one consolidated view of job runs, failures, usage and cost, compute and capacity, audit events, and alert routing for a workspace. A serverless job copies the data from system tables and the Jobs and Alerts APIs into seven Unity Catalog tables. An AI/BI dashboard reads those tables, and a SQL alert and job failure emails show how a failure reaches a person.
+# MAGIC
+# MAGIC ## Notebooks, in run order
+# MAGIC
+# MAGIC | Notebook | What it does |
+# MAGIC |---|---|
+# MAGIC | `01_setup_context_and_alert_routing` | Records the workspace ID in `ops_context` and builds `ops_alert_routing` from the Jobs and Alerts APIs. |
+# MAGIC | `02_ops_job_runs` | Builds `ops_job_runs`: one row per job run in the lookback window. |
+# MAGIC | `03_ops_failures` | Builds `ops_failures` from `ops_job_runs`: failed, errored and timed-out runs. |
+# MAGIC | `04_ops_usage_cost` | Builds `ops_usage_cost`: daily DBUs and list-price cost by SKU and product. |
+# MAGIC | `05_ops_compute_capacity` | Builds `ops_compute_capacity`: serverless DBUs by workload and SQL warehouse events. |
+# MAGIC | `06_ops_audit_events` | Builds `ops_audit_events`: audit events by day, service, action and user. |
+# MAGIC
+# MAGIC ## How to run
+# MAGIC
+# MAGIC Run the job `capability-guides-monitoring-snapshot` (or **Quick run** in the app). Notebook 01 runs first, then 02 to 06 (03 after 02). To run by hand, run 01, then open any other notebook and use Run all. The dashboard and the SQL alert are bundle resources: open them from the bundle in the workspace.
+# MAGIC
+# MAGIC ## Variables
+# MAGIC
+# MAGIC | Variable | Meaning |
+# MAGIC |---|---|
+# MAGIC | `catalog` | Unity Catalog catalog that holds the `ops_*` tables. |
+# MAGIC | `schema` | Schema that holds the `ops_*` tables. |
+# MAGIC | `lookback_days` | Days of job runs, usage and capacity history to materialize. |
+# MAGIC | `audit_lookback_days` | Days of audit events to materialize. |
+# MAGIC | `guide_tag_key` | Job tag key that marks a capability guide job. |
+# MAGIC | `use_case_tag_key` | Job tag key that carries the use case label. |
+# MAGIC | `alert_email` | Address that receives job failure emails and the SQL alert. |
+# MAGIC
+# MAGIC Every variable is a widget. Leave one blank and it takes the default of the deployed job's parameter with the same name. Type a value to override it for one run.
+
+# COMMAND ----------
+
+import sys, os
+sys.path.insert(0, os.path.abspath("../../src"))
+from guide_params import bundle_root, load_params, JOB_TAG
+JOB_KEY = "capability_guides_monitoring_snapshot"
+params = load_params(dbutils, JOB_KEY, ['catalog', 'schema', 'lookback_days', 'audit_lookback_days', 'guide_tag_key', 'use_case_tag_key', 'alert_email'])
+
+from databricks.sdk import WorkspaceClient
+w = WorkspaceClient()
+host = w.config.host.rstrip("/")
+links = []
+for job in w.jobs.list():
+    if ((job.settings.tags if job.settings else None) or {}).get(JOB_TAG) == JOB_KEY:
+        links.append(f'<li>Job <b>{job.settings.name}</b>: <a href="{host}/jobs/{job.job_id}">open</a></li>')
+
+displayHTML("<ul>" + "".join(links) + "</ul>" if links else "No deployed job is tagged " + JOB_KEY + ". Deploy the bundle first.")

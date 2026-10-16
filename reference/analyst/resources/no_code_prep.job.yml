@@ -15,32 +15,13 @@ resources:
           default: ${var.schema}
         - name: use_case
           default: ${var.use_case}
-      environments:
-        - environment_key: analyst
-          spec:
-            environment_version: "4"
-            dependencies:
-              - dbldatagen==0.4.0.post1
-              - pyyaml>=6
       tasks:
         - task_key: generate_data
-          environment_key: analyst
-          spark_python_task:
-            python_file: ../src/generate_data.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --src=${workspace.file_path}/src
-              - --spec=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
-              - --tables=analyst_customers,analyst_orders
+          notebook_task:
+            notebook_path: ../guides/no-code-data-prep/01_generate_data.py
 
         - task_key: build_flow_output
           depends_on:
             - task_key: generate_data
-          sql_task:
-            warehouse_id: ${var.warehouse_id}
-            file:
-              path: ../sql/prep_flow_output.sql
-            parameters:
-              catalog: "{{job.parameters.catalog}}"
-              schema: "{{job.parameters.schema}}"
+          notebook_task:
+            notebook_path: ../guides/no-code-data-prep/02_build_flow_output.py

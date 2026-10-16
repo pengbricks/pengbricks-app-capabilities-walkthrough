@@ -16,76 +16,36 @@ resources:
           default: ${var.schema}
         - name: use_case
           default: ${var.use_case}
-      environments:
-        - environment_key: gov
-          spec:
-            environment_version: "4"
-            dependencies:
-              - databricks-sdk>=0.70
-              - dbldatagen==0.4.0.post1
-              - pyyaml>=6
+        - name: reader_group
+          default: ${var.reader_group}
+        - name: app_service_principal
+          default: ${var.app_service_principal}
+        - name: dev_schema
+          default: ${resources.schemas.capability_guides_access_dev.name}
+        - name: prod_schema
+          default: ${resources.schemas.capability_guides_access_prod.name}
       tasks:
         - task_key: ensure_group
-          environment_key: gov
-          spark_python_task:
-            python_file: ../src/access_tasks.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
-              - --reader-group=${var.reader_group}
-              - --app-service-principal=${var.app_service_principal}
-              - --dev-schema=${resources.schemas.capability_guides_access_dev.name}
-              - --prod-schema=${resources.schemas.capability_guides_access_prod.name}
-              - --step=ensure_group
+          notebook_task:
+            notebook_path: ../guides/access-management/01_ensure_group.py
 
         - task_key: create_data
           depends_on:
             - task_key: ensure_group
-          environment_key: gov
-          spark_python_task:
-            python_file: ../src/access_tasks.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
-              - --reader-group=${var.reader_group}
-              - --app-service-principal=${var.app_service_principal}
-              - --dev-schema=${resources.schemas.capability_guides_access_dev.name}
-              - --prod-schema=${resources.schemas.capability_guides_access_prod.name}
-              - --step=create_data
+          notebook_task:
+            notebook_path: ../guides/access-management/02_create_data.py
 
         - task_key: apply_grants
           depends_on:
             - task_key: create_data
-          environment_key: gov
-          spark_python_task:
-            python_file: ../src/access_tasks.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
-              - --reader-group=${var.reader_group}
-              - --app-service-principal=${var.app_service_principal}
-              - --dev-schema=${resources.schemas.capability_guides_access_dev.name}
-              - --prod-schema=${resources.schemas.capability_guides_access_prod.name}
-              - --step=apply_grants
+          notebook_task:
+            notebook_path: ../guides/access-management/03_apply_grants.py
 
         - task_key: verify_grants
           depends_on:
             - task_key: apply_grants
-          environment_key: gov
-          spark_python_task:
-            python_file: ../src/access_tasks.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
-              - --reader-group=${var.reader_group}
-              - --app-service-principal=${var.app_service_principal}
-              - --dev-schema=${resources.schemas.capability_guides_access_dev.name}
-              - --prod-schema=${resources.schemas.capability_guides_access_prod.name}
-              - --step=verify_grants
+          notebook_task:
+            notebook_path: ../guides/access-management/04_verify_grants.py
 
         - task_key: audit_grant_changes
           depends_on:
@@ -93,7 +53,7 @@ resources:
           sql_task:
             warehouse_id: ${var.warehouse_id}
             file:
-              path: ../sql/permission_audit_task.sql
+              path: ../guides/access-management/05_audit_grant_changes.sql
               source: WORKSPACE
             parameters:
               catalog: "{{job.parameters.catalog}}"
@@ -102,29 +62,9 @@ resources:
         - task_key: check_audit
           depends_on:
             - task_key: audit_grant_changes
-          environment_key: gov
-          spark_python_task:
-            python_file: ../src/access_tasks.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
-              - --reader-group=${var.reader_group}
-              - --app-service-principal=${var.app_service_principal}
-              - --dev-schema=${resources.schemas.capability_guides_access_dev.name}
-              - --prod-schema=${resources.schemas.capability_guides_access_prod.name}
-              - --step=check_audit
+          notebook_task:
+            notebook_path: ../guides/access-management/06_check_audit.py
 
         - task_key: list_service_principals
-          environment_key: gov
-          spark_python_task:
-            python_file: ../src/access_tasks.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
-              - --reader-group=${var.reader_group}
-              - --app-service-principal=${var.app_service_principal}
-              - --dev-schema=${resources.schemas.capability_guides_access_dev.name}
-              - --prod-schema=${resources.schemas.capability_guides_access_prod.name}
-              - --step=list_service_principals
+          notebook_task:
+            notebook_path: ../guides/access-management/07_list_service_principals.py

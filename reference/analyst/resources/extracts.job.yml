@@ -17,50 +17,27 @@ resources:
           default: ${var.use_case}
         - name: notification_email
           default: ${var.notification_email}
-      environments:
-        - environment_key: analyst
-          spec:
-            environment_version: "4"
-            dependencies:
-              - dbldatagen==0.4.0.post1
-              - pyyaml>=6
-              - openpyxl>=3.1
-              - databricks-sdk>=0.70
+        - name: warehouse_id
+          default: ${var.warehouse_id}
+        - name: dashboard_id
+          default: ${resources.dashboards.partner_orders_dashboard.id}
       tasks:
         - task_key: generate_data
-          environment_key: analyst
-          spark_python_task:
-            python_file: ../src/generate_data.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --src=${workspace.file_path}/src
-              - --spec=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
-              - --tables=analyst_customers,analyst_orders
+          notebook_task:
+            notebook_path: ../guides/self-service-extracts/01_generate_data.py
 
         - task_key: build_extracts
           depends_on:
             - task_key: generate_data
-          environment_key: analyst
-          spark_python_task:
-            python_file: ../src/build_extracts.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --src=${workspace.file_path}/src
-              - --spec=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
-              - --run-id={{job.run_id}}
+          notebook_task:
+            notebook_path: ../guides/self-service-extracts/02_build_extracts.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
 
         - task_key: schedule_dashboard
           depends_on:
             - task_key: build_extracts
-          environment_key: analyst
-          spark_python_task:
-            python_file: ../src/schedule_dashboard.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --dashboard-id=${resources.dashboards.partner_orders_dashboard.id}
-              - --warehouse-id=${var.warehouse_id}
-              - --email={{job.parameters.notification_email}}
-              - --run-id={{job.run_id}}
+          notebook_task:
+            notebook_path: ../guides/self-service-extracts/03_schedule_dashboard.py
+            base_parameters:
+              run_id: "{{job.run_id}}"

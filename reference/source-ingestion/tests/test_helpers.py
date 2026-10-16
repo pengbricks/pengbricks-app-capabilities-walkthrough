@@ -196,3 +196,12 @@ def test_spec_columns_translate_to_datagen_options():
             options = datagen.column_options(column)
             assert ("expr" in options) == ("expr" in column)
     assert datagen.column_options({"name": "x", "values": ["a"], "weights": [1]})["weights"] == [1]
+
+
+def test_flatten_user_keeps_nested_fields_and_tolerates_missing_ones():
+    from source_ingestion.api_records import flatten_user
+
+    row = flatten_user({"id": 7, "firstName": "Ada", "address": {"city": "Leeds", "country": "UK"}, "company": {"name": "Acme"}})
+    assert row["user_id"] == 7 and row["city"] == "Leeds" and row["company"] == "Acme"
+    bare = flatten_user({"id": 8})
+    assert bare["city"] is None and bare["company"] is None

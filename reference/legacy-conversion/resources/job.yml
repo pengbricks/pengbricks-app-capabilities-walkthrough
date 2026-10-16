@@ -13,35 +13,19 @@ resources:
           default: ${var.schema}
         - name: use_case
           default: ${var.use_case}
-      environments:
-        - environment_key: default
-          spec:
-            environment_version: "3"
-            dependencies:
-              - sqlglot>=25.0.0
-              - dbldatagen
-              - pyyaml
       tasks:
         - task_key: assess
-          environment_key: default
-          spark_python_task:
-            python_file: ../src/assess.py
-            parameters: ["--catalog", "{{job.parameters.catalog}}", "--schema", "{{job.parameters.schema}}", "--bundle-root", "${workspace.file_path}", "--use-case", "{{job.parameters.use_case}}"]
+          notebook_task:
+            notebook_path: ../guides/legacy-conversion/01_assess.py
         - task_key: convert
           depends_on: [{task_key: assess}]
-          environment_key: default
-          spark_python_task:
-            python_file: ../src/convert.py
-            parameters: ["--catalog", "{{job.parameters.catalog}}", "--schema", "{{job.parameters.schema}}", "--bundle-root", "${workspace.file_path}", "--use-case", "{{job.parameters.use_case}}"]
+          notebook_task:
+            notebook_path: ../guides/legacy-conversion/02_convert.py
         - task_key: test
           depends_on: [{task_key: convert}]
-          environment_key: default
-          spark_python_task:
-            python_file: ../src/reconcile.py
-            parameters: ["--catalog", "{{job.parameters.catalog}}", "--schema", "{{job.parameters.schema}}", "--bundle-root", "${workspace.file_path}", "--use-case", "{{job.parameters.use_case}}"]
+          notebook_task:
+            notebook_path: ../guides/legacy-conversion/03_reconcile.py
         - task_key: record
           depends_on: [{task_key: test}]
-          environment_key: default
-          spark_python_task:
-            python_file: ../src/record.py
-            parameters: ["--catalog", "{{job.parameters.catalog}}", "--schema", "{{job.parameters.schema}}", "--bundle-root", "${workspace.file_path}", "--use-case", "{{job.parameters.use_case}}"]
+          notebook_task:
+            notebook_path: ../guides/legacy-conversion/04_record.py

@@ -20,46 +20,22 @@ resources:
           default: ${var.schema}
         - name: use_case
           default: ${var.use_case}
-      environments:
-        - environment_key: sharing
-          spec:
-            environment_version: "4"
-            dependencies:
-              - dbldatagen==0.4.0.post1
-              - pyyaml>=6
-              - delta-sharing>=1.2
-              - requests
-              - databricks-sdk>=0.70
       tasks:
         - task_key: prepare_data
-          environment_key: sharing
-          spark_python_task:
-            python_file: ../src/prepare_sharing_data.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+          notebook_task:
+            notebook_path: ../guides/data-sharing/01_prepare_data.py
 
         - task_key: share_and_read
           depends_on:
             - task_key: prepare_data
-          environment_key: sharing
-          spark_python_task:
-            python_file: ../src/share_and_read.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+          notebook_task:
+            notebook_path: ../guides/data-sharing/02_share_and_read.py
 
         - task_key: collect_audit_events
           depends_on:
             - task_key: share_and_read
-          environment_key: sharing
-          spark_python_task:
-            python_file: ../src/collect_share_audit.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
-              - --started-epoch={{tasks.share_and_read.values.started_epoch}}
-              - --final-action={{tasks.share_and_read.values.final_action}}
+          notebook_task:
+            notebook_path: ../guides/data-sharing/03_collect_audit.py
+            base_parameters:
+              started_epoch: "{{tasks.share_and_read.values.started_epoch}}"
+              final_action: "{{tasks.share_and_read.values.final_action}}"

@@ -17,16 +17,7 @@ resources:
           default: ${var.use_case}
         - name: endpoint_name
           default: capability-guides-realtime-scoring
-      environments:
-        - environment_key: teardown
-          spec:
-            environment_version: "4"
-            dependencies:
-              - databricks-sdk>=0.70
       tasks:
         - task_key: delete_endpoint
-          environment_key: teardown
-          spark_python_task:
-            python_file: ../src/teardown_endpoint.py
-            parameters:
-              - --endpoint-name={{job.parameters.endpoint_name}}
+          notebook_task:
+            notebook_path: ../guides/real-time-scoring/04_teardown_endpoint.py

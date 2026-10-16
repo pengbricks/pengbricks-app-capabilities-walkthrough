@@ -40,89 +40,58 @@ resources:
         - name: min_valid_rows
           default: "2000"
 
-      environments:
-        - environment_key: default
-          spec:
-            environment_version: "4"
-            dependencies:
-              - dbldatagen==0.4.0.post1
-              - pyyaml>=6
-              - databricks-sdk>=0.70
-
       tasks:
         # Sequential: extract -> validate. Each task hands values to the next.
         - task_key: extract
-          environment_key: default
-          spark_python_task:
-            python_file: ../src/orch_extract.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+          notebook_task:
+            notebook_path: ../guides/orchestration-patterns/01_extract.py
 
         - task_key: validate
           depends_on:
             - task_key: extract
-          environment_key: default
-          spark_python_task:
-            python_file: ../src/orch_validate.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
+          notebook_task:
+            notebook_path: ../guides/orchestration-patterns/02_validate.py
 
         # Parallel: both branches depend only on validate, so they run at the same time.
         - task_key: branch_region
           depends_on:
             - task_key: validate
-          environment_key: default
-          spark_python_task:
-            python_file: ../src/orch_branch.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --dimension=region
+          notebook_task:
+            notebook_path: ../guides/orchestration-patterns/03_branch.py
+            base_parameters:
+              dimension: region
 
         - task_key: branch_status
           depends_on:
             - task_key: validate
-          environment_key: default
-          spark_python_task:
-            python_file: ../src/orch_branch.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --dimension=status
+          notebook_task:
+            notebook_path: ../guides/orchestration-patterns/03_branch.py
+            base_parameters:
+              dimension: status
 
         # Join: waits for both branches.
         - task_key: join_branches
           depends_on:
             - task_key: branch_region
             - task_key: branch_status
-          environment_key: default
-          spark_python_task:
-            python_file: ../src/orch_join.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --run-id={{job.run_id}}
+          notebook_task:
+            notebook_path: ../guides/orchestration-patterns/04_join.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
 
         # External process with a retry policy: the first attempt fails on purpose.
         - task_key: external_call
           depends_on:
             - task_key: join_branches
-          environment_key: default
           max_retries: 2
           min_retry_interval_millis: 10000
           retry_on_timeout: true
           timeout_seconds: 300
-          spark_python_task:
-            python_file: ../src/orch_external_call.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
-              - --run-id={{job.run_id}}
-              - --fail-first-attempt=true
+          notebook_task:
+            notebook_path: ../guides/orchestration-patterns/05_external_call.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
+              fail_first_attempt: "true"
 
         # Condition: compares a task value from validate with a job parameter.
         - task_key: enough_valid_rows
@@ -137,27 +106,21 @@ resources:
           depends_on:
             - task_key: enough_valid_rows
               outcome: "true"
-          environment_key: default
-          spark_python_task:
-            python_file: ../src/orch_publish.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --run-id={{job.run_id}}
-              - --outcome=publish
+          notebook_task:
+            notebook_path: ../guides/orchestration-patterns/06_publish.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
+              outcome: publish
 
         - task_key: hold_for_review
           depends_on:
             - task_key: enough_valid_rows
               outcome: "false"
-          environment_key: default
-          spark_python_task:
-            python_file: ../src/orch_publish.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --run-id={{job.run_id}}
-              - --outcome=hold
+          notebook_task:
+            notebook_path: ../guides/orchestration-patterns/06_publish.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
+              outcome: hold
 
         # Runs after whichever branch was taken; the skipped branch does not block it.
         - task_key: record_run
@@ -165,10 +128,7 @@ resources:
             - task_key: publish
             - task_key: hold_for_review
           run_if: AT_LEAST_ONE_SUCCESS
-          environment_key: default
-          spark_python_task:
-            python_file: ../src/orch_record_run.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --run-id={{job.run_id}}
+          notebook_task:
+            notebook_path: ../guides/orchestration-patterns/07_record_run.py
+            base_parameters:
+              run_id: "{{job.run_id}}"

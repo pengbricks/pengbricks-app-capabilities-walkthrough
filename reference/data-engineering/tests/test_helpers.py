@@ -58,3 +58,26 @@ def test_merge_metrics_defaults_to_zero():
     assert metrics["inserted"] == 60
     assert metrics["updated"] == 150
     assert metrics["deleted"] == 0
+
+
+SCD_SPEC = {"accounts": {"rows": 100, "changes": {"inserts": 10, "updates": 8, "deletes": 5}}}
+
+
+def _counts(current, history, deleted):
+    return {"current_rows": current, "history_rows": history, "keys_with_multiple_rows": 0, "deleted_keys": deleted}
+
+
+def test_scd_expected_counts_after_changes():
+    from de_common.scd import expected
+
+    assert expected(SCD_SPEC, "before") == ({"current_rows": 100, "deleted_keys": 0}, 100)
+    assert expected(SCD_SPEC, "after") == ({"current_rows": 105, "deleted_keys": 5}, 118)
+
+
+def test_scd_problems_reports_each_mismatch():
+    from de_common.scd import problems
+
+    good = {"scd1": _counts(105, 105, 5), "scd2": _counts(105, 118, 5)}
+    assert problems(good, SCD_SPEC, "after") == []
+    bad = {"scd1": _counts(104, 104, 5), "scd2": _counts(105, 117, 5)}
+    assert problems(bad, SCD_SPEC, "after") == ["scd1.current_rows=104, expected 105", "scd2.history_rows=117, expected 118"]

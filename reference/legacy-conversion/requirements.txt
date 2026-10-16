@@ -1,0 +1,4 @@
+sqlglot>=25.0.0
+dbldatagen==0.4.0.post1
+pyyaml>=6
+databricks-sdk>=0.100

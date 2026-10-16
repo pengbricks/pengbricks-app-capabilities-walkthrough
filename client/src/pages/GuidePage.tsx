@@ -6,18 +6,22 @@ import {
   Database,
   FileCode2,
   FileText,
+  FolderOpen,
+  NotebookPen,
   Loader2,
   Map as MapIcon,
   Play,
   PlayCircle,
+  Workflow,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { AutoLoaderDrop } from '../components/AutoLoaderDrop.tsx';
 import { CodeBlock } from '../components/CodeBlock.tsx';
 import { getGuide } from '../data/guides.ts';
 import designedWalkthroughs from '../data/walkthroughs/designed.json';
 import { getWalkthrough } from '../data/walkthroughs/index.ts';
+import { WalkthroughBody } from './walkthroughs/WalkthroughPage.tsx';
 import {
   latestSuccessfulRun,
   runStatus,
@@ -26,6 +30,7 @@ import {
   type CodeHighlight,
   type GuideArtifacts,
   type GuideJob,
+  type WorkspaceLinks,
 } from '../lib/artifacts.ts';
 
 export function GuidePage() {
@@ -60,17 +65,21 @@ export function GuidePage() {
           <h1 className="mt-5 max-w-3xl text-4xl font-semibold tracking-[-0.03em] sm:text-5xl">{guide.title}</h1>
           <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-foreground">{guide.summary}</p>
 
-          <Separator className="my-10" />
+          <GuideWalkthrough slug={guide.slug} />
 
+          {artifacts?.autoLoaderDrop && <AutoLoaderDrop slug={guide.slug} />}
+
+          <Separator className="my-12" />
+
+          {/* Reference material follows the walkthrough: what the run produces, the code, and the docs. */}
           <section>
-            <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">Guide intent</p>
+            <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">Reference</p>
             <h2 className="mt-3 text-2xl font-semibold tracking-tight">What you&apos;ll see</h2>
             <p className="mt-4 max-w-3xl text-base leading-7">{guide.acceptanceCriteria}</p>
           </section>
 
           <section className="mt-10">
-            <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">Guide artifacts</p>
-            <h2 className="mt-3 text-2xl font-semibold tracking-tight">What the run produces</h2>
+            <h2 className="text-2xl font-semibold tracking-tight">What the run produces</h2>
             <div className="mt-5 grid gap-3">
               {guide.evidence.map((item, index) => (
                 <div key={item} className="flex gap-4 rounded-xl border bg-card p-4">
@@ -83,12 +92,9 @@ export function GuidePage() {
             </div>
           </section>
 
-          {artifacts?.autoLoaderDrop && <AutoLoaderDrop slug={guide.slug} />}
-
           {artifacts && artifacts.highlights.length > 0 && (
             <section className="mt-10">
-              <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">Reference code</p>
-              <h2 className="mt-3 text-2xl font-semibold tracking-tight">Key functions</h2>
+              <h2 className="text-2xl font-semibold tracking-tight">Key functions</h2>
               <div className="mt-5 grid gap-5">
                 {artifacts.highlights.map((highlight) => (
                   <CodeExcerpt key={`${highlight.path}:${highlight.symbol ?? ''}`} highlight={highlight} />
@@ -99,8 +105,7 @@ export function GuidePage() {
 
           {artifacts && artifacts.tools.length > 0 && (
             <section className="mt-10">
-              <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">Tooling</p>
-              <h2 className="mt-3 text-2xl font-semibold tracking-tight">Extensions and tools</h2>
+              <h2 className="text-2xl font-semibold tracking-tight">Extensions and tools</h2>
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
                 {artifacts.tools.map((tool) => (
                   <div key={tool.url} className="flex flex-col rounded-lg border p-4">
@@ -130,8 +135,7 @@ export function GuidePage() {
 
           {artifacts && artifacts.docs.length > 0 && (
             <section className="mt-10">
-              <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">Documentation</p>
-              <h2 className="mt-3 text-2xl font-semibold tracking-tight">Databricks documentation</h2>
+              <h2 className="text-2xl font-semibold tracking-tight">Databricks documentation</h2>
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
                 {artifacts.docs.map((doc) => (
                   <ArtifactAnchor key={doc.url} icon={BookOpen} title={doc.label} url={doc.url} />
@@ -142,9 +146,13 @@ export function GuidePage() {
         </article>
 
         <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">
+          {artifacts && (artifacts.workspace || artifacts.jobs.length > 0 || artifacts.recordedRuns.length > 0) && (
+            <RunsCard slug={guide.slug} artifacts={artifacts} onChange={() => void reload()} />
+          )}
+
           <Card className="shadow-none">
             <CardHeader>
-              <CardTitle className="text-base">Artifacts</CardTitle>
+              <CardTitle className="text-base">Reference code</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {planned && (
@@ -154,7 +162,6 @@ export function GuidePage() {
               )}
               {!artifacts && !error && !planned && <p className="text-sm text-muted-foreground">Loading artifacts…</p>}
               {error && <p className="text-sm text-muted-foreground">{error}</p>}
-              <WalkthroughLinks slug={guide.slug} />
               {artifacts && (
                 <>
                   <ArtifactAnchor
@@ -169,30 +176,6 @@ export function GuidePage() {
                     description="Deployable bundle on GitHub"
                     url={artifacts.bundleUrl}
                   />
-                  {artifacts.walkthroughs.map((item) =>
-                    item.route ? (
-                      <Link
-                        key={item.url}
-                        to={item.route}
-                        className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50"
-                      >
-                        <MapIcon className="size-4 shrink-0" />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium">{item.label}</p>
-                          <p className="text-xs text-muted-foreground">Walkthrough with diagrams</p>
-                        </div>
-                        <ArrowUpRight className="size-4 shrink-0" />
-                      </Link>
-                    ) : (
-                      <ArtifactAnchor
-                        key={item.url}
-                        icon={MapIcon}
-                        title={item.label}
-                        description="Walkthrough with diagrams"
-                        url={item.url}
-                      />
-                    )
-                  )}
                   {artifacts.code.map((item) => (
                     <a
                       key={item.url}
@@ -206,27 +189,85 @@ export function GuidePage() {
                   ))}
                 </>
               )}
+              <WalkthroughLinks slug={guide.slug} />
             </CardContent>
           </Card>
-
-          {artifacts && (artifacts.jobs.length > 0 || artifacts.recordedRuns.length > 0) && (
-            <RunsCard slug={guide.slug} artifacts={artifacts} onChange={() => void reload()} />
-          )}
         </aside>
       </div>
     </div>
   );
 }
 
+// The guide leads with its visual walkthrough: the designed page when there is one, then the
+// data-driven walkthrough, both rendered in place.
+function GuideWalkthrough({ slug }: { slug: string }) {
+  const data = getWalkthrough(slug);
+  const hasDesigned = designed.has(slug);
+  if (!data && !hasDesigned) return null;
+  return (
+    <section className="mt-10" aria-label="Visual walkthrough">
+      {hasDesigned && <DesignedWalkthrough slug={slug} />}
+      {data && (
+        <div className="walkthrough walkthrough-inline">
+          <WalkthroughBody walkthrough={data} />
+        </div>
+      )}
+    </section>
+  );
+}
+
+// Designed walkthroughs are static pages next to the app; the frame grows to fit its content.
+function DesignedWalkthrough({ slug }: { slug: string }) {
+  const frame = useRef<HTMLIFrameElement>(null);
+  useEffect(() => {
+    const element = frame.current;
+    if (!element) return;
+    let observer: ResizeObserver | undefined;
+    const fit = () => {
+      const doc = element.contentDocument;
+      if (!doc?.body) return;
+      // The guide page already shows the site bar, breadcrumbs, and title, so hide the page's own.
+      if (!doc.getElementById('embedded-walkthrough')) {
+        const style = doc.createElement('style');
+        style.id = 'embedded-walkthrough';
+        style.textContent =
+          '.skip-link, .topbar, .crumbs, .guide-head > h1, .guide-head > .eyebrow { display: none !important; } main.main { padding-top: 0 !important; } html { overflow: hidden; }';
+        doc.head.appendChild(style);
+      }
+      element.style.height = `${doc.documentElement.scrollHeight}px`;
+      observer?.disconnect();
+      observer = new ResizeObserver(() => {
+        element.style.height = `${doc.documentElement.scrollHeight}px`;
+      });
+      observer.observe(doc.body);
+    };
+    element.addEventListener('load', fit);
+    fit();
+    return () => {
+      element.removeEventListener('load', fit);
+      observer?.disconnect();
+    };
+  }, [slug]);
+  return (
+    <iframe
+      ref={frame}
+      title="Visual walkthrough"
+      src={`${import.meta.env.BASE_URL}walkthroughs/${slug}.html`}
+      className="w-full rounded-xl border"
+      style={{ height: '80vh' }}
+    />
+  );
+}
+
 function RunsCard({ slug, artifacts, onChange }: { slug: string; artifacts: GuideArtifacts; onChange: () => void }) {
-  const hasJobs = artifacts.jobs.length > 0;
+  const hasJobs = artifacts.jobs.length > 0 || Boolean(artifacts.workspace);
   // Deployments without the reference jobs (other workspaces) still link the recorded reference runs.
   const anyDeployed = artifacts.jobs.some((job) => job.deployed);
   return (
     <Card className="shadow-none">
       <CardHeader>
         <CardTitle className="flex items-center justify-between text-base">
-          {hasJobs ? 'Actual runs' : 'Workspace artifacts'}
+          {hasJobs ? 'Run it' : 'Workspace artifacts'}
           {artifacts.live && (
             <Badge variant="outline" className="gap-1 font-normal">
               <Database className="size-3" />
@@ -236,6 +277,8 @@ function RunsCard({ slug, artifacts, onChange }: { slug: string; artifacts: Guid
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {artifacts.workspace && <WorkspaceLinksBlock links={artifacts.workspace} />}
+
         {artifacts.live && hasJobs && anyDeployed
           ? artifacts.jobs.map((job) => <JobRow key={job.key} slug={slug} job={job} onChange={onChange} />)
           : null}
@@ -281,6 +324,37 @@ function RunsCard({ slug, artifacts, onChange }: { slug: string; artifacts: Guid
         )}
       </CardContent>
     </Card>
+  );
+}
+
+// The deployed copy of the guide in this workspace: start with 00_start_here, or open the pipelines.
+function WorkspaceLinksBlock({ links }: { links: WorkspaceLinks }) {
+  return (
+    <div className="space-y-2">
+      {links.startHere ? (
+        <ArtifactAnchor
+          icon={NotebookPen}
+          title="Start here"
+          description={`${links.folder.label} · 00_start_here`}
+          url={links.startHere.url}
+        />
+      ) : null}
+      <ArtifactAnchor
+        icon={FolderOpen}
+        title={links.folder.label}
+        description="Notebooks, job and pipeline definitions in this workspace"
+        url={links.folder.url}
+      />
+      {links.pipelines.map((item) => (
+        <ArtifactAnchor
+          key={item.url}
+          icon={Workflow}
+          title={item.label}
+          description="Lakeflow Declarative Pipeline"
+          url={item.url}
+        />
+      ))}
+    </div>
   );
 }
 

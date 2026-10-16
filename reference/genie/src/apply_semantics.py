@@ -1,27 +1,19 @@
-"""Add the semantic layer from the spec: table and column comments, tags, and the Unity Catalog metric view."""
+"""Add the semantic layer from the spec: table and column comments, tags, and the Unity Catalog metric view.
+
+Used by the semantics notebook of both genie guides."""
 
 from __future__ import annotations
 
-import argparse
-
-from genie_lib import load_spec, metric_view_yaml, sql_str
+from genie_lib import metric_view_yaml, sql_str
 
 
 def tag_clause(tags: dict[str, str]) -> str:
     return ", ".join(f"{sql_str(key)} = {sql_str(str(value))}" for key, value in tags.items())
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--catalog", required=True)
-    parser.add_argument("--schema", required=True)
-    parser.add_argument("--use-case-file", required=True)
-    args = parser.parse_args()
-
-    from databricks.sdk.runtime import spark
-
-    spec = load_spec(args.use_case_file)
-    base = f"`{args.catalog}`.`{args.schema}`"
+def apply_semantics(spark, spec: dict, catalog: str, schema: str) -> str:
+    """Comment and tag the tables and columns, then create the metric view. Returns the metric view YAML."""
+    base = f"`{catalog}`.`{schema}`"
     for table in spec["tables"]:
         full = f"{base}.`{table['name']}`"
         spark.sql(f"COMMENT ON TABLE {full} IS {sql_str(table['comment'])}")
@@ -34,11 +26,7 @@ def main() -> None:
         print(f"Annotated {full}")
 
     view = spec["metric_view"]
-    definition = metric_view_yaml(spec, args.catalog, args.schema)
+    definition = metric_view_yaml(spec, catalog, schema)
     spark.sql(f"CREATE OR REPLACE VIEW {base}.`{view['name']}` WITH METRICS LANGUAGE YAML AS $$\n{definition}$$")
     print(f"Created metric view {base}.`{view['name']}`")
-    print(definition)
-
-
-if __name__ == "__main__":
-    main()
+    return definition

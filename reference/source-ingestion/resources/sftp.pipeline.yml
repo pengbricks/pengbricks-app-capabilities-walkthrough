@@ -13,4 +13,4 @@ resources:
         capability_guide_use_case: ${var.use_case}
       libraries:
         - glob:
-            include: ../src/pipelines/sftp/**
+            include: ../guides/sftp-ingestion/pipeline/**

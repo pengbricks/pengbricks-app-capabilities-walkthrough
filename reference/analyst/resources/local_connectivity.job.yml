@@ -15,35 +15,17 @@ resources:
           default: ${var.schema}
         - name: use_case
           default: ${var.use_case}
-      environments:
-        - environment_key: analyst
-          spec:
-            environment_version: "4"
-            dependencies:
-              - dbldatagen==0.4.0.post1
-              - pyyaml>=6
-              - databricks-sdk>=0.70
-              - databricks-sql-connector>=4
+        - name: warehouse_id
+          default: ${var.warehouse_id}
       tasks:
         - task_key: generate_data
-          environment_key: analyst
-          spark_python_task:
-            python_file: ../src/generate_data.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --src=${workspace.file_path}/src
-              - --spec=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
-              - --tables=analyst_customers
+          notebook_task:
+            notebook_path: ../guides/local-tool-connectivity/01_generate_data.py
 
         - task_key: sql_connector_check
           depends_on:
             - task_key: generate_data
-          environment_key: analyst
-          spark_python_task:
-            python_file: ../src/connector_check.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --warehouse-id=${var.warehouse_id}
-              - --run-id={{job.run_id}}
+          notebook_task:
+            notebook_path: ../guides/local-tool-connectivity/02_sql_connector_check.py
+            base_parameters:
+              run_id: "{{job.run_id}}"

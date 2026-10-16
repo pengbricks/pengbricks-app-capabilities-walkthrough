@@ -16,13 +16,6 @@ resources:
           default: ${var.schema}
         - name: use_case
           default: ${var.use_case}
-      environments:
-        - environment_key: framework
-          spec:
-            environment_version: "4"
-            dependencies:
-              - dbldatagen==0.4.0.post1
-              - pyyaml>=6
       tasks:
         - task_key: batch_ingest
           run_job_task:
@@ -33,14 +26,8 @@ resources:
               use_case: "{{job.parameters.use_case}}"
 
         - task_key: land_stream_events
-          environment_key: framework
-          spark_python_task:
-            python_file: ../src/generate_landing.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
-              - --mode=stream
+          notebook_task:
+            notebook_path: ../guides/batch-real-time-ingestion/01_land_stream_events.py
 
         - task_key: streaming_pipeline
           depends_on:
@@ -49,14 +36,21 @@ resources:
           pipeline_task:
             pipeline_id: ${resources.pipelines.capability_guides_ingestion_streaming.id}
 
-        - task_key: record_metrics
+        # The pipeline task above runs the update; this notebook only inspects its output.
+        - task_key: inspect_pipeline
           depends_on:
             - task_key: streaming_pipeline
-          environment_key: framework
-          spark_python_task:
-            python_file: ../src/record_ingestion_metrics.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --run-id={{job.run_id}}
-              - --pipeline-id=${resources.pipelines.capability_guides_ingestion_streaming.id}
+          notebook_task:
+            notebook_path: ../guides/batch-real-time-ingestion/02_run_pipeline.py
+            base_parameters:
+              run_pipeline: "false"
+              pipeline_id: ${resources.pipelines.capability_guides_ingestion_streaming.id}
+
+        - task_key: record_metrics
+          depends_on:
+            - task_key: inspect_pipeline
+          notebook_task:
+            notebook_path: ../guides/batch-real-time-ingestion/03_record_metrics.py
+            base_parameters:
+              job_run_id: "{{job.run_id}}"
+              pipeline_id: ${resources.pipelines.capability_guides_ingestion_streaming.id}

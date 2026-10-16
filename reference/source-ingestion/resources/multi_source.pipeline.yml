@@ -15,4 +15,4 @@ resources:
         capability_guide_use_case: ${var.use_case}
       libraries:
         - glob:
-            include: ../src/pipelines/multi_source/**
+            include: ../guides/multi-source-pipeline/pipeline/**

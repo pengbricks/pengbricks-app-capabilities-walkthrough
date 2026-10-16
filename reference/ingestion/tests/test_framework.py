@@ -13,6 +13,7 @@ from capability_framework.adapters.provider_a import status_case_sql  # noqa: E4
 from capability_framework.config import load_feed, parse_feed  # noqa: E402
 from capability_framework.datagen import bad_row_exprs, column_options  # noqa: E402
 from capability_framework.use_case import load_use_case, render_feeds  # noqa: E402
+from capability_framework.runner import quarantine_replace_where  # noqa: E402
 from capability_framework.validation import quarantine_reasons_sql, rule_to_sql  # noqa: E402
 
 SPEC_PATH = BUNDLE_ROOT / "use_cases" / "general.yml"
@@ -76,3 +77,27 @@ def test_datagen_options_follow_the_spec() -> None:
     assert column_options(columns["record_id"]) == {"expr": columns["record_id"]["expr"], "baseColumn": "id"}
     assert column_options(columns["currency"])["weights"] == [8, 1, 1]
     assert all("id %" in expression for _, expression in bad_row_exprs(spec))
+
+
+def test_quarantine_write_is_scoped_to_one_feed() -> None:
+    assert quarantine_replace_where("provider_a") == "source_feed = 'provider_a'"
+    assert quarantine_replace_where("o'brien") == "source_feed = 'o''brien'"
+
+
+def test_stream_batches_have_fixed_names_and_id_ranges() -> None:
+    sys.path.insert(0, str(BUNDLE_ROOT / "src"))
+    from capability_framework.landing import batch_file_name, batch_id_offset
+
+    assert batch_file_name(0) == "events_batch_0001.json"
+    assert [batch_file_name(b) for b in range(2)] == [batch_file_name(b) for b in range(2)]
+    assert batch_id_offset(2, 400) - batch_id_offset(1, 400) == 400
+
+
+def test_rollback_does_not_undo_its_own_restore() -> None:
+    from capability_framework.rollback import choose_target
+
+    assert choose_target([(5, "MERGE"), (4, "MERGE")]) == 4
+    assert choose_target([(6, "RESTORE"), (5, "MERGE"), (4, "MERGE")]) is None
+    assert choose_target([(6, "RESTORE"), (5, "MERGE")], "2") == 2
+    with pytest.raises(RuntimeError):
+        choose_target([(0, "CREATE TABLE")])

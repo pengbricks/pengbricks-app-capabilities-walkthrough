@@ -45,6 +45,13 @@ export type HistoryRow = {
   started_at: string | null;
 };
 
+export type WorkspaceLinks = {
+  folder: ArtifactLink & { path: string };
+  startHere: ArtifactLink | null;
+  files: ArtifactLink[];
+  pipelines: ArtifactLink[];
+};
+
 export type GuideArtifacts = {
   slug: string;
   onePagerUrl: string;
@@ -56,6 +63,7 @@ export type GuideArtifacts = {
   autoLoaderDrop: boolean;
   highlights: CodeHighlight[];
   jobs: GuideJob[];
+  workspace?: WorkspaceLinks;
   recordedRuns: RecordedRun[];
   live: boolean;
   liveError?: string;

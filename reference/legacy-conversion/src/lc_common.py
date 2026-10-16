@@ -1,20 +1,10 @@
-"""Shared task plumbing: arguments, spec loading, Spark helpers."""
-import argparse
+"""Shared notebook plumbing: spec loading, Spark helpers."""
 import os
 import sys
 
 import yaml
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
-
-def parse_args():
-    p = argparse.ArgumentParser()
-    p.add_argument("--catalog", required=True)
-    p.add_argument("--schema", required=True)
-    p.add_argument("--bundle-root", required=True)
-    p.add_argument("--use-case", default="general")
-    return p.parse_args()
 
 
 def load_spec(bundle_root, use_case):

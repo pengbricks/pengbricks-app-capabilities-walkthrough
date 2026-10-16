@@ -1,0 +1,8 @@
+dbldatagen==0.4.0.post1
+pyyaml>=6
+delta-sharing>=1.2
+requests
+databricks-sql-connector>=4.0
+psycopg[binary]>=3.2
+pyiceberg[pyarrow,adlfs]>=0.9
+databricks-sdk>=0.100

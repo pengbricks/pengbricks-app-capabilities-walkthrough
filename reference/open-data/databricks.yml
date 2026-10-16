@@ -19,6 +19,9 @@ variables:
   use_case:
     description: Use-case spec under use_cases/ that drives data, sharing, Iceberg, and integration settings
     default: general
+  lakebase_project:
+    description: Lakebase Postgres project that hosts the source database (overrides lakebase_project in the use-case spec)
+    default: capability-guides
   release:
     description: Release identifier recorded in resource tags
     default: local

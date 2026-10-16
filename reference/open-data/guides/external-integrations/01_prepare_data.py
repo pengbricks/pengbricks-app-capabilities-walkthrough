@@ -1,0 +1,34 @@
+# Databricks notebook source
+# MAGIC %pip install -q -r ../../requirements.txt
+
+# COMMAND ----------
+
+dbutils.library.restartPython()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC # 1. Prepare the sample data
+# MAGIC
+# MAGIC Writes `sharing_orders` and `sharing_products` from the use-case spec. Each table is overwritten, so a rerun replaces the data.
+
+# COMMAND ----------
+
+import sys, os
+sys.path.insert(0, os.path.abspath("../../src"))
+from guide_params import bundle_root, load_params
+params = load_params(dbutils, "capability_guides_external_integrations", ['catalog', 'schema', 'use_case'])
+catalog, schema = params["catalog"], params["schema"]
+prefix = f"{catalog}.{schema}"
+SPEC_FILE = bundle_root() / "use_cases" / f"{params['use_case']}.yml"
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Write the tables
+
+# COMMAND ----------
+
+from open_data.spec import load_spec, write_tables
+
+write_tables(spark, load_spec(SPEC_FILE), prefix, ["sharing_orders", "sharing_products"])

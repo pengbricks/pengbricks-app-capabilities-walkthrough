@@ -21,21 +21,7 @@ resources:
           default: ${var.use_case}
         - name: delete_gateway_services
           default: "true"
-      environments:
-        - environment_key: agents
-          spec:
-            environment_version: "4"
-            dependencies:
-              - databricks-sdk>=0.152
-              - pyyaml>=6
       tasks:
         - task_key: delete_endpoint
-          environment_key: agents
-          spark_python_task:
-            python_file: ../src/teardown_agent.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --src-dir=${workspace.file_path}/src
-              - --spec=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
-              - --delete-gateway-services={{job.parameters.delete_gateway_services}}
+          notebook_task:
+            notebook_path: ../guides/agent-framework-support/07_teardown.py

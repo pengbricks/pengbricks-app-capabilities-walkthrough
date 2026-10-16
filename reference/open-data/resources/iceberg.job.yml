@@ -20,32 +20,13 @@ resources:
           default: ${var.schema}
         - name: use_case
           default: ${var.use_case}
-      environments:
-        - environment_key: iceberg
-          spec:
-            environment_version: "4"
-            dependencies:
-              - dbldatagen==0.4.0.post1
-              - pyyaml>=6
-              - pyiceberg[pyarrow]>=0.9
-              - databricks-sdk>=0.70
       tasks:
         - task_key: managed_iceberg_table
-          environment_key: iceberg
-          spark_python_task:
-            python_file: ../src/iceberg_table.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+          notebook_task:
+            notebook_path: ../guides/iceberg-support/01_managed_iceberg_table.py
 
         - task_key: read_through_irc
           depends_on:
             - task_key: managed_iceberg_table
-          environment_key: iceberg
-          spark_python_task:
-            python_file: ../src/iceberg_external_read.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+          notebook_task:
+            notebook_path: ../guides/iceberg-support/02_read_through_irc.py

@@ -102,3 +102,11 @@ def test_clarifying_question_is_an_issue_for_ambiguous_prompts() -> None:
     issues = find_issues("COMPLETED", False, None, 5, 45, ambiguous=True, expects_sql=False, response_text="Do you mean segments?")
     assert issues == ["Genie asked a clarifying question instead of answering"]
     assert find_issues("COMPLETED", False, None, 5, 45, ambiguous=True, expects_sql=False, response_text="No data.") == []
+
+
+def test_split_existing_reuses_first_space_and_flags_duplicates() -> None:
+    from genie_lib import split_existing
+
+    assert split_existing([]) == (None, [])
+    assert split_existing(["a"]) == ("a", [])
+    assert split_existing(["a", "b", "c"]) == ("a", ["b", "c"])

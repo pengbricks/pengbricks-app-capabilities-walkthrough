@@ -21,51 +21,24 @@ resources:
           default: ${var.use_case}
         - name: release
           default: ${var.release}
-      environments:
-        - environment_key: ml
-          spec:
-            environment_version: "4"
-            dependencies:
-              - mlflow>=3.1
-              - scikit-learn>=1.4
-              - dbldatagen==0.4.0.post1
-              - pyyaml>=6
-              - databricks-sdk>=0.70
+        - name: experiment
+          default: ${resources.experiments.ml_lifecycle_experiment.name}
       tasks:
         - task_key: tracked_run
-          environment_key: ml
-          spark_python_task:
-            python_file: ../src/et_tracked_run.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --src-dir=${workspace.file_path}/src
-              - --spec=${workspace.file_path}/use_cases/${var.use_case}.yml
-              - --release={{job.parameters.release}}
-              - --experiment=${resources.experiments.ml_lifecycle_experiment.name}
+          notebook_task:
+            notebook_path: ../guides/experiment-tracking/01_tracked_run.py
 
         - task_key: append_new_data
           depends_on:
             - task_key: tracked_run
-          environment_key: ml
-          spark_python_task:
-            python_file: ../src/et_append_new_data.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --src-dir=${workspace.file_path}/src
-              - --spec=${workspace.file_path}/use_cases/${var.use_case}.yml
+          notebook_task:
+            notebook_path: ../guides/experiment-tracking/02_append_new_data.py
 
         - task_key: rerun_and_compare
           depends_on:
             - task_key: append_new_data
-          environment_key: ml
-          spark_python_task:
-            python_file: ../src/et_rerun_and_compare.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --src-dir=${workspace.file_path}/src
-              - --spec=${workspace.file_path}/use_cases/${var.use_case}.yml
-              - --experiment=${resources.experiments.ml_lifecycle_experiment.name}
-              - --run-id={{tasks.tracked_run.values.run_id}}
+          notebook_task:
+            notebook_path: ../guides/experiment-tracking/03_rerun_and_compare.py
+            base_parameters:
+              run_id: "{{tasks.tracked_run.values.run_id}}"
+

@@ -15,35 +15,25 @@ resources:
           default: ${var.schema}
         - name: use_case
           default: ${var.use_case}
-      environments:
-        - environment_key: default
-          spec:
-            environment_version: "4"
-            dependencies:
-              - dbldatagen==0.4.0.post1
-              - pyyaml>=6
-              - openpyxl>=3.1
       tasks:
         - task_key: generate_sources
-          environment_key: default
-          spark_python_task:
-            python_file: ../src/generate_sources.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+          notebook_task:
+            notebook_path: ../guides/transformation-patterns/01_generate_sources.py
         - task_key: run_pipeline
           depends_on:
             - task_key: generate_sources
           pipeline_task:
             pipeline_id: ${resources.pipelines.capability_guides_transformations_pipeline.id}
             full_refresh: true
-        - task_key: check_row_counts
+        - task_key: inspect_pipeline
           depends_on:
             - task_key: run_pipeline
-          environment_key: default
-          spark_python_task:
-            python_file: ../src/check_transformations.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
+          notebook_task:
+            notebook_path: ../guides/transformation-patterns/02_run_pipeline.py
+            base_parameters:
+              run_pipeline: "false"
+        - task_key: check_row_counts
+          depends_on:
+            - task_key: inspect_pipeline
+          notebook_task:
+            notebook_path: ../guides/transformation-patterns/03_check_row_counts.py

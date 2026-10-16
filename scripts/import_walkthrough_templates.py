@@ -41,6 +41,7 @@ TEXT_REPLACEMENTS = [
     (r"the parts of the criterion with no recorded run yet", "next steps the reference run does not cover"),
     (r"the criterion asks for", "this guide covers"),
     (r"criterion", "guide"),
+    (r"General demos", "Ingestion"),
     (r"Evidence: what is measured and what is not", "What the reference run measures"),
     (r"Evidence from the reference run", "Reference run results"),
     (r"Evidence: both feeds, same rules", "Both feeds, same rules"),

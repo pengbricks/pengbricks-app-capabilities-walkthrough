@@ -1,11 +1,10 @@
-"""Generate the sample tables from the use-case spec with dbldatagen (fixed seed, so reruns are identical)."""
+"""Generate the sample tables from the use-case spec with dbldatagen (fixed seed, so reruns are identical).
+
+Used by the first notebook of both genie guides."""
 
 from __future__ import annotations
 
-import argparse
 import re
-
-from genie_lib import load_spec
 
 
 def spark_type(name: str):
@@ -31,22 +30,17 @@ def column_options(column: dict) -> dict:
     return options
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--catalog", required=True)
-    parser.add_argument("--schema", required=True)
-    parser.add_argument("--use-case-file", required=True)
-    parser.add_argument("--recreate", action="store_true", help="drop and regenerate tables, which also removes comments and tags")
-    args = parser.parse_args()
+def generate_tables(spark, spec: dict, catalog: str, schema: str, recreate: bool = False) -> None:
+    """Create each sample table from the spec. Existing tables are kept unless `recreate` is set.
 
+    Recreating drops and regenerates the table, which also removes its comments and tags.
+    """
     import dbldatagen as dg
-    from databricks.sdk.runtime import spark
 
-    spec = load_spec(args.use_case_file)
     for index, table in enumerate(spec["tables"]):
-        full_name = f"`{args.catalog}`.`{args.schema}`.`{table['name']}`"
-        exists = spark.catalog.tableExists(f"{args.catalog}.{args.schema}.{table['name']}")
-        if exists and not args.recreate:
+        full_name = f"`{catalog}`.`{schema}`.`{table['name']}`"
+        exists = spark.catalog.tableExists(f"{catalog}.{schema}.{table['name']}")
+        if exists and not recreate:
             print(f"{full_name} exists, keeping it")
             continue
         spark.sql(f"DROP TABLE IF EXISTS {full_name}")
@@ -61,9 +55,5 @@ def main() -> None:
         for column in table["columns"]:
             generator = generator.withColumn(column["name"], spark_type(column["type"]), **column_options(column))
         frame = generator.build().drop("id")
-        frame.write.format("delta").saveAsTable(f"{args.catalog}.{args.schema}.{table['name']}")
+        frame.write.format("delta").saveAsTable(f"{catalog}.{schema}.{table['name']}")
         print(f"Created {full_name} with {table['rows']} rows")
-
-
-if __name__ == "__main__":
-    main()

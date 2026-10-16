@@ -19,46 +19,21 @@ resources:
           default: ${var.use_case}
         - name: endpoint_name
           default: capability-guides-realtime-scoring
-      environments:
-        - environment_key: scoring
-          spec:
-            environment_version: "4"
-            dependencies:
-              - dbldatagen==0.4.0.post1
-              - pyyaml>=6
-              - databricks-sdk>=0.70
-              - mlflow>=3
       tasks:
         - task_key: train_register
-          environment_key: scoring
-          spark_python_task:
-            python_file: ../src/train_register.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+          notebook_task:
+            notebook_path: ../guides/real-time-scoring/01_train_register.py
 
         - task_key: deploy_endpoint
           depends_on:
             - task_key: train_register
-          environment_key: scoring
-          spark_python_task:
-            python_file: ../src/deploy_endpoint.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --endpoint-name={{job.parameters.endpoint_name}}
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+          notebook_task:
+            notebook_path: ../guides/real-time-scoring/02_deploy_endpoint.py
 
         - task_key: score_and_measure
           depends_on:
             - task_key: deploy_endpoint
-          environment_key: scoring
-          spark_python_task:
-            python_file: ../src/score_endpoint.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --endpoint-name={{job.parameters.endpoint_name}}
-              - --run-id={{job.run_id}}
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+          notebook_task:
+            notebook_path: ../guides/real-time-scoring/03_score_and_measure.py
+            base_parameters:
+              run_id: "{{job.run_id}}"

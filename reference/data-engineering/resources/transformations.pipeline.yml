@@ -12,4 +12,4 @@ resources:
         capability_guide_use_case: ${var.use_case}
       libraries:
         - glob:
-            include: ../src/transformations/**
+            include: ../guides/transformation-patterns/pipeline/**

@@ -23,72 +23,36 @@ resources:
           default: ${var.release}
         - name: warehouse_id
           default: ${var.warehouse_id}
-      environments:
-        - environment_key: agents
-          spec:
-            environment_version: "4"
-            dependencies:
-              - mlflow>=3.1
-              - databricks-sdk>=0.152
-              - dbldatagen==0.4.0.post1
-              - pyyaml>=6
-              - requests
-              - openai
-              - httpx
+        - name: experiment
+          default: ${resources.experiments.agent_build_experiment.name}
+        - name: experiment_id
+          default: "${resources.experiments.agent_build_experiment.id}"
       tasks:
         - task_key: prepare_tool
-          environment_key: agents
-          spark_python_task:
-            python_file: ../src/prepare_tool.py
-            parameters: &common
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --src-dir=${workspace.file_path}/src
-              - --spec=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+          notebook_task:
+            notebook_path: ../guides/agent-build-deployment/01_prepare_tool.py
 
         - task_key: log_and_register
           depends_on:
             - task_key: prepare_tool
-          environment_key: agents
-          spark_python_task:
-            python_file: ../src/log_register_agent.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --src-dir=${workspace.file_path}/src
-              - --spec=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
-              - --experiment=${resources.experiments.agent_build_experiment.name}
-              - --warehouse-id={{job.parameters.warehouse_id}}
-              - --release={{job.parameters.release}}
+          notebook_task:
+            notebook_path: ../guides/agent-build-deployment/02_log_and_register.py
 
         - task_key: deploy_endpoint
           depends_on:
             - task_key: log_and_register
-          environment_key: agents
-          spark_python_task:
-            python_file: ../src/deploy_agent.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --src-dir=${workspace.file_path}/src
-              - --spec=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
-              - --version={{tasks.log_and_register.values.version}}
-              - --experiment-id=${resources.experiments.agent_build_experiment.id}
-              - --release={{job.parameters.release}}
+          notebook_task:
+            notebook_path: ../guides/agent-build-deployment/03_deploy_endpoint.py
+            base_parameters:
+              version: "{{tasks.log_and_register.values.version}}"
 
         - task_key: call_and_record
           depends_on:
             - task_key: deploy_endpoint
-          environment_key: agents
-          spark_python_task:
-            python_file: ../src/call_agent.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --src-dir=${workspace.file_path}/src
-              - --spec=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
-              - --endpoint={{tasks.deploy_endpoint.values.endpoint}}
-              - --version={{tasks.log_and_register.values.version}}
-              - --model-run-id={{tasks.log_and_register.values.run_id}}
-              - --ready-seconds={{tasks.deploy_endpoint.values.ready_seconds}}
-              - --release={{job.parameters.release}}
+          notebook_task:
+            notebook_path: ../guides/agent-build-deployment/04_call_and_record.py
+            base_parameters:
+              endpoint: "{{tasks.deploy_endpoint.values.endpoint}}"
+              version: "{{tasks.log_and_register.values.version}}"
+              model_run_id: "{{tasks.log_and_register.values.run_id}}"
+              ready_seconds: "{{tasks.deploy_endpoint.values.ready_seconds}}"

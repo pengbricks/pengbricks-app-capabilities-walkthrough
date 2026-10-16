@@ -31,61 +31,27 @@ resources:
           default: ${var.use_case_tag_key}
         - name: alert_email
           default: ${var.alert_email}
-      environments:
-        - environment_key: default
-          spec:
-            environment_version: "3"
-            dependencies:
-              - "databricks-sdk>=0.70.0"
       tasks:
         - task_key: setup_context_and_alert_routing
-          environment_key: default
-          spark_python_task:
-            python_file: ../src/alert_routing.py
-            parameters:
-              - --catalog
-              - "{{job.parameters.catalog}}"
-              - --schema
-              - "{{job.parameters.schema}}"
-              - --guide_tag_key
-              - "{{job.parameters.guide_tag_key}}"
-              - --use_case_tag_key
-              - "{{job.parameters.use_case_tag_key}}"
-              - --alert_email
-              - "{{job.parameters.alert_email}}"
+          notebook_task:
+            notebook_path: ../guides/monitoring/01_setup_context_and_alert_routing.py
         - task_key: ops_job_runs
           depends_on: [{task_key: setup_context_and_alert_routing}]
-          sql_task:
-            warehouse_id: ${var.warehouse_id}
-            file: {path: ../src/sql/ops_job_runs.sql}
-            parameters: &sql_params
-              catalog: "{{job.parameters.catalog}}"
-              schema: "{{job.parameters.schema}}"
-              lookback_days: "{{job.parameters.lookback_days}}"
-              audit_lookback_days: "{{job.parameters.audit_lookback_days}}"
-              guide_tag_key: "{{job.parameters.guide_tag_key}}"
-              use_case_tag_key: "{{job.parameters.use_case_tag_key}}"
+          notebook_task:
+            notebook_path: ../guides/monitoring/02_ops_job_runs.py
         - task_key: ops_failures
           depends_on: [{task_key: ops_job_runs}]
-          sql_task:
-            warehouse_id: ${var.warehouse_id}
-            file: {path: ../src/sql/ops_failures.sql}
-            parameters: *sql_params
+          notebook_task:
+            notebook_path: ../guides/monitoring/03_ops_failures.py
         - task_key: ops_usage_cost
           depends_on: [{task_key: setup_context_and_alert_routing}]
-          sql_task:
-            warehouse_id: ${var.warehouse_id}
-            file: {path: ../src/sql/ops_usage_cost.sql}
-            parameters: *sql_params
+          notebook_task:
+            notebook_path: ../guides/monitoring/04_ops_usage_cost.py
         - task_key: ops_compute_capacity
           depends_on: [{task_key: setup_context_and_alert_routing}]
-          sql_task:
-            warehouse_id: ${var.warehouse_id}
-            file: {path: ../src/sql/ops_compute_capacity.sql}
-            parameters: *sql_params
+          notebook_task:
+            notebook_path: ../guides/monitoring/05_ops_compute_capacity.py
         - task_key: ops_audit_events
           depends_on: [{task_key: setup_context_and_alert_routing}]
-          sql_task:
-            warehouse_id: ${var.warehouse_id}
-            file: {path: ../src/sql/ops_audit_events.sql}
-            parameters: *sql_params
+          notebook_task:
+            notebook_path: ../guides/monitoring/06_ops_audit_events.py

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import quote, unquote, urlparse
 
 
 def credential_profile(token: Any) -> dict[str, Any]:
@@ -20,7 +20,18 @@ def credential_profile(token: Any) -> dict[str, Any]:
 def activation_token(activation_url: str) -> str:
     """The one-time token is the query string of the activation link."""
     parsed = urlparse(activation_url)
-    return parsed.query or parsed.path.rsplit("/", 1)[-1]
+    return unquote(parsed.query or parsed.path.rsplit("/", 1)[-1])
+
+
+def activation_exchange_url(activation_url: str) -> str:
+    """The public token-exchange endpoint on the host that issued the activation link.
+
+    The link's host serves the exchange. On some clouds it is a regional open-sharing host, not the
+    workspace, so the workspace API reports the activation nonce as not found.
+    """
+    parsed = urlparse(activation_url)
+    token = quote(activation_token(activation_url), safe="")
+    return f"{parsed.scheme}://{parsed.netloc}/api/2.1/unity-catalog/public/data_sharing_activation/{token}"
 
 
 def file_urls(ndjson: str) -> list[str]:
@@ -30,7 +41,9 @@ def file_urls(ndjson: str) -> list[str]:
         if not line.strip():
             continue
         entry = json.loads(line)
-        url = (entry.get("file") or {}).get("url")
+        file = entry.get("file") or {}
+        # Parquet-format responses carry file.url; Delta-format responses carry file.deltaSingleAction.add.path.
+        url = file.get("url") or ((file.get("deltaSingleAction") or {}).get("add") or {}).get("path")
         if url:
             urls.append(url)
     return urls
@@ -51,3 +64,30 @@ def strip_query(url: str) -> str:
     """Drop the pre-signed query string so no signature lands in a table."""
     parsed = urlparse(url)
     return f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
+
+
+def is_missing_privilege(message: str) -> bool:
+    """True when an error says the identity lacks CREATE SHARE on the metastore."""
+    return "PERMISSION_DENIED" in message and "CREATE SHARE" in message
+
+
+AUDIT_EVENT_SQL = """
+SELECT event_time, service_name, action_name,
+       user_identity.email AS actor,
+       response.status_code AS status_code,
+       coalesce(request_params['name'], request_params['name_arg'], request_params['share'],
+                request_params['recipient_name'], request_params['name_arg']) AS object_name,
+       request_params['securable_type'] AS securable_type,
+       request_params['privilege'] AS privilege,
+       request_params['changes'] AS changes
+FROM system.access.audit
+WHERE event_time >= timestamp_seconds({started})
+  AND service_name IN ('unityCatalog', 'deltaSharing')
+  AND (to_json(request_params) LIKE '%{share}%' OR to_json(request_params) LIKE '%{recipient}%')
+ORDER BY event_time
+"""
+
+
+def audit_event_query(started_epoch: int, share: str, recipient: str) -> str:
+    """The audit query for one run, starting a minute before it began."""
+    return AUDIT_EVENT_SQL.format(started=started_epoch - 60, share=share, recipient=recipient)

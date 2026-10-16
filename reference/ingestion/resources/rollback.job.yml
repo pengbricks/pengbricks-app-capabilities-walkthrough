@@ -15,13 +15,5 @@ resources:
           default: ""
       tasks:
         - task_key: restore_table
-          spark_python_task:
-            python_file: ../src/rollback_table.py
-            parameters:
-              - --table={{job.parameters.table}}
-              - --version={{job.parameters.version}}
-          environment_key: base
-      environments:
-        - environment_key: base
-          spec:
-            environment_version: "4"
+          notebook_task:
+            notebook_path: ../guides/dataops/04_rollback_table.py

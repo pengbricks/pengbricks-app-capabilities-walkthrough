@@ -5,43 +5,30 @@ resources:
       tags:
         capability_guide_job: capability_guides_developer_experience_workflow
         capability_guide_use_case: ${var.use_case}
-      environments:
-        - environment_key: default
-          spec:
-            environment_version: "3"
-            dependencies:
-              - pytest
-              - pyyaml
-              - dbldatagen
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${var.schema}
+        - name: use_case
+          default: ${var.use_case}
+        - name: output_table
+          default: ${var.output_table}
+        - name: key_column
+          default: ${var.key_column}
+        - name: value_column
+          default: ${var.value_column}
       tasks:
         - task_key: unit_tests
-          environment_key: default
-          spark_python_task:
-            python_file: ../src/run_tests.py
-            parameters:
-              - ${workspace.file_path}
+          notebook_task:
+            notebook_path: ../guides/ide-developer-experience/01_unit_tests.py
         - task_key: transform
           depends_on:
             - task_key: unit_tests
-          environment_key: default
-          spark_python_task:
-            python_file: ../src/transform.py
-            parameters:
-              - ${workspace.file_path}
-              - ${var.catalog}
-              - ${var.schema}
-              - ${var.use_case}
-              - ${var.output_table}
+          notebook_task:
+            notebook_path: ../guides/ide-developer-experience/02_transform.py
         - task_key: sql_checks
           depends_on:
             - task_key: transform
-          sql_task:
-            warehouse_id: ${var.warehouse_id}
-            file:
-              path: ../src/validate_output.sql
-            parameters:
-              catalog: ${var.catalog}
-              schema: ${var.schema}
-              output_table: ${var.output_table}
-              key_column: ${var.key_column}
-              value_column: ${var.value_column}
+          notebook_task:
+            notebook_path: ../guides/ide-developer-experience/03_sql_checks.py

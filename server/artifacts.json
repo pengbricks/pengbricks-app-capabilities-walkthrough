@@ -4,8 +4,20 @@
   "guides": {
     "configuration-vs-code": {
       "bundle": "reference/ingestion",
-      "onePager": "reference/ingestion/guides/configuration-vs-code.md",
+      "onePager": "reference/ingestion/guides/configuration-vs-code/README.md",
       "code": [
+        {
+          "label": "Notebook: land sample files for every feed",
+          "path": "reference/ingestion/guides/configuration-vs-code/01_land_files.py"
+        },
+        {
+          "label": "Notebook: run the shared framework per feed",
+          "path": "reference/ingestion/guides/configuration-vs-code/02_ingest_feeds.py"
+        },
+        {
+          "label": "Notebook: compare feeds from one run",
+          "path": "reference/ingestion/guides/configuration-vs-code/03_compare_feeds.py"
+        },
         {
           "label": "Provider adapter (the only provider-specific code)",
           "path": "reference/ingestion/src/capability_framework/adapters/provider_a.py"
@@ -137,8 +149,12 @@
     },
     "reusability-templatization": {
       "bundle": "reference/ingestion",
-      "onePager": "reference/ingestion/guides/reusability-templatization.md",
+      "onePager": "reference/ingestion/guides/reusability-templatization/README.md",
       "code": [
+        {
+          "label": "Notebook (shared with Configuration-driven ingestion): ingest each feed",
+          "path": "reference/ingestion/guides/configuration-vs-code/02_ingest_feeds.py"
+        },
         {
           "label": "Second feed onboarded by configuration",
           "path": "reference/ingestion/feeds/general/provider_b.yml"
@@ -201,8 +217,8 @@
           "label": "Job parameters flow into task parameters and for_each inputs",
           "path": "reference/ingestion/resources/ingestion_framework.job.yml",
           "lines": [
-            12,
-            53
+            19,
+            44
           ],
           "notes": [
             "Job parameters default to bundle variables, so one deployment can run another use case with --params use_case=<spec>.",
@@ -232,19 +248,27 @@
     },
     "batch-real-time-ingestion": {
       "bundle": "reference/ingestion",
-      "onePager": "reference/ingestion/guides/batch-real-time-ingestion.md",
+      "onePager": "reference/ingestion/guides/batch-real-time-ingestion/README.md",
       "code": [
         {
           "label": "Streaming pipeline (Lakeflow Declarative Pipelines)",
-          "path": "reference/ingestion/src/pipeline"
+          "path": "reference/ingestion/guides/batch-real-time-ingestion/pipeline"
         },
         {
           "label": "Batch and real-time job",
           "path": "reference/ingestion/resources/batch_real_time.job.yml"
         },
         {
-          "label": "Latency and throughput metrics",
-          "path": "reference/ingestion/src/record_ingestion_metrics.py"
+          "label": "Notebook: land streaming event batches",
+          "path": "reference/ingestion/guides/batch-real-time-ingestion/01_land_stream_events.py"
+        },
+        {
+          "label": "Notebook: run the pipeline and inspect its output",
+          "path": "reference/ingestion/guides/batch-real-time-ingestion/02_run_pipeline.py"
+        },
+        {
+          "label": "Notebook: latency and throughput metrics",
+          "path": "reference/ingestion/guides/batch-real-time-ingestion/03_record_metrics.py"
         }
       ],
       "jobs": [
@@ -282,7 +306,7 @@
       "highlights": [
         {
           "label": "Auto Loader streaming table",
-          "path": "reference/ingestion/src/pipeline/events_bronze.sql",
+          "path": "reference/ingestion/guides/batch-real-time-ingestion/pipeline/events_bronze.sql",
           "notes": [
             "STREAM read_files is Auto Loader: each update reads only files it has not seen.",
             "_metadata.file_path and ingested_at give lineage and latency inputs per row."
@@ -290,7 +314,7 @@
         },
         {
           "label": "Expectations and per-row latency",
-          "path": "reference/ingestion/src/pipeline/events_silver.sql",
+          "path": "reference/ingestion/guides/batch-real-time-ingestion/pipeline/events_silver.sql",
           "notes": [
             "Expectations drop invalid rows and record pass and fail counts in the pipeline event log.",
             "latency_seconds measures event time to ingestion time for each row."
@@ -298,11 +322,14 @@
         },
         {
           "label": "Latency and throughput metrics",
-          "path": "reference/ingestion/src/record_ingestion_metrics.py",
-          "symbol": "main",
+          "path": "reference/ingestion/guides/batch-real-time-ingestion/03_record_metrics.py",
           "notes": [
             "Metrics are appended per job run, so latency and throughput can be compared across runs.",
             "The pipeline update ID and state link each metrics row to the pipeline update."
+          ],
+          "lines": [
+            42,
+            75
           ]
         }
       ],
@@ -322,19 +349,27 @@
     },
     "dataops": {
       "bundle": "reference/ingestion",
-      "onePager": "reference/ingestion/guides/dataops.md",
+      "onePager": "reference/ingestion/guides/dataops/README.md",
       "code": [
         {
           "label": "Retry, alerting, and health rules",
           "path": "reference/ingestion/resources/dataops.job.yml"
         },
         {
-          "label": "Run history and audit trail",
-          "path": "reference/ingestion/src/dataops_audit_trail.py"
+          "label": "Notebook: ingest with a simulated first-attempt failure",
+          "path": "reference/ingestion/guides/dataops/02_ingest_with_retry.py"
+        },
+        {
+          "label": "Notebook: run history and audit trail",
+          "path": "reference/ingestion/guides/dataops/03_record_audit_trail.py"
         },
         {
           "label": "Rollback job",
           "path": "reference/ingestion/resources/rollback.job.yml"
+        },
+        {
+          "label": "Notebook: restore a table to an earlier version",
+          "path": "reference/ingestion/guides/dataops/04_rollback_table.py"
         }
       ],
       "jobs": [
@@ -395,7 +430,7 @@
         },
         {
           "label": "Simulated transient failure exercised by the retry policy",
-          "path": "reference/ingestion/src/run_feed.py",
+          "path": "reference/ingestion/src/capability_framework/retry_demo.py",
           "symbol": "simulate_transient_failure",
           "notes": [
             "The first attempt writes a marker and fails; the retry finds the marker and continues.",
@@ -404,11 +439,14 @@
         },
         {
           "label": "Rollback to an earlier Delta version",
-          "path": "reference/ingestion/src/rollback_table.py",
-          "symbol": "main",
+          "path": "reference/ingestion/guides/dataops/04_rollback_table.py",
           "notes": [
             "With no version given, the restore target is the version before the latest write.",
             "RESTORE is itself recorded in Delta history, so the rollback is auditable."
+          ],
+          "lines": [
+            34,
+            39
           ]
         }
       ],
@@ -426,15 +464,11 @@
     },
     "monitoring": {
       "bundle": "reference/monitoring",
-      "onePager": "reference/monitoring/guides/monitoring.md",
+      "onePager": "reference/monitoring/guides/monitoring/README.md",
       "code": [
         {
-          "label": "Monitoring bundle",
-          "path": "reference/monitoring"
-        },
-        {
-          "label": "System table queries",
-          "path": "reference/monitoring/src/sql"
+          "label": "Notebooks, one per job task",
+          "path": "reference/monitoring/guides/monitoring"
         },
         {
           "label": "Dashboard definition",
@@ -486,36 +520,48 @@
       "highlights": [
         {
           "label": "Job runs joined to job tags from system tables",
-          "path": "reference/monitoring/src/sql/ops_job_runs.sql",
+          "path": "reference/monitoring/guides/monitoring/02_ops_job_runs.py",
           "notes": [
             "All runs in the workspace are included; tag columns let the dashboard filter to guide jobs.",
             "Joining on ops_context scopes account-wide system tables to this workspace."
+          ],
+          "lines": [
+            25,
+            64
           ]
         },
         {
           "label": "Usage and list-price cost by SKU",
-          "path": "reference/monitoring/src/sql/ops_usage_cost.sql",
+          "path": "reference/monitoring/guides/monitoring/04_ops_usage_cost.py",
           "notes": [
             "List prices are joined by SKU and the price's effective window.",
             "Usage is grouped by day, SKU, and product for cost trends."
+          ],
+          "lines": [
+            25,
+            51
           ]
         },
         {
           "label": "Alert routing from job and alert settings",
-          "path": "reference/monitoring/src/alert_routing.py",
+          "path": "reference/monitoring/guides/monitoring/01_setup_context_and_alert_routing.py",
           "notes": [
             "Notification destinations are not in system tables, so they come from the Jobs and Alerts APIs.",
             "The result is one table that shows which alert routes where."
+          ],
+          "lines": [
+            58,
+            97
           ]
         }
       ]
     },
     "ide-developer-experience": {
       "bundle": "reference/developer-experience",
-      "onePager": "reference/developer-experience/guides/ide-developer-experience.md",
+      "onePager": "reference/developer-experience/guides/ide-developer-experience/README.md",
       "code": [
         {
-          "label": "Python package",
+          "label": "Package under test",
           "path": "reference/developer-experience/src/dx_demo"
         },
         {
@@ -523,8 +569,8 @@
           "path": "reference/developer-experience/tests"
         },
         {
-          "label": "Notebook",
-          "path": "reference/developer-experience/src/explore.py"
+          "label": "Notebooks, one per job task",
+          "path": "reference/developer-experience/guides/ide-developer-experience"
         }
       ],
       "jobs": [
@@ -571,18 +617,26 @@
         },
         {
           "label": "Same tests run locally and on serverless",
-          "path": "reference/developer-experience/src/run_tests.py",
+          "path": "reference/developer-experience/guides/ide-developer-experience/01_unit_tests.py",
           "notes": [
             "The same pytest suite runs locally and in the serverless job task.",
             "A non-zero exit fails the task, so broken code cannot reach the transform step."
+          ],
+          "lines": [
+            33,
+            40
           ]
         },
         {
           "label": "Post-transform SQL checks",
-          "path": "reference/developer-experience/src/validate_output.sql",
+          "path": "reference/developer-experience/guides/ide-developer-experience/03_sql_checks.py",
           "notes": [
             "assert_true fails the SQL task when a check does not hold.",
             "The checks run on the warehouse after the Python transform writes the table."
+          ],
+          "lines": [
+            23,
+            36
           ]
         }
       ],
@@ -762,11 +816,19 @@
     },
     "documentation-generation": {
       "bundle": "reference/documentation",
-      "onePager": "reference/documentation/guides/documentation-generation.md",
+      "onePager": "reference/documentation/guides/documentation-generation/README.md",
       "code": [
         {
+          "label": "Start here",
+          "path": "reference/documentation/guides/documentation-generation/00_start_here.py"
+        },
+        {
+          "label": "Build sample tables",
+          "path": "reference/documentation/guides/documentation-generation/01_build_sample_tables.py"
+        },
+        {
           "label": "Documentation generator",
-          "path": "reference/documentation/src/generate_docs.py"
+          "path": "reference/documentation/guides/documentation-generation/02_generate_docs.py"
         },
         {
           "label": "Markdown renderer",
@@ -812,7 +874,7 @@
       "highlights": [
         {
           "label": "Profile quality per column",
-          "path": "reference/documentation/src/generate_docs.py",
+          "path": "reference/documentation/guides/documentation-generation/02_generate_docs.py",
           "symbol": "profile",
           "notes": [
             "Row count, null rate per column, and key uniqueness are computed in one query.",
@@ -821,7 +883,7 @@
         },
         {
           "label": "Draft descriptions with ai_query",
-          "path": "reference/documentation/src/generate_docs.py",
+          "path": "reference/documentation/guides/documentation-generation/02_generate_docs.py",
           "symbol": "draft_descriptions",
           "notes": [
             "ai_query drafts table and column descriptions from schema, profile, and lineage.",
@@ -841,19 +903,31 @@
     },
     "legacy-conversion": {
       "bundle": "reference/legacy-conversion",
-      "onePager": "reference/legacy-conversion/guides/legacy-conversion.md",
+      "onePager": "reference/legacy-conversion/guides/legacy-conversion/README.md",
       "code": [
+        {
+          "label": "Start here",
+          "path": "reference/legacy-conversion/guides/legacy-conversion/00_start_here.py"
+        },
         {
           "label": "Legacy T-SQL workload",
           "path": "reference/legacy-conversion/legacy/nightly_sales_batch.sql"
         },
         {
-          "label": "Assess and convert",
-          "path": "reference/legacy-conversion/src/convert.py"
+          "label": "Assess",
+          "path": "reference/legacy-conversion/guides/legacy-conversion/01_assess.py"
+        },
+        {
+          "label": "Convert",
+          "path": "reference/legacy-conversion/guides/legacy-conversion/02_convert.py"
         },
         {
           "label": "Reconcile",
-          "path": "reference/legacy-conversion/src/reconcile.py"
+          "path": "reference/legacy-conversion/guides/legacy-conversion/03_reconcile.py"
+        },
+        {
+          "label": "Record",
+          "path": "reference/legacy-conversion/guides/legacy-conversion/04_record.py"
         }
       ],
       "jobs": [
@@ -928,15 +1002,19 @@
     },
     "versioning": {
       "bundle": "reference/versioning",
-      "onePager": "reference/versioning/guides/versioning.md",
+      "onePager": "reference/versioning/guides/versioning/README.md",
       "code": [
         {
-          "label": "Versioned data contracts",
+          "label": "Contracts, one file per version",
           "path": "reference/versioning/contracts/customers"
         },
         {
-          "label": "Compatibility rules",
+          "label": "Compatibility classifier",
           "path": "reference/versioning/src/compatibility.py"
+        },
+        {
+          "label": "Notebooks, one per job task",
+          "path": "reference/versioning/guides/versioning"
         },
         {
           "label": "Release job",
@@ -987,20 +1065,26 @@
         },
         {
           "label": "Publish v2 and keep v1 consumers working",
-          "path": "reference/versioning/src/apply_v2.py",
-          "symbol": "main",
+          "path": "reference/versioning/guides/versioning/04_apply_v2.py",
           "notes": [
             "The old table is renamed and the old name becomes a compatibility view over v2.",
             "v1 is tagged deprecated with a sunset date and a comment pointing to v2."
+          ],
+          "lines": [
+            58,
+            97
           ]
         },
         {
           "label": "Release gate with a mislabeled-release dry run",
-          "path": "reference/versioning/src/compatibility_gate.py",
-          "symbol": "main",
+          "path": "reference/versioning/guides/versioning/02_compatibility_gate.py",
           "notes": [
             "The gate checks every consecutive pair of contract versions.",
             "A dry run relabels the breaking release as a minor version and shows the gate rejecting it."
+          ],
+          "lines": [
+            38,
+            68
           ]
         }
       ],
@@ -1018,15 +1102,15 @@
     },
     "model-deployment-cicd": {
       "bundle": "reference/model-deployment",
-      "onePager": "reference/model-deployment/guides/model-deployment-cicd.md",
+      "onePager": "reference/model-deployment/guides/model-deployment-cicd/README.md",
       "code": [
         {
           "label": "Release job",
           "path": "reference/model-deployment/resources/model_release.job.yml"
         },
         {
-          "label": "Approval gate",
-          "path": "reference/model-deployment/src/approval_gate.py"
+          "label": "Release notebooks, one per job task",
+          "path": "reference/model-deployment/guides/model-deployment-cicd"
         },
         {
           "label": "GitHub Actions workflow",
@@ -1077,21 +1161,24 @@
         },
         {
           "label": "Approval gate",
-          "path": "reference/model-deployment/src/approval_gate.py",
-          "symbol": "main",
+          "path": "reference/model-deployment/guides/model-deployment-cicd/03_approval_gate.py",
           "notes": [
             "Promotion needs an approver: the approved_by job parameter (CI passes the GitHub reviewer) or an approvals table row.",
             "Without one, the run succeeds but stops before promotion, so nothing unapproved is deployed."
+          ],
+          "lines": [
+            70,
+            81
           ]
         },
         {
           "label": "Deploy the champion and wait for READY",
-          "path": "reference/model-deployment/src/deploy_endpoint.py",
-          "symbol": "wait_ready",
+          "path": "reference/model-deployment/guides/model-deployment-cicd/04_deploy_endpoint.py",
           "notes": [
             "The job polls until the endpoint is ready and the config update finishes.",
             "A scoring request then measures latency for the release record."
-          ]
+          ],
+          "symbol": "wait_ready"
         }
       ],
       "walkthroughs": [
@@ -1108,19 +1195,19 @@
     },
     "file-format-ingestion": {
       "bundle": "reference/source-ingestion",
-      "onePager": "reference/source-ingestion/guides/file-format-ingestion.md",
+      "onePager": "reference/source-ingestion/guides/file-format-ingestion/README.md",
       "code": [
         {
-          "label": "File generator",
-          "path": "reference/source-ingestion/src/generate_format_files.py"
+          "label": "Notebooks, one per job task",
+          "path": "reference/source-ingestion/guides/file-format-ingestion"
         },
         {
           "label": "Format pipeline",
-          "path": "reference/source-ingestion/src/pipelines/file_formats"
+          "path": "reference/source-ingestion/guides/file-format-ingestion/pipeline"
         },
         {
-          "label": "Checks",
-          "path": "reference/source-ingestion/src/verify_format_tables.py"
+          "label": "File writers",
+          "path": "reference/source-ingestion/src/source_ingestion/file_writers.py"
         }
       ],
       "jobs": [
@@ -1158,7 +1245,7 @@
       "highlights": [
         {
           "label": "Read one named Excel sheet",
-          "path": "reference/source-ingestion/src/pipelines/file_formats/fmt_orders_excel.sql",
+          "path": "reference/source-ingestion/guides/file-format-ingestion/pipeline/fmt_orders_excel.sql",
           "notes": [
             "dataAddress selects the sheet; the cell form Orders!A1 fails.",
             "Schema hints keep dates and numbers typed; Excel needs schemaEvolutionMode none."
@@ -1166,34 +1253,45 @@
         },
         {
           "label": "Build files locally, then copy to the volume",
-          "path": "reference/source-ingestion/src/generate_format_files.py",
+          "path": "reference/source-ingestion/guides/file-format-ingestion/01_generate_files.py",
           "notes": [
             "An .xlsx is a zip and can't be written straight to a volume path.",
             "Every format is generated from the use-case spec."
           ],
-          "symbol": "main"
+          "lines": [
+            24,
+            68
+          ]
         },
         {
           "label": "24 format checks",
-          "path": "reference/source-ingestion/src/verify_format_tables.py",
+          "path": "reference/source-ingestion/guides/file-format-ingestion/03_verify_tables.py",
           "notes": [
             "Counts, rescued data, and types per format.",
             "The job fails on any mismatch."
+          ],
+          "lines": [
+            24,
+            131
           ]
         }
       ]
     },
     "rest-api-ingestion": {
       "bundle": "reference/source-ingestion",
-      "onePager": "reference/source-ingestion/guides/rest-api-ingestion.md",
+      "onePager": "reference/source-ingestion/guides/rest-api-ingestion/README.md",
       "code": [
+        {
+          "label": "Notebooks, one per job task",
+          "path": "reference/source-ingestion/guides/rest-api-ingestion"
+        },
         {
           "label": "API client",
           "path": "reference/source-ingestion/src/source_ingestion/api_client.py"
         },
         {
-          "label": "Pull job",
-          "path": "reference/source-ingestion/src/pull_rest_api.py"
+          "label": "Record flattening",
+          "path": "reference/source-ingestion/src/source_ingestion/api_records.py"
         }
       ],
       "jobs": [
@@ -1249,21 +1347,29 @@
         },
         {
           "label": "Land records and the request log",
-          "path": "reference/source-ingestion/src/pull_rest_api.py",
+          "path": "reference/source-ingestion/guides/rest-api-ingestion/01_pull_rest_api.py",
           "notes": [
             "Writes api_users, api_request_log, and api_pull_runs.",
             "Fails if record count, distinct ids, and the API total disagree."
+          ],
+          "lines": [
+            61,
+            112
           ]
         }
       ]
     },
     "sftp-ingestion": {
       "bundle": "reference/source-ingestion",
-      "onePager": "reference/source-ingestion/guides/sftp-ingestion.md",
+      "onePager": "reference/source-ingestion/guides/sftp-ingestion/README.md",
       "code": [
         {
-          "label": "Fetch job",
-          "path": "reference/source-ingestion/src/fetch_sftp_files.py"
+          "label": "Notebooks, one per job task",
+          "path": "reference/source-ingestion/guides/sftp-ingestion"
+        },
+        {
+          "label": "Fetch logic",
+          "path": "reference/source-ingestion/src/source_ingestion/sftp_fetch.py"
         },
         {
           "label": "Transfer planning",
@@ -1309,11 +1415,12 @@
       "highlights": [
         {
           "label": "Fetch only new files",
-          "path": "reference/source-ingestion/src/fetch_sftp_files.py",
+          "path": "reference/source-ingestion/src/source_ingestion/sftp_fetch.py",
           "notes": [
             "Credentials come from a secret scope, never the code.",
             "Files already in sftp_transfer_log are skipped."
-          ]
+          ],
+          "symbol": "fetch_new_files"
         },
         {
           "label": "Decide what is new",
@@ -1326,9 +1433,9 @@
         },
         {
           "label": "Prove the second fetch copies nothing",
-          "path": "reference/source-ingestion/resources/sftp.job.yml",
+          "path": "reference/source-ingestion/guides/sftp-ingestion/04_refetch_finds_nothing.py",
           "notes": [
-            "refetch_finds_nothing reruns the fetch after ingestion.",
+            "04_refetch_finds_nothing reruns the fetch after ingestion.",
             "It fails if anything is copied twice."
           ]
         }
@@ -1336,15 +1443,15 @@
     },
     "multi-source-pipeline": {
       "bundle": "reference/source-ingestion",
-      "onePager": "reference/source-ingestion/guides/multi-source-pipeline.md",
+      "onePager": "reference/source-ingestion/guides/multi-source-pipeline/README.md",
       "code": [
         {
-          "label": "Conformed table",
-          "path": "reference/source-ingestion/src/pipelines/multi_source/customers_conformed.sql"
+          "label": "Notebooks, one per job task",
+          "path": "reference/source-ingestion/guides/multi-source-pipeline"
         },
         {
-          "label": "Inputs",
-          "path": "reference/source-ingestion/src/prepare_multi_source_inputs.py"
+          "label": "Conformed table",
+          "path": "reference/source-ingestion/guides/multi-source-pipeline/pipeline/customers_conformed.sql"
         }
       ],
       "jobs": [
@@ -1382,7 +1489,7 @@
       "highlights": [
         {
           "label": "Three sources, one conformed table",
-          "path": "reference/source-ingestion/src/pipelines/multi_source/customers_conformed.sql",
+          "path": "reference/source-ingestion/guides/multi-source-pipeline/pipeline/customers_conformed.sql",
           "notes": [
             "Each source maps to the same seven columns and sets source_system.",
             "Expectations fail the update if source_system or source_id is null."
@@ -1390,15 +1497,19 @@
         },
         {
           "label": "Prepare database, file, and API inputs",
-          "path": "reference/source-ingestion/src/prepare_multi_source_inputs.py",
+          "path": "reference/source-ingestion/guides/multi-source-pipeline/01_prepare_inputs.py",
           "notes": [
             "Builds a Delta extract, a landed CSV, and API pages.",
             "Reuses the REST client from the API guide."
+          ],
+          "lines": [
+            24,
+            88
           ]
         },
         {
           "label": "Check counts per source",
-          "path": "reference/source-ingestion/src/verify_multi_source.py",
+          "path": "reference/source-ingestion/guides/multi-source-pipeline/03_verify_conformed.py",
           "notes": [
             "120 database, 80 file, and 60 API rows in the reference run.",
             "(source_system, source_id) must be unique."
@@ -1408,19 +1519,19 @@
     },
     "relational-db-ingestion": {
       "bundle": "reference/source-ingestion",
-      "onePager": "reference/source-ingestion/guides/relational-db-ingestion.md",
+      "onePager": "reference/source-ingestion/guides/relational-db-ingestion/README.md",
       "code": [
+        {
+          "label": "Notebooks, one per job task",
+          "path": "reference/source-ingestion/guides/relational-db-ingestion"
+        },
         {
           "label": "Source SQL",
           "path": "reference/source-ingestion/src/source_ingestion/relational_sql.py"
         },
         {
-          "label": "Extract",
-          "path": "reference/source-ingestion/src/extract_relational.py"
-        },
-        {
-          "label": "Compare",
-          "path": "reference/source-ingestion/src/compare_relational.py"
+          "label": "Checksum",
+          "path": "reference/source-ingestion/src/source_ingestion/checksum.py"
         }
       ],
       "jobs": [
@@ -1474,26 +1585,29 @@
         },
         {
           "label": "Extract through the connection",
-          "path": "reference/source-ingestion/src/extract_relational.py",
+          "path": "reference/source-ingestion/guides/relational-db-ingestion/03_extract.py",
           "notes": [
             "remote_query runs full tables and custom SQL in Postgres.",
             "A foreign catalog was not allowed here, so remote_query is used."
           ],
-          "symbol": "remote"
+          "lines": [
+            20,
+            44
+          ]
         }
       ]
     },
     "transformation-patterns": {
       "bundle": "reference/data-engineering",
-      "onePager": "reference/data-engineering/guides/transformation-patterns.md",
+      "onePager": "reference/data-engineering/guides/transformation-patterns/README.md",
       "code": [
         {
-          "label": "Pattern SQL",
-          "path": "reference/data-engineering/src/transformations"
+          "label": "Pipeline source: ten SQL files",
+          "path": "reference/data-engineering/guides/transformation-patterns/pipeline"
         },
         {
-          "label": "Checks",
-          "path": "reference/data-engineering/src/check_transformations.py"
+          "label": "Notebooks, one per job task",
+          "path": "reference/data-engineering/guides/transformation-patterns"
         }
       ],
       "jobs": [
@@ -1531,7 +1645,7 @@
       "highlights": [
         {
           "label": "Cast with a reject path",
-          "path": "reference/data-engineering/src/transformations/06_cast_with_reject_path.sql",
+          "path": "reference/data-engineering/guides/transformation-patterns/pipeline/06_cast_with_reject_path.sql",
           "notes": [
             "try_cast splits good rows from bad ones.",
             "Rejected rows carry a reason string."
@@ -1539,7 +1653,7 @@
         },
         {
           "label": "Iterate over each group's records",
-          "path": "reference/data-engineering/src/transformations/10_per_group_iteration.sql",
+          "path": "reference/data-engineering/guides/transformation-patterns/pipeline/10_per_group_iteration.sql",
           "notes": [
             "Orders are collected into an array per customer.",
             "transform, aggregate, and filter run on the array."
@@ -1547,25 +1661,33 @@
         },
         {
           "label": "Independent expected counts",
-          "path": "reference/data-engineering/src/check_transformations.py",
+          "path": "reference/data-engineering/guides/transformation-patterns/03_check_row_counts.py",
           "notes": [
             "Each view is paired with its own expected-count query.",
             "11,476 valid plus 524 rejected equals 12,000 orders."
+          ],
+          "lines": [
+            30,
+            69
           ]
         }
       ]
     },
     "scd-change-capture": {
       "bundle": "reference/data-engineering",
-      "onePager": "reference/data-engineering/guides/scd-change-capture.md",
+      "onePager": "reference/data-engineering/guides/scd-change-capture/README.md",
       "code": [
         {
-          "label": "Auto CDC flows",
-          "path": "reference/data-engineering/src/scd/accounts_scd.sql"
+          "label": "Pipeline source: AUTO CDC flows",
+          "path": "reference/data-engineering/guides/scd-change-capture/pipeline/accounts_scd.sql"
         },
         {
-          "label": "Counts",
-          "path": "reference/data-engineering/src/record_scd_counts.py"
+          "label": "Notebooks, one per job task",
+          "path": "reference/data-engineering/guides/scd-change-capture"
+        },
+        {
+          "label": "Count and check helpers",
+          "path": "reference/data-engineering/src/de_common/scd.py"
         }
       ],
       "jobs": [
@@ -1603,7 +1725,7 @@
       "highlights": [
         {
           "label": "SCD type 1 and type 2 from one feed",
-          "path": "reference/data-engineering/src/scd/accounts_scd.sql",
+          "path": "reference/data-engineering/guides/scd-change-capture/pipeline/accounts_scd.sql",
           "notes": [
             "Two AUTO CDC INTO flows with APPLY AS DELETE WHEN.",
             "Only STORED AS differs between them."
@@ -1620,25 +1742,30 @@
         },
         {
           "label": "Count current, history, and deleted keys",
-          "path": "reference/data-engineering/src/record_scd_counts.py",
+          "path": "reference/data-engineering/src/de_common/scd.py",
           "notes": [
             "SCD type 2 kept 1,210 history rows; type 1 kept 1,020.",
             "Fails if counts differ from the spec."
-          ]
+          ],
+          "symbol": "measure"
         }
       ]
     },
     "target-loading-outputs": {
       "bundle": "reference/data-engineering",
-      "onePager": "reference/data-engineering/guides/target-loading-outputs.md",
+      "onePager": "reference/data-engineering/guides/target-loading-outputs/README.md",
       "code": [
         {
+          "label": "Prepare the target",
+          "path": "reference/data-engineering/guides/target-loading-outputs/01_prepare_target.py"
+        },
+        {
           "label": "MERGE",
-          "path": "reference/data-engineering/src/merge_target.py"
+          "path": "reference/data-engineering/guides/target-loading-outputs/02_merge_target.py"
         },
         {
           "label": "File outputs",
-          "path": "reference/data-engineering/src/write_outputs.py"
+          "path": "reference/data-engineering/guides/target-loading-outputs/03_write_outputs.py"
         }
       ],
       "jobs": [
@@ -1676,16 +1803,19 @@
       "highlights": [
         {
           "label": "One MERGE for insert, update, and delete",
-          "path": "reference/data-engineering/src/merge_target.py",
+          "path": "reference/data-engineering/guides/target-loading-outputs/02_merge_target.py",
           "notes": [
             "whenMatchedDelete, whenMatchedUpdate, and whenNotMatchedInsert in one statement.",
             "Operation metrics come from Delta history."
           ],
-          "symbol": "main"
+          "lines": [
+            43,
+            64
+          ]
         },
         {
           "label": "Formatted Excel output",
-          "path": "reference/data-engineering/src/write_outputs.py",
+          "path": "reference/data-engineering/guides/target-loading-outputs/03_write_outputs.py",
           "notes": [
             "Bold header, fitted widths, frozen header, number format.",
             "Built in a temp folder and copied to the volume."
@@ -1705,8 +1835,12 @@
     },
     "orchestration-patterns": {
       "bundle": "reference/orchestration",
-      "onePager": "reference/orchestration/guides/orchestration-patterns.md",
+      "onePager": "reference/orchestration/guides/orchestration-patterns/README.md",
       "code": [
+        {
+          "label": "Notebooks, one per job task",
+          "path": "reference/orchestration/guides/orchestration-patterns"
+        },
         {
           "label": "Job definition",
           "path": "reference/orchestration/resources/orchestration_patterns.job.yml"
@@ -1769,12 +1903,15 @@
         },
         {
           "label": "Call an external process",
-          "path": "reference/orchestration/src/orch_external_call.py",
+          "path": "reference/orchestration/guides/orchestration-patterns/05_external_call.py",
           "notes": [
             "A shell command and an HTTP request from one task.",
             "Attempt 0 fails on purpose so the retry shows."
           ],
-          "symbol": "main"
+          "lines": [
+            29,
+            33
+          ]
         },
         {
           "label": "Pause every scheduled guide job",
@@ -1789,19 +1926,11 @@
     },
     "data-observability": {
       "bundle": "reference/orchestration",
-      "onePager": "reference/orchestration/guides/data-observability.md",
+      "onePager": "reference/orchestration/guides/data-observability/README.md",
       "code": [
         {
-          "label": "Lineage",
-          "path": "reference/orchestration/src/obs_lineage.py"
-        },
-        {
-          "label": "Schema drift",
-          "path": "reference/orchestration/src/obs_schema_drift.py"
-        },
-        {
-          "label": "Data drift",
-          "path": "reference/orchestration/src/obs_data_drift.py"
+          "label": "Notebooks, one per job task",
+          "path": "reference/orchestration/guides/data-observability"
         }
       ],
       "jobs": [
@@ -1839,44 +1968,49 @@
       "highlights": [
         {
           "label": "Wait for lineage, then walk it",
-          "path": "reference/orchestration/src/obs_lineage.py",
+          "path": "reference/orchestration/guides/data-observability/02_read_lineage.py",
           "notes": [
             "Lineage appeared about 13 minutes after the writes, so the task polls.",
             "Table and column lineage for source, silver, and gold."
           ],
-          "symbol": "main"
+          "lines": [
+            29,
+            63
+          ]
         },
         {
           "label": "Detect schema drift",
-          "path": "reference/orchestration/src/obs_schema_drift.py",
+          "path": "reference/orchestration/guides/data-observability/03_detect_schema_drift.py",
           "notes": [
             "information_schema snapshots around each ALTER.",
             "Each change is matched to its Delta history version."
           ],
-          "symbol": "snapshot"
+          "lines": [
+            30,
+            42
+          ]
         },
         {
           "label": "Detect data drift",
-          "path": "reference/orchestration/src/obs_data_drift.py",
+          "path": "reference/orchestration/guides/data-observability/04_detect_data_drift.py",
           "notes": [
             "A data profiling monitor refreshes before and after the shifted batch.",
             "PSI and mean shift are also computed in the job."
           ],
-          "symbol": "run_monitor_baseline"
+          "lines": [
+            66,
+            90
+          ]
         }
       ]
     },
     "sql-notebook-analysis": {
       "bundle": "reference/analyst",
-      "onePager": "reference/analyst/guides/sql-notebook-analysis.md",
+      "onePager": "reference/analyst/guides/sql-notebook-analysis/README.md",
       "code": [
         {
-          "label": "Large aggregation",
-          "path": "reference/analyst/src/large_aggregation.py"
-        },
-        {
-          "label": "Notebooks",
-          "path": "reference/analyst/src/notebooks"
+          "label": "Notebooks, one per job task",
+          "path": "reference/analyst/guides/sql-notebook-analysis"
         }
       ],
       "jobs": [
@@ -1914,24 +2048,31 @@
       "highlights": [
         {
           "label": "Time a 6M-row aggregation",
-          "path": "reference/analyst/src/large_aggregation.py",
+          "path": "reference/analyst/guides/sql-notebook-analysis/04_large_aggregation.py",
           "notes": [
             "6 million rows generated with dbldatagen, then aggregated.",
             "Each step's time goes to large_aggregation_timing."
           ],
-          "symbol": "main"
+          "lines": [
+            43,
+            82
+          ]
         },
         {
           "label": "Python and pandas round trip",
-          "path": "reference/analyst/src/notebooks/python_pandas_roundtrip.py",
+          "path": "reference/analyst/guides/sql-notebook-analysis/03_python_pandas_roundtrip.py",
           "notes": [
             "toPandas, pivot and rolling means, then back to a table.",
             "The re-read row count is asserted."
+          ],
+          "lines": [
+            25,
+            64
           ]
         },
         {
           "label": "R with sparklyr",
-          "path": "reference/analyst/src/notebooks/r_sparklyr_summary.r",
+          "path": "reference/analyst/guides/sql-notebook-analysis/05_r_sparklyr_summary.r",
           "notes": [
             "Aggregates in Spark, then fits lm and quantile in R.",
             "Shipped but not run: serverless has no R runtime."
@@ -1941,14 +2082,14 @@
     },
     "bring-your-own-data": {
       "bundle": "reference/analyst",
-      "onePager": "reference/analyst/guides/bring-your-own-data.md",
+      "onePager": "reference/analyst/guides/bring-your-own-data/README.md",
       "code": [
         {
-          "label": "Upload and join",
-          "path": "reference/analyst/src/byod.py"
+          "label": "Notebooks, one per job task",
+          "path": "reference/analyst/guides/bring-your-own-data"
         },
         {
-          "label": "Helpers",
+          "label": "Pure helpers",
           "path": "reference/analyst/src/analyst_common/helpers.py"
         }
       ],
@@ -1987,10 +2128,14 @@
       "highlights": [
         {
           "label": "Upload to a per-user path, then join",
-          "path": "reference/analyst/src/byod.py",
+          "path": "reference/analyst/guides/bring-your-own-data/03_join_to_governed.py",
           "notes": [
             "The CSV lands under uploads/<user>/.",
             "A full outer join labels matched, upload_only, and governed_only keys."
+          ],
+          "lines": [
+            49,
+            81
           ]
         },
         {
@@ -2015,11 +2160,11 @@
     },
     "local-tool-connectivity": {
       "bundle": "reference/analyst",
-      "onePager": "reference/analyst/guides/local-tool-connectivity.md",
+      "onePager": "reference/analyst/guides/local-tool-connectivity/README.md",
       "code": [
         {
-          "label": "Connector check",
-          "path": "reference/analyst/src/connector_check.py"
+          "label": "Connector check notebook",
+          "path": "reference/analyst/guides/local-tool-connectivity/02_sql_connector_check.py"
         },
         {
           "label": "Client examples",
@@ -2061,10 +2206,14 @@
       "highlights": [
         {
           "label": "Connect with the SQL connector",
-          "path": "reference/analyst/src/connector_check.py",
+          "path": "reference/analyst/guides/local-tool-connectivity/02_sql_connector_check.py",
           "notes": [
             "Uses OAuth M2M when a client id is set, the job identity otherwise.",
             "Returned 4 regions and 5,000 customers in 1.56 s."
+          ],
+          "lines": [
+            33,
+            71
           ]
         },
         {
@@ -2087,11 +2236,11 @@
     },
     "no-code-data-prep": {
       "bundle": "reference/analyst",
-      "onePager": "reference/analyst/guides/no-code-data-prep.md",
+      "onePager": "reference/analyst/guides/no-code-data-prep/README.md",
       "code": [
         {
-          "label": "Equivalent SQL",
-          "path": "reference/analyst/sql/prep_flow_output.sql"
+          "label": "SQL equivalent of the flow",
+          "path": "reference/analyst/guides/no-code-data-prep/02_build_flow_output.py"
         }
       ],
       "jobs": [
@@ -2129,25 +2278,29 @@
       "highlights": [
         {
           "label": "The flow as one SQL statement",
-          "path": "reference/analyst/sql/prep_flow_output.sql",
+          "path": "reference/analyst/guides/no-code-data-prep/02_build_flow_output.py",
           "notes": [
             "Filter, join, rename, and derive, matching the Designer steps.",
             "prep_flow_summary holds the totals to compare with the Designer output."
+          ],
+          "lines": [
+            25,
+            54
           ]
         }
       ]
     },
     "self-service-extracts": {
       "bundle": "reference/analyst",
-      "onePager": "reference/analyst/guides/self-service-extracts.md",
+      "onePager": "reference/analyst/guides/self-service-extracts/README.md",
       "code": [
         {
-          "label": "Extracts",
-          "path": "reference/analyst/src/build_extracts.py"
+          "label": "Build the extracts",
+          "path": "reference/analyst/guides/self-service-extracts/02_build_extracts.py"
         },
         {
-          "label": "Dashboard schedule",
-          "path": "reference/analyst/src/schedule_dashboard.py"
+          "label": "Schedule the dashboard",
+          "path": "reference/analyst/guides/self-service-extracts/03_schedule_dashboard.py"
         }
       ],
       "jobs": [
@@ -2191,39 +2344,45 @@
       "highlights": [
         {
           "label": "Formatted workbook and delimited file",
-          "path": "reference/analyst/src/build_extracts.py",
+          "path": "reference/analyst/guides/self-service-extracts/02_build_extracts.py",
           "notes": [
             "Styled header, number formats, autofilter, and a summary sheet.",
             "Both files are read back and row counts checked."
           ],
-          "symbol": "main"
+          "lines": [
+            86,
+            125
+          ]
         },
         {
           "label": "Schedule and subscribe",
-          "path": "reference/analyst/src/schedule_dashboard.py",
+          "path": "reference/analyst/guides/self-service-extracts/03_schedule_dashboard.py",
           "notes": [
             "The bundle can't declare a subscription, so the task creates it.",
             "Reruns reuse the existing schedule."
           ],
-          "symbol": "main"
+          "lines": [
+            42,
+            81
+          ]
         }
       ]
     },
     "in-platform-visualization": {
       "bundle": "reference/analyst",
-      "onePager": "reference/analyst/guides/in-platform-visualization.md",
+      "onePager": "reference/analyst/guides/in-platform-visualization/README.md",
       "code": [
         {
           "label": "Governed views",
-          "path": "reference/analyst/sql/create_views.sql"
+          "path": "reference/analyst/guides/in-platform-visualization/02_create_views.py"
         },
         {
-          "label": "Charts",
-          "path": "reference/analyst/src/notebooks/charts.py"
+          "label": "Notebook charts",
+          "path": "reference/analyst/guides/in-platform-visualization/03_notebook_charts.py"
         },
         {
           "label": "Totals check",
-          "path": "reference/analyst/src/confirm_totals.py"
+          "path": "reference/analyst/guides/in-platform-visualization/04_confirm_totals.py"
         }
       ],
       "jobs": [
@@ -2267,37 +2426,49 @@
       "highlights": [
         {
           "label": "Two governed views",
-          "path": "reference/analyst/sql/create_views.sql",
+          "path": "reference/analyst/guides/in-platform-visualization/02_create_views.py",
           "notes": [
             "Notebook charts and the dashboard read the same views.",
             "Views are commented for discovery."
+          ],
+          "lines": [
+            25,
+            54
           ]
         },
         {
           "label": "Notebook charts",
-          "path": "reference/analyst/src/notebooks/charts.py",
+          "path": "reference/analyst/guides/in-platform-visualization/03_notebook_charts.py",
           "notes": [
             "matplotlib images saved to a volume.",
             "Chart totals written to chart_totals."
+          ],
+          "lines": [
+            53,
+            92
           ]
         },
         {
           "label": "Dashboard and charts agree",
-          "path": "reference/analyst/src/confirm_totals.py",
+          "path": "reference/analyst/guides/in-platform-visualization/04_confirm_totals.py",
           "notes": [
             "Runs the dashboard's own dataset queries on the warehouse.",
             "Fails if any total differs."
+          ],
+          "lines": [
+            60,
+            76
           ]
         }
       ]
     },
     "access-management": {
       "bundle": "reference/governance",
-      "onePager": "reference/governance/guides/access-management.md",
+      "onePager": "reference/governance/guides/access-management/README.md",
       "code": [
         {
-          "label": "Access tasks",
-          "path": "reference/governance/src/access_tasks.py"
+          "label": "Notebooks, one per job task",
+          "path": "reference/governance/guides/access-management"
         },
         {
           "label": "SQL generation",
@@ -2348,7 +2519,7 @@
         },
         {
           "label": "Verify dev and prod differ",
-          "path": "reference/governance/src/access_tasks.py",
+          "path": "reference/governance/guides/access-management/04_verify_grants.py",
           "notes": [
             "Reads information_schema with inherited_from.",
             "Separates direct grants from cascaded catalog privileges."
@@ -2357,7 +2528,7 @@
         },
         {
           "label": "Fall back to a grantable group",
-          "path": "reference/governance/src/access_tasks.py",
+          "path": "reference/governance/guides/access-management/01_ensure_group.py",
           "notes": [
             "Workspace-local groups aren't Unity Catalog principals.",
             "The job records the fallback to account users."
@@ -2368,15 +2539,15 @@
     },
     "row-column-security": {
       "bundle": "reference/governance",
-      "onePager": "reference/governance/guides/row-column-security.md",
+      "onePager": "reference/governance/guides/row-column-security/README.md",
       "code": [
         {
           "label": "Policy SQL",
           "path": "reference/governance/src/governance_lib/sqlgen.py"
         },
         {
-          "label": "Policy tasks",
-          "path": "reference/governance/src/row_column_tasks.py"
+          "label": "Notebooks, one per job task",
+          "path": "reference/governance/guides/row-column-security"
         },
         {
           "label": "Role-switch tests",
@@ -2427,7 +2598,7 @@
         },
         {
           "label": "Create and attach the policies",
-          "path": "reference/governance/src/row_column_tasks.py",
+          "path": "reference/governance/guides/row-column-security/02_create_policies.py",
           "notes": [
             "A region_access mapping table drives the dynamic filter.",
             "Masks and filters attach with ALTER TABLE."
@@ -2436,7 +2607,7 @@
         },
         {
           "label": "Test as each identity",
-          "path": "reference/governance/src/row_column_tasks.py",
+          "path": "reference/governance/guides/row-column-security/03_test_policies.py",
           "notes": [
             "The simulation must reproduce the real result for the job identity.",
             "Other identities are simulated; role switching is the real test."
@@ -2447,11 +2618,11 @@
     },
     "compute-capacity-management": {
       "bundle": "reference/governance",
-      "onePager": "reference/governance/guides/compute-capacity-management.md",
+      "onePager": "reference/governance/guides/compute-capacity-management/README.md",
       "code": [
         {
-          "label": "Compute tasks",
-          "path": "reference/governance/src/compute_tasks.py"
+          "label": "Notebooks, one per job task",
+          "path": "reference/governance/guides/compute-capacity-management"
         },
         {
           "label": "Job",
@@ -2499,7 +2670,7 @@
       "highlights": [
         {
           "label": "Generate concurrent load",
-          "path": "reference/governance/src/compute_tasks.py",
+          "path": "reference/governance/guides/compute-capacity-management/03_generate_load.py",
           "notes": [
             "40 async statements against a temporary 2X-Small warehouse.",
             "Shared warehouses are only read, never resized."
@@ -2508,7 +2679,7 @@
         },
         {
           "label": "Measure queueing",
-          "path": "reference/governance/src/compute_tasks.py",
+          "path": "reference/governance/guides/compute-capacity-management/04_analyze_load.py",
           "notes": [
             "Waits for query history, then computes waits and peak concurrency.",
             "Median wait at capacity was 61.1 s in the reference run."
@@ -2521,21 +2692,25 @@
           "notes": [
             "delete_load_warehouse uses run_if ALL_DONE.",
             "The warehouse is removed even if a task fails."
+          ],
+          "lines": [
+            48,
+            55
           ]
         }
       ]
     },
     "cost-chargeback": {
       "bundle": "reference/governance",
-      "onePager": "reference/governance/guides/cost-chargeback.md",
+      "onePager": "reference/governance/guides/cost-chargeback/README.md",
       "code": [
         {
-          "label": "Cost views",
-          "path": "reference/governance/src/cost_tasks.py"
+          "label": "Notebooks, one per job task",
+          "path": "reference/governance/guides/cost-chargeback"
         },
         {
           "label": "Forecast",
-          "path": "reference/governance/sql/cost_forecast.sql"
+          "path": "reference/governance/guides/cost-chargeback/04_forecast.sql"
         },
         {
           "label": "Budget alert",
@@ -2583,7 +2758,7 @@
       "highlights": [
         {
           "label": "Spend by product, tag, user, and job",
-          "path": "reference/governance/src/cost_tasks.py",
+          "path": "reference/governance/guides/cost-chargeback/01_build_views.py",
           "notes": [
             "Usage joined to list prices by effective window.",
             "Scoped to this workspace."
@@ -2592,7 +2767,7 @@
         },
         {
           "label": "30-day forecast",
-          "path": "reference/governance/sql/cost_forecast.sql",
+          "path": "reference/governance/guides/cost-chargeback/04_forecast.sql",
           "notes": [
             "ai_forecast runs as a SQL task on the warehouse.",
             "With only 3 days of history, it shows the method, not a plan."
@@ -2610,15 +2785,11 @@
     },
     "data-ingestion-feature-preparation": {
       "bundle": "reference/ml-lifecycle",
-      "onePager": "reference/ml-lifecycle/guides/data-ingestion-feature-preparation.md",
+      "onePager": "reference/ml-lifecycle/guides/data-ingestion-feature-preparation/README.md",
       "code": [
         {
-          "label": "Feature table",
-          "path": "reference/ml-lifecycle/src/fp_build_features.py"
-        },
-        {
-          "label": "Training set snapshot",
-          "path": "reference/ml-lifecycle/src/fp_snapshot_training_set.py"
+          "label": "Notebooks, one per job task",
+          "path": "reference/ml-lifecycle/guides/data-ingestion-feature-preparation"
         }
       ],
       "jobs": [
@@ -2656,12 +2827,15 @@
       "highlights": [
         {
           "label": "Create the feature table",
-          "path": "reference/ml-lifecycle/src/fp_build_features.py",
+          "path": "reference/ml-lifecycle/guides/data-ingestion-feature-preparation/02_build_features.py",
           "notes": [
             "Uses the Feature Engineering client, with a primary-key Delta fallback.",
             "Drops first, so reruns are idempotent."
           ],
-          "symbol": "create_feature_table"
+          "lines": [
+            34,
+            48
+          ]
         },
         {
           "label": "Quality checks from the spec",
@@ -2674,26 +2848,29 @@
         },
         {
           "label": "Versioned training set",
-          "path": "reference/ml-lifecycle/src/fp_snapshot_training_set.py",
+          "path": "reference/ml-lifecycle/guides/data-ingestion-feature-preparation/03_snapshot_training_set.py",
           "notes": [
             "Joins features and labels with VERSION AS OF.",
             "Both table versions are recorded."
           ],
-          "symbol": "main"
+          "lines": [
+            48,
+            59
+          ]
         }
       ]
     },
     "model-training-compatibility": {
       "bundle": "reference/ml-lifecycle",
-      "onePager": "reference/ml-lifecycle/guides/model-training-compatibility.md",
+      "onePager": "reference/ml-lifecycle/guides/model-training-compatibility/README.md",
       "code": [
+        {
+          "label": "Notebooks, one per job task",
+          "path": "reference/ml-lifecycle/guides/model-training-compatibility"
+        },
         {
           "label": "Legacy model wrapper",
           "path": "reference/ml-lifecycle/src/legacy_pyfunc.py"
-        },
-        {
-          "label": "Import and verify",
-          "path": "reference/ml-lifecycle/src/mt_import_legacy_model.py"
         }
       ],
       "jobs": [
@@ -2740,12 +2917,15 @@
         },
         {
           "label": "Reproduce the recorded baseline",
-          "path": "reference/ml-lifecycle/src/mt_import_legacy_model.py",
+          "path": "reference/ml-lifecycle/guides/model-training-compatibility/03_import_legacy_model.py",
           "notes": [
             "Scores the same holdout through the registered model.",
             "AUC 0.947689 reproduced within 0.001."
           ],
-          "symbol": "main"
+          "lines": [
+            65,
+            84
+          ]
         },
         {
           "label": "Record library and runtime versions",
@@ -2760,15 +2940,11 @@
     },
     "experiment-tracking": {
       "bundle": "reference/ml-lifecycle",
-      "onePager": "reference/ml-lifecycle/guides/experiment-tracking.md",
+      "onePager": "reference/ml-lifecycle/guides/experiment-tracking/README.md",
       "code": [
         {
-          "label": "Tracked run",
-          "path": "reference/ml-lifecycle/src/et_tracked_run.py"
-        },
-        {
-          "label": "Rerun and compare",
-          "path": "reference/ml-lifecycle/src/et_rerun_and_compare.py"
+          "label": "Notebooks, one per job task",
+          "path": "reference/ml-lifecycle/guides/experiment-tracking"
         }
       ],
       "jobs": [
@@ -2806,37 +2982,50 @@
       "highlights": [
         {
           "label": "Tag data, code, and environment",
-          "path": "reference/ml-lifecycle/src/et_tracked_run.py",
+          "path": "reference/ml-lifecycle/guides/experiment-tracking/01_tracked_run.py",
           "notes": [
             "data_version, git_sha, code_hash, and the environment are tags.",
             "Everything needed to rerun is on the run."
           ],
-          "symbol": "main"
+          "lines": [
+            45,
+            54
+          ]
         },
         {
           "label": "Move the data on",
-          "path": "reference/ml-lifecycle/src/et_append_new_data.py",
+          "path": "reference/ml-lifecycle/guides/experiment-tracking/02_append_new_data.py",
           "notes": [
             "New rows land after the recorded version.",
             "Only a rerun that reads the recorded version can match."
           ],
-          "symbol": "main"
+          "lines": [
+            32,
+            36
+          ]
         },
         {
           "label": "Rerun and assert the result",
-          "path": "reference/ml-lifecycle/src/et_rerun_and_compare.py",
+          "path": "reference/ml-lifecycle/guides/experiment-tracking/03_rerun_and_compare.py",
           "notes": [
             "Original and rerun AUC both 0.947689.",
             "A latest-data control shows the difference new data makes."
           ],
-          "symbol": "main"
+          "lines": [
+            72,
+            82
+          ]
         }
       ]
     },
     "model-performance-drift": {
       "bundle": "reference/ml-lifecycle",
-      "onePager": "reference/ml-lifecycle/guides/model-performance-drift.md",
+      "onePager": "reference/ml-lifecycle/guides/model-performance-drift/README.md",
       "code": [
+        {
+          "label": "Notebooks, one per job task",
+          "path": "reference/ml-lifecycle/guides/model-performance-drift"
+        },
         {
           "label": "Drift metrics",
           "path": "reference/ml-lifecycle/src/ml_common.py"
@@ -2912,19 +3101,11 @@
     },
     "real-time-scoring": {
       "bundle": "reference/realtime-scoring",
-      "onePager": "reference/realtime-scoring/guides/real-time-scoring.md",
+      "onePager": "reference/realtime-scoring/guides/real-time-scoring/README.md",
       "code": [
         {
-          "label": "Scoring",
-          "path": "reference/realtime-scoring/src/score_endpoint.py"
-        },
-        {
-          "label": "Deploy",
-          "path": "reference/realtime-scoring/src/deploy_endpoint.py"
-        },
-        {
-          "label": "Train",
-          "path": "reference/realtime-scoring/src/train_register.py"
+          "label": "Notebooks, one per job task",
+          "path": "reference/realtime-scoring/guides/real-time-scoring"
         }
       ],
       "jobs": [
@@ -2972,40 +3153,53 @@
       "highlights": [
         {
           "label": "Secured requests and latency",
-          "path": "reference/realtime-scoring/src/score_endpoint.py",
+          "path": "reference/realtime-scoring/guides/real-time-scoring/03_score_and_measure.py",
           "notes": [
             "OAuth from the SDK; no PAT or secret.",
             "p50 43.6 ms, p95 99.7 ms over 50 warm requests."
           ],
-          "symbol": "main"
+          "lines": [
+            62,
+            80
+          ]
         },
         {
           "label": "Optional features are filled",
-          "path": "reference/realtime-scoring/src/train_register.py",
+          "path": "reference/realtime-scoring/guides/real-time-scoring/01_train_register.py",
           "notes": [
             "The signature marks usage_score optional; an imputer fills it.",
             "A missing required feature returns 400."
           ],
-          "symbol": "main"
+          "lines": [
+            74,
+            85
+          ]
         },
         {
           "label": "Create or update the endpoint",
-          "path": "reference/realtime-scoring/src/deploy_endpoint.py",
+          "path": "reference/realtime-scoring/guides/real-time-scoring/02_deploy_endpoint.py",
           "notes": [
             "Small size with scale-to-zero.",
             "Waits for READY before scoring."
           ],
-          "symbol": "main"
+          "lines": [
+            79,
+            97
+          ]
         }
       ]
     },
     "ontology": {
       "bundle": "reference/genie",
-      "onePager": "reference/genie/guides/ontology.md",
+      "onePager": "reference/genie/guides/ontology/README.md",
       "code": [
         {
           "label": "Semantics spec",
           "path": "reference/genie/use_cases/general.yml"
+        },
+        {
+          "label": "Notebooks, one per job task",
+          "path": "reference/genie/guides/ontology"
         },
         {
           "label": "Question runner",
@@ -3070,7 +3264,7 @@
             "Creates a space per stage and asks through the API.",
             "Matched 0 of 5 before semantics and 5 of 5 after."
           ],
-          "symbol": "main"
+          "symbol": "ask_all"
         },
         {
           "label": "Compare answers to expected rows",
@@ -3085,11 +3279,11 @@
     },
     "user-experience": {
       "bundle": "reference/genie",
-      "onePager": "reference/genie/guides/user-experience.md",
+      "onePager": "reference/genie/guides/user-experience/README.md",
       "code": [
         {
-          "label": "UX session",
-          "path": "reference/genie/src/run_ux_session.py"
+          "label": "Notebooks, one per job task",
+          "path": "reference/genie/guides/user-experience"
         },
         {
           "label": "Genie client",
@@ -3137,12 +3331,15 @@
       "highlights": [
         {
           "label": "Scripted user tasks",
-          "path": "reference/genie/src/run_ux_session.py",
+          "path": "reference/genie/guides/user-experience/03_run_user_session.py",
           "notes": [
             "Discovery, a question, a refinement, an ambiguous ask, and feedback.",
             "Each task becomes a ux_session_log row."
           ],
-          "symbol": "main"
+          "lines": [
+            71,
+            118
+          ]
         },
         {
           "label": "Ask and give feedback",
@@ -3166,15 +3363,15 @@
     },
     "data-sharing": {
       "bundle": "reference/open-data",
-      "onePager": "reference/open-data/guides/data-sharing.md",
+      "onePager": "reference/open-data/guides/data-sharing/README.md",
       "code": [
         {
-          "label": "Share lifecycle",
-          "path": "reference/open-data/src/share_and_read.py"
+          "label": "Notebooks, one per job task",
+          "path": "reference/open-data/guides/data-sharing"
         },
         {
-          "label": "Audit events",
-          "path": "reference/open-data/src/collect_share_audit.py"
+          "label": "Share helpers",
+          "path": "reference/open-data/src/open_data/sharing.py"
         }
       ],
       "jobs": [
@@ -3212,12 +3409,27 @@
       "highlights": [
         {
           "label": "Share, read, revoke",
-          "path": "reference/open-data/src/share_and_read.py",
+          "path": "reference/open-data/guides/data-sharing/02_share_and_read.py",
           "notes": [
             "Create, grant, read with the delta-sharing client, revoke, confirm the read fails.",
             "Records BLOCKED with the needed GRANT when CREATE SHARE is missing."
           ],
-          "symbol": "main"
+          "lines": [
+            103,
+            164
+          ]
+        },
+        {
+          "label": "Revoke and confirm the read fails",
+          "path": "reference/open-data/guides/data-sharing/02_share_and_read.py",
+          "notes": [
+            "Retries the read until the client is denied.",
+            "Then drops the recipient so the credential is dead."
+          ],
+          "lines": [
+            197,
+            221
+          ]
         },
         {
           "label": "Shared in place, not copied",
@@ -3230,25 +3442,29 @@
         },
         {
           "label": "Collect the audit trail",
-          "path": "reference/open-data/src/collect_share_audit.py",
+          "path": "reference/open-data/guides/data-sharing/03_collect_audit.py",
           "notes": [
             "Polls system.access.audit for the share and recipient.",
             "Tolerates audit lag."
+          ],
+          "lines": [
+            30,
+            46
           ]
         }
       ]
     },
     "iceberg-support": {
       "bundle": "reference/open-data",
-      "onePager": "reference/open-data/guides/iceberg-support.md",
+      "onePager": "reference/open-data/guides/iceberg-support/README.md",
       "code": [
         {
-          "label": "Iceberg table",
-          "path": "reference/open-data/src/iceberg_table.py"
+          "label": "Notebooks, one per job task",
+          "path": "reference/open-data/guides/iceberg-support"
         },
         {
-          "label": "External read",
-          "path": "reference/open-data/src/iceberg_external_read.py"
+          "label": "PyIceberg helper",
+          "path": "reference/open-data/src/open_data/iceberg.py"
         }
       ],
       "jobs": [
@@ -3286,16 +3502,19 @@
       "highlights": [
         {
           "label": "Create, evolve, and time travel",
-          "path": "reference/open-data/src/iceberg_table.py",
+          "path": "reference/open-data/guides/iceberg-support/01_managed_iceberg_table.py",
           "notes": [
             "USING ICEBERG, append, ADD COLUMN, VERSION AS OF.",
             "Each step is recorded as a check."
           ],
-          "symbol": "main"
+          "lines": [
+            38,
+            95
+          ]
         },
         {
           "label": "PyIceberg REST catalog config",
-          "path": "reference/open-data/src/iceberg_external_read.py",
+          "path": "reference/open-data/src/open_data/iceberg.py",
           "notes": [
             "URI, warehouse, token, and the vended-credentials header.",
             "Without the header the data read is denied."
@@ -3304,26 +3523,29 @@
         },
         {
           "label": "Read externally and compare",
-          "path": "reference/open-data/src/iceberg_external_read.py",
+          "path": "reference/open-data/guides/iceberg-support/02_read_through_irc.py",
           "notes": [
-            "PyIceberg read 1,500 rows, matching Spark.",
-            "A pushed-down filter returned 417 rows."
+            "PyIceberg reads the table and matches the Spark row count.",
+            "A pushed-down filter returns only the West rows."
           ],
-          "symbol": "main"
+          "lines": [
+            53,
+            69
+          ]
         }
       ]
     },
     "external-integrations": {
       "bundle": "reference/open-data",
-      "onePager": "reference/open-data/guides/external-integrations.md",
+      "onePager": "reference/open-data/guides/external-integrations/README.md",
       "code": [
         {
-          "label": "SQL connector",
-          "path": "reference/open-data/src/sql_connector_check.py"
+          "label": "Notebooks, one per job task",
+          "path": "reference/open-data/guides/external-integrations"
         },
         {
-          "label": "Federation",
-          "path": "reference/open-data/src/federation_check.py"
+          "label": "Federation helpers",
+          "path": "reference/open-data/src/open_data/federation.py"
         }
       ],
       "jobs": [
@@ -3361,25 +3583,31 @@
       "highlights": [
         {
           "label": "BI-style client on the warehouse",
-          "path": "reference/open-data/src/sql_connector_check.py",
+          "path": "reference/open-data/guides/external-integrations/02_sql_connector_client.py",
           "notes": [
-            "Connects as the job identity or with OAuth M2M.",
+            "Connects as the notebook or job identity, or with OAuth M2M.",
             "Results are cross-checked against Spark."
           ],
-          "symbol": "main"
+          "lines": [
+            64,
+            92
+          ]
         },
         {
           "label": "Query Postgres in place",
-          "path": "reference/open-data/src/federation_check.py",
+          "path": "reference/open-data/guides/external-integrations/03_lakehouse_federation.py",
           "notes": [
             "Creates the UC connection and tries a foreign catalog.",
             "Falls back to remote_query when CREATE CATALOG is denied."
           ],
-          "symbol": "main"
+          "lines": [
+            72,
+            122
+          ]
         },
         {
           "label": "Remote query expression",
-          "path": "reference/open-data/src/federation_check.py",
+          "path": "reference/open-data/src/open_data/federation.py",
           "notes": [
             "Builds the table expression for queries through the connection.",
             "Aggregates run inside Postgres."
@@ -3390,11 +3618,11 @@
     },
     "platform-administration": {
       "bundle": "reference/platform-ops",
-      "onePager": "reference/platform-ops/guides/platform-administration.md",
+      "onePager": "reference/platform-ops/guides/platform-administration/README.md",
       "code": [
         {
-          "label": "Admin tasks",
-          "path": "reference/platform-ops/src/platform_admin.py"
+          "label": "Notebooks, one per job task",
+          "path": "reference/platform-ops/guides/platform-administration"
         },
         {
           "label": "Action ledger",
@@ -3436,7 +3664,7 @@
       "highlights": [
         {
           "label": "Ensure the group",
-          "path": "reference/platform-ops/src/platform_admin.py",
+          "path": "reference/platform-ops/guides/platform-administration/03_roles.py",
           "notes": [
             "Creates the group only if missing.",
             "A refused UC grant is recorded with its reason."
@@ -3454,7 +3682,7 @@
         },
         {
           "label": "Apply a policy if it drifted",
-          "path": "reference/platform-ops/src/platform_admin.py",
+          "path": "reference/platform-ops/guides/platform-administration/04_policies.py",
           "notes": [
             "Tries a budget policy, then a cluster policy.",
             "Edits only when the definition changed."
@@ -3465,15 +3693,15 @@
     },
     "operational-support": {
       "bundle": "reference/platform-ops",
-      "onePager": "reference/platform-ops/guides/operational-support.md",
+      "onePager": "reference/platform-ops/guides/operational-support/README.md",
       "code": [
         {
           "label": "Triage",
           "path": "reference/platform-ops/src/support_lib.py"
         },
         {
-          "label": "Repair",
-          "path": "reference/platform-ops/src/support_repair.py"
+          "label": "Notebooks, one per job task",
+          "path": "reference/platform-ops/guides/operational-support"
         }
       ],
       "jobs": [
@@ -3539,30 +3767,33 @@
         },
         {
           "label": "Repair the failed run",
-          "path": "reference/platform-ops/src/support_repair.py",
+          "path": "reference/platform-ops/guides/operational-support/05_repair_failed_run.py",
           "notes": [
             "Repairs only failed tasks through the Jobs API.",
             "The original run ended SUCCESS after repair."
           ],
-          "symbol": "main"
+          "lines": [
+            75,
+            89
+          ]
         }
       ]
     },
     "agent-framework-support": {
       "bundle": "reference/agents",
-      "onePager": "reference/agents/guides/agent-framework-support.md",
+      "onePager": "reference/agents/guides/agent-framework-support/README.md",
       "code": [
         {
           "label": "Governed MCP call",
-          "path": "reference/agents/src/mcp_call.py"
+          "path": "reference/agents/guides/agent-framework-support/02_mcp_tool_call.py"
         },
         {
           "label": "Supervisor handoff",
-          "path": "reference/agents/src/handoff.py"
+          "path": "reference/agents/guides/agent-framework-support/03_agent_handoff.py"
         },
         {
           "label": "Gateway routing",
-          "path": "reference/agents/src/gateway_routing.py"
+          "path": "reference/agents/guides/agent-framework-support/04_gateway_routing.py"
         }
       ],
       "jobs": [
@@ -3610,21 +3841,21 @@
       "highlights": [
         {
           "label": "Call a Unity Catalog function through managed MCP",
-          "path": "reference/agents/src/mcp_call.py",
-          "symbol": "main",
+          "path": "reference/agents/guides/agent-framework-support/02_mcp_tool_call.py",
           "notes": [
             "initialize, tools/list, and tools/call with the SDK's OAuth headers.",
             "Grants on the function govern the call; a column mask hid the email."
-          ]
+          ],
+          "symbol": "main"
         },
         {
           "label": "Route one prompt to two models with a fallback",
-          "path": "reference/agents/src/gateway_routing.py",
-          "symbol": "service_config",
+          "path": "reference/agents/guides/agent-framework-support/04_gateway_routing.py",
           "notes": [
             "Primary and fallback models, request and token limits, and an inference table.",
             "A 30-request burst against a 4-per-minute limit got 9 HTTP 429s."
-          ]
+          ],
+          "symbol": "service_config"
         },
         {
           "label": "Use MCP tools from a chat model",
@@ -3639,7 +3870,7 @@
     },
     "agent-build-deployment": {
       "bundle": "reference/agents",
-      "onePager": "reference/agents/guides/agent-build-deployment.md",
+      "onePager": "reference/agents/guides/agent-build-deployment/README.md",
       "code": [
         {
           "label": "Agent",
@@ -3647,11 +3878,11 @@
         },
         {
           "label": "Log and register",
-          "path": "reference/agents/src/log_register_agent.py"
+          "path": "reference/agents/guides/agent-build-deployment/02_log_and_register.py"
         },
         {
           "label": "Call and verify",
-          "path": "reference/agents/src/call_agent.py"
+          "path": "reference/agents/guides/agent-build-deployment/04_call_and_record.py"
         }
       ],
       "jobs": [
@@ -3708,21 +3939,21 @@
         },
         {
           "label": "Log, register, and alias",
-          "path": "reference/agents/src/log_register_agent.py",
-          "symbol": "main",
+          "path": "reference/agents/guides/agent-build-deployment/02_log_and_register.py",
           "notes": [
             "Runs a local traced test first, then logs with declared resources.",
             "Version 3 holds the champion alias."
-          ]
+          ],
+          "symbol": "main"
         },
         {
           "label": "Call the endpoint and check the trace",
-          "path": "reference/agents/src/call_agent.py",
-          "symbol": "main",
+          "path": "reference/agents/guides/agent-build-deployment/04_call_and_record.py",
           "notes": [
             "Fails unless the trace has a uc_function_tool span.",
             "Records code path, packages, owners, and latency."
-          ]
+          ],
+          "symbol": "main"
         }
       ]
     }

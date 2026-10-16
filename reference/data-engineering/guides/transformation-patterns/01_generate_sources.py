@@ -1,0 +1,47 @@
+# Databricks notebook source
+# MAGIC %pip install -q -r ../../requirements.txt
+
+# COMMAND ----------
+
+dbutils.library.restartPython()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC # 1. Generate the source tables
+# MAGIC
+# MAGIC Creates the tables the pipeline reads: a static `regions` lookup, and `de_customers` and `de_orders` built with dbldatagen. Every write overwrites, so a rerun replaces the data.
+
+# COMMAND ----------
+
+import sys, os
+sys.path.insert(0, os.path.abspath("../../src"))
+from guide_params import bundle_root, load_params
+params = load_params(dbutils, "capability_guides_transformations", ['catalog', 'schema', 'use_case'])
+catalog, schema = params["catalog"], params["schema"]
+scope = f"{catalog}.{schema}"
+ROOT = bundle_root()
+USE_CASE_FILE = ROOT / "use_cases" / f"{params['use_case']}.yml"
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Write the tables
+
+# COMMAND ----------
+
+from de_common.datagen import build_frame
+from de_common.spec import load_use_case
+
+spec = load_use_case(USE_CASE_FILE)
+
+regions = spec["tables"]["regions"]["static_rows"]
+spark.createDataFrame(regions).write.mode("overwrite").saveAsTable(f"{scope}.regions")
+print(f"regions: {len(regions)} rows")
+
+for offset, name in enumerate(("de_customers", "de_orders")):
+    table = spec["tables"][name]
+    df = build_frame(spark, name, int(spec["seed"]) + offset, int(table["rows"]), table["columns"]).drop("id")
+    df.write.mode("overwrite").saveAsTable(f"{scope}.{name}")
+    print(f"{name}: {spark.table(f'{scope}.{name}').count()} rows")
+display(spark.table(f"{scope}.de_orders").limit(10))

@@ -17,103 +17,71 @@ resources:
           default: ${var.catalog}
         - name: schema
           default: ${var.schema}
+        - name: use_case
+          default: ${var.use_case}
         - name: release
           default: ${var.release}
+        - name: experiment
+          default: ${resources.experiments.model_release_experiment.name}
+        - name: min_auc
+          default: "${var.min_auc}"
+        - name: max_auc_regression
+          default: "${var.max_auc_regression}"
+        - name: champion_alias
+          default: ${var.champion_alias}
+        - name: challenger_alias
+          default: ${var.challenger_alias}
+        - name: endpoint_name
+          default: capability-guides-model-${bundle.target}
+        - name: workload_size
+          default: ${var.serving_workload_size}
+        - name: scale_to_zero
+          default: "${var.serving_scale_to_zero}"
+        - name: target
+          default: ${bundle.target}
         # Approval input. Empty means the run stops at the gate and leaves the model unpromoted.
         - name: approved_by
           default: ""
-      environments:
-        - environment_key: ml
-          spec:
-            environment_version: "4"
-            dependencies:
-              - mlflow>=3.1
-              - scikit-learn>=1.4
-              - dbldatagen==0.4.0.post1
-              - pyyaml>=6
-              - databricks-sdk>=0.60
       tasks:
         - task_key: train_and_register
-          environment_key: ml
-          spark_python_task:
-            python_file: ../src/train_and_register.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --release={{job.parameters.release}}
-              - --src-dir=${workspace.file_path}/src
-              - --spec=${workspace.file_path}/use_cases/${var.use_case}.yml
-              - --experiment=${resources.experiments.model_release_experiment.name}
-              - --job-run-id={{job.run_id}}
+          notebook_task:
+            notebook_path: ../guides/model-deployment-cicd/01_train_and_register.py
+            base_parameters:
+              job_run_id: "{{job.run_id}}"
 
         - task_key: run_tests
           depends_on:
             - task_key: train_and_register
-          environment_key: ml
-          spark_python_task:
-            python_file: ../src/run_tests.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --src-dir=${workspace.file_path}/src
-              - --spec=${workspace.file_path}/use_cases/${var.use_case}.yml
-              - --model-version={{tasks.train_and_register.values.model_version}}
-              - --min-auc=${var.min_auc}
-              - --max-auc-regression=${var.max_auc_regression}
-              - --champion-alias=${var.champion_alias}
-              - --challenger-alias=${var.challenger_alias}
+          notebook_task:
+            notebook_path: ../guides/model-deployment-cicd/02_run_tests.py
+            base_parameters:
+              model_version: "{{tasks.train_and_register.values.model_version}}"
 
         - task_key: approval_gate
           depends_on:
             - task_key: run_tests
-          environment_key: ml
-          spark_python_task:
-            python_file: ../src/approval_gate.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --src-dir=${workspace.file_path}/src
-              - --spec=${workspace.file_path}/use_cases/${var.use_case}.yml
-              - --model-version={{tasks.train_and_register.values.model_version}}
-              - --approved-by={{job.parameters.approved_by}}
-              - --champion-alias=${var.champion_alias}
-              - --challenger-alias=${var.challenger_alias}
+          notebook_task:
+            notebook_path: ../guides/model-deployment-cicd/03_approval_gate.py
+            base_parameters:
+              model_version: "{{tasks.train_and_register.values.model_version}}"
 
         - task_key: deploy_endpoint
           depends_on:
             - task_key: approval_gate
-          environment_key: ml
-          spark_python_task:
-            python_file: ../src/deploy_endpoint.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --src-dir=${workspace.file_path}/src
-              - --spec=${workspace.file_path}/use_cases/${var.use_case}.yml
-              - --promoted={{tasks.approval_gate.values.promoted}}
-              - --champion-alias=${var.champion_alias}
-              - --endpoint-name=capability-guides-model-${bundle.target}
-              - --workload-size=${var.serving_workload_size}
-              - --scale-to-zero=${var.serving_scale_to_zero}
-              - --release={{job.parameters.release}}
+          notebook_task:
+            notebook_path: ../guides/model-deployment-cicd/04_deploy_endpoint.py
+            base_parameters:
+              promoted: "{{tasks.approval_gate.values.promoted}}"
 
         - task_key: record_release
           depends_on:
             - task_key: deploy_endpoint
-          environment_key: ml
-          spark_python_task:
-            python_file: ../src/record_release.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --src-dir=${workspace.file_path}/src
-              - --spec=${workspace.file_path}/use_cases/${var.use_case}.yml
-              - --model-version={{tasks.train_and_register.values.model_version}}
-              - --release={{job.parameters.release}}
-              - --approved-by={{job.parameters.approved_by}}
-              - --target=${bundle.target}
-              - --status={{tasks.deploy_endpoint.values.status}}
-              - --endpoint={{tasks.deploy_endpoint.values.endpoint}}
-              - --served-version={{tasks.deploy_endpoint.values.served_version}}
-              - --latency-ms={{tasks.deploy_endpoint.values.latency_ms}}
-              - --job-run-id={{job.run_id}}
+          notebook_task:
+            notebook_path: ../guides/model-deployment-cicd/05_record_release.py
+            base_parameters:
+              model_version: "{{tasks.train_and_register.values.model_version}}"
+              status: "{{tasks.deploy_endpoint.values.status}}"
+              endpoint: "{{tasks.deploy_endpoint.values.endpoint}}"
+              served_version: "{{tasks.deploy_endpoint.values.served_version}}"
+              latency_ms: "{{tasks.deploy_endpoint.values.latency_ms}}"
+              job_run_id: "{{job.run_id}}"

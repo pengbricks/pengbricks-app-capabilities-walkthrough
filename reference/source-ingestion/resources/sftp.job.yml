@@ -19,37 +19,18 @@ resources:
           default: ${var.schema}
         - name: use_case
           default: ${var.use_case}
-      environments:
-        - environment_key: tools
-          spec:
-            environment_version: "4"
-            dependencies:
-              - databricks-sdk>=0.70
-              - pyyaml>=6
-              - paramiko>=3.4
       tasks:
         - task_key: setup_secrets
-          environment_key: tools
-          spark_python_task:
-            python_file: ../src/setup_sftp_secrets.py
-            parameters:
-              - --src-dir=${workspace.file_path}/src
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
+          notebook_task:
+            notebook_path: ../guides/sftp-ingestion/01_setup_secrets.py
 
         - task_key: fetch_files
           depends_on:
             - task_key: setup_secrets
-          environment_key: tools
-          spark_python_task:
-            python_file: ../src/fetch_sftp_files.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --src-dir=${workspace.file_path}/src
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
-              - --run-id={{job.run_id}}
-              - --task=fetch_files
-              - --allow-volume-fallback
+          notebook_task:
+            notebook_path: ../guides/sftp-ingestion/02_fetch_files.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
 
         - task_key: ingest_files
           depends_on:
@@ -57,28 +38,24 @@ resources:
           pipeline_task:
             pipeline_id: ${resources.pipelines.capability_guides_sftp_pipeline.id}
 
-        - task_key: refetch_finds_nothing
+        - task_key: inspect_pipeline
           depends_on:
             - task_key: ingest_files
-          environment_key: tools
-          spark_python_task:
-            python_file: ../src/fetch_sftp_files.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
-              - --src-dir=${workspace.file_path}/src
-              - --use-case-file=${workspace.file_path}/use_cases/{{job.parameters.use_case}}.yml
-              - --run-id={{job.run_id}}
-              - --task=refetch_finds_nothing
-              - --expect-no-new-files
-              - --allow-volume-fallback
+          notebook_task:
+            notebook_path: ../guides/sftp-ingestion/03_run_pipeline.py
+            base_parameters:
+              run_pipeline: "false"
+
+        - task_key: refetch_finds_nothing
+          depends_on:
+            - task_key: inspect_pipeline
+          notebook_task:
+            notebook_path: ../guides/sftp-ingestion/04_refetch_finds_nothing.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
 
         - task_key: verify_tables
           depends_on:
             - task_key: refetch_finds_nothing
-          environment_key: tools
-          spark_python_task:
-            python_file: ../src/verify_sftp_tables.py
-            parameters:
-              - --catalog={{job.parameters.catalog}}
-              - --schema={{job.parameters.schema}}
+          notebook_task:
+            notebook_path: ../guides/sftp-ingestion/05_verify_tables.py

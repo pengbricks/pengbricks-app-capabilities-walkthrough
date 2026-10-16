@@ -14,4 +14,4 @@ resources:
         capability_guide_use_case: ${var.use_case}
       libraries:
         - glob:
-            include: ../src/pipelines/file_formats/**
+            include: ../guides/file-format-ingestion/pipeline/**
