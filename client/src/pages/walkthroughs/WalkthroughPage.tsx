@@ -1,4 +1,5 @@
 import { Button } from '@databricks/appkit-ui/react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { FlowDiagramView, MatrixDiagramView } from '../../components/WalkthroughDiagram.tsx';
 import { getWalkthrough } from '../../data/walkthroughs/index.ts';
@@ -143,8 +144,24 @@ function Section({ section }: { section: WalkthroughSection }) {
 }
 
 function DiagramFigure({ diagram, id }: { diagram: Diagram; id: string }) {
+  const figure = useRef<HTMLElement>(null);
+  const [expanded, setExpanded] = useState(false);
+  useEffect(() => {
+    const sync = () => setExpanded(document.fullscreenElement === figure.current);
+    document.addEventListener('fullscreenchange', sync);
+    return () => document.removeEventListener('fullscreenchange', sync);
+  }, []);
+  const toggle = () => {
+    if (document.fullscreenElement === figure.current) void document.exitFullscreen();
+    else void figure.current?.requestFullscreen();
+  };
   return (
-    <figure className="diagram">
+    <figure ref={figure} className="diagram">
+      {document.fullscreenEnabled && (
+        <button type="button" className="diagram-expand" onClick={toggle}>
+          {expanded ? 'Close' : 'Expand'}
+        </button>
+      )}
       <div className="diagram-scroll" tabIndex={0} role="group" aria-label={`${diagram.title}, scrollable`}>
         {diagram.type === 'flow' ? (
           <FlowDiagramView diagram={diagram} id={id} />

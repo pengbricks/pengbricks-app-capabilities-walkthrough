@@ -1250,5 +1250,34 @@ window.GLOSSARY = {
   } else { bind(); annotate(document); }
 })();
 </script>
+<style data-import="diagram-expand">
+figure.diagram { position: relative; }
+.diagram-expand { position: absolute; top: 8px; right: 8px; z-index: 1; padding: 3px 10px; border: var(--line);
+  border-radius: 999px; background: var(--c-bg); color: var(--c-fg); font: inherit; font-size: 12px; cursor: pointer; }
+.diagram-expand:hover { background: var(--c-surface); }
+figure.diagram:fullscreen { display: flex; flex-direction: column; border: 0; border-radius: 0; background: var(--c-bg); }
+figure.diagram:fullscreen .diagram-scroll { flex: 1; padding: var(--s-48) var(--s-24) var(--s-24); }
+figure.diagram:fullscreen .d-svg { width: 100%; max-width: none; min-width: 0; height: 100%; }
+figure.diagram::backdrop { background: var(--c-bg); }
+</style>
+<script data-import="diagram-expand">
+(function () {
+  if (!document.fullscreenEnabled) return;
+  document.querySelectorAll("figure.diagram").forEach(function (figure) {
+    var button = document.createElement("button");
+    button.type = "button";
+    button.className = "diagram-expand";
+    button.textContent = "Expand";
+    button.addEventListener("click", function () {
+      if (document.fullscreenElement === figure) document.exitFullscreen();
+      else figure.requestFullscreen();
+    });
+    document.addEventListener("fullscreenchange", function () {
+      button.textContent = document.fullscreenElement === figure ? "Close" : "Expand";
+    });
+    figure.appendChild(button);
+  });
+})();
+</script>
 </body>
 </html>

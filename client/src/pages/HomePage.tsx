@@ -41,13 +41,13 @@ export function HomePage() {
           Databricks capability walkthrough
         </h1>
         <p className="mt-5 max-w-3xl text-lg leading-8 text-muted-foreground">
-          One page per guide: what to demonstrate, which Databricks capabilities apply, and the reference
-          implementation behind it.
+          One page per guide: what to demonstrate, which Databricks capabilities apply, and the reference implementation
+          behind it.
         </p>
       </section>
 
-      <section id="guide-library" className="scroll-mt-20 pt-10">
-        <div className="max-w-md">
+      <section id="guide-library" className="scroll-mt-20 pt-10 lg:grid lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-10">
+        <aside className="lg:sticky lg:top-24 lg:self-start">
           <label htmlFor="guide-search" className="text-sm font-semibold">
             Search guides
           </label>
@@ -61,77 +61,78 @@ export function HomePage() {
               className="h-11 pl-9"
             />
           </div>
+
+          <nav className="mt-5" aria-label="Filter guides by area">
+            <ul className="flex flex-col gap-0.5">
+              {[allCategories, ...categories].map((item) => {
+                const count =
+                  item === allCategories ? guides.length : guides.filter((guide) => guide.category === item).length;
+                const active = category === item;
+                return (
+                  <li key={item}>
+                    <button
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => setCategory(item)}
+                      className={`flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-left text-sm transition-colors ${active ? 'bg-primary font-medium text-primary-foreground' : 'hover:bg-muted'}`}
+                    >
+                      {item}
+                      <span className="tabular-nums opacity-70">{count}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
+        </aside>
+
+        <div className="mt-6 lg:mt-0">
+          <p className="text-sm text-muted-foreground" aria-live="polite">
+            Showing {filteredGuides.length} of {guides.length} guides
+          </p>
+
+          {filteredGuides.length > 0 ? (
+            categories.map((area) => {
+              const areaGuides = filteredGuides.filter((guide) => guide.category === area);
+              if (areaGuides.length === 0) return null;
+              const sectionId = `area-${area.replaceAll(' ', '-').replaceAll('/', '-').toLowerCase()}`;
+
+              return (
+                <section key={area} className="mt-10" aria-labelledby={sectionId}>
+                  <div className="mb-4">
+                    <h2 id={sectionId} className="text-2xl font-bold tracking-tight">
+                      {area}
+                    </h2>
+                    <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">{categoryBlurbs[area]}</p>
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {areaGuides.map((guide) => (
+                      <GuideCard key={guide.slug} guide={guide} />
+                    ))}
+                  </div>
+                </section>
+              );
+            })
+          ) : (
+            <Card className="mt-10 border-dashed shadow-none">
+              <CardContent className="flex min-h-56 flex-col items-center justify-center text-center">
+                <Search className="size-8 text-muted-foreground" />
+                <h2 className="mt-4 font-semibold">No guides found</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Try a product name or clear the current filters.</p>
+                <Button
+                  variant="outline"
+                  className="mt-5"
+                  onClick={() => {
+                    setQuery('');
+                    setCategory(allCategories);
+                  }}
+                >
+                  Clear filters
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         </div>
-
-        <div
-          className="-mx-5 mt-4 flex gap-2 overflow-x-auto px-5 py-1 lg:mx-0 lg:px-0"
-          role="group"
-          aria-label="Filter guides by area"
-        >
-          {[allCategories, ...categories].map((item) => {
-            const count =
-              item === allCategories ? guides.length : guides.filter((guide) => guide.category === item).length;
-            const active = category === item;
-            return (
-              <button
-                key={item}
-                type="button"
-                aria-pressed={active}
-                onClick={() => setCategory(item)}
-                className={`inline-flex min-h-9 shrink-0 items-center rounded-full border px-3 text-sm transition-colors ${active ? 'border-primary bg-primary text-primary-foreground' : 'bg-background hover:border-foreground'}`}
-              >
-                {item}
-                <span className="ml-2 tabular-nums opacity-70">{count}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        <p className="mt-4 text-sm text-muted-foreground" aria-live="polite">
-          Showing {filteredGuides.length} of {guides.length} guides
-        </p>
-
-        {filteredGuides.length > 0 ? (
-          categories.map((area) => {
-            const areaGuides = filteredGuides.filter((guide) => guide.category === area);
-            if (areaGuides.length === 0) return null;
-            const sectionId = `area-${area.replaceAll(' ', '-').replaceAll('/', '-').toLowerCase()}`;
-
-            return (
-              <section key={area} className="mt-10" aria-labelledby={sectionId}>
-                <div className="mb-4">
-                  <h2 id={sectionId} className="text-2xl font-bold tracking-tight">
-                    {area}
-                  </h2>
-                  <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">{categoryBlurbs[area]}</p>
-                </div>
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  {areaGuides.map((guide) => (
-                    <GuideCard key={guide.slug} guide={guide} />
-                  ))}
-                </div>
-              </section>
-            );
-          })
-        ) : (
-          <Card className="mt-10 border-dashed shadow-none">
-            <CardContent className="flex min-h-56 flex-col items-center justify-center text-center">
-              <Search className="size-8 text-muted-foreground" />
-              <h2 className="mt-4 font-semibold">No guides found</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Try a product name or clear the current filters.</p>
-              <Button
-                variant="outline"
-                className="mt-5"
-                onClick={() => {
-                  setQuery('');
-                  setCategory(allCategories);
-                }}
-              >
-                Clear filters
-              </Button>
-            </CardContent>
-          </Card>
-        )}
       </section>
     </div>
   );

@@ -59,12 +59,14 @@ export function GuidePage() {
         </Link>
       </Button>
 
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <article className="min-w-0">
-          <Badge variant="secondary">{guide.category}</Badge>
-          <h1 className="mt-5 max-w-3xl text-4xl font-semibold tracking-[-0.03em] sm:text-5xl">{guide.title}</h1>
-          <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-foreground">{guide.summary}</p>
+      <header>
+        <Badge variant="secondary">{guide.category}</Badge>
+        <h1 className="mt-5 max-w-3xl text-4xl font-semibold tracking-[-0.03em] sm:text-5xl">{guide.title}</h1>
+        <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-foreground">{guide.summary}</p>
+      </header>
 
+      <div className="mt-10 grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <article className="min-w-0">
           <GuideWalkthrough slug={guide.slug} />
 
           {artifacts?.autoLoaderDrop && <AutoLoaderDrop slug={guide.slug} />}
@@ -150,11 +152,11 @@ export function GuidePage() {
             <RunsCard slug={guide.slug} artifacts={artifacts} onChange={() => void reload()} />
           )}
 
-          <Card className="shadow-none">
-            <CardHeader>
+          <Card className="gap-4 py-5 shadow-none">
+            <CardHeader className="px-5">
               <CardTitle className="text-base">Reference code</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-3 px-5">
               {planned && (
                 <p className="text-sm text-muted-foreground">
                   Reference code and an actual run are planned for this guide.
@@ -182,7 +184,7 @@ export function GuidePage() {
                       href={item.url}
                       target="_blank"
                       rel="noreferrer"
-                      className="block truncate pl-7 text-xs text-muted-foreground underline-offset-2 hover:underline"
+                      className="block truncate pl-10 text-xs text-muted-foreground underline-offset-2 hover:underline"
                     >
                       {item.label}
                     </a>
@@ -205,7 +207,7 @@ function GuideWalkthrough({ slug }: { slug: string }) {
   const hasDesigned = designed.has(slug);
   if (!data && !hasDesigned) return null;
   return (
-    <section className="mt-10" aria-label="Visual walkthrough">
+    <section aria-label="Visual walkthrough">
       {hasDesigned && <DesignedWalkthrough slug={slug} />}
       {data && (
         <div className="walkthrough walkthrough-inline">
@@ -254,6 +256,7 @@ function DesignedWalkthrough({ slug }: { slug: string }) {
       title="Visual walkthrough"
       src={`${import.meta.env.BASE_URL}walkthroughs/${slug}.html`}
       className="w-full rounded-xl border"
+      allow="fullscreen"
       style={{ height: '80vh' }}
     />
   );
@@ -264,8 +267,8 @@ function RunsCard({ slug, artifacts, onChange }: { slug: string; artifacts: Guid
   // Deployments without the reference jobs (other workspaces) still link the recorded reference runs.
   const anyDeployed = artifacts.jobs.some((job) => job.deployed);
   return (
-    <Card className="shadow-none">
-      <CardHeader>
+    <Card className="gap-4 py-5 shadow-none">
+      <CardHeader className="px-5">
         <CardTitle className="flex items-center justify-between text-base">
           {hasJobs ? 'Run it' : 'Workspace artifacts'}
           {artifacts.live && (
@@ -276,7 +279,7 @@ function RunsCard({ slug, artifacts, onChange }: { slug: string; artifacts: Guid
           )}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3 px-5">
         {artifacts.workspace && <WorkspaceLinksBlock links={artifacts.workspace} />}
 
         {artifacts.live && hasJobs && anyDeployed

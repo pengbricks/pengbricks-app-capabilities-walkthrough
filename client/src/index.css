@@ -140,6 +140,13 @@ body,
 .walkthrough .short-list p { margin-top: 0.375rem; font-size: 0.8125rem; line-height: 1.6; color: var(--muted-foreground); }
 .walkthrough .diagram { margin-top: 1.5rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); overflow: hidden; }
 .walkthrough .diagram-scroll { overflow-x: auto; padding: clamp(0.75rem, 2vw, 1.5rem); }
+.walkthrough .diagram { position: relative; }
+.walkthrough .diagram-expand { position: absolute; top: 0.5rem; right: 0.5rem; z-index: 1; border: 1px solid var(--border); border-radius: 999px; background: var(--background); padding: 0.125rem 0.625rem; font-size: 0.75rem; cursor: pointer; }
+.walkthrough .diagram-expand:hover { background: var(--muted); }
+.walkthrough .diagram:fullscreen { display: flex; flex-direction: column; margin: 0; border: 0; border-radius: 0; background: var(--background); }
+.walkthrough .diagram:fullscreen .diagram-scroll { flex: 1; padding: 3rem 1.5rem 1.5rem; }
+.walkthrough .diagram:fullscreen .d-svg { width: 100%; max-width: none; min-width: 0; height: 100%; }
+.walkthrough .diagram::backdrop { background: var(--background); }
 .walkthrough .d-svg { display: block; width: 100%; min-width: 860px; height: auto; }
 .walkthrough .d-svg-md { max-width: 760px; min-width: 620px; }
 .walkthrough figcaption { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; border-top: 1px solid var(--border); padding: 0.75rem clamp(0.75rem, 2vw, 1.5rem); font-size: 0.75rem; color: var(--muted-foreground); background: var(--muted); }

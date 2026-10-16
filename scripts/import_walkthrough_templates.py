@@ -125,6 +125,44 @@ main.main.guide { max-width: none; background: none; border-radius: 0; font-size
 </style>
 """
 
+# Every diagram gets an Expand button that shows it full screen. The guide page embeds these pages
+# in an iframe with allowfullscreen, so the button works there too.
+DIAGRAM_EXPAND = """<style data-import="diagram-expand">
+figure.diagram { position: relative; }
+.diagram-expand { position: absolute; top: 8px; right: 8px; z-index: 1; padding: 3px 10px; border: var(--line);
+  border-radius: 999px; background: var(--c-bg); color: var(--c-fg); font: inherit; font-size: 12px; cursor: pointer; }
+.diagram-expand:hover { background: var(--c-surface); }
+figure.diagram:fullscreen { display: flex; flex-direction: column; border: 0; border-radius: 0; background: var(--c-bg); }
+figure.diagram:fullscreen .diagram-scroll { flex: 1; padding: var(--s-48) var(--s-24) var(--s-24); }
+figure.diagram:fullscreen .d-svg { width: 100%; max-width: none; min-width: 0; height: 100%; }
+figure.diagram::backdrop { background: var(--c-bg); }
+</style>
+<script data-import="diagram-expand">
+(function () {
+  if (!document.fullscreenEnabled) return;
+  document.querySelectorAll("figure.diagram").forEach(function (figure) {
+    var button = document.createElement("button");
+    button.type = "button";
+    button.className = "diagram-expand";
+    button.textContent = "Expand";
+    button.addEventListener("click", function () {
+      if (document.fullscreenElement === figure) document.exitFullscreen();
+      else figure.requestFullscreen();
+    });
+    document.addEventListener("fullscreenchange", function () {
+      button.textContent = document.fullscreenElement === figure ? "Close" : "Expand";
+    });
+    figure.appendChild(button);
+  });
+})();
+</script>
+"""
+
+
+def add_diagram_expand(html: str) -> str:
+    html = re.sub(r'\s*<style data-import="diagram-expand">.*?</style>\s*<script data-import="diagram-expand">.*?</script>\n?', "\n", html, flags=re.S)
+    return html.replace("</body>", DIAGRAM_EXPAND + "</body>", 1)
+
 
 def clean(html: str, slugs: set[str]) -> str:
     html = html.replace("</head>", LAYOUT_FIX + "</head>", 1)
@@ -144,7 +182,7 @@ def clean(html: str, slugs: set[str]) -> str:
     html = re.sub(r"\s*·\s*<tspan[^>]*>#/[^<]*</tspan>", "", html)
     for old, new in TEXT_REPLACEMENTS:
         html = re.sub(old, new, html)
-    return rewrite_links(html, slugs)
+    return add_diagram_expand(rewrite_links(html, slugs))
 
 
 def main() -> int:
