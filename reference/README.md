@@ -43,7 +43,10 @@ Each workspace deploys its own copy. Runs, tables, and run history stay in that 
 
 - **Variables:** `catalog`, `warehouse_id`, and `app_service_principal` have no defaults because they belong to the target workspace.
 - **One shared schema:** every bundle writes to `capability_guides` (`dev_<user>_capability_guides` in development, `test_capability_guides` in test), owned by `foundation/`. Bundles don't declare schemas. Names other bundles also use carry a bundle prefix (for example `analyst_orders`, `source_landing`); check the schema's existing tables before adding one. The access-management guide keeps its own dev and prod demo schemas on purpose.
+- **Guide folders:** each guide lives in `<bundle>/guides/<slug>/`: a `README.md` one-pager, a `00_start_here` notebook, one numbered notebook per job task, and `pipeline/` source when the guide has a pipeline. The jobs run those notebooks. Every notebook also runs on its own with Run all: blank widgets take their values from the deployed job's parameters (`_shared/guide_params.py`, copied into each bundle's `src/`, with a test that fails if a copy drifts).
+- **Job parameters:** every value a notebook reads is a job-level parameter whose default comes from a bundle variable.
+- **Safe to rerun:** a second run replaces its own output instead of adding to it. Sample and result tables keep their row counts; only run-log, audit, and history tables grow.
 - **Compute:** serverless jobs, serverless Lakeflow Declarative Pipelines, and serverless SQL warehouses only.
 - **App access:** top-level bundle `permissions` give the app service principal `CAN_RUN`, which maps to `CAN_MANAGE_RUN` on jobs. The app's quick run button triggers jobs with that identity.
-- **Discovery:** every job carries the tag `capability_guide_job: <job-key>`. The app maps guides to job keys in `client/src/data/artifacts.ts` and finds the deployed job by tag, so no job IDs are configured.
+- **Discovery:** every job carries the tag `capability_guide_job: <job-key>`. The app maps guides to job keys in `server/artifacts.json` and finds the deployed job by tag, so no job IDs are configured.
 - **Public-safe content:** no workspace hosts, IDs, credentials, customer names, or user-home paths in code or config.
