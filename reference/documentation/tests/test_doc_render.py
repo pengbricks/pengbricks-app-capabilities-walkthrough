@@ -50,11 +50,12 @@ def test_render_index_links():
 
 def test_spec_helpers():
     import yaml
-    from spec_helpers import column_kwargs, python_rows, render_sql
+    from spec_helpers import generator_columns, render_sql
     spec = yaml.safe_load(open(os.path.join(os.path.dirname(__file__), "..", "use_cases", "general.yml")))
     t = spec["tables"][0]
-    a, _ = python_rows(t, spec["seed"])
-    b, _ = python_rows(t, spec["seed"])
-    assert a == b and len(a) == t["rows"]
-    assert column_kwargs(t["columns"][2])["weights"] == [6, 3, 1]
+    cols = generator_columns(t)
+    assert [c["name"] for c in cols] == [c["name"] for c in t["columns"]]
+    assert cols[2]["values"] == ["placed", "shipped", "cancelled"] and cols[2]["weights"] == [6, 3, 1]
+    assert cols[0]["min"] == 1 and cols[0]["max"] == 950
+    assert cols[4]["begin"] == "2026-01-01" and cols[4]["interval"] == "1 day"
     assert "`c`.`s`.`t`" in render_sql("select * from {x}", {"x": "`c`.`s`.`t`"})

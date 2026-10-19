@@ -5,7 +5,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 import pytest
 
-from analyst_common.datagen import column_options
+from analyst_common.datagen import build_table
 from analyst_common.helpers import (
     match_counts,
     match_status,
@@ -53,7 +53,14 @@ def test_totals_match_tolerance():
     assert not totals_match("100.00", "100.02")
 
 
-def test_column_options_expr_and_random():
-    assert column_options({"expr": "id"}) == {"expr": "id", "baseColumn": "id"}
-    options = column_options({"values": ["a"], "weights": [1], "min": 1, "max": 2})
-    assert options["random"] and options["minValue"] == 1 and options["weights"] == [1]
+def test_build_table_passes_spec_columns_to_the_generator(monkeypatch):
+    calls = {}
+
+    def fake_generate(spark, columns, rows, seed, name, partitions=8, **_):
+        calls.update(columns=columns, rows=rows, seed=seed, name=name, partitions=partitions)
+        return "df"
+
+    monkeypatch.setattr("analyst_common.datagen.generate", fake_generate)
+    columns = [{"name": "a", "type": "bigint", "expr": "id"}]
+    assert build_table(None, {"name": "general", "seed": "7"}, "t", 5, columns, partitions=2) == "df"
+    assert calls == {"columns": columns, "rows": 5, "seed": 7, "name": "general_t", "partitions": 2}

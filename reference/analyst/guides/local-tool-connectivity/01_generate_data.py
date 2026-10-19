@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 1. Generate the sample data
 # MAGIC
-# MAGIC Builds `analyst_customers` from the use-case spec with dbldatagen and a fixed seed. Each table is overwritten, so a rerun replaces the data.
+# MAGIC Builds `analyst_customers` from the use-case spec with the sample-data generator (`src/sample_data.py`) and a fixed seed. Each table is overwritten, so a rerun replaces the data.
 
 # COMMAND ----------
 

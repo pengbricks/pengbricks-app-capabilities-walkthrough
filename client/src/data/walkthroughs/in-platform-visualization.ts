@@ -72,6 +72,14 @@ export const walkthrough: Walkthrough = {
           { kind: 'surface', label: 'Dashboard' },
         ],
       },
+      examples: [
+        {
+          label: "Define the measure once as a metric view",
+          language: 'sql',
+          code: "CREATE OR REPLACE VIEW <catalog>.<schema>.revenue_metrics\nWITH METRICS\nLANGUAGE YAML\nAS $$\n  version: 1.1\n  source: <catalog>.<schema>.analyst_orders\n  dimensions:\n    - name: order_month\n      expr: DATE_TRUNC('MONTH', order_ts)\n  measures:\n    - name: revenue\n      expr: SUM(quantity * unit_price)\n$$;\n\nSELECT order_month, MEASURE(revenue) FROM <catalog>.<schema>.revenue_metrics GROUP BY ALL;",
+          notes: ["A metric view keeps the revenue formula in one place for notebooks and dashboards."],
+        },
+      ],
     },
     {
       id: 'totals',

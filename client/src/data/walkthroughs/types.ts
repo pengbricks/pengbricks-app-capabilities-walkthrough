@@ -64,6 +64,11 @@ export type WalkthroughSection = {
   table?: { caption?: string; columns: [string, string]; rows: [string, string][] };
   steps?: { title: string; body: string; code?: string }[];
   points?: { strong: string; text: string }[];
+  /**
+   * Short setup examples for options the reference code does not use, such as other Auto Loader
+   * schema modes. Real code from the bundle comes from artifacts.json highlights with a matching section.
+   */
+  examples?: { label: string; language: string; code: string; notes?: string[] }[];
 };
 
 export type Walkthrough = {

@@ -1,5 +1,5 @@
 # Use-case spec: the domain for all three data engineering guides.
-# src/de_common/datagen.py turns it into deterministic sample data with dbldatagen.
+# src/de_common/datagen.py turns it into deterministic sample data with the generator in src/sample_data.py.
 name: general
 seed: 20261014
 

@@ -41,6 +41,24 @@ iceberg:
   # Unity Catalog Iceberg REST catalog path on the workspace host.
   irc_path: /api/2.1/unity-catalog/iceberg-rest
 
+# Orders for the file-formats guide: dates, decimals, nullable fields. The notebook adds the nested
+# columns (shipping, items) because the generator builds flat columns.
+file_formats:
+  comment: Orders written as JSON, CSV, Parquet, Delta, and Iceberg for the file-formats guide.
+  table: format_orders
+  rows: 1000000
+  columns:
+    - {name: order_id, type: string, expr: "concat('ORD-', lpad(cast(id AS STRING), 8, '0'))", comment: Unique order identifier}
+    - {name: customer_id, type: int, min: 1, max: 50000, comment: Customer number}
+    - {name: order_date, type: date, begin: "2025-01-01", end: "2025-12-31", interval: "1 day", comment: Day of the order}
+    - {name: order_ts, type: timestamp, expr: "timestampadd(SECOND, cast(pmod(xxhash64(id, 'time'), 86400) AS INT), cast(order_date AS TIMESTAMP))", comment: Time of the order}
+    - {name: region, type: string, values: [West, East, North, South], weights: [3, 3, 2, 2], comment: Sales region}
+    - {name: status, type: string, expr: "CASE WHEN pmod(xxhash64(id, 'status-null'), 10) = 0 THEN NULL ELSE element_at(array('NEW', 'SHIPPED', 'DELIVERED', 'RETURNED'), 1 + cast(pmod(xxhash64(id, 'status'), 4) AS INT)) END", comment: Order status. Null for one row in ten}
+    - {name: quantity, type: int, min: 1, max: 20, comment: Units ordered}
+    - {name: unit_price, type: "decimal(10,2)", min: 10, max: 1000, comment: Price per unit in USD}
+    - {name: discount, type: "decimal(5,2)", expr: "CASE WHEN pmod(xxhash64(id, 'disc-null'), 10) < 7 THEN NULL ELSE cast(pmod(xxhash64(id, 'disc'), 30) AS DECIMAL(5,2)) END", comment: Percent discount. Null for seven rows in ten}
+    - {name: amount, type: "decimal(12,2)", expr: "quantity * unit_price * (1 - coalesce(discount, 0) / 100)", comment: Order total in USD}
+
 integrations:
   sql_connector:
     query_table: sharing_orders

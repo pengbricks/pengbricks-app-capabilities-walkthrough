@@ -11,7 +11,7 @@ sys.path.insert(0, str(BUNDLE_ROOT / "src"))
 from capability_framework.adapters import get_adapter  # noqa: E402
 from capability_framework.adapters.provider_a import status_case_sql  # noqa: E402
 from capability_framework.config import load_feed, parse_feed  # noqa: E402
-from capability_framework.datagen import bad_row_exprs, column_options  # noqa: E402
+from capability_framework.datagen import bad_row_exprs, canonical  # noqa: E402
 from capability_framework.use_case import load_use_case, render_feeds  # noqa: E402
 from capability_framework.runner import quarantine_replace_where  # noqa: E402
 from capability_framework.validation import quarantine_reasons_sql, rule_to_sql  # noqa: E402
@@ -71,11 +71,19 @@ def test_provider_a_status_codes_are_isolated_in_its_adapter() -> None:
     assert "WHEN 'A' THEN 'approved'" in status_case_sql("STATUS_CD")
 
 
-def test_datagen_options_follow_the_spec() -> None:
+def test_canonical_passes_the_spec_to_the_generator(monkeypatch) -> None:
     spec = load_use_case(SPEC_PATH)
-    columns = {column["name"]: column for column in spec["entity"]["columns"]}
-    assert column_options(columns["record_id"]) == {"expr": columns["record_id"]["expr"], "baseColumn": "id"}
-    assert column_options(columns["currency"])["weights"] == [8, 1, 1]
+    calls = {}
+
+    def fake_generate(spark, columns, rows, seed, name, partitions=8, id_offset=0, keep_id=False):
+        calls.update(columns=columns, rows=rows, seed=seed, name=name, id_offset=id_offset, keep_id=keep_id)
+        return "df"
+
+    monkeypatch.setattr("capability_framework.datagen.generate", fake_generate)
+    assert canonical(None, spec, 10, seed_offset=3, id_offset=100) == "df"
+    assert calls["columns"] is spec["entity"]["columns"]
+    assert calls["seed"] == int(spec["seed"]) + 3
+    assert calls["id_offset"] == 100 and calls["keep_id"] is True and calls["rows"] == 10
     assert all("id %" in expression for _, expression in bad_row_exprs(spec))
 
 

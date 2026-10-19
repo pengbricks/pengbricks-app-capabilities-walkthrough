@@ -1,0 +1,19 @@
+resources:
+  pipelines:
+    capability_guides_cdc_pipeline:
+      name: capability-guides-cdc
+      catalog: ${var.catalog}
+      schema: ${var.schema}
+      serverless: true
+      continuous: false
+      channel: CURRENT
+      tags:
+        capability_guide_job: capability_guides_cdc
+        capability_guide_use_case: ${var.use_case}
+      configuration:
+        cdc_landing_path: /Volumes/${var.catalog}/${var.schema}/${resources.volumes.capability_guides_data_engineering_exports.name}/cdc_orders_events
+        cdc_source_table: ${var.catalog}.${var.schema}.cdc_orders_source
+        cdc_snapshot_table: ${var.catalog}.${var.schema}.cdc_orders_snapshot
+      libraries:
+        - glob:
+            include: ../guides/cdc-incremental-refresh/pipeline/**

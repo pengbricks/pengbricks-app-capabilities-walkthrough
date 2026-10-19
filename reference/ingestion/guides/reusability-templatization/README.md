@@ -17,7 +17,7 @@ The second feed, provider B, was onboarded without new code. It is a block in th
 ```mermaid
 flowchart TB
   spec[use_cases/&lt;use_case&gt;.yml<br/>entity, rules, bad rows, feeds, seed] --> render[render_use_case.py]
-  spec --> datagen[datagen.py<br/>dbldatagen, fixed seed]
+  spec --> datagen[datagen.py<br/>sample-data generator, fixed seed]
   render --> feeds[feeds/&lt;use_case&gt;/*.yml]
   datagen --> landing[/Volumes/.../landing/feed/]
   feeds --> framework[shared framework]
@@ -51,7 +51,7 @@ Two ways to add a use case:
 - `use_cases/general.yml`: the only file a new use case needs
 - `tools/render_use_case.py`: writes `feeds/<use_case>/*.yml` and checks drift with `--check`
 - `src/capability_framework/use_case.py`: spec validation and feed rendering
-- `src/capability_framework/datagen.py`: deterministic sample data with dbldatagen
+- `src/capability_framework/datagen.py`: deterministic sample data from the spec, built by the sample-data generator (`src/sample_data.py`)
 
 ## Demo steps
 

@@ -8,7 +8,7 @@
 # MAGIC
 # MAGIC | Notebook | What it does |
 # MAGIC |---|---|
-# MAGIC | `01_generate_data` | Writes the governed sample tables from the use-case spec (dbldatagen, fixed seed). |
+# MAGIC | `01_generate_data` | Writes the governed sample tables from the use-case spec (sample-data generator, fixed seed). |
 # MAGIC | `02_sql_exploration` | Three SQL analyses saved as tables: revenue by region and segment, top customers, monthly running total. |
 # MAGIC | `03_python_pandas_roundtrip` | Queries with SQL, analyzes in pandas, writes the result back to Unity Catalog. |
 # MAGIC | `04_large_aggregation` | Generates 6 million events and times a scan, a group-by and approximate percentiles. |

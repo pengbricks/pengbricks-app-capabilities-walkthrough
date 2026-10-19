@@ -8,7 +8,7 @@
 # MAGIC
 # MAGIC | Notebook | What it does |
 # MAGIC |---|---|
-# MAGIC | `01_generate_data` | Writes the governed sample tables from the use-case spec (dbldatagen, fixed seed). |
+# MAGIC | `01_generate_data` | Writes the governed sample tables from the use-case spec (sample-data generator, fixed seed). |
 # MAGIC | `02_build_flow_output` | Builds `prep_flow_output` and `prep_flow_summary` with SQL: the same steps the Designer flow performs. |
 # MAGIC
 # MAGIC ## How to run

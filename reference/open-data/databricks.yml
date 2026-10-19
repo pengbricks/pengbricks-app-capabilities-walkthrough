@@ -22,6 +22,9 @@ variables:
   lakebase_project:
     description: Lakebase Postgres project that hosts the source database (overrides lakebase_project in the use-case spec)
     default: capability-guides
+  format_rows:
+    description: Order rows the file-formats guide generates and writes in every format
+    default: "1000000"
   release:
     description: Release identifier recorded in resource tags
     default: local

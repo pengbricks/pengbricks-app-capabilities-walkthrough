@@ -40,3 +40,11 @@ def test_gate_blocks_regression_against_champion():
 
 def test_gate_allows_regression_within_tolerance():
     assert all(ok for _, ok, _ in common.evaluate_gates(0.88, 0.8, 0.9, 0.05))
+
+
+def test_training_columns_use_options_the_sample_data_generator_supports(spec):
+    import sample_data  # noqa: F401
+
+    for column in spec["data"]["columns"]:
+        assert column["type"].startswith("decimal") or column["type"] in {"int", "double", "string", "date", "timestamp", "bigint"}
+        assert column["min"] <= column["max"]

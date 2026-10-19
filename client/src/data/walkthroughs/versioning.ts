@@ -40,7 +40,7 @@ export const walkthrough: Walkthrough = {
         description:
           'generate_data seeds sample rows. The compatibility_gate task reads the contract files and classifies changes and checks the semantic version. apply_v1 creates v1.0.0 and alters it to v1.1.0. apply_v2 publishes customers_v2 and the customers_v1 view. Both apply tasks write rows to contract_registry. show_traceability prints Delta history and tags. notify_consumers writes one row per consumer to consumer_notifications.',
         nodes: [
-          { id: 'gen', label: 'generate_data', sub: 'dbldatagen, fixed seed', mono: true, col: 0, row: 0 },
+          { id: 'gen', label: 'generate_data', sub: 'generated data, fixed seed', mono: true, col: 0, row: 0 },
           { id: 'gate', label: 'compatibility_gate', sub: 'classify and check semver', mono: true, col: 1, row: 0, kind: 'highlight' },
           { id: 'v1', label: 'apply_v1', sub: 'v1.0.0, ALTER to v1.1.0', mono: true, col: 2, row: 0 },
           { id: 'v2', label: 'apply_v2', sub: 'customers_v2 plus view', mono: true, col: 3, row: 0 },

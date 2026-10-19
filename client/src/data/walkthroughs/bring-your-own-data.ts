@@ -114,6 +114,14 @@ export const walkthrough: Walkthrough = {
           code: 'SELECT match_status, COUNT(*) FROM <catalog>.<schema>.byod_joined GROUP BY match_status;',
         },
       ],
+      examples: [
+        {
+          label: "Read the file with an explicit schema",
+          language: 'sql',
+          code: "SELECT *\nFROM read_files(\n  '/Volumes/<catalog>/<schema>/uploads/<user>/account_targets.csv',\n  format => 'csv',\n  header => true,\n  schema => 'customer_id STRING, account_owner STRING, annual_target INT'\n);",
+          notes: ["The reference notebook infers the schema. An explicit schema stops a stray text value from changing a column type. Rows that do not fit land in _rescued_data."],
+        },
+      ],
     },
   ],
   related: [

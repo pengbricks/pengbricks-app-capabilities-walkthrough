@@ -87,11 +87,16 @@ def test_apply_overrides_does_not_mutate_spec():
     assert (original["min"], original["max"]) == (10, 200)
 
 
-def test_column_options_for_each_kind():
-    assert g.column_options({"name": "x", "type": "string", "expr": "1"}) == {"expr": "1", "baseColumn": "id"}
-    opts = g.column_options({"name": "r", "type": "string", "values": ["a", "b"], "weights": [1, 2]})
-    assert opts["weights"] == [1, 2] and opts["random"] is True
-    assert g.column_options({"name": "q", "type": "int", "min": 1, "max": 5})["maxValue"] == 5
+def test_build_orders_passes_spec_columns_seed_and_overrides_to_the_generator():
+    from unittest import mock
+
+    overrides = SPEC["observability"]["batches"][1]["overrides"]
+    with mock.patch("sample_data.generate") as generate:
+        g.build_orders(None, SPEC, rows=50, seed_offset=3, overrides=overrides)
+    args, kwargs = generate.call_args
+    amount = next(c for c in args[1] if c["name"] == "amount")
+    assert (amount["min"], amount["max"]) == (120, 380)
+    assert kwargs["rows"] == 50 and kwargs["seed"] == int(SPEC["seed"]) + 3 and kwargs["keep_id"] is True
 
 
 def test_plan_pause_change_and_counts():

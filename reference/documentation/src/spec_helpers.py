@@ -1,6 +1,4 @@
-"""Pure helpers that turn a use-case spec into dbldatagen arguments or a seeded Python generator."""
-import datetime as dt
-import random
+"""Helpers that turn a use-case spec into generated sample tables (src/sample_data.py)."""
 
 
 def load_spec(path):
@@ -9,55 +7,45 @@ def load_spec(path):
         return yaml.safe_load(f)
 
 
-def column_kwargs(col: dict) -> dict:
-    """Translate one column spec into dbldatagen `withColumn` keyword arguments."""
-    kind = col["kind"]
-    kw = {"colType": col["type"]}
-    if col.get("null_pct"):
-        kw["percentNulls"] = col["null_pct"]
-    if kind == "int_range":
-        kw.update(minValue=col["min"], maxValue=col["max"], random=True)
-    elif kind == "float_range":
-        kw.update(minValue=col["min"], maxValue=col["max"], random=True, step=10 ** -col.get("round", 2))
-    elif kind == "choice":
-        kw.update(values=col["values"], random=True)
-        if col.get("weights"):
-            kw["weights"] = col["weights"]
-    elif kind == "date_range":
-        kw.update(begin=col["begin"], end=col["end"], interval="1 day", random=True)
-    elif kind == "sequence":
-        kw.update(minValue=col.get("min", 1), uniqueValues=col.get("unique"))
-    else:
-        raise ValueError(f"unknown column kind: {kind}")
-    return kw
+def generator_columns(table: dict) -> list[dict]:
+    """Translate a table's column specs into the column dicts `sample_data.generate` takes."""
+    columns = []
+    for col in table["columns"]:
+        kind = col["kind"]
+        out = {"name": col["name"], "type": col["type"]}
+        if kind in ("int_range", "float_range"):
+            out.update(min=col["min"], max=col["max"])
+        elif kind == "choice":
+            out["values"] = col["values"]
+            if col.get("weights"):
+                out["weights"] = col["weights"]
+        elif kind == "date_range":
+            out.update(begin=str(col["begin"]), end=str(col["end"]), interval="1 day")
+        elif kind == "sequence":
+            out["expr"] = f"{col.get('min', 1)} + id"
+        else:
+            raise ValueError(f"unknown column kind: {kind}")
+        columns.append(out)
+    return columns
 
 
-def python_rows(table: dict, seed: int):
-    """Seeded pure-Python fallback: returns (rows, schema_ddl). Same spec, deterministic output."""
-    rng = random.Random(f"{seed}:{table['name']}")
-    rows = []
-    for i in range(table["rows"]):
-        row = []
-        for c in table["columns"]:
-            if c.get("null_pct") and rng.random() < c["null_pct"]:
-                row.append(None)
-                continue
-            k = c["kind"]
-            if k == "int_range":
-                row.append(rng.randint(c["min"], c["max"]))
-            elif k == "float_range":
-                row.append(round(rng.uniform(c["min"], c["max"]), c.get("round", 2)))
-            elif k == "choice":
-                row.append(rng.choices(c["values"], weights=c.get("weights"))[0])
-            elif k == "date_range":
-                b, e = dt.date.fromisoformat(str(c["begin"])), dt.date.fromisoformat(str(c["end"]))
-                row.append(b + dt.timedelta(days=rng.randint(0, (e - b).days)))
-            elif k == "sequence":
-                row.append(c.get("min", 1) + i)
-            else:
-                raise ValueError(f"unknown column kind: {k}")
-        rows.append(tuple(row))
-    return rows, ", ".join(f"{c['name']} {c['type']}" for c in table["columns"])
+def table_frame(spark, table: dict, seed: int):
+    """The table as a Spark DataFrame. The same spec and seed give the same rows."""
+    from pyspark.sql import functions as F
+
+    from sample_data import generate
+
+    df = generate(spark, generator_columns(table), rows=table["rows"], seed=seed, name=table["name"],
+                  partitions=4, keep_id=True)
+    for col in table["columns"]:
+        if col["kind"] == "float_range":
+            df = df.withColumn(col["name"], F.round(F.col(col["name"]), col.get("round", 2)))
+        if col.get("null_pct"):
+            # Hash of the seed, column, and id, so the same rows are null on every run.
+            draw = F.pmod(F.xxhash64(F.lit(int(seed)), F.lit(table["name"]), F.lit(col["name"] + "_null"), F.col("id")),
+                          F.lit(1_000_000)) / F.lit(1_000_000.0)
+            df = df.withColumn(col["name"], F.when(draw < F.lit(float(col["null_pct"])), F.lit(None)).otherwise(F.col(col["name"])))
+    return df.select(*[col["name"] for col in table["columns"]])
 
 
 def render_sql(sql: str, fq: dict) -> str:

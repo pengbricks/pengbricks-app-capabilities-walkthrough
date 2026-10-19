@@ -1,4 +1,3 @@
 pytest
 pyyaml
-dbldatagen
 databricks-sdk>=0.100

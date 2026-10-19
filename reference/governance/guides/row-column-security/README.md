@@ -31,7 +31,7 @@ Reference run results for customer CUST-000001 and row counts:
 
 ```mermaid
 flowchart LR
-  S[use_cases/general.yml] --> G[generate_data: dbldatagen]
+  S[use_cases/general.yml] --> G[generate_data: sample-data generator]
   G --> T[(gov_customers, gov_orders)]
   M[(region_access)] --> F
   P[create_policies] --> F[row filters]

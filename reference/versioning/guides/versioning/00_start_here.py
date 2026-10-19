@@ -8,7 +8,7 @@
 # MAGIC
 # MAGIC | Notebook | What it does |
 # MAGIC |---|---|
-# MAGIC | `01_generate_data` | Writes deterministic sample rows for the dataset named in the use-case spec (dbldatagen). |
+# MAGIC | `01_generate_data` | Writes deterministic sample rows for the dataset named in the use-case spec (the sample-data generator). |
 # MAGIC | `02_compatibility_gate` | Checks every consecutive pair of contracts, then proves the gate rejects a breaking change labeled as a minor release. |
 # MAGIC | `03_apply_v1` | Creates the table at v1.0.0 and evolves it in place to v1.1.0. Drops its own earlier output first, so reruns are clean. |
 # MAGIC | `04_apply_v2` | Publishes v2.0.0 as a new table, keeps `customers_v1` alive as a deprecated view, and archives the old table. |

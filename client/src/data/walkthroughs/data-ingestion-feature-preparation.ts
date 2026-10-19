@@ -9,7 +9,7 @@ export const walkthrough: Walkthrough = {
   shortVersion: [
     {
       title: 'The source comes from a spec.',
-      body: 'dbldatagen builds 20,000 rows from use_cases/general.yml with a fixed seed. About 2% of usage_score is null on purpose.',
+      body: 'The generator builds 20,000 sample rows from use_cases/general.yml with a fixed seed. About 2% of usage_score is null on purpose.',
     },
     {
       title: 'Features live in a governed table.',
@@ -44,7 +44,7 @@ export const walkthrough: Walkthrough = {
           { label: 'Unity Catalog tables', fromRow: 1, toRow: 2 },
         ],
         nodes: [
-          { id: 'gen', label: 'generate_source', mono: true, sub: 'dbldatagen, fixed seed', col: 0, row: 0 },
+          { id: 'gen', label: 'generate_source', mono: true, sub: 'generated data, fixed seed', col: 0, row: 0 },
           { id: 'feat', label: 'build_features', mono: true, sub: 'derive and check', col: 1, row: 0, kind: 'highlight' },
           { id: 'snap', label: 'snapshot_training_set', mono: true, sub: 'join at Delta versions', col: 2, row: 0 },
           { id: 'lin', label: 'record_lineage', mono: true, sub: 'lineage API', col: 3, row: 0 },

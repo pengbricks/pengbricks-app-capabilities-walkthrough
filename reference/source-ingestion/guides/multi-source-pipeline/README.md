@@ -19,7 +19,7 @@ One Lakeflow Declarative Pipeline reads three sources in three shapes: a databas
 ```mermaid
 flowchart LR
   subgraph Prepare[prepare_inputs task]
-    gen[dbldatagen] --> dbt[(ms_db_customers)]
+    gen[sample-data generator] --> dbt[(ms_db_customers)]
     gen --> csv[/source_landing/multi_source/files/]
     api[authenticated API client] --> json[/source_landing/multi_source/api/]
   end

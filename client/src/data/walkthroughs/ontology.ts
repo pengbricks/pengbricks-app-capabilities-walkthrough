@@ -45,7 +45,7 @@ export const walkthrough: Walkthrough = {
           { label: 'After', fromRow: 2, toRow: 2 },
         ],
         nodes: [
-          { id: 'gen', label: 'generate_data', mono: true, sub: 'dbldatagen, fixed seed', col: 0, row: 0 },
+          { id: 'gen', label: 'generate_data', mono: true, sub: 'generated data, fixed seed', col: 0, row: 0 },
           { id: 'before', label: 'ask_before', mono: true, sub: 'space over raw tables', col: 1, row: 0, kind: 'highlight' },
           { id: 'sem', label: 'add_semantics', mono: true, sub: 'comments, tags, metrics', col: 1, row: 1 },
           { id: 'mv', label: 'sales_metrics', mono: true, sub: 'metric view', col: 2, row: 1, kind: 'store' },

@@ -89,6 +89,14 @@ export const walkthrough: Walkthrough = {
           { kind: 'dashed', label: 'Automation path' },
         ],
       },
+      examples: [
+        {
+          label: "Sign in from a terminal",
+          language: 'sh',
+          code: "# U2M: opens a browser once and caches a token\ndatabricks auth login --host https://<workspace-host>\n\n# M2M: a service principal's OAuth secret\nexport DATABRICKS_HOST=https://<workspace-host>\nexport DATABRICKS_CLIENT_ID=<application-id>\nexport DATABRICKS_CLIENT_SECRET=<oauth-secret>",
+          notes: ["The connector, Databricks Connect, and odbc::databricks() all read these settings."],
+        },
+      ],
     },
     {
       id: 'job',

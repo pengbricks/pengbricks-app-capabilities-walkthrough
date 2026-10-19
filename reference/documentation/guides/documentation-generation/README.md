@@ -43,11 +43,12 @@ flowchart LR
 - `reference/documentation/databricks.yml`: bundle, variables, targets, permissions
 - `reference/documentation/resources/schema.yml`: the `docs` volume in the shared guide schema
 - `reference/documentation/resources/job.yml`: job `capability_guides_documentation_refresh` (serverless, two notebook tasks)
-- `reference/documentation/requirements.txt`: `dbldatagen` and `pyyaml`, installed by the first cell of `01_build_sample_tables`
+- `reference/documentation/requirements.txt`: `pyyaml`, installed by the first cell of `01_build_sample_tables`
 - `reference/documentation/use_cases/general.yml`: domain spec (tables, column specs, row counts, seed, tags)
 - `reference/documentation/guides/documentation-generation/00_start_here.py`: what the guide shows, the notebooks, the variables, and a link to the job
-- `reference/documentation/guides/documentation-generation/01_build_sample_tables.py`: spec-driven table build with `dbldatagen`
-- `reference/documentation/src/spec_helpers.py`: spec parsing and seeded Python fallback generator
+- `reference/documentation/guides/documentation-generation/01_build_sample_tables.py`: spec-driven table build with the sample-data generator
+- `reference/documentation/src/sample_data.py`: the plain-PySpark sample-data generator
+- `reference/documentation/src/spec_helpers.py`: spec parsing and the translation to generator columns
 - `reference/documentation/guides/documentation-generation/02_generate_docs.py`: profiling, system table queries, `ai_query`, comments, pages, log row
 - `reference/documentation/src/doc_render.py`: markdown rendering helpers
 - `reference/documentation/tests/test_doc_render.py`: unit tests (`python -m pytest reference/documentation/tests`)
@@ -77,5 +78,5 @@ flowchart LR
 - `ai_query` does not work against every endpoint. In this workspace the Sonnet 5 and Opus 5 endpoints reject batch inference, so the default is `databricks-claude-opus-4-8`. Check with a one-line `ai_query` before changing `model_endpoint`.
 - Descriptions are drafts from table metadata and profile numbers, not from business knowledge. Review them before treating them as authoritative. Each run overwrites existing comments.
 - Key uniqueness checks the first id-like column only.
-- If `dbldatagen` fails on serverless, `01_build_sample_tables` falls back to a seeded Python generator that reads the same spec. The run used `dbldatagen`.
+- Generated tables come from the sample-data generator (`src/sample_data.py`, copied from `reference/_shared`), so the same spec and seed give the same rows.
 - Next steps: document more tables by adding them to the spec (the job documents only the tables the spec lists, because the guide schema is shared with other bundles), add a human-edited override file so reviewed comments are kept, and schedule the job.

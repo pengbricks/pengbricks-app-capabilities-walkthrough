@@ -71,6 +71,24 @@ export const walkthrough: Walkthrough = {
       },
     },
     {
+      id: 'setup',
+      heading: 'Set it up',
+      prose:
+        'The ml-lifecycle bundle creates the Unity Catalog volume that holds the pickle, and the job takes its name as a parameter. The model, features, and tolerance come from the model block of use_cases/general.yml.',
+      steps: [
+        {
+          title: 'Deploy the bundle',
+          body: 'The bundle also declares the legacy_models volume and the MLflow experiment.',
+          code: 'cd reference/ml-lifecycle\ndatabricks bundle deploy -t dev \\\n  --var catalog=<catalog> --var warehouse_id=<warehouse-id> \\\n  --var app_service_principal=<app-sp-application-id> \\\n  --var notification_email=<email>',
+        },
+        {
+          title: 'Run the job',
+          body: 'export_legacy_model runs first. train_native and import_legacy_model run after it, side by side.',
+          code: 'databricks bundle run capability_guides_model_training -t dev',
+        },
+      ],
+    },
+    {
       id: 'baseline',
       heading: 'Reproducing the baseline',
       prose:

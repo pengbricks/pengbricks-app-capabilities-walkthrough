@@ -8,7 +8,7 @@
 # MAGIC
 # MAGIC | Notebook | What it does |
 # MAGIC |---|---|
-# MAGIC | `01_generate_source` | Writes the source table with dbldatagen and a fixed seed, and passes its Delta version on. |
+# MAGIC | `01_generate_source` | Writes the source table from generated sample data with a fixed seed, and passes its Delta version on. |
 # MAGIC | `02_build_features` | Builds the feature table (Feature Engineering client, or a primary-key Delta table if unavailable) and runs the range, null and key checks. |
 # MAGIC | `03_snapshot_training_set` | Joins the feature table to the labels at recorded Delta versions and saves `training_set_v<version>`. |
 # MAGIC | `04_record_lineage` | Reads table lineage for the feature table and training set from Unity Catalog and records it. |

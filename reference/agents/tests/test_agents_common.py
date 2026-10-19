@@ -91,3 +91,17 @@ def test_text_of_handles_string_list_and_missing():
     parts = [{"type": "reasoning", "text": "hidden"}, {"type": "text", "text": "a"}, {"type": "text", "text": "b"}]
     assert ac.text_of({"content": parts}) == "ab"
     assert ac.text_of({"content": None}) == ""
+
+
+def test_template_expression_replaces_each_wildcard_with_a_letter():
+    import tool_setup
+
+    expr = tool_setup.template_expression("customer\\w\\w\\w@example.com", 7)
+    assert expr.count("substring(") == 3
+    assert expr.startswith("concat('customer'")
+    assert expr.endswith("'@example.com')")
+
+
+def test_orders_spec_columns_are_supported_kinds():
+    spec = ac.load_spec(str(SPEC))
+    assert {c["kind"] for c in spec["data"]["columns"]} <= {"values", "range", "template"}

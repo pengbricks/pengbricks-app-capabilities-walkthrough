@@ -101,6 +101,14 @@ export const walkthrough: Walkthrough = {
         ],
         legend: [{ state: 'own', label: 'Result in this table' }],
       },
+      examples: [
+        {
+          label: "Type 2 history on selected columns only",
+          language: 'sql',
+          code: "CREATE FLOW accounts_scd2_flow AS AUTO CDC INTO accounts_scd2\nFROM STREAM(accounts_changes)\nKEYS (account_id)\nAPPLY AS DELETE WHEN change_type = 'DELETE'\nSEQUENCE BY change_seq\nCOLUMNS * EXCEPT (change_type, change_seq)\nSTORED AS SCD TYPE 2\nTRACK HISTORY ON * EXCEPT (last_login_at);",
+          notes: ["Changes to last_login_at overwrite the current row instead of adding a history row."],
+        },
+      ],
     },
     {
       id: 'counts',
@@ -147,7 +155,6 @@ export const walkthrough: Walkthrough = {
         {
           title: 'Type 1',
           body: 'Deletes come from the change_type column. The feed columns that only drive the flow are excluded.',
-          code: "CREATE OR REFRESH STREAMING TABLE accounts_scd1;\n\nCREATE FLOW accounts_scd1_flow AS AUTO CDC INTO accounts_scd1\nFROM STREAM(accounts_changes)\nKEYS (account_id)\nAPPLY AS DELETE WHEN change_type = 'DELETE'\nSEQUENCE BY change_seq\nCOLUMNS * EXCEPT (change_type, change_seq)\nSTORED AS SCD TYPE 1;",
         },
         {
           title: 'Type 2',

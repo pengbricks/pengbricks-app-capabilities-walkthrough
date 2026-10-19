@@ -31,6 +31,25 @@ export const walkthrough: Walkthrough = {
   sections: [
     {
       id: 'flow',
+      examples: [
+        {
+          label: 'Attach and remove a mask and a row filter',
+          language: 'sql',
+          code: `CREATE OR REPLACE FUNCTION main.sales.mask_email(v STRING) RETURNS STRING
+  RETURN CASE WHEN is_account_group_member('pii_readers') THEN v
+              ELSE concat(left(v, 1), '***@', split_part(v, '@', 2)) END;
+ALTER TABLE main.sales.customers ALTER COLUMN email SET MASK main.sales.mask_email;
+
+CREATE OR REPLACE FUNCTION main.sales.region_filter(region STRING) RETURNS BOOLEAN
+  RETURN is_account_group_member('admins') OR region = 'WEST';
+ALTER TABLE main.sales.orders SET ROW FILTER main.sales.region_filter ON (region);
+
+-- Detach
+ALTER TABLE main.sales.customers ALTER COLUMN email DROP MASK;
+ALTER TABLE main.sales.orders DROP ROW FILTER;`,
+          notes: ['The reference code branches on session_user() first; this shorter form uses only group membership.'],
+        },
+      ],
       heading: 'How the policies are built',
       prose:
         'The spec names the masked columns, the filter columns, and the mapping rows. The job generates the tables, creates the functions, and attaches them to the table objects.',
@@ -38,14 +57,14 @@ export const walkthrough: Walkthrough = {
         type: 'flow',
         title: 'From spec to policies',
         description:
-          'The use-case spec drives generate_data, which writes gov_customers and gov_orders with dbldatagen. create_policies writes the region_access mapping table, creates two mask functions and two filter functions, and attaches them with ALTER TABLE. test_policies runs the same queries for several identities. policy_inventory reads information_schema.',
+          'The use-case spec drives generate_data, which writes gov_customers and gov_orders as generated sample data. create_policies writes the region_access mapping table, creates two mask functions and two filter functions, and attaches them with ALTER TABLE. test_policies runs the same queries for several identities. policy_inventory reads information_schema.',
         lanes: [
           { label: 'Spec and data', fromRow: 0, toRow: 0 },
           { label: 'Policies', fromRow: 1, toRow: 2 },
         ],
         nodes: [
           { id: 'spec', label: 'Use-case spec', sub: 'general.yml', col: 0, row: 0 },
-          { id: 'gen', label: 'generate_data', mono: true, sub: 'dbldatagen, fixed seed', col: 1, row: 0 },
+          { id: 'gen', label: 'generate_data', mono: true, sub: 'generated data, fixed seed', col: 1, row: 0 },
           { id: 'tables', label: 'gov_ tables', mono: true, sub: '5,000 and 20,000 rows', col: 2, row: 0, kind: 'store' },
           { id: 'map', label: 'region_access', mono: true, sub: 'principal to region', col: 0, row: 1, kind: 'store' },
           { id: 'create', label: 'create_policies', mono: true, col: 1, row: 1, kind: 'highlight' },

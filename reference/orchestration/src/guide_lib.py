@@ -1,7 +1,7 @@
 """Shared helpers for the orchestration and observability jobs.
 
 Pure functions (spec loading, drift math, schema diffs, pause planning) have unit tests.
-Functions that take a `spark` session build data with dbldatagen.
+Functions that take a `spark` session build data with the sample-data generator (`src/sample_data.py`).
 """
 
 from __future__ import annotations
@@ -29,50 +29,23 @@ def apply_overrides(columns: list[dict[str, Any]], overrides: dict[str, dict[str
     return merged
 
 
-def spark_type(type_name: str):
-    from pyspark.sql import types as T
-
-    return {
-        "string": T.StringType(),
-        "timestamp": T.TimestampType(),
-        "int": T.IntegerType(),
-        "bigint": T.LongType(),
-        "double": T.DoubleType(),
-    }[type_name.strip().lower()]
-
-
-def column_options(column: dict[str, Any]) -> dict[str, Any]:
-    if "expr" in column:
-        return {"expr": column["expr"], "baseColumn": "id"}
-    options: dict[str, Any] = {"random": True}
-    if "values" in column:
-        options["values"] = list(column["values"])
-        if "weights" in column:
-            options["weights"] = list(column["weights"])
-    for key, target in (("min", "minValue"), ("max", "maxValue"), ("begin", "begin"), ("end", "end"), ("interval", "interval")):
-        if key in column:
-            options[target] = column[key]
-    return options
-
-
 def build_orders(spark, spec: dict[str, Any], rows: int, seed_offset: int = 0, overrides: dict | None = None,
                  with_bad_rows: bool = False):
     """Deterministic orders DataFrame. The same spec, rows, and offset always give the same rows."""
-    import dbldatagen as dg
-    from pyspark.sql import functions as F
+    from sample_data import generate
 
-    generator = dg.DataGenerator(
+    df = generate(
         spark,
-        name=f"{spec['name']}_{spec['entity']['name']}_{seed_offset}",
+        apply_overrides(spec["entity"]["columns"], overrides),
         rows=rows,
+        seed=int(spec["seed"]) + seed_offset,
+        name=f"{spec['name']}_{spec['entity']['name']}_{seed_offset}",
         partitions=4,
-        randomSeedMethod="hash_fieldname",
-        randomSeed=int(spec["seed"]) + seed_offset,
-    ).withIdOutput()
-    for column in apply_overrides(spec["entity"]["columns"], overrides):
-        generator = generator.withColumn(column["name"], spark_type(column["type"]), **column_options(column))
-    df = generator.build()
+        keep_id=True,
+    )
     if with_bad_rows:
+        from pyspark.sql import functions as F
+
         for rule in spec.get("bad_rows", []):
             df = df.withColumn(
                 rule["column"],

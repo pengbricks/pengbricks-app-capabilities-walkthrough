@@ -42,7 +42,7 @@ flowchart LR
 - `use_cases/general.yml`: training data columns, label, model name, features, seed
 - `resources/model_release.job.yml`: the five-task serverless job. Every notebook variable is a job parameter, including `approved_by`
 - `guides/model-deployment-cicd/`: one notebook per job task, in run order, plus `00_start_here` (what it shows, the variables, links to the job). Each notebook also runs on its own with Run all.
-- `01_train_and_register`: dbldatagen data, MLflow 3 `log_model`, UC registration and version tags
+- `01_train_and_register`: generated sample data, MLflow 3 `log_model`, UC registration and version tags
 - `02_run_tests` (`check_signature`) and `src/common.py` (`evaluate_gates`)
 - `03_approval_gate` (`table_approver`)
 - `04_deploy_endpoint` (`wait_ready`)

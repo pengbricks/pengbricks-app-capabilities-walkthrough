@@ -38,7 +38,7 @@ export const walkthrough: Walkthrough = {
         type: 'flow',
         title: 'The four tasks and the tables they write',
         description:
-          'The assess task splits and classifies the legacy SQL and writes assessment_classification. The convert task uses sqlglot, plus hand-written remediation SQL, and writes assessment_conversion. The test task runs the converted pipeline on dbldatagen sample data, compares the output with a Python reference, and writes assessment_test_results. The record task writes assessment_statements, assessment_summary, and assessment_effort.',
+          'The assess task splits and classifies the legacy SQL and writes assessment_classification. The convert task uses sqlglot, plus hand-written remediation SQL, and writes assessment_conversion. The test task runs the converted pipeline on generated sample data, compares the output with a Python reference, and writes assessment_test_results. The record task writes assessment_statements, assessment_summary, and assessment_effort.',
         nodes: [
           { id: 'legacy', label: 'Legacy workload', sub: 'nightly_sales_batch.sql', col: 0, row: 1 },
           { id: 'assess', label: 'assess', sub: 'split and classify', mono: true, col: 1, row: 1, kind: 'highlight' },
@@ -46,7 +46,7 @@ export const walkthrough: Walkthrough = {
           { id: 'test', label: 'test', sub: 'run and compare', mono: true, col: 3, row: 1, kind: 'highlight' },
           { id: 'record', label: 'record', sub: 'summary and effort', mono: true, col: 4, row: 1, kind: 'highlight' },
           { id: 'manual', label: 'Manual remediations', sub: 'manual_remediations.sql', col: 2, row: 0 },
-          { id: 'data', label: 'Sample data', sub: 'dbldatagen, fixed seed', col: 3, row: 0 },
+          { id: 'data', label: 'Sample data', sub: 'generated, fixed seed', col: 3, row: 0 },
           { id: 'cls', label: 'Classification table', sub: 'assessment_classification', mono: true, col: 1, row: 2, kind: 'store' },
           { id: 'conv', label: 'assessment_conversion', mono: true, col: 2, row: 2, kind: 'store' },
           { id: 'res', label: 'assessment_test_results', mono: true, col: 3, row: 2, kind: 'store' },
@@ -122,6 +122,14 @@ export const walkthrough: Walkthrough = {
     {
       id: 'lakebridge',
       heading: 'Where this bundle maps to Lakebridge',
+      examples: [
+        {
+          label: 'Run Lakebridge on a real source folder',
+          language: 'sh',
+          code: 'databricks labs install lakebridge\ndatabricks labs lakebridge install-transpile\ndatabricks labs lakebridge transpile \\\n  --transpiler-config-path <path> --input-source <path> \\\n  --source-dialect <dialect> --output-folder <path> \\\n  --catalog-name <catalog> --schema-name <schema>',
+          notes: ['The bundle uses sqlglot on one script. Lakebridge transpilers handle a whole folder of source files.'],
+        },
+      ],
       prose:
         'Lakebridge is the Databricks Labs toolkit for migrating to Databricks, and it covers the same three stages at estate scale. assess.py stands in for Analyzer on one workload, convert.py with sqlglot stands in for a transpiler, and reconcile.py stands in for Reconciler. Use this bundle to explain the loop and its artifacts, and use Lakebridge for a real estate.',
       diagram: {

@@ -592,7 +592,8 @@ export function EnvironmentSeparationPage() {
                 <desc id="d4-desc">
                   A single Git commit becomes one bundle, databricks.yml. The bundle deploys to four targets, dev, test,
                   stage, and prod, each with its own catalog variable. In each environment, pipelines rebuild that
-                  environment&apos;s catalog from that environment&apos;s own sources. No data is copied between environments.
+                  environment&apos;s catalog from that environment&apos;s own sources. No data is copied between
+                  environments.
                 </desc>
 
                 <rect className="d-box" x="16" y="144" width="168" height="64" rx="8" />
@@ -669,7 +670,7 @@ export function EnvironmentSeparationPage() {
                   dev sources → <tspan className="t-mono">dev_sales</tspan>
                 </text>
                 <text className="t-m" x="760" y="62">
-                  synthetic data (dbldatagen)
+                  generated sample data
                 </text>
                 <rect className="d-surface-box" x="744" y="100" width="280" height="64" rx="8" />
                 <text className="t" x="760" y="126">
@@ -704,9 +705,9 @@ export function EnvironmentSeparationPage() {
         <section className="guide-section" id="identity" aria-labelledby="h-identity">
           <h2 id="h-identity">Who changes what</h2>
           <p className="prose">
-            Grant to groups, not users. People deploy only to dev. Everywhere else the environment&apos;s service principal
-            deploys, and in prod it also owns the objects and runs the jobs, so ownership doesn&apos;t leave when a person
-            does.
+            Grant to groups, not users. People deploy only to dev. Everywhere else the environment&apos;s service
+            principal deploys, and in prod it also owns the objects and runs the jobs, so ownership doesn&apos;t leave
+            when a person does.
           </p>
           <figure className="diagram">
             <div className="diagram-scroll" tabIndex={0} role="group" aria-label="Identity diagram, scrollable">
@@ -903,13 +904,15 @@ export function EnvironmentSeparationPage() {
                 </tr>
                 <tr>
                   <td>Managed storage per catalog</td>
-                  <td>Set a managed location on each catalog pointing at that environment&apos;s bucket or container.</td>
+                  <td>
+                    Set a managed location on each catalog pointing at that environment&apos;s bucket or container.
+                  </td>
                 </tr>
                 <tr>
                   <td>Bind catalogs to workspaces</td>
                   <td>
-                    Set the catalog&apos;s isolation mode to isolated and bind it to the environment&apos;s workspace. Bind prod
-                    read-only into stage only when a parity check needs it.
+                    Set the catalog&apos;s isolation mode to isolated and bind it to the environment&apos;s workspace.
+                    Bind prod read-only into stage only when a parity check needs it.
                   </td>
                 </tr>
                 <tr>
@@ -923,14 +926,14 @@ export function EnvironmentSeparationPage() {
                 <tr>
                   <td>Service principal ownership in prod</td>
                   <td>
-                    Jobs and pipelines <code>run_as</code> the environment&apos;s service principal. Ownership does not leave
-                    with a person.
+                    Jobs and pipelines <code>run_as</code> the environment&apos;s service principal. Ownership does not
+                    leave with a person.
                   </td>
                 </tr>
                 <tr>
                   <td>No prod data in dev</td>
                   <td>
-                    Use synthetic data (this repo uses dbldatagen from a use-case spec), masked samples, or Delta
+                    Use generated sample data (this repo builds it from a use-case spec), masked samples, or Delta
                     Sharing of approved datasets.
                   </td>
                 </tr>
@@ -1012,7 +1015,7 @@ export function EnvironmentSeparationPage() {
                 <tr>
                   <td>Synthetic data only</td>
                   <td>
-                    <code>use_cases/*.yml</code> with dbldatagen
+                    <code>use_cases/*.yml</code> with <code>src/sample_data.py</code>
                   </td>
                 </tr>
               </tbody>
@@ -1020,8 +1023,8 @@ export function EnvironmentSeparationPage() {
           </div>
           <p className="prose next-step">
             To add stage and prod, add targets with <code>mode: production</code>, a <code>workspace.host</code> per
-            target, <code>run_as</code> set to that environment&apos;s service principal, and a GitHub environment for each
-            with required reviewers.
+            target, <code>run_as</code> set to that environment&apos;s service principal, and a GitHub environment for
+            each with required reviewers.
           </p>
         </section>
 

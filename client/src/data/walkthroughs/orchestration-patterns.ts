@@ -76,6 +76,14 @@ export const walkthrough: Walkthrough = {
         ],
         caption: 'In the reference run the condition was true, so hold_for_review shows as excluded.',
       },
+      examples: [
+        {
+          label: "Run one task per item with For each",
+          language: 'yml',
+          code: "- task_key: per_region\n  for_each_task:\n    inputs: '[\"east\", \"west\", \"south\"]'\n    concurrency: 2\n    task:\n      task_key: per_region_iteration\n      notebook_task:\n        notebook_path: ../guides/orchestration-patterns/03_branch.py\n        base_parameters:\n          dimension: \"{{input}}\"",
+          notes: ["The reference job fans out to two fixed branches. For each handles a list that changes between runs."],
+        },
+      ],
     },
     {
       id: 'run',
@@ -120,6 +128,14 @@ export const walkthrough: Walkthrough = {
           ['condition', 'valid_rows task value greater than the min_valid_rows job parameter'],
         ],
       },
+      examples: [
+        {
+          label: "Start on new data instead of a clock",
+          language: 'yml',
+          code: "trigger:\n  pause_status: UNPAUSED\n  table_update:\n    table_names:\n      - ${var.catalog}.${var.schema}.orch_orders_valid\n    condition: ANY_UPDATED\n    min_time_between_triggers_seconds: 300",
+          notes: ["Use trigger in place of schedule. A file_arrival trigger works the same way for a volume path."],
+        },
+      ],
     },
     {
       id: 'bulk-pause',

@@ -17,9 +17,22 @@ def find_pipeline_id(w, name_part: str) -> str:
     return matches[0].pipeline_id
 
 
-def run_update(w, pipeline_id: str, full_refresh: bool = False, poll_seconds: int = 15, timeout_seconds: int = 3000) -> str:
-    """Start an update, wait for it, and return its final state. Raises when the update does not complete."""
-    update_id = w.pipelines.start_update(pipeline_id=pipeline_id, full_refresh=full_refresh).update_id
+def run_update(
+    w,
+    pipeline_id: str,
+    full_refresh: bool = False,
+    poll_seconds: int = 15,
+    timeout_seconds: int = 3000,
+    full_refresh_selection: list[str] | None = None,
+) -> str:
+    """Start an update, wait for it, and return its final state. Raises when the update does not complete.
+
+    `full_refresh_selection` names the tables to fully refresh. Everything else is left alone.
+    """
+    if full_refresh_selection:
+        update_id = w.pipelines.start_update(pipeline_id=pipeline_id, full_refresh_selection=full_refresh_selection).update_id
+    else:
+        update_id = w.pipelines.start_update(pipeline_id=pipeline_id, full_refresh=full_refresh).update_id
     deadline = time.time() + timeout_seconds
     while True:
         state = w.pipelines.get_update(pipeline_id=pipeline_id, update_id=update_id).update.state.value

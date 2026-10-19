@@ -14,7 +14,7 @@ dbutils.library.restartPython()
 
 # COMMAND ----------
 
-import sys, os
+import sys, os, time
 sys.path.insert(0, os.path.abspath("../../src"))
 from guide_params import bundle_root, load_params
 from open_data.checks import append_rows, check_row, scrub
@@ -150,8 +150,13 @@ if not blocked:
     visible = sorted(f"{t.schema}.{t.name}" for t in client.list_all_tables())
     record("recipient_lists_tables", "PASS", str(len(visible)), f"Recipient sees {', '.join(visible)}")
 
-    view_df = delta_sharing.load_as_pandas(f"{profile_path}#{share}.{share_schema}.{view}")
     expected = spark.table(f"{prefix}.{view}").count()
+    # A shared view is served from a materialized copy that can trail a changed source table for a while. Re-read until it catches up.
+    for attempt in range(10):
+        view_df = delta_sharing.load_as_pandas(f"{profile_path}#{share}.{share_schema}.{view}")
+        if len(view_df) == expected:
+            break
+        time.sleep(60)
     ok = len(view_df) == expected and "customer_email" not in view_df.columns and set(view_df["region"]) == {cfg["view_region"]}
     record(
         "read_view_filtered", "PASS" if ok else "FAIL", str(len(view_df)),

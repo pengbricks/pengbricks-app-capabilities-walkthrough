@@ -1,8 +1,7 @@
-"""Helpers shared by the guide notebooks: spec loading, naming, registry writes, tags, sample-data options."""
+"""Helpers shared by the guide notebooks: spec loading, naming, registry writes, tags."""
 
 from __future__ import annotations
 
-import re
 from typing import Any
 
 
@@ -63,28 +62,3 @@ def register(spark, catalog, schema, *, dataset, version, change_type, object_na
 def set_tags(spark, table: str, tags: dict[str, str], view: bool = False) -> None:
     pairs = ", ".join(f"'{k}' = '{v}'" for k, v in tags.items())
     spark.sql(f"ALTER {'VIEW' if view else 'TABLE'} {table} SET TAGS ({pairs})")
-
-
-def spark_type(name: str):
-    from pyspark.sql import types as T
-
-    decimal = re.fullmatch(r"decimal\((\d+),\s*(\d+)\)", name.strip().lower())
-    if decimal:
-        return T.DecimalType(int(decimal.group(1)), int(decimal.group(2)))
-    return {"string": T.StringType(), "date": T.DateType(), "int": T.IntegerType(),
-            "bigint": T.LongType(), "double": T.DoubleType()}[name.strip().lower()]
-
-
-def column_options(column: dict) -> dict:
-    """dbldatagen options for one column of the use-case spec."""
-    if "expr" in column:
-        return {"expr": column["expr"], "baseColumn": "id"}
-    options: dict = {"random": True}
-    if "values" in column:
-        options["values"] = list(column["values"])
-        if "weights" in column:
-            options["weights"] = list(column["weights"])
-    for key, target in (("min", "minValue"), ("max", "maxValue"), ("begin", "begin"), ("end", "end"), ("interval", "interval")):
-        if key in column:
-            options[target] = column[key]
-    return options

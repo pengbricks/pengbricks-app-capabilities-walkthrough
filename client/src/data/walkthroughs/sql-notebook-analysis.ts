@@ -46,7 +46,7 @@ export const walkthrough: Walkthrough = {
         ],
         nodes: [
           { id: 'spec', label: 'Use-case spec', sub: 'use_cases/general.yml', col: 0, row: 0 },
-          { id: 'gen', label: 'generate_data', mono: true, sub: 'dbldatagen, fixed seed', col: 1, row: 0 },
+          { id: 'gen', label: 'generate_data', mono: true, sub: 'generated data, fixed seed', col: 1, row: 0 },
           { id: 'base', label: 'analyst_* tables', mono: true, sub: '5,000 and 200,000 rows', col: 2, row: 0, kind: 'store' },
           { id: 'sql', label: 'sql_exploration', mono: true, sub: 'SQL warehouse', col: 0, row: 1 },
           { id: 'py', label: 'python_pandas_roundtrip', mono: true, sub: 'serverless notebook', col: 1, row: 1, kind: 'highlight' },
@@ -74,6 +74,14 @@ export const walkthrough: Walkthrough = {
           { kind: 'dashed', label: 'Optional path' },
         ],
       },
+      examples: [
+        {
+          label: "Parameterize a SQL cell with a widget",
+          language: 'sql',
+          code: "CREATE WIDGET TEXT status DEFAULT 'completed';\n\nSELECT c.region, SUM(o.quantity * o.unit_price) AS revenue\nFROM analyst_orders o JOIN analyst_customers c USING (customer_id)\nWHERE o.status = :status\nGROUP BY c.region;",
+          notes: ["Named parameter markers bind the widget value without string formatting."],
+        },
+      ],
     },
     {
       id: 'roundtrip',
@@ -109,7 +117,6 @@ export const walkthrough: Walkthrough = {
         {
           title: 'Collect',
           body: 'Aggregate in Spark first so only a few hundred rows reach pandas.',
-          code: "monthly = spark.sql(\"SELECT c.region, DATE_TRUNC('MONTH', o.order_ts) AS month, ...\").toPandas()",
         },
         {
           title: 'Reshape',
@@ -119,7 +126,14 @@ export const walkthrough: Walkthrough = {
         {
           title: 'Write back',
           body: 'Spark takes the pandas frame and saves a governed table.',
-          code: 'spark.createDataFrame(result).write.mode("overwrite").saveAsTable(target)',
+        },
+      ],
+      examples: [
+        {
+          label: "Stay distributed with the pandas API on Spark",
+          language: 'py',
+          code: "import pyspark.pandas as ps\n\norders = ps.read_table(f\"{fq}.analyst_orders\")\nrevenue = (orders.quantity * orders.unit_price).groupby(orders.status).sum()",
+          notes: ["Use this when the data is too large to collect to the driver. The code looks like pandas, but Spark runs it."],
         },
       ],
     },
@@ -136,7 +150,7 @@ export const walkthrough: Walkthrough = {
         corner: 'Step ↓ · Result →',
         columns: ['Rows', 'Seconds'],
         rows: [
-          { label: 'generate_and_write', sub: 'dbldatagen to Delta', cells: [{ state: 'own', text: '6,000,000' }, { state: 'own', text: '6.49' }] },
+          { label: 'generate_and_write', sub: 'generated data to Delta', cells: [{ state: 'own', text: '6,000,000' }, { state: 'own', text: '6.49' }] },
           { label: 'full_scan_count', sub: 'count(*)', cells: [{ state: 'own', text: '6,000,000' }, { state: 'own', text: '0.42' }] },
           { label: 'customer_by_month', sub: 'group by, write table', cells: [{ state: 'own', text: '59,594' }, { state: 'own', text: '4.18' }] },
           { label: 'percentiles_by_type', sub: 'percentile_approx', cells: [{ state: 'own', text: '4' }, { state: 'own', text: '0.83' }] },

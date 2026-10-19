@@ -163,6 +163,14 @@ export const walkthrough: Walkthrough = {
           text: 'The bundle does not declare it, so the job deletes and recreates it on each run.',
         },
       ],
+      examples: [
+        {
+          label: "Refresh the monitor on a schedule",
+          language: 'py',
+          code: "from databricks.sdk.service.dataquality import CronSchedule, DataProfilingConfig, SnapshotConfig\n\nconfig = DataProfilingConfig(\n    assets_dir=assets_dir,\n    output_schema_id=schema_info.schema_id,\n    snapshot=SnapshotConfig(),\n    schedule=CronSchedule(quartz_cron_expression=\"0 0 6 * * ?\", timezone_id=\"UTC\"),\n)",
+          notes: ["The reference job asks for refreshes by hand. In production, add a schedule so the monitor refreshes without the job."],
+        },
+      ],
     },
   ],
   related: [

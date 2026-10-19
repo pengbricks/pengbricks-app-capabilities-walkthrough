@@ -48,7 +48,7 @@ export const walkthrough: Walkthrough = {
           { id: 'spec', label: 'Use-case spec', sub: 'use_cases/general.yml', col: 0, row: 0 },
           { id: 'render', label: 'Renderer', sub: 'render_use_case.py', col: 1, row: 0 },
           { id: 'feeds', label: 'Feed configs', sub: 'feeds/general/*.yml', col: 2, row: 0, kind: 'surface' },
-          { id: 'land', label: 'land_files', mono: true, sub: 'dbldatagen, fixed seed', col: 0, row: 1 },
+          { id: 'land', label: 'land_files', mono: true, sub: 'generated data, fixed seed', col: 0, row: 1 },
           { id: 'each', label: 'ingest_each_feed', mono: true, sub: 'for each feed', col: 1, row: 1 },
           { id: 'run', label: 'run_feed.py', mono: true, sub: 'shared framework', col: 2, row: 1, kind: 'highlight' },
           { id: 'compare', label: 'compare_feeds', mono: true, sub: 'fail if any feed fails', col: 3, row: 1 },

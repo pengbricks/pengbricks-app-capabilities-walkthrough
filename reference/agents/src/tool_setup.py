@@ -8,24 +8,33 @@ from __future__ import annotations
 import agents_common as ac
 
 
+def template_expression(template: str, seed: int) -> str:
+    """SQL expression for a template where each `\\w` is a random lowercase letter. Fixed by seed and id."""
+    parts = template.split("\\w")
+    pieces = ["'" + parts[0].replace("'", "''") + "'"]
+    for index, tail in enumerate(parts[1:]):
+        pieces.append(f"substring('abcdefghijklmnopqrstuvwxyz', pmod(xxhash64(id, {int(seed)}, {index}), 26) + 1, 1)")
+        pieces.append("'" + tail.replace("'", "''") + "'")
+    return "concat(" + ", ".join(pieces) + ")"
+
+
 def build_orders(spark, spec: dict):
-    """Generate the orders with dbldatagen. The same spec and seed give the same rows."""
-    import dbldatagen as dg
+    """Generate the orders with the sample-data generator. The same spec and seed give the same rows."""
+    import sample_data
 
     data = spec["data"]
-    gen = dg.DataGenerator(
-        spark, name="orders", rows=data["rows"], partitions=2, randomSeed=spec["seed"], randomSeedMethod="hash_fieldname"
-    ).withIdOutput()
+    columns = []
     for col in data["columns"]:
         if col["kind"] == "values":
-            gen = gen.withColumn(col["name"], "string", values=col["values"], weights=col["weights"], random=True)
+            columns.append({"name": col["name"], "type": "string", "values": col["values"], "weights": col["weights"]})
         elif col["kind"] == "range":
-            gen = gen.withColumn(col["name"], "int", minValue=col["min"], maxValue=col["max"], random=True)
+            columns.append({"name": col["name"], "type": "int", "min": col["min"], "max": col["max"]})
         elif col["kind"] == "template":
-            gen = gen.withColumn(col["name"], "string", template=col["template"], random=True)
+            # The generator has no template option, so each \w becomes a letter drawn from a hash of the row id.
+            columns.append({"name": col["name"], "type": "string", "expr": template_expression(col["template"], spec["seed"])})
         else:
             raise ValueError(f"Unknown column kind: {col['kind']}")
-    df = gen.build()
+    df = sample_data.generate(spark, columns, data["rows"], spec["seed"], "orders", partitions=2, keep_id=True)
     return df.selectExpr(f"CAST(id + {data['id_offset']} AS BIGINT) AS order_id", *[c["name"] for c in data["columns"]])
 
 

@@ -8,7 +8,7 @@ tags:
   sensitivity: internal   # the workspace tag policy only allows pii, internal, public
 tables:
   - name: bronze_orders
-    kind: generate          # generated with dbldatagen from the column specs below
+    kind: generate          # generated from the column specs below
     rows: 1000
     comment_hint: Raw order events as received, with duplicates and missing customer ids.
     columns:

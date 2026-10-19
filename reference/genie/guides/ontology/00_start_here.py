@@ -8,7 +8,7 @@
 # MAGIC
 # MAGIC | Notebook | What it does |
 # MAGIC |---|---|
-# MAGIC | `01_generate_data` | Drops and regenerates the sample tables `cust` and `ord_fact` from the use-case spec (dbldatagen, fixed seed). |
+# MAGIC | `01_generate_data` | Drops and regenerates the sample tables `cust` and `ord_fact` from the use-case spec (sample-data generator, fixed seed). |
 # MAGIC | `02_ask_before` | Updates the baseline Genie space (raw tables only, in place if it exists), asks every question, and records whether each answer matches. |
 # MAGIC | `03_add_semantics` | Adds table and column comments, tags, and the `sales_metrics` metric view with synonyms. |
 # MAGIC | `04_ask_after` | Updates the enhanced Genie space (metric view, instructions, sample questions), asks the same questions, and records the answers. |

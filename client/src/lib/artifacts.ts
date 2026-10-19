@@ -7,6 +7,8 @@ export type ToolLink = { label: string; url: string; description: string; docsUr
 export type CodeHighlight = {
   label: string;
   notes: string[];
+  /** Walkthrough section id where the excerpt also appears. */
+  section?: string | null;
   path: string;
   symbol: string | null;
   language: string;

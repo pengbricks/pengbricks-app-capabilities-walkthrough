@@ -55,8 +55,10 @@ write_tables(spark, spec, prefix, list(spec["tables"]))
 
 columns = ", ".join(sharing["view_columns"])
 view = f"{prefix}.{sharing['view_name']}"
+# A shared view is cached by view id. Drop it first so a changed source table is not served from an old copy.
+spark.sql(f"DROP VIEW IF EXISTS {view}")
 spark.sql(
-    f"CREATE OR REPLACE VIEW {view} "
+    f"CREATE VIEW {view} "
     f"COMMENT 'Orders for one region without personal data. This is the only orders object the share exposes.' AS "
     f"SELECT {columns} FROM {prefix}.sharing_orders WHERE region = '{sharing['view_region']}'"
 )

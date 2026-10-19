@@ -36,15 +36,13 @@ rows = int(model_spec["training"]["rows"])
 
 # COMMAND ----------
 
-import dbldatagen as dg
 from pyspark.sql import functions as F
 
-generator = dg.DataGenerator(spark, name="training", rows=rows, partitions=2, randomSeedMethod="hash_fieldname", seed=int(spec["seed"])).withIdOutput()
-for feature in features:
-    generator = generator.withColumn(
-        feature["name"], "double", minValue=feature["min"], maxValue=feature["max"], random=True
-    )
-frame = generator.build().withColumn(label, F.expr(model_spec["training"]["label_expr"]))
+import sample_data
+
+columns = [{"name": f["name"], "type": "double", "min": f["min"], "max": f["max"]} for f in features]
+frame = sample_data.generate(spark, columns, rows, int(spec["seed"]), "training", partitions=2, keep_id=True)
+frame = frame.withColumn(label, F.expr(model_spec["training"]["label_expr"]))
 
 table = f"{catalog}.{schema}.scoring_training_data"
 frame.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(table)

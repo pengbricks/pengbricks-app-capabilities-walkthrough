@@ -147,6 +147,29 @@ export const walkthrough: Walkthrough = {
       ],
     },
     {
+      id: 'setup',
+      heading: 'Set it up',
+      prose:
+        'The job lives in the genie bundle. The Genie space is not a bundle resource: the last notebook creates it through the Conversation API and finds it again by title. Behaviour comes from three places: bundle variables, job parameters, and the use-case spec.',
+      steps: [
+        {
+          title: 'Deploy the bundle',
+          body: 'Set the catalog, a SQL warehouse for Genie to query with, and the app service principal. The dev target writes to a per-user schema.',
+          code: 'cd reference/genie\ndatabricks bundle deploy -t dev \\\n  --var catalog=<catalog> --var warehouse_id=<warehouse-id> \\\n  --var app_service_principal=<app-sp-application-id>',
+        },
+        {
+          title: 'Run the job',
+          body: 'Three tasks run in order: prepare data, prepare semantics, run the session.',
+          code: 'databricks bundle run capability_guides_genie_ux -t dev',
+        },
+        {
+          title: 'Change the script',
+          body: 'The session is the ux_script block in use_cases/general.yml. Edit it, or point the job at another spec with the use_case parameter.',
+          code: 'databricks bundle run capability_guides_genie_ux -t dev --params use_case=general',
+        },
+      ],
+    },
+    {
       id: 'replay',
       heading: 'Replay it',
       steps: [

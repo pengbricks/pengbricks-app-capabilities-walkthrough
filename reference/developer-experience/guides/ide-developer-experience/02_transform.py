@@ -32,7 +32,7 @@ ROOT = bundle_root()
 
 sys.path.insert(0, str(ROOT / "src"))
 from dx_demo.spec import (
-    ddl_schema, expected_clean_count, generate_base_rows, generate_base_rows_dbldatagen,
+    ddl_schema, expected_clean_count, generate_base_rows, generate_base_rows_spark,
     inject_edge_cases, load_spec,
 )
 from dx_demo.transforms import add_band, add_date, clean_records
@@ -46,15 +46,15 @@ if spec["output_table"] != params["output_table"]:
 # MAGIC %md
 # MAGIC ## Generate sample rows and inject edge cases
 # MAGIC
-# MAGIC dbldatagen builds the base rows with a fixed seed. If it is unavailable, a seeded pure-Python generator gives the same shape. The edge cases (null and blank keys, negatives, duplicates) are added deterministically.
+# MAGIC The sample-data generator (`src/sample_data.py`) builds the base rows with a fixed seed. If Spark generation fails, a seeded pure-Python generator gives the same shape. The edge cases (null and blank keys, negatives, duplicates) are added deterministically.
 
 # COMMAND ----------
 
 try:
-    base = generate_base_rows_dbldatagen(spark, spec)
-    print("Generated base rows with dbldatagen")
+    base = generate_base_rows_spark(spark, spec)
+    print("Generated base rows with the sample-data generator")
 except Exception as exc:  # fall back to the seeded pure-Python generator
-    print(f"dbldatagen unavailable ({exc!r}); using the pure-Python generator")
+    print(f"Spark generation failed ({exc!r}); using the pure-Python generator")
     base = generate_base_rows(spec)
 
 rows = inject_edge_cases(base, spec)

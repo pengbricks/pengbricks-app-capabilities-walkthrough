@@ -6,7 +6,7 @@ source:
   table: customer_activity_raw
   key: customer_id
   rows: 20000
-  columns:                # generated with dbldatagen (uniform random, fixed seed)
+  columns:                # generated sample data (uniform random, fixed seed)
     - {name: tenure_months, type: int, min: 1, max: 72}
     - {name: monthly_spend, type: double, min: 10, max: 300}
     - {name: support_tickets, type: int, min: 0, max: 12}

@@ -206,3 +206,6 @@ body,
 .walkthrough .step-list h3 { font-size: 0.9375rem; font-weight: 600; }
 .walkthrough .step-list p { margin-top: 0.25rem; font-size: 0.875rem; line-height: 1.6; color: var(--muted-foreground); }
 .walkthrough .step-code { margin-top: 0.75rem; overflow-x: auto; border: 1px solid var(--border); border-radius: 6px; background: var(--muted); padding: 0.75rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.75rem; line-height: 1.55; }
+.walkthrough pre code { display: block; background: none; border: 0; border-radius: 0; padding: 0; font-size: inherit; }
+.walkthrough .section-code { margin-top: 1.5rem; display: grid; gap: 1.25rem; }
+.walkthrough .section-code figcaption { flex-wrap: nowrap; font-size: inherit; color: inherit; background: none; border-top: 0; padding: 0.625rem 1rem; }

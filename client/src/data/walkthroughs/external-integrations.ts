@@ -94,6 +94,14 @@ export const walkthrough: Walkthrough = {
     {
       id: 'federation',
       heading: 'Pattern B: Lakehouse Federation',
+      examples: [
+        {
+          label: 'Register the connection in SQL, with secrets',
+          language: 'sql',
+          code: 'CREATE CONNECTION pg_conn TYPE postgresql\nOPTIONS (\n  host \'<host>\',\n  port \'5432\',\n  user secret(\'<scope>\', \'pg_user\'),\n  password secret(\'<scope>\', \'pg_password\')\n);\n\nCREATE FOREIGN CATALOG pg_sales USING CONNECTION pg_conn\nOPTIONS (database \'<database>\');',
+          notes: ['The reference code builds the connection through the SDK with a short-lived token and drops it at the end.'],
+        },
+      ],
       prose:
         'No external database is reachable from this workspace, so the job treats the Lakebase project as one. It seeds a table over a direct Postgres connection, then queries the same table through Unity Catalog.',
       diagram: {

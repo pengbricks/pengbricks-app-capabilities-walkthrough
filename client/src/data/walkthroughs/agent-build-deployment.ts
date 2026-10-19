@@ -70,6 +70,29 @@ export const walkthrough: Walkthrough = {
       },
     },
     {
+      id: 'setup',
+      heading: 'Set it up',
+      prose:
+        'The agent is plain Python in src/agent/assistant.py. The notebooks log it, register it, and deploy it. What the agent does is set in the build block of use_cases/general.yml: the chat model, the system prompt, the tool round limit, and the endpoint size.',
+      steps: [
+        {
+          title: 'Deploy the bundle',
+          body: 'Set the catalog, warehouse, app service principal, and failure-mail address. The warehouse runs the tool.',
+          code: 'cd reference/agents\ndatabricks bundle deploy -t dev \\\n  --var catalog=<catalog> --var warehouse_id=<warehouse-id> \\\n  --var app_service_principal=<app-sp-application-id> \\\n  --var notification_email=<email>',
+        },
+        {
+          title: 'Run the build job',
+          body: 'Prepare the tool, log and register, deploy, then call the endpoint and record the build.',
+          code: 'databricks bundle run capability_guides_agent_build -t dev',
+        },
+        {
+          title: 'Delete the endpoint',
+          body: 'A serving endpoint is not owned by the bundle. The teardown job deletes it.',
+          code: 'databricks bundle run capability_guides_agent_teardown -t dev',
+        },
+      ],
+    },
+    {
       id: 'inside',
       heading: 'What the agent does per request',
       prose:

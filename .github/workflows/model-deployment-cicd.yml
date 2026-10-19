@@ -1,0 +1,103 @@
+# CI/CD for the model deployment reference bundle.
+#   pull request -> unit tests on the release logic and the use-case spec
+#   push to main -> deploy to dev and run the release job (stops at the approval gate)
+#                   then, after the `test` environment approval, deploy to test and run it
+#                   with approved_by set to the approving GitHub actor
+#
+# Deploy jobs run only when the repository variable REFERENCE_CICD_ENABLED is 'true'.
+# Configure two GitHub environments, `dev` and `test`, each with:
+#   variables: DATABRICKS_HOST, CATALOG, WAREHOUSE_ID, APP_SERVICE_PRINCIPAL, NOTIFICATION_EMAIL,
+#              DATABRICKS_CLIENT_ID, DATABRICKS_AUTH_TYPE (github-oidc recommended, or oauth-m2m)
+#   secrets:   DATABRICKS_CLIENT_SECRET (only for oauth-m2m)
+# Add required reviewers to `test`: their approval is the release approval.
+name: model-deployment-cicd
+
+on:
+  pull_request:
+    paths: ["reference/model-deployment/**", ".github/workflows/model-deployment-cicd.yml"]
+  push:
+    branches: [main]
+    paths: ["reference/model-deployment/**", ".github/workflows/model-deployment-cicd.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # GitHub OIDC token for Databricks workload identity federation
+
+concurrency:
+  group: model-deployment-cicd-${{ github.ref }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    working-directory: reference/model-deployment
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install "pyyaml>=6" "pytest>=8"
+      - name: Unit tests (spec and release gates)
+        run: python -m pytest -q tests
+
+  deploy-dev:
+    needs: test
+    if: github.event_name != 'pull_request' && vars.REFERENCE_CICD_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment: dev
+    env:
+      DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
+      DATABRICKS_AUTH_TYPE: ${{ vars.DATABRICKS_AUTH_TYPE }}
+      DATABRICKS_CLIENT_ID: ${{ vars.DATABRICKS_CLIENT_ID }}
+      DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+      BUNDLE_VAR_catalog: ${{ vars.CATALOG }}
+      BUNDLE_VAR_warehouse_id: ${{ vars.WAREHOUSE_ID }}
+      BUNDLE_VAR_app_service_principal: ${{ vars.APP_SERVICE_PRINCIPAL }}
+      BUNDLE_VAR_notification_email: ${{ vars.NOTIFICATION_EMAIL }}
+      BUNDLE_VAR_release: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: databricks/setup-cli@main
+      - name: Validate
+        run: databricks bundle validate --strict --target dev
+      - name: Deploy
+        run: databricks bundle deploy --target dev
+      - name: Run release job (no approval, stops at the gate)
+        run: databricks bundle run capability_guides_model_release --target dev
+
+  deploy-test:
+    needs: deploy-dev
+    if: github.event_name != 'pull_request' && vars.REFERENCE_CICD_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment: test # required reviewers on this environment are the release approval
+    env:
+      DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
+      DATABRICKS_AUTH_TYPE: ${{ vars.DATABRICKS_AUTH_TYPE }}
+      DATABRICKS_CLIENT_ID: ${{ vars.DATABRICKS_CLIENT_ID }}
+      DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+      BUNDLE_VAR_catalog: ${{ vars.CATALOG }}
+      BUNDLE_VAR_warehouse_id: ${{ vars.WAREHOUSE_ID }}
+      BUNDLE_VAR_app_service_principal: ${{ vars.APP_SERVICE_PRINCIPAL }}
+      BUNDLE_VAR_notification_email: ${{ vars.NOTIFICATION_EMAIL }}
+      BUNDLE_VAR_release: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: databricks/setup-cli@main
+      - name: Validate
+        run: databricks bundle validate --strict --target test
+      - name: Deploy the same commit
+        run: databricks bundle deploy --target test
+      - name: Run release job with approval
+        run: databricks bundle run capability_guides_model_release --params approved_by=${{ github.actor }} --target test
+      - name: Release summary
+        run: |
+          {
+            echo "### Released ${GITHUB_SHA::7} to test"
+            echo "- Approved by: ${{ github.actor }}"
+            echo "- Model version tagged release=${GITHUB_SHA}"
+            echo "- Release history: model_release_history in the test schema"
+          } >> "$GITHUB_STEP_SUMMARY"

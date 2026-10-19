@@ -32,6 +32,14 @@ export const walkthrough: Walkthrough = {
     {
       id: 'flow',
       heading: 'Write in Databricks, read anywhere',
+      examples: [
+        {
+          label: 'Keep a Delta table, expose it as Iceberg',
+          language: 'sql',
+          code: '-- The table stays Delta. External engines read it as Iceberg.\nALTER TABLE <catalog>.<schema>.orders SET TBLPROPERTIES (\n  \'delta.columnMapping.mode\' = \'name\',\n  \'delta.enableIcebergCompatV2\' = \'true\',\n  \'delta.universalFormat.enabledFormats\' = \'iceberg\'\n);',
+          notes: ['The reference code creates a managed Iceberg table with USING ICEBERG instead.'],
+        },
+      ],
       prose:
         'The first task works through Spark SQL. The second task runs PyIceberg in the same job but talks only to the REST catalog and cloud storage, the way an external engine would.',
       diagram: {
@@ -124,6 +132,14 @@ export const walkthrough: Walkthrough = {
     {
       id: 'external',
       heading: 'Reading through the REST catalog',
+      examples: [
+        {
+          label: 'Read the same table from open-source Spark',
+          language: 'py',
+          code: 'from pyspark.sql import SparkSession\n\nWS = "https://<workspace-url>"\nspark = (\n    SparkSession.builder\n    .config("spark.jars.packages",\n            "org.apache.iceberg:iceberg-spark-runtime-3.5_2.12:1.7.1,"\n            "org.apache.iceberg:iceberg-aws-bundle:1.7.1")\n    .config("spark.sql.extensions", "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")\n    .config("spark.sql.catalog.uc", "org.apache.iceberg.spark.SparkCatalog")\n    .config("spark.sql.catalog.uc.type", "rest")\n    .config("spark.sql.catalog.uc.rest.auth.type", "oauth2")\n    .config("spark.sql.catalog.uc.uri", f"{WS}/api/2.1/unity-catalog/iceberg-rest")\n    .config("spark.sql.catalog.uc.oauth2-server-uri", f"{WS}/oidc/v1/token")\n    .config("spark.sql.catalog.uc.credential", "<client-id>:<client-secret>")\n    .config("spark.sql.catalog.uc.scope", "all-apis")\n    .config("spark.sql.catalog.uc.warehouse", "<catalog>")\n    .getOrCreate()\n)\nspark.sql("SELECT * FROM uc.<schema>.orders_iceberg").show()',
+          notes: ['Use the Azure or GCP bundle in place of iceberg-aws-bundle on those clouds.'],
+        },
+      ],
       prose:
         'The REST catalog lives on the workspace host. PyIceberg needs four properties; the token is the OAuth token of the job identity.',
       steps: [

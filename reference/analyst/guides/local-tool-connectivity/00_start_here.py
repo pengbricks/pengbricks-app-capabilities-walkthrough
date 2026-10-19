@@ -8,7 +8,7 @@
 # MAGIC
 # MAGIC | Notebook | What it does |
 # MAGIC |---|---|
-# MAGIC | `01_generate_data` | Writes the governed sample tables from the use-case spec (dbldatagen, fixed seed). |
+# MAGIC | `01_generate_data` | Writes the governed sample tables from the use-case spec (sample-data generator, fixed seed). |
 # MAGIC | `02_sql_connector_check` | Connects with the SQL connector over OAuth, queries `analyst_customers`, and records the result in `connectivity_check`. |
 # MAGIC
 # MAGIC ## How to run

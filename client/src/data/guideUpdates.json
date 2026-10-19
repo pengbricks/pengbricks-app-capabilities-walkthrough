@@ -4,6 +4,7 @@
   "agent-framework-support": "2026-10-16",
   "batch-real-time-ingestion": "2026-10-16",
   "bring-your-own-data": "2026-10-16",
+  "cdc-incremental-refresh": "2026-10-16",
   "compute-capacity-management": "2026-10-16",
   "configuration-vs-code": "2026-10-16",
   "cost-chargeback": "2026-10-16",
@@ -15,6 +16,7 @@
   "experiment-tracking": "2026-10-16",
   "external-integrations": "2026-10-16",
   "file-format-ingestion": "2026-10-16",
+  "file-formats-delta-iceberg": "2026-10-16",
   "github-cicd": "2026-10-16",
   "iceberg-support": "2026-10-16",
   "ide-developer-experience": "2026-10-16",
@@ -44,5 +46,5 @@
   "transformation-patterns": "2026-10-16",
   "user-experience": "2026-10-16",
   "versioning": "2026-10-16",
-  "*": "2026-10-14"
+  "*": "2026-10-16"
 }

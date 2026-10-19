@@ -39,7 +39,7 @@ All code is in `reference/open-data/`.
 
 - `use_cases/general.yml`: tables, column comments, share and recipient names, which region and columns the view keeps.
 - `guides/data-sharing/00_start_here`: what the guide shows, the notebooks in order, the variables, and a link to the job.
-- `guides/data-sharing/01_prepare_data`: builds the tables with dbldatagen, sets table and column comments, creates the view.
+- `guides/data-sharing/01_prepare_data`: builds the tables with the sample-data generator, sets table and column comments, creates the view.
 - `guides/data-sharing/02_share_and_read`: the share lifecycle. It creates the share, recipient and grant, exchanges the activation link for a credential file, reads, checks that the file URLs sit under the source table's own storage path, revokes, retries the read until it fails, and drops the recipient. It reports `BLOCKED` when `CREATE SHARE` is missing.
 - `src/open_data/sharing.py`: pure helpers (`credential_profile`, `served_from_source`, `strip_query`, `audit_event_query`) with unit tests.
 - `guides/data-sharing/03_collect_audit`: polls `system.access.audit` for the share and recipient names until the closing event appears.

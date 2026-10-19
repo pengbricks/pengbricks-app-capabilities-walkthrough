@@ -53,24 +53,27 @@ def feature_columns(spec: dict[str, Any]) -> list[str]:
 
 # --- data ---------------------------------------------------------------------------------------
 def build_frame(spark, spec: dict[str, Any], rows: int, seed: int, id_offset: int = 0, shift: dict | None = None):
-    """Generate source rows with dbldatagen. The same spec and seed give the same rows.
+    """Generate source rows with the sample-data generator. The same spec and seed give the same rows.
 
     `shift` ({feature, add}) moves one feature's distribution before the label is computed.
     """
-    import dbldatagen as dg
     from pyspark.sql import functions as F
 
+    import sample_data
+
     src = spec["source"]
-    gen = dg.DataGenerator(
-        spark, name="source", rows=rows, partitions=4, randomSeed=seed, randomSeedMethod="fixed"
-    ).withIdOutput()
-    for index, col in enumerate(src["columns"]):
-        # One seed per column: different columns stay independent, and a new `seed` gives new rows.
-        kwargs = {"minValue": col["min"], "maxValue": col["max"], "random": True, "randomSeed": seed + index}
+    columns, nullable = [], {}
+    for col in src["columns"]:
+        columns.append({"name": col["name"], "type": col["type"], "min": col["min"], "max": col["max"]})
         if col.get("null_pct"):
-            kwargs["percentNulls"] = col["null_pct"]
-        gen = gen.withColumn(col["name"], col["type"], **kwargs)
-    df = gen.build().withColumn(src["key"], (F.col("id") + F.lit(id_offset)).cast("bigint")).drop("id")
+            # A hidden uniform draw per nullable column decides which rows become null.
+            nullable[col["name"]] = f"__null_{col['name']}"
+            columns.append({"name": nullable[col["name"]], "type": "double", "min": 0, "max": 1})
+    df = sample_data.generate(spark, columns, rows, seed, "source", partitions=4, id_offset=id_offset, keep_id=True)
+    df = df.withColumnRenamed("id", src["key"]).withColumn(src["key"], F.col(src["key"]).cast("bigint"))
+    pct = {c["name"]: c["null_pct"] for c in src["columns"] if c.get("null_pct")}
+    for name, draw in nullable.items():
+        df = df.withColumn(name, F.when(F.col(draw) < F.lit(float(pct[name])), F.lit(None)).otherwise(F.col(name))).drop(draw)
     for col in src["columns"]:
         df = df.withColumn(col["name"], F.col(col["name"]).cast("double"))
     if shift:

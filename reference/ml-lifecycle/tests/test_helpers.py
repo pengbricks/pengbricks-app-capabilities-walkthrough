@@ -59,3 +59,13 @@ def test_split_is_deterministic_and_disjoint():
     pdf = pd.DataFrame({"id": range(100), "v": range(100)})
     train, holdout = c.split_frame(pdf.sample(frac=1, random_state=3), "id", 5)
     assert len(holdout) == 20 and set(train["id"]).isdisjoint(holdout["id"])
+
+
+def test_source_columns_use_options_the_sample_data_generator_supports():
+    import sample_data  # noqa: F401
+
+    spec = c.load_spec(str(ROOT / "use_cases" / "general.yml"))
+    for column in spec["source"]["columns"]:
+        assert column["type"].startswith("decimal") or column["type"] in {"int", "double", "string", "date", "timestamp", "bigint"}
+        assert column["min"] <= column["max"]
+        assert 0 <= column.get("null_pct", 0) < 1

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { describeFunction, tokenize } from './highlight.ts';
+import { describeFunction, guessLanguage, tokenize } from './highlight.ts';
 
 const typesOf = (code: string, language: string) =>
   tokenize(code, language)
@@ -7,6 +7,32 @@ const typesOf = (code: string, language: string) =>
     .map((token) => [token.type, token.text]);
 
 describe('tokenize', () => {
+  it('marks R comments, assignment, keywords, and calls', () => {
+    expect(typesOf('# summary\nlibrary(sparklyr)\nx <- TRUE', 'r')).toEqual([
+      ['comment', '# summary'],
+      ['keyword', 'library'],
+      ['keyword', '<-'],
+      ['keyword', 'TRUE'],
+    ]);
+  });
+
+  it('marks shell commands, flags, and strings', () => {
+    expect(typesOf('databricks bundle run job --target dev -p "my profile"', 'bash')).toEqual([
+      ['function', 'databricks'],
+      ['key', '--target'],
+      ['key', '-p'],
+      ['string', '"my profile"'],
+    ]);
+  });
+
+  it('marks INI sections and keys, including .example files', () => {
+    expect(typesOf('[Databricks]\nHost=example\n; note', 'example')).toEqual([
+      ['keyword', '[Databricks]'],
+      ['key', 'Host'],
+      ['comment', '; note'],
+    ]);
+  });
+
   it('marks Python comments, strings, keywords, definitions, and calls', () => {
     const code = 'def run(x):\n    # validate first\n    return split_valid(x, "rules")';
     expect(typesOf(code, 'py')).toEqual([
@@ -60,5 +86,14 @@ describe('describeFunction', () => {
     expect(describeFunction('sql', { sql: 'local' })).toBe('local');
     expect(describeFunction('read_files', {})).toContain('Auto Loader');
     expect(describeFunction('unknown', {})).toBeUndefined();
+  });
+});
+
+describe('guessLanguage', () => {
+  it('picks a language for snippets without a file extension', () => {
+    expect(guessLanguage('SELECT * FROM t')).toBe('sql');
+    expect(guessLanguage('databricks bundle deploy')).toBe('sh');
+    expect(guessLanguage('{"a": 1}')).toBe('json');
+    expect(guessLanguage('w.jobs.run_now(job_id)')).toBe('py');
   });
 });

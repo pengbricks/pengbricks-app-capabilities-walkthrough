@@ -29,7 +29,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router';
 import { AutoLoaderDrop } from '../components/AutoLoaderDrop.tsx';
-import { CodeBlock } from '../components/CodeBlock.tsx';
+import { CodeExcerpt } from '../components/CodeExcerpt.tsx';
 import { getGuide } from '../data/guides.ts';
 import designedWalkthroughs from '../data/walkthroughs/designed.json';
 import { getWalkthrough } from '../data/walkthroughs/index.ts';
@@ -39,8 +39,8 @@ import {
   runStatus,
   startQuickRun,
   useGuideArtifacts,
-  type CodeHighlight,
   type GuideArtifacts,
+  type CodeHighlight,
   type GuideJob,
   type WorkspaceLinks,
 } from '../lib/artifacts.ts';
@@ -109,7 +109,7 @@ export function GuidePage() {
 
         {hasWalkthrough && (
           <TabsContent value="walkthrough" className="mt-6">
-            <GuideWalkthrough slug={guide.slug} />
+            <GuideWalkthrough slug={guide.slug} excerpts={artifacts?.highlights ?? []} />
           </TabsContent>
         )}
 
@@ -156,7 +156,7 @@ export function GuidePage() {
                   <h2 className="text-2xl font-semibold tracking-tight">Key functions</h2>
                   <div className="mt-5 grid gap-5">
                     {artifacts.highlights.map((highlight) => (
-                      <CodeExcerpt key={`${highlight.path}:${highlight.symbol ?? ''}`} highlight={highlight} />
+                      <CodeExcerpt key={`${highlight.path}:${highlight.symbol ?? ''}:${highlight.label}`} highlight={highlight} />
                     ))}
                   </div>
                 </section>
@@ -259,16 +259,28 @@ export function GuidePage() {
 
 // The guide leads with its visual walkthrough: the designed page when there is one, then the
 // data-driven walkthrough, both rendered in place.
-function GuideWalkthrough({ slug }: { slug: string }) {
+function GuideWalkthrough({ slug, excerpts }: { slug: string; excerpts: CodeHighlight[] }) {
   const data = getWalkthrough(slug);
   const hasDesigned = designed.has(slug);
   if (!data && !hasDesigned) return null;
+  // Designed pages are static HTML, so their code excerpts follow the page instead of sitting in a section.
+  const designedExcerpts = hasDesigned && !data ? excerpts.filter((item) => item.section) : [];
   return (
     <section aria-label="Visual walkthrough">
       {hasDesigned && <DesignedWalkthrough slug={slug} />}
       {data && (
         <div className="walkthrough walkthrough-inline">
-          <WalkthroughBody walkthrough={data} />
+          <WalkthroughBody walkthrough={data} excerpts={excerpts} />
+        </div>
+      )}
+      {designedExcerpts.length > 0 && (
+        <div className="mt-8">
+          <h2 className="text-2xl font-semibold tracking-tight">Set it up in code</h2>
+          <div className="mt-5 grid gap-5">
+            {designedExcerpts.map((highlight) => (
+              <CodeExcerpt key={`${highlight.path}:${highlight.symbol ?? ''}:${highlight.label}`} highlight={highlight} />
+            ))}
+          </div>
         </div>
       )}
     </section>
@@ -501,40 +513,6 @@ function StatusBadge({ status }: { status: string }) {
   const label =
     status === 'SUCCESS' ? 'Succeeded' : status.charAt(0) + status.slice(1).toLowerCase().replace(/_/g, ' ');
   return <Badge variant={status === 'SUCCESS' ? 'secondary' : 'outline'}>{label}</Badge>;
-}
-
-function CodeExcerpt({ highlight }: { highlight: CodeHighlight }) {
-  return (
-    <figure className="overflow-hidden rounded-xl border bg-card">
-      <figcaption className="flex items-center justify-between gap-3 border-b px-4 py-2.5">
-        <div className="min-w-0">
-          <p className="text-sm font-medium">{highlight.label}</p>
-          <p className="truncate font-mono text-xs text-muted-foreground">
-            {highlight.path}
-            {highlight.symbol ? ` · ${highlight.symbol}` : ''}
-          </p>
-        </div>
-        <a
-          href={highlight.url}
-          target="_blank"
-          rel="noreferrer"
-          className="flex shrink-0 items-center gap-1 text-xs hover:underline"
-          aria-label={`View ${highlight.label} on GitHub`}
-        >
-          GitHub
-          <ArrowUpRight className="size-3" />
-        </a>
-      </figcaption>
-      {highlight.notes.length > 0 && (
-        <ul className="list-disc space-y-1 border-b px-4 py-3 pl-8 text-xs leading-5 text-muted-foreground">
-          {highlight.notes.map((note) => (
-            <li key={note}>{note}</li>
-          ))}
-        </ul>
-      )}
-      <CodeBlock code={highlight.code} language={highlight.language} functions={highlight.functions} />
-    </figure>
-  );
 }
 
 function ArtifactAnchor({

@@ -1,0 +1,7 @@
+resources:
+  volumes:
+    capability_guides_open_data_format_compare:
+      catalog_name: ${var.catalog}
+      schema_name: ${var.schema}
+      name: format_compare
+      comment: Order data written as JSON, CSV, and Parquet files by the file-formats guide

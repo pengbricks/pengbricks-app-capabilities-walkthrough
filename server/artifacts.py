@@ -47,6 +47,8 @@ def highlights(slug: str, entry: dict[str, Any]) -> list[dict[str, Any]]:
         {
             "label": item["label"],
             "notes": item.get("notes", []),
+            # A walkthrough section id shows the excerpt inside that section of the walkthrough.
+            "section": item.get("section"),
             "path": snippet["path"],
             "symbol": snippet["symbol"],
             "language": snippet["language"],

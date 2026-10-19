@@ -28,3 +28,12 @@ def test_expected_clean_count_matches_plain_python_cleaning():
     key, val = SPEC["key_column"], SPEC["value_column"]
     survivors = {normalize_key(r[key]) for r in _rows() if normalize_key(r[key]) and r[val] >= 0}
     assert len(survivors) == expected_clean_count(SPEC)
+
+
+def test_spark_columns_turns_prefix_into_an_expression_and_adds_a_timestamp_interval():
+    from dx_demo.spec import spark_columns
+
+    cols = {c["name"]: c for c in spark_columns(SPEC)}
+    assert "prefix" not in cols["order_id"] and "lpad(cast(id as string), 5" in cols["order_id"]["expr"]
+    assert cols["updated_at"]["interval"] == "1 second"
+    assert [c["name"] for c in spark_columns(SPEC)] == [c["name"] for c in SPEC["columns"]]

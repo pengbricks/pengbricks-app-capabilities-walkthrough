@@ -47,7 +47,7 @@ export const walkthrough: Walkthrough = {
         nodes: [
           { id: 'spec', label: 'Use-case spec', sub: 'use_cases/general.yml', col: 0, row: 0 },
           { id: 'sql', label: 'Pattern SQL files', sub: 'src/transformations', col: 2, row: 0, kind: 'surface' },
-          { id: 'gen', label: 'generate_sources', mono: true, sub: 'dbldatagen, fixed seed', col: 0, row: 1 },
+          { id: 'gen', label: 'generate_sources', mono: true, sub: 'generated data, fixed seed', col: 0, row: 1 },
           { id: 'pipe', label: 'Pipeline update', sub: 'full refresh', col: 1, row: 1, kind: 'highlight' },
           { id: 'check', label: 'check_row_counts', mono: true, sub: 'fail on any mismatch', col: 2, row: 1 },
           { id: 'src', label: 'de_customers, de_orders', mono: true, sub: 'plus regions lookup', col: 0, row: 2, kind: 'store' },
@@ -161,6 +161,14 @@ export const walkthrough: Walkthrough = {
           { kind: 'store', label: 'Unity Catalog table' },
         ],
       },
+      examples: [
+        {
+          label: "Alternative: drop bad rows with an expectation",
+          language: 'sql',
+          code: "CREATE OR REFRESH MATERIALIZED VIEW tp_cast_strict (\n  CONSTRAINT amount_is_numeric EXPECT (amount IS NOT NULL) ON VIOLATION DROP ROW\n) AS\nSELECT order_id, try_cast(amount_raw AS DECIMAL(12,2)) AS amount\nFROM de_orders;",
+          notes: ["The reference code keeps rejected rows in a table. An expectation drops them and records the count in the pipeline event log."],
+        },
+      ],
     },
     {
       id: 'checks',

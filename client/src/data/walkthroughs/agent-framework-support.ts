@@ -222,6 +222,29 @@ export const walkthrough: Walkthrough = {
         caption: 'The full table, with region, protocol version, and latency per row, is agent_capability_matrix.',
       },
     },
+    {
+      id: 'setup',
+      heading: 'Set it up',
+      prose:
+        'The agents bundle holds both jobs. Models, rate limits, and fallbacks are not bundle settings. They are the gateway block in use_cases/general.yml, and the notebooks create the model services through the SDK.',
+      steps: [
+        {
+          title: 'Deploy the bundle',
+          body: 'Set the catalog, warehouse, app service principal, and the address that gets failure mail.',
+          code: 'cd reference/agents\ndatabricks bundle deploy -t dev \\\n  --var catalog=<catalog> --var warehouse_id=<warehouse-id> \\\n  --var app_service_principal=<app-sp-application-id> \\\n  --var notification_email=<email>',
+        },
+        {
+          title: 'Run the job',
+          body: 'The job calls the tool, runs the handoff, routes through two model services, and reads the audit table.',
+          code: 'databricks bundle run capability_guides_agent_gateway -t dev',
+        },
+        {
+          title: 'Clean up',
+          body: 'The model services and their inference tables are not owned by the bundle. The teardown job removes them.',
+          code: 'databricks bundle run capability_guides_agent_teardown -t dev',
+        },
+      ],
+    },
   ],
   related: [
     { slug: 'agent-build-deployment', title: 'Building and shipping agents' },

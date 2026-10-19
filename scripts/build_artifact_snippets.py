@@ -57,6 +57,14 @@ def referenced_functions(code: str, docs: dict[str, str]) -> dict[str, str]:
     return {name: docs[name] for name in sorted(names) if name in docs}
 
 
+def language_of(path: Path) -> str:
+    """File extension, skipping a trailing .example (odbc.ini.example is INI)."""
+    suffixes = [suffix.lstrip(".") for suffix in path.suffixes]
+    if suffixes and suffixes[-1] == "example":
+        suffixes.pop()
+    return suffixes[-1] if suffixes else "text"
+
+
 def extract(highlight: dict) -> dict:
     path = ROOT / highlight["path"]
     lines = path.read_text(encoding="utf-8").splitlines()
@@ -73,7 +81,7 @@ def extract(highlight: dict) -> dict:
         "symbol": highlight.get("symbol"),
         "startLine": start,
         "endLine": end,
-        "language": path.suffix.lstrip(".") or "text",
+        "language": language_of(path),
         "code": code,
         "functions": referenced_functions(code, bundle_function_docs(highlight["path"])),
     }

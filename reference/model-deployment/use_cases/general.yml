@@ -11,7 +11,7 @@ data:
   table: churn_training_data
   rows: 20000
   holdout_mod: 5          # rows with id % 5 = 0 form the holdout used by the tests
-  columns:                # generated with dbldatagen (uniform random, fixed seed)
+  columns:                # generated sample data (uniform random, fixed seed)
     - {name: tenure_months, type: int, min: 1, max: 72}
     - {name: monthly_spend, type: double, min: 10, max: 300}
     - {name: support_tickets, type: int, min: 0, max: 12}

@@ -52,7 +52,7 @@ drop_temp_tables()
 # MAGIC %md
 # MAGIC ## 2. Generate the sample input
 # MAGIC
-# MAGIC `dbldatagen` with a fixed seed, so the table has the same rows on every run.
+# MAGIC The sample-data generator (`src/sample_data.py`) with a fixed seed, so the table has the same rows on every run.
 
 # COMMAND ----------
 

@@ -48,7 +48,7 @@ flowchart LR
     A -->|assessment_classification| C[convert<br/>sqlglot T-SQL to Databricks SQL]
     R[remediation/manual_remediations.sql] --> C
     C -->|assessment_conversion| T[reconcile<br/>run pipeline, compare to Python reference]
-    G[dbldatagen sample data] --> T
+    G[generated sample data] --> T
     T -->|assessment_test_results| W[record]
     W --> S[assessment_statements]
     W --> M[assessment_summary]
@@ -68,10 +68,10 @@ Statuses used by the convert task:
 - `legacy/nightly_sales_batch.sql`: the legacy workload (temp table, MERGE, IDENTITY, cursor, WHILE, TOP, ISNULL, GETDATE, TRY/CATCH)
 - `remediation/manual_remediations.sql`: set-based rewrites for the manual steps
 - `guides/legacy-conversion/`: `00_start_here` (overview, variables, job link), `01_assess`, `02_convert`, `03_reconcile`, `04_record`: one notebook per task, each runs standalone with Run all
-- `requirements.txt`: `sqlglot`, `dbldatagen`, `pyyaml`, installed by the first cell of each step notebook
+- `requirements.txt`: `sqlglot`, `pyyaml`, installed by the first cell of each step notebook
 - `src/lc_helpers.py`: step splitting, classification, conversion, effort model
 - `src/lc_expected.py`: independent pure-Python reference implementation and reconciliation checks
-- `src/lc_datagen.py`: dbldatagen sample data (fixed seed) with a seeded Spark SQL fallback
+- `src/lc_datagen.py` and `src/sample_data.py`: sample input from the spec (fixed seed)
 - `tests/test_helpers.py`: unit tests, run with `python -m pytest reference/legacy-conversion/tests` (needs `sqlglot`, `pyyaml`, `pytest`)
 
 ## Demo steps

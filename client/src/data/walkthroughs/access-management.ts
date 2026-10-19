@@ -74,6 +74,16 @@ export const walkthrough: Walkthrough = {
     },
     {
       id: 'environments',
+      examples: [
+        {
+          label: 'Inspect and revoke a grant by hand',
+          language: 'sql',
+          code: `SHOW GRANTS \`data-readers\` ON SCHEMA main.sales_prod;
+REVOKE SELECT ON SCHEMA main.sales_prod FROM \`data-readers\`;
+GRANT SELECT ON SCHEMA main.sales_prod TO \`data-readers\`;`,
+          notes: ['Use the same group name the job grants to, so a manual change shows up in the audit task.'],
+        },
+      ],
       heading: 'Dev and prod, side by side',
       prose:
         'Both schemas hold the same two tables from the spec. The difference is the privilege set. Grants on the prod-like schema are at object level: one table, read only.',

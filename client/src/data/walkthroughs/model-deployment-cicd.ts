@@ -44,7 +44,7 @@ export const walkthrough: Walkthrough = {
           { label: 'Promote and serve', fromRow: 1, toRow: 1 },
         ],
         nodes: [
-          { id: 'train', label: 'train_and_register', sub: 'MLflow 3, dbldatagen', mono: true, col: 0, row: 0 },
+          { id: 'train', label: 'train_and_register', sub: 'MLflow 3, sample data', mono: true, col: 0, row: 0 },
           { id: 'uc', label: 'release_churn_classifier', sub: 'UC model version', mono: true, col: 1, row: 0, kind: 'store' },
           { id: 'tests', label: 'run_tests', sub: 'AUC, signature, champion', mono: true, col: 2, row: 0, kind: 'highlight' },
           { id: 'chal', label: '@challenger', sub: 'alias on tested version', mono: true, col: 3, row: 0, kind: 'store' },
@@ -108,6 +108,14 @@ export const walkthrough: Walkthrough = {
     {
       id: 'config',
       heading: 'Configuration that changes by environment',
+      examples: [
+        {
+          label: 'Approve by hand, or change a threshold for one deploy',
+          language: 'sh',
+          code: '# Approve a release without CI: pass the approver as a job parameter.\ndatabricks bundle run capability_guides_model_release -t dev \\\n  --params approved_by=<your-name>\n\n# Raise the AUC floor for one deploy without editing databricks.yml.\ndatabricks bundle deploy -t dev --var min_auc=0.9',
+          notes: ['The reference run takes the approver from GitHub Actions instead.'],
+        },
+      ],
       prose:
         'The bundle sets thresholds per target in databricks.yml. test is stricter than dev: a higher AUC floor and no allowed regression against the champion. Approval also comes from a different place.',
       diagram: {

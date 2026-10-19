@@ -90,7 +90,7 @@ flowchart LR
 | Bind catalogs to workspaces | Set the catalog's isolation mode to isolated and bind it to the environment's workspace. Bind prod read-only into stage only when a parity check needs it. |
 | Grant to groups, not users | `<env>-engineers`, `<env>-analysts`, `<env>-deployers`. In prod, people get read access and the deploy service principal owns objects. |
 | Service principal ownership in prod | Jobs and pipelines `run_as` the environment's service principal. Ownership does not leave with a person. |
-| No prod data in dev | Use synthetic data (this repo uses dbldatagen from a use-case spec), masked samples, or Delta Sharing of approved datasets. |
+| No prod data in dev | Use generated sample data (this repo builds it from a use-case spec), masked samples, or Delta Sharing of approved datasets. |
 | Tags for environment and release | Every resource carries `environment` and `release` tags, so system tables can report by environment and commit. |
 
 ## Metastore practices
@@ -109,6 +109,6 @@ flowchart LR
 | Catalog, warehouse, and app identity are variables with no defaults | every `reference/*/databricks.yml` |
 | CI deploys the same commit to dev, then test after approval | `.github/workflows/reference-cicd.yml` |
 | Resources tagged with `environment` and `release` | bundle `presets.tags` |
-| Synthetic data only | `use_cases/*.yml` with dbldatagen |
+| Synthetic data only | `use_cases/*.yml` with `src/sample_data.py` |
 
 To add stage and prod, add targets with `mode: production`, a `workspace.host` per target, `run_as` set to that environment's service principal, and a GitHub environment for each with required reviewers.

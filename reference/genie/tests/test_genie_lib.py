@@ -110,3 +110,17 @@ def test_split_existing_reuses_first_space_and_flags_duplicates() -> None:
     assert split_existing([]) == (None, [])
     assert split_existing(["a"]) == ("a", [])
     assert split_existing(["a", "b", "c"]) == ("a", ["b", "c"])
+
+
+def test_spec_columns_use_options_the_sample_data_generator_supports():
+    import sample_data
+
+    for table in SPEC["tables"]:
+        for column in table["columns"]:
+            assert column["type"].startswith("decimal") or column["type"] in {"int", "double", "string", "date", "timestamp", "bigint"}
+            if "weights" in column:
+                assert len(column["weights"]) == len(column["values"])
+                sample_data.cumulative_weights(column["weights"])
+            if "begin" in column:
+                sample_data.interval_seconds(column["interval"])
+                assert sample_data.grid_steps(column["begin"], column["end"], column["interval"]) > 1

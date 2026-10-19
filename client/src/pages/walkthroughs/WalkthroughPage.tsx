@@ -1,8 +1,12 @@
 import { Button } from '@databricks/appkit-ui/react';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router';
+import { CodeBlock, HighlightedCode } from '../../components/CodeBlock.tsx';
+import { CodeExcerpt } from '../../components/CodeExcerpt.tsx';
 import { FlowDiagramView, MatrixDiagramView } from '../../components/WalkthroughDiagram.tsx';
+import { guessLanguage } from '../../lib/highlight.ts';
 import { getWalkthrough } from '../../data/walkthroughs/index.ts';
+import { useGuideArtifacts, type CodeHighlight } from '../../lib/artifacts.ts';
 import type {
   Diagram,
   FlowDiagram,
@@ -14,6 +18,7 @@ import type {
 export function WalkthroughPage() {
   const { slug } = useParams();
   const walkthrough = getWalkthrough(slug);
+  const { data: artifacts } = useGuideArtifacts(walkthrough?.slug);
 
   if (!walkthrough) {
     return (
@@ -52,7 +57,7 @@ export function WalkthroughPage() {
           </nav>
         </header>
 
-        <WalkthroughBody walkthrough={walkthrough} />
+        <WalkthroughBody walkthrough={walkthrough} excerpts={artifacts?.highlights ?? []} />
 
         {walkthrough.related.length > 0 && (
           <nav className="pager" aria-label="Related guides">
@@ -70,7 +75,13 @@ export function WalkthroughPage() {
 }
 
 // The walkthrough content without page chrome, so a guide page can lead with it.
-export function WalkthroughBody({ walkthrough }: { walkthrough: Walkthrough }) {
+export function WalkthroughBody({
+  walkthrough,
+  excerpts = [],
+}: {
+  walkthrough: Walkthrough;
+  excerpts?: CodeHighlight[];
+}) {
   return (
     <>
       <section className="guide-section" id="short" aria-labelledby="h-short">
@@ -86,13 +97,13 @@ export function WalkthroughBody({ walkthrough }: { walkthrough: Walkthrough }) {
       </section>
 
       {walkthrough.sections.map((section) => (
-        <Section key={section.id} section={section} />
+        <Section key={section.id} section={section} excerpts={excerpts.filter((item) => item.section === section.id)} />
       ))}
     </>
   );
 }
 
-function Section({ section }: { section: WalkthroughSection }) {
+function Section({ section, excerpts }: { section: WalkthroughSection; excerpts: CodeHighlight[] }) {
   const headingId = `h-${section.id}`;
   return (
     <section className="guide-section" id={section.id} aria-labelledby={headingId}>
@@ -105,7 +116,11 @@ function Section({ section }: { section: WalkthroughSection }) {
             <li key={step.title}>
               <h3>{step.title}</h3>
               <p>{step.body}</p>
-              {step.code && <pre className="step-code">{step.code}</pre>}
+              {step.code && (
+                <pre className="step-code code-block">
+                  <HighlightedCode code={step.code} language={guessLanguage(step.code)} />
+                </pre>
+              )}
             </li>
           ))}
         </ol>
@@ -138,6 +153,29 @@ function Section({ section }: { section: WalkthroughSection }) {
             </li>
           ))}
         </ul>
+      )}
+      {(excerpts.length > 0 || section.examples) && (
+        <div className="section-code">
+          {excerpts.map((highlight) => (
+            <CodeExcerpt key={`${highlight.path}:${highlight.symbol ?? ''}:${highlight.label}`} highlight={highlight} />
+          ))}
+          {section.examples?.map((example) => (
+            <figure key={example.label} className="overflow-hidden rounded-xl border bg-card">
+              <figcaption className="flex-col items-start gap-0.5 border-b px-4 py-2.5">
+                <p className="text-sm font-medium">{example.label}</p>
+                <p className="text-xs text-muted-foreground">Example, not in the reference code</p>
+              </figcaption>
+              {example.notes && example.notes.length > 0 && (
+                <ul className="list-disc space-y-1 border-b px-4 py-3 pl-8 text-xs leading-5 text-muted-foreground">
+                  {example.notes.map((note) => (
+                    <li key={note}>{note}</li>
+                  ))}
+                </ul>
+              )}
+              <CodeBlock code={example.code} language={example.language} functions={{}} />
+            </figure>
+          ))}
+        </div>
       )}
     </section>
   );

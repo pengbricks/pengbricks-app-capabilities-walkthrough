@@ -1,0 +1,102 @@
+# CI/CD for the ingestion reference bundle.
+#   pull request -> unit tests and spec drift checks
+#   push to main -> deploy to dev, smoke-run, then deploy the same commit to test after approval
+#
+# Configure two GitHub environments, `dev` and `test`, each with:
+#   variables: DATABRICKS_HOST, CATALOG, WAREHOUSE_ID, APP_SERVICE_PRINCIPAL, NOTIFICATION_EMAIL,
+#              DATABRICKS_CLIENT_ID, DATABRICKS_AUTH_TYPE (github-oidc recommended, or oauth-m2m)
+#   secrets:   DATABRICKS_CLIENT_SECRET (only for oauth-m2m)
+# Add required reviewers to `test` so promotion waits for approval.
+# Set the repository variable REFERENCE_CICD_ENABLED=true once the environments are configured.
+name: reference-cicd
+
+on:
+  pull_request:
+    paths: ["reference/ingestion/**", ".github/workflows/reference-cicd.yml"]
+  push:
+    branches: [main]
+    paths: ["reference/ingestion/**", ".github/workflows/reference-cicd.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # GitHub OIDC token for Databricks workload identity federation
+
+concurrency:
+  group: reference-cicd-${{ github.ref }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    working-directory: reference/ingestion
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install "pyyaml>=6" "pytest>=8"
+      - name: Unit tests
+        run: python -m pytest -q tests
+      - name: Feed configs match the use-case specs
+        run: |
+          for spec in use_cases/*.yml; do python tools/render_use_case.py "$spec" --check; done
+
+  deploy-dev:
+    needs: test
+    if: github.event_name != 'pull_request' && vars.REFERENCE_CICD_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment: dev
+    env:
+      DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
+      DATABRICKS_AUTH_TYPE: ${{ vars.DATABRICKS_AUTH_TYPE }}
+      DATABRICKS_CLIENT_ID: ${{ vars.DATABRICKS_CLIENT_ID }}
+      DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+      BUNDLE_VAR_catalog: ${{ vars.CATALOG }}
+      BUNDLE_VAR_warehouse_id: ${{ vars.WAREHOUSE_ID }}
+      BUNDLE_VAR_app_service_principal: ${{ vars.APP_SERVICE_PRINCIPAL }}
+      BUNDLE_VAR_notification_email: ${{ vars.NOTIFICATION_EMAIL }}
+      BUNDLE_VAR_release: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: databricks/setup-cli@main
+      - name: Validate
+        run: databricks bundle validate --strict --target dev
+      - name: Deploy
+        run: databricks bundle deploy --target dev
+      - name: Smoke run
+        run: databricks bundle run capability_guides_ingestion_framework --target dev
+
+  deploy-test:
+    needs: deploy-dev
+    runs-on: ubuntu-latest
+    environment: test # required reviewers on this environment gate promotion
+    env:
+      DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
+      DATABRICKS_AUTH_TYPE: ${{ vars.DATABRICKS_AUTH_TYPE }}
+      DATABRICKS_CLIENT_ID: ${{ vars.DATABRICKS_CLIENT_ID }}
+      DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+      BUNDLE_VAR_catalog: ${{ vars.CATALOG }}
+      BUNDLE_VAR_warehouse_id: ${{ vars.WAREHOUSE_ID }}
+      BUNDLE_VAR_app_service_principal: ${{ vars.APP_SERVICE_PRINCIPAL }}
+      BUNDLE_VAR_notification_email: ${{ vars.NOTIFICATION_EMAIL }}
+      BUNDLE_VAR_release: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: databricks/setup-cli@main
+      - name: Validate
+        run: databricks bundle validate --strict --target test
+      - name: Deploy the same commit
+        run: databricks bundle deploy --target test
+      - name: Run in test
+        run: databricks bundle run capability_guides_ingestion_framework --target test
+      - name: Release summary
+        run: |
+          {
+            echo "### Released ${GITHUB_SHA::7} to test"
+            echo "- Bundle: capability-guides-ingestion"
+            echo "- Resources tagged release=${GITHUB_SHA}"
+          } >> "$GITHUB_STEP_SUMMARY"

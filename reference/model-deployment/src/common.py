@@ -38,19 +38,14 @@ def training_table(catalog: str, schema: str, spec: dict[str, Any]) -> str:
 
 
 def build_training_frame(spark, spec: dict[str, Any]):
-    """Generate the training data with dbldatagen. The same spec and seed give the same rows."""
-    import dbldatagen as dg
+    """Generate the training data with the sample-data generator. The same spec and seed give the same rows."""
     from pyspark.sql import functions as F
 
+    import sample_data
+
     data = spec["data"]
-    gen = dg.DataGenerator(
-        spark, name="training", rows=data["rows"], partitions=4, randomSeed=spec["seed"], randomSeedMethod="hash_fieldname"
-    ).withIdOutput()
-    for col in data["columns"]:
-        gen = gen.withColumn(
-            col["name"], col["type"], minValue=col["min"], maxValue=col["max"], random=True
-        )
-    df = gen.build()
+    columns = [{"name": c["name"], "type": c["type"], "min": c["min"], "max": c["max"]} for c in data["columns"]]
+    df = sample_data.generate(spark, columns, data["rows"], spec["seed"], "training", partitions=4, keep_id=True)
     for col in data["columns"]:
         df = df.withColumn(col["name"], F.col(col["name"]).cast("double"))
     return df.withColumn(spec["label"]["name"], F.expr(spec["label"]["expr"]))

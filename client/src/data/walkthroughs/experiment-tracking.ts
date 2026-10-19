@@ -73,6 +73,14 @@ export const walkthrough: Walkthrough = {
     {
       id: 'refs',
       heading: 'What the run records',
+      examples: [
+        {
+          label: 'Log the table version as a run input',
+          language: 'py',
+          code: 'import mlflow\n\n# Pin the Delta version, then attach it to the run as a dataset input.\ndataset = mlflow.data.load_delta(\n    table_name="<catalog>.<schema>.experiment_data",\n    version="3",\n)\nwith mlflow.start_run():\n    mlflow.log_input(dataset, context="training")\n    train_df = dataset.df  # Spark DataFrame at that version',
+          notes: ['The reference code stores the version as a tag instead. log_input shows the same version under the run\'s dataset inputs.'],
+        },
+      ],
       prose: 'Each reference answers one question about where the result came from.',
       diagram: {
         type: 'matrix',

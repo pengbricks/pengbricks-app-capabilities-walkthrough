@@ -293,6 +293,19 @@ export const guides: readonly Guide[] = [
     ],
   },
   {
+    slug: 'file-formats-delta-iceberg',
+    title: 'JSON, CSV, Parquet, Delta, and Iceberg',
+    category: 'General Guides',
+    summary: 'Compare file and table formats on one dataset: size, types, query cost, and table-only features.',
+    acceptanceCriteria:
+      'Write one dataset as JSON, CSV, Parquet, Delta, and Iceberg, measure each, and show what only the table formats provide.',
+    evidence: [
+      'Size, inferred-type, and query-time table per format',
+      'Update, time-travel, and schema-evolution runs on tables versus files',
+      'Delta log and Iceberg metadata file listings',
+    ],
+  },
+  {
     slug: 'external-integrations',
     title: 'Partner tool integrations',
     category: 'General Guides',
@@ -420,6 +433,19 @@ export const guides: readonly Guide[] = [
       'SCD type 1 and type 2 tables',
       'Deletes propagated or flagged',
       'Pipeline updates before and after changes',
+    ],
+  },
+  {
+    slug: 'cdc-incremental-refresh',
+    title: 'CDC and incremental refresh in pipelines',
+    category: 'Data Engineering Guides',
+    summary: 'CDC from change files, a Delta change feed, and snapshots, and incremental versus full refresh.',
+    acceptanceCriteria:
+      'One serverless Lakeflow pipeline applies change data from Debezium-style files, the Delta change data feed, and a snapshot table with AUTO CDC. The job measures an incremental update, a full refresh, and a selective full refresh from the pipeline event log, including how the materialized view refreshes.',
+    evidence: [
+      'Three AUTO CDC targets from three source shapes',
+      'Rows written per dataset for each refresh mode',
+      'Materialized view maintenance type and stream offsets from the event log',
     ],
   },
   {

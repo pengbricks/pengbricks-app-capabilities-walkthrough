@@ -22,7 +22,7 @@ flowchart LR
   NB[Workspace notebook<br/>debugger] --> WS
   WS --> J
   subgraph J[Serverless job]
-    T1[unit_tests<br/>pytest] --> T2[transform<br/>dbldatagen + dx_demo] --> T3[sql_checks<br/>SQL warehouse]
+    T1[unit_tests<br/>pytest] --> T2[transform<br/>sample_data + dx_demo] --> T3[sql_checks<br/>SQL warehouse]
   end
   T2 --> TBL[(Delta table<br/>orders_clean)]
   T3 --> TBL
@@ -39,13 +39,13 @@ All files are in `reference/developer-experience/`.
 | `use_cases/general.yml` | Dataset columns, row count, seed, injected edge cases, output table |
 | `src/dx_demo/transforms.py` | Generic PySpark functions: `clean_records`, `add_band`, `add_date` |
 | `src/dx_demo/rules.py` | Plain-Python row rules, testable without Spark |
-| `src/dx_demo/spec.py` | Spec loader and seeded data generation (dbldatagen, with a pure-Python fallback) |
+| `src/dx_demo/spec.py` | Spec loader and seeded data generation (sample-data generator, with a pure-Python fallback) |
 | `guides/ide-developer-experience/00_start_here` | What the guide shows, the notebooks in order, and the variables |
 | `guides/ide-developer-experience/01_unit_tests` | Calls `pytest.main` on serverless and fails on any failing test |
 | `guides/ide-developer-experience/02_transform` | Generates data from the spec, cleans it, writes the table |
 | `guides/ide-developer-experience/03_sql_checks` | `assert_true` checks run by the `sql_checks` task |
 | `guides/ide-developer-experience/04_explore` | Notebook for interactive authoring (not a job task) |
-| `requirements.txt` | Packages the notebooks install: pytest, pyyaml, dbldatagen |
+| `requirements.txt` | Packages the notebooks install: pytest, pyyaml |
 | `tests/` | pytest suite shared by local and serverless runs |
 
 To reuse the workflow for another dataset, add a file in `use_cases/` and set the `use_case`, `output_table`, `key_column`, and `value_column` variables. The transforms and tests do not change.

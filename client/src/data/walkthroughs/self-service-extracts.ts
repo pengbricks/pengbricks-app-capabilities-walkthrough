@@ -93,6 +93,14 @@ export const walkthrough: Walkthrough = {
         ],
         caption: 'Run 480047373211928. Files are in the extracts volume under partner/.',
       },
+      examples: [
+        {
+          label: "Grant read access to the extracts volume",
+          language: 'sql',
+          code: "GRANT READ VOLUME ON VOLUME <catalog>.<schema>.extracts TO `partner-analysts`;",
+          notes: ["The files sit in a Unity Catalog volume, so access is a grant, not a shared link."],
+        },
+      ],
     },
     {
       id: 'subscription',

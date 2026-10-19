@@ -33,7 +33,7 @@ export const walkthrough: Walkthrough = {
       id: 'flow',
       heading: 'From spec to tables',
       prose:
-        'dbldatagen builds the rows from the spec with a fixed seed. Plain Python writers shape them into each format and copy the files to a volume. The pipeline reads each folder with the options its format needs.',
+        'The job generates sample rows from the spec with a fixed seed. Plain Python writers shape them into each format and copy the files to a volume. The pipeline reads each folder with the options its format needs.',
       diagram: {
         type: 'flow',
         title: 'The file format job',
@@ -87,6 +87,119 @@ export const walkthrough: Walkthrough = {
           ['XML', "rowTag 'order'; attributes arrive with an underscore prefix; a missing <coupon> is NULL"],
         ],
       },
+    },
+    {
+      id: 'schemas',
+      heading: 'How schemas are managed',
+      prose:
+        'Three settings decide a table\'s columns. Inference reads a sample of the files and guesses names and types. schemaHints pins the types you care about and leaves the rest to inference. schemaEvolutionMode decides what happens when a later file brings a column the table does not have. Anything that does not fit lands in _rescued_data instead of being dropped.',
+      table: {
+        caption: 'schemaEvolutionMode values for Auto Loader and read_files',
+        columns: ['Mode', 'When a new column shows up'],
+        rows: [
+          ['addNewColumns', 'Default when you give no schema. The update stops once, the column is added to the stored schema, and the next attempt picks it up.'],
+          ['rescue', 'The schema never changes. The new column lands as JSON in _rescued_data and the stream keeps running.'],
+          ['failOnNewColumns', 'The update fails and stays failed until you change the schema or the files. Use it when a new column should block the load.'],
+          ['none', 'Default when you give a schema. New columns are ignored, and nothing is rescued unless you set rescuedDataColumn. Excel requires this mode.'],
+        ],
+      },
+      points: [
+        {
+          strong: 'Hints, not a full schema.',
+          text: 'Every format here except XML uses schemaHints for the columns that must be DECIMAL(12,2), DATE, or INT. Inference still finds the other columns, so a new optional column does not need a code change.',
+        },
+        {
+          strong: 'Rescued data is a column, not a log.',
+          text: 'A value that cannot be cast, or a column the schema does not have, is written to _rescued_data as JSON next to the rest of the row. The verify task counts rows where it is not null and expects zero.',
+        },
+        {
+          strong: 'Excel is the exception.',
+          text: 'The Excel reader does not evolve or rescue, so the table sets schemaEvolutionMode to none and relies on hints and the row-count check.',
+        },
+      ],
+      examples: [
+        {
+          label: 'Keep the stream running and park surprises in _rescued_data',
+          language: 'sql',
+          code: `CREATE OR REFRESH STREAMING TABLE fmt_customers_csv AS
+SELECT * FROM STREAM read_files(
+  '\${formats_path}/csv/',
+  format => 'csv',
+  header => true,
+  schemaHints => 'customer_id INT, credit_limit DECIMAL(12,2)',
+  schemaEvolutionMode => 'rescue',
+  rescuedDataColumn => '_rescued_data'
+);
+
+-- Rows that carried a new column or a value that would not cast
+SELECT customer_id, _rescued_data
+FROM fmt_customers_csv
+WHERE _rescued_data IS NOT NULL;`,
+          notes: ['rescue freezes the schema. A column added upstream shows up as a key inside the JSON in _rescued_data.'],
+        },
+        {
+          label: 'Add new columns automatically, or fail on them',
+          language: 'sql',
+          code: `-- addNewColumns: the default when no schema is given
+FROM STREAM read_files('\${formats_path}/json/', format => 'json', multiLine => true,
+  schemaEvolutionMode => 'addNewColumns')
+
+-- failOnNewColumns: stop the update when a column appears
+FROM STREAM read_files('\${formats_path}/json/', format => 'json', multiLine => true,
+  schemaEvolutionMode => 'failOnNewColumns')`,
+          notes: ['These are two alternatives for the FROM clause of fmt_customers_json. Pick one.'],
+        },
+        {
+          label: 'Fix the whole schema, or turn inference off',
+          language: 'sql',
+          code: `-- A full schema: schemaEvolutionMode defaults to none
+FROM STREAM read_files('\${formats_path}/csv/', format => 'csv', header => true,
+  schema => 'customer_id INT, name STRING, credit_limit DECIMAL(12,2), created_date DATE')
+
+-- No type inference: every CSV or JSON column arrives as STRING
+FROM STREAM read_files('\${formats_path}/csv/', format => 'csv', header => true,
+  inferColumnTypes => false)`,
+        },
+      ],
+    },
+    {
+      id: 'state',
+      heading: 'Where the schema location and checkpoint live',
+      prose:
+        'In a pipeline you do not set cloudFiles.schemaLocation or a checkpoint path. Each Auto Loader streaming table keeps its own checkpoint and inferred schema in storage the pipeline manages, and the pipeline definition only supplies parameters. That state is why a rerun reads only new files and why a changed schema survives restarts.',
+      points: [
+        {
+          strong: 'Nothing to configure in the SQL.',
+          text: 'The read_files calls above have no schema location and no checkpoint option. The pipeline creates both per table.',
+        },
+        {
+          strong: 'Parameters, not paths to state.',
+          text: 'The pipeline YAML passes formats_path and excel_sheet, and the SQL reads them as ${formats_path} and ${excel_sheet}. Changing them points the same tables at another folder or sheet.',
+        },
+        {
+          strong: 'Full refresh resets it.',
+          text: 'The job runs the pipeline with full_refresh. That clears each table\'s checkpoint and inferred schema, so the files are read again and the schema is inferred again. Drop it for files that arrive over time.',
+        },
+      ],
+      examples: [
+        {
+          label: 'The same read in Python, still without a schema location',
+          language: 'py',
+          code: `from pyspark import pipelines as dp
+
+@dp.table(name="fmt_customers_csv")
+def fmt_customers_csv():
+    return (
+        spark.readStream.format("cloudFiles")
+        .option("cloudFiles.format", "csv")
+        .option("header", "true")
+        .option("cloudFiles.schemaHints", "customer_id INT, credit_limit DECIMAL(12,2)")
+        .option("cloudFiles.schemaEvolutionMode", "rescue")
+        .load(spark.conf.get("formats_path") + "/csv/")
+    )`,
+          notes: ['Outside a pipeline, set cloudFiles.schemaLocation and checkpointLocation yourself.'],
+        },
+      ],
     },
     {
       id: 'checks',

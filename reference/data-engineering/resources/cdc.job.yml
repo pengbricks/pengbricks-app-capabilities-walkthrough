@@ -1,0 +1,74 @@
+resources:
+  jobs:
+    capability_guides_cdc:
+      name: capability_guides_cdc
+      description: Loads three CDC sources into one pipeline with a full refresh, applies a change batch with an incremental update, then selectively full-refreshes the materialized view. Records rows written and the refresh type per dataset.
+      tags:
+        capability_guide_job: capability_guides_cdc
+        capability_guide_use_case: ${var.use_case}
+      max_concurrent_runs: 1
+      timeout_seconds: 5400
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${var.schema}
+        - name: volume
+          default: ${resources.volumes.capability_guides_data_engineering_exports.name}
+        - name: rows
+          default: "500"
+        - name: inserts
+          default: "50"
+        - name: updates
+          default: "120"
+        - name: deletes
+          default: "30"
+      tasks:
+        - task_key: reset_sources
+          notebook_task:
+            notebook_path: ../guides/cdc-incremental-refresh/01_reset_sources.py
+        - task_key: pipeline_initial
+          depends_on:
+            - task_key: reset_sources
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.capability_guides_cdc_pipeline.id}
+            full_refresh: true
+        - task_key: inspect_initial
+          depends_on:
+            - task_key: pipeline_initial
+          notebook_task:
+            notebook_path: ../guides/cdc-incremental-refresh/02_inspect_initial.py
+            base_parameters:
+              run_pipeline: "false"
+        - task_key: apply_changes
+          depends_on:
+            - task_key: inspect_initial
+          notebook_task:
+            notebook_path: ../guides/cdc-incremental-refresh/03_apply_changes.py
+        - task_key: pipeline_incremental
+          depends_on:
+            - task_key: apply_changes
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.capability_guides_cdc_pipeline.id}
+            full_refresh: false
+        - task_key: inspect_incremental
+          depends_on:
+            - task_key: pipeline_incremental
+          notebook_task:
+            notebook_path: ../guides/cdc-incremental-refresh/04_inspect_incremental.py
+            base_parameters:
+              run_pipeline: "false"
+        - task_key: pipeline_selective_full_refresh
+          depends_on:
+            - task_key: inspect_incremental
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.capability_guides_cdc_pipeline.id}
+            full_refresh_selection:
+              - cdc_orders_daily
+        - task_key: compare_refresh_modes
+          depends_on:
+            - task_key: pipeline_selective_full_refresh
+          notebook_task:
+            notebook_path: ../guides/cdc-incremental-refresh/05_compare_refresh_modes.py
+            base_parameters:
+              run_pipeline: "false"

@@ -8,7 +8,7 @@
 # MAGIC
 # MAGIC | Notebook | What it does |
 # MAGIC |---|---|
-# MAGIC | `01_build_sample_tables` | Builds `bronze_orders`, `silver_orders` and `gold_daily_revenue` from the use-case spec (dbldatagen, fixed seed) and sets tags. |
+# MAGIC | `01_build_sample_tables` | Builds `bronze_orders`, `silver_orders` and `gold_daily_revenue` from the use-case spec (sample-data generator, fixed seed) and sets tags. |
 # MAGIC | `02_generate_docs` | Profiles each table, reads lineage and query history, drafts descriptions with `ai_query`, applies comments, writes one page per table plus `index.md` to the `docs` volume, and logs the refresh. |
 # MAGIC
 # MAGIC ## How to run

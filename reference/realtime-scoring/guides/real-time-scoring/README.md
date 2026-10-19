@@ -49,7 +49,7 @@ flowchart LR
 
 - `use_cases/general.yml`: features, label, endpoint size, request counts
 - `guides/real-time-scoring/00_start_here`: what the guide shows, the variables, links to both jobs
-- `guides/real-time-scoring/01_train_register`: dbldatagen data, scikit-learn pipeline, UC registration, `champion` alias
+- `guides/real-time-scoring/01_train_register`: generated sample data, scikit-learn pipeline, UC registration, `champion` alias
 - `guides/real-time-scoring/02_deploy_endpoint`: create or update, route optimization if requested, readiness polling
 - `guides/real-time-scoring/03_score_and_measure`: `auth_headers` (OAuth), timing, failure scenarios, table writes
 - `guides/real-time-scoring/04_teardown_endpoint`: deletes the endpoint (teardown job)

@@ -190,12 +190,23 @@ def test_sftp_walk_plan_and_classify():
     assert sftp_utils.classify("/x/b.png", [".txt"], [".png"]) == "binary"
 
 
-def test_spec_columns_translate_to_datagen_options():
-    for entity in SPEC["entities"].values():
-        for column in entity["columns"]:
-            options = datagen.column_options(column)
-            assert ("expr" in options) == ("expr" in column)
-    assert datagen.column_options({"name": "x", "values": ["a"], "weights": [1]})["weights"] == [1]
+def test_entity_frame_passes_the_spec_to_the_generator(monkeypatch):
+    class Frame:
+        def orderBy(self, name):
+            return ("ordered", name)
+
+    calls = {}
+
+    def fake_generate(spark, columns, rows, seed, name, partitions=8, **_):
+        calls.update(columns=columns, rows=rows, seed=seed, name=name)
+        return Frame()
+
+    monkeypatch.setattr(datagen, "generate", fake_generate)
+    entity = SPEC["entities"]["customers"]
+    result = datagen.entity_frame(None, SPEC, "customers", rows=7, seed_offset=11)
+    assert result == ("ordered", entity["columns"][0]["name"])
+    assert calls["columns"] is entity["columns"] and calls["rows"] == 7
+    assert calls["seed"] == int(SPEC["seed"]) + 11 and calls["name"] == f"{SPEC['name']}_customers"
 
 
 def test_flatten_user_keeps_nested_fields_and_tolerates_missing_ones():

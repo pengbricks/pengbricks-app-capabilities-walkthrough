@@ -8,7 +8,7 @@
 # MAGIC
 # MAGIC | Notebook | What it does |
 # MAGIC |---|---|
-# MAGIC | `01_generate_data` | Writes the governed sample tables from the use-case spec (dbldatagen, fixed seed). |
+# MAGIC | `01_generate_data` | Writes the governed sample tables from the use-case spec (sample-data generator, fixed seed). |
 # MAGIC | `02_create_views` | Creates the two governed views that the charts and the dashboard both read. |
 # MAGIC | `03_notebook_charts` | Draws two matplotlib charts from the views, saves them to the `charts` volume, and records the plotted totals. |
 # MAGIC | `04_confirm_totals` | Runs the published dashboard's dataset queries and compares their totals with the views and the charts. |

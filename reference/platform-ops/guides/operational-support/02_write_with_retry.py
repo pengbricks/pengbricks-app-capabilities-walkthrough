@@ -44,16 +44,17 @@ def write_with_retry(spark, spec, catalog, schema, execution_count, **_):
     """Fail the first execution, succeed on the retry. The MERGE is keyed by item id, so reruns never duplicate rows."""
     if execution_count <= 1:
         raise TransientSourceError("Simulated transient upstream outage on first execution; the task retry policy will rerun")
-    import dbldatagen as dg
+    from sample_data import generate
 
     cfg = spec["work_items"]
-    spec_df = (
-        dg.DataGenerator(spark, name="work_items", rows=cfg["count"], partitions=1, randomSeedMethod="hash_fieldname", randomSeed=cfg["seed"])
-        .withIdOutput()
-        .withColumn("queue", "string", values=["ingest", "reporting", "access"], random=True)
-        .withColumn("priority", "string", values=["p1", "p2", "p3"], weights=[1, 3, 6], random=True)
-        .withColumn("payload_kb", "int", minValue=1, maxValue=512, random=True)
-        .build()
+    spec_df = generate(
+        spark,
+        [
+            {"name": "queue", "type": "string", "values": ["ingest", "reporting", "access"]},
+            {"name": "priority", "type": "string", "values": ["p1", "p2", "p3"], "weights": [1, 3, 6]},
+            {"name": "payload_kb", "type": "int", "min": 1, "max": 512},
+        ],
+        rows=cfg["count"], seed=cfg["seed"], name="work_items", partitions=1, keep_id=True,
     )
     spec_df.createOrReplaceTempView("_work_items")
     table = f"{catalog}.{schema}.support_work_items"

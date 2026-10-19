@@ -19,7 +19,7 @@ The release job treats a dataset's schema as a versioned data contract. It publi
 
 ```mermaid
 flowchart LR
-  spec[use_cases/general.yml] --> gen[generate_data<br/>dbldatagen, fixed seed]
+  spec[use_cases/general.yml] --> gen[generate_data<br/>sample-data generator, fixed seed]
   contracts[contracts/customers<br/>v1.0.0, v1.1.0, v2.0.0] --> gate
   gen --> gate[compatibility_gate<br/>classify + semver check]
   gate --> v1[apply_v1<br/>create v1.0.0, ALTER to v1.1.0]
@@ -38,10 +38,10 @@ flowchart LR
 - `contracts/customers/v*.yml`: columns, types, nullability, `renamed_from`, `deprecates`, `sunset_date`
 - `use_cases/general.yml`: dataset, owner, consumers, seed, and sample-data options
 - `src/compatibility.py`: `diff_contracts`, `check_contracts` (classification plus semver rule), `evolve_sql`, `compat_view_select`
-- `src/versioning_common.py`: spec loading, registry writes, tags, sample-data options
+- `src/versioning_common.py`: spec loading, registry writes, tags
 - `guides/versioning/00_start_here`: what the guide shows, the notebooks in order, and the variables
 - `guides/versioning/01_generate_data`, `02_compatibility_gate` (gate over all published versions plus the mislabeled dry run), `03_apply_v1` (in-place evolution), `04_apply_v2` (new table, compatibility view, tags, comments, registry rows), `05_show_traceability`, `06_notify_consumers` (per-consumer impact and action)
-- `requirements.txt`: dbldatagen and pyyaml, installed by the notebooks that need them
+- `requirements.txt`: pyyaml and the Databricks SDK, installed by the notebooks that need them
 - `resources/release.job.yml`: serverless job and `on_success` email; each task runs one notebook
 - `tests/test_compatibility.py`: unit tests, including rejected mislabeled releases
 

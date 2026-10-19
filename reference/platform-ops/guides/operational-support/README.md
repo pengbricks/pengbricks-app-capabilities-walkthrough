@@ -35,7 +35,7 @@ sequenceDiagram
 ## Reference code
 
 - `resources/operational_support.job.yml`: four tasks. `triage` uses `run_if: ALL_DONE`; `write_with_retry` sets `max_retries`, `timeout_seconds`, and `retry_on_timeout`.
-- `guides/operational-support/`: `00_start_here` plus `01_setup_on_call`, `02_write_with_retry` (dbldatagen work items, MERGE), `03_fragile_step`, `04_triage` and `05_repair_failed_run`. Each notebook also runs on its own with Run all.
+- `guides/operational-support/`: `00_start_here` plus `01_setup_on_call`, `02_write_with_retry` (generated work items, MERGE), `03_fragile_step`, `04_triage` and `05_repair_failed_run`. Each notebook also runs on its own with Run all.
 - `src/support_lib.py`: `classify`, `match_on_call`, `route_for`, `latest_attempts` (a task that passed on retry is not an incident), `pick_repair_target`
 - `05_repair_failed_run`: finds the newest unrepaired failed run, calls `repair_run`, updates the incident
 - `use_cases/general.yml`: the `support` section holds error classes, severities, and the `on_call` rows

@@ -20,7 +20,7 @@ The checks are rows in `format_ingestion_checks`. The `verify_tables` task fails
 
 ```mermaid
 flowchart LR
-  spec[use_cases/general.yml<br/>dbldatagen, fixed seed] --> gen[generate_files]
+  spec[use_cases/general.yml<br/>sample-data generator, fixed seed] --> gen[generate_files]
   gen --> vol[/Volume: source_landing/formats/]
   vol --> csv[csv/] --> t1[(fmt_customers_csv)]
   vol --> pipe[pipe/] --> t2[(fmt_orders_pipe)]

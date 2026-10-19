@@ -8,7 +8,7 @@
 # MAGIC
 # MAGIC | Notebook | What it does |
 # MAGIC |---|---|
-# MAGIC | `01_land_files` | Generates deterministic sample files for every feed with dbldatagen and creates the framework tables. |
+# MAGIC | `01_land_files` | Generates deterministic sample files for every feed with the sample-data generator and creates the framework tables. |
 # MAGIC | `02_ingest_feeds` | Runs the shared framework once per feed: read, map, validate, quarantine, merge, audit. In the job this is a `for_each` task. |
 # MAGIC | `03_compare_feeds` | Compares the feeds from one run in the audit table and fails if any feed did not succeed. |
 # MAGIC

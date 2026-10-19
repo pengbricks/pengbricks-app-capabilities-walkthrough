@@ -1,4 +1,4 @@
-// Small syntax highlighter for the guide code excerpts (Python, SQL, YAML, JSON).
+// Small syntax highlighter for the guide code excerpts (Python, SQL, R, shell, YAML, JSON, INI).
 // It only needs to separate comments, strings, keywords, keys, numbers, and function names.
 
 export type TokenType = 'comment' | 'string' | 'keyword' | 'key' | 'function' | 'number' | 'plain';
@@ -15,6 +15,20 @@ const SQL_KEYWORDS = new Set(
     ' '
   )
 );
+
+const R_KEYWORDS = new Set(
+  'if else for while repeat function return next break in library require TRUE FALSE NULL NA Inf NaN'.split(' ')
+);
+
+const SHELL_KEYWORDS = new Set('if then else elif fi for in do done while case esac export function return'.split(' '));
+
+// Case-sensitive keyword sets; SQL keywords are matched lowercase.
+const KEYWORDS: Record<string, Set<string>> = {
+  py: PYTHON_KEYWORDS,
+  sql: SQL_KEYWORDS,
+  r: R_KEYWORDS,
+  sh: SHELL_KEYWORDS,
+};
 
 type Rule = { type: TokenType; pattern: RegExp };
 
@@ -40,6 +54,26 @@ const RULES: Record<string, Rule[]> = {
     { type: 'function', pattern: /\$\{[^}]+\}|\{\{[^}]+\}\}/y },
     { type: 'number', pattern: /\b\d+(?:\.\d+)?\b/y },
   ],
+  r: [
+    { type: 'comment', pattern: /#[^\n]*/y },
+    { type: 'string', pattern: /"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/y },
+    { type: 'keyword', pattern: /<-|\|>|%>%/y },
+    { type: 'number', pattern: /\b\d+(?:\.\d+)?L?\b/y },
+  ],
+  sh: [
+    { type: 'comment', pattern: /(?<=^|\s)#[^\n]*/my },
+    { type: 'string', pattern: /"(?:\\.|[^"\\])*"|'[^']*'/y },
+    { type: 'key', pattern: /(?<=\s)--?[A-Za-z][\w-]*/y },
+    { type: 'function', pattern: /\$\{?[A-Za-z_]\w*\}?/y },
+    { type: 'function', pattern: /(?<=^\s*)(?:databricks|git|npm|npx|uv|pip|python3?|curl|gh|cd|export)\b/my },
+    { type: 'number', pattern: /\b\d+(?:\.\d+)?\b/y },
+  ],
+  ini: [
+    { type: 'comment', pattern: /(?<=^\s*)[#;][^\n]*/my },
+    { type: 'keyword', pattern: /(?<=^\s*)\[[^\]\n]+\]/my },
+    { type: 'key', pattern: /(?<=^\s*)[A-Za-z_][\w.-]*(?=\s*=)/my },
+    { type: 'number', pattern: /\b\d+(?:\.\d+)?\b/y },
+  ],
   json: [
     { type: 'key', pattern: /"(?:\\.|[^"\\])*"(?=\s*:)/y },
     { type: 'string', pattern: /"(?:\\.|[^"\\])*"/y },
@@ -47,9 +81,32 @@ const RULES: Record<string, Rule[]> = {
   ],
 };
 
+const ALIASES: Record<string, string> = {
+  yaml: 'yml',
+  python: 'py',
+  bash: 'sh',
+  shell: 'sh',
+  zsh: 'sh',
+  cfg: 'ini',
+  example: 'ini',
+};
+
 function languageOf(language: string): string | undefined {
-  const normalized = language.toLowerCase() === 'yaml' ? 'yml' : language.toLowerCase();
+  const lower = language.toLowerCase();
+  const normalized = ALIASES[lower] ?? lower;
   return normalized in RULES ? normalized : undefined;
+}
+
+/** Best guess for short snippets that carry no file extension, such as walkthrough steps. */
+export function guessLanguage(code: string): string {
+  const first = code.trimStart();
+  if (/^(databricks|git|npm|npx|uv|pip|curl|gh|cd|export)\b/.test(first)) return 'sh';
+  if (
+    /^(select|with|create|insert|merge|update|delete|describe|alter|grant|show|restore|refresh|optimize)\b/i.test(first)
+  )
+    return 'sql';
+  if (/^[{[]/.test(first)) return 'json';
+  return 'py';
 }
 
 export function tokenize(code: string, language: string): Token[] {
@@ -83,13 +140,14 @@ export function tokenize(code: string, language: string): Token[] {
     if (matched) continue;
 
     identifier.lastIndex = index;
-    const word = lang !== 'json' && lang !== 'yml' ? identifier.exec(code) : null;
+    const word = lang in KEYWORDS ? identifier.exec(code) : null;
     if (word && (index === 0 || !/[A-Za-z0-9_]/.test(code[index - 1]))) {
       const text = word[0];
       const rest = code.slice(index + text.length);
       const isCall = /^\s*\(/.test(rest);
       const isDefinition = lang === 'py' && (previousWord === 'def' || previousWord === 'class');
-      const isKeyword = lang === 'py' ? PYTHON_KEYWORDS.has(text) : SQL_KEYWORDS.has(text.toLowerCase());
+      const keywords = KEYWORDS[lang];
+      const isKeyword = keywords ? keywords.has(lang === 'sql' ? text.toLowerCase() : text) : false;
       flush();
       if (isDefinition || (isCall && !isKeyword)) tokens.push({ type: 'function', text });
       else if (isKeyword) tokens.push({ type: 'keyword', text });
@@ -150,9 +208,7 @@ export const BUILTIN_FUNCTIONS: Record<string, string> = {
   list_runs: 'Jobs API: recent runs of a job.',
   run_now: 'Jobs API: start a job run.',
   WorkspaceClient: 'Databricks SDK client; authenticates from the environment.',
-  DataGenerator: 'dbldatagen: define synthetic columns and generate a DataFrame.',
-  withIdOutput: 'dbldatagen: keep the generated id column in the output.',
-  build: 'dbldatagen: generate the DataFrame from the column definitions.',
+  generate: 'Build a deterministic sample DataFrame from use-case spec columns (src/sample_data.py).',
   parse: 'sqlglot: parse SQL text into syntax trees for a dialect.',
   partitionBy: 'Window: group rows into partitions.',
   orderBy: 'Order rows.',

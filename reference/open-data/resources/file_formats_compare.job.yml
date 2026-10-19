@@ -1,0 +1,52 @@
+# JSON, CSV, Parquet, Delta, and Iceberg compared on one generated dataset: sizes, inferred types,
+# query cost, table-only features, and where each format keeps its metadata.
+resources:
+  jobs:
+    capability_guides_format_compare:
+      name: capability-guides-format-compare
+      description: Writes one generated order dataset as JSON, CSV, Parquet, Delta, and Iceberg, measures size, inferred types and query cost, then shows what only the table formats do and where their metadata lives.
+      tags:
+        capability_guide_job: capability_guides_format_compare
+        capability_guide_use_case: ${var.use_case}
+      max_concurrent_runs: 1
+      timeout_seconds: 7200
+      email_notifications:
+        on_failure:
+          - ${var.notification_email}
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${var.schema}
+        - name: rows
+          default: ${var.format_rows}
+        - name: seed
+          default: "20261016"
+      tasks:
+        - task_key: write_formats
+          notebook_task:
+            notebook_path: ../guides/file-formats-delta-iceberg/01_write_formats.py
+
+        - task_key: compare_reads
+          depends_on:
+            - task_key: write_formats
+          notebook_task:
+            notebook_path: ../guides/file-formats-delta-iceberg/02_compare_reads.py
+
+        - task_key: table_only_features
+          depends_on:
+            - task_key: compare_reads
+          notebook_task:
+            notebook_path: ../guides/file-formats-delta-iceberg/03_table_only_features.py
+
+        - task_key: metadata_layout
+          depends_on:
+            - task_key: table_only_features
+          notebook_task:
+            notebook_path: ../guides/file-formats-delta-iceberg/04_metadata_layout.py
+
+        - task_key: scan_metrics
+          depends_on:
+            - task_key: metadata_layout
+          notebook_task:
+            notebook_path: ../guides/file-formats-delta-iceberg/05_scan_metrics.py

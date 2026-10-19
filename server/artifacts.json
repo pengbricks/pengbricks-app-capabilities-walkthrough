@@ -61,10 +61,6 @@
         {
           "label": "Delta MERGE INTO",
           "url": "https://docs.databricks.com/aws/en/delta/merge"
-        },
-        {
-          "label": "dbldatagen synthetic data",
-          "url": "https://databrickslabs.github.io/dbldatagen/"
         }
       ],
       "highlights": [
@@ -74,7 +70,8 @@
           "notes": [
             "Everything provider-specific is here: file format, options, column mapping, and the adapter name.",
             "The rules block is shared with every other feed, so validation is identical."
-          ]
+          ],
+          "section": "config"
         },
         {
           "label": "Feed configuration: provider B (JSON, configuration only)",
@@ -82,7 +79,8 @@
           "notes": [
             "adapter: generic means no provider code. Nested JSON fields are mapped with dot paths.",
             "Diff this file against provider A to see everything that differs between the two sources."
-          ]
+          ],
+          "section": "config"
         },
         {
           "label": "Provider-specific code stays in its adapter",
@@ -91,7 +89,8 @@
           "notes": [
             "Only the status-code lookup is provider-specific; reading and mapping reuse the generic adapter.",
             "Adding a provider with a new quirk means one new adapter function, registered in adapters/__init__.py."
-          ]
+          ],
+          "section": "config"
         },
         {
           "label": "One shared runner for every feed",
@@ -101,7 +100,8 @@
             "The same function runs for every feed: adapter, validation, quarantine, MERGE, audit.",
             "The finally block writes the audit row whether the feed succeeds or fails.",
             "Errors are re-raised so the job's retry and alert settings apply."
-          ]
+          ],
+          "section": "flow"
         },
         {
           "label": "Rules compile from configuration to SQL",
@@ -110,7 +110,8 @@
           "notes": [
             "Rules come from the use-case spec, not code.",
             "Each row gets an array of failed rule names, so quarantine records say why a row was rejected."
-          ]
+          ],
+          "section": "rules"
         },
         {
           "label": "Audit: transformation runs and pipeline updates (system.lakeflow)",
@@ -122,7 +123,8 @@
           "notes": [
             "Jobs and pipelines are found by their capability_guide_job tag, so the queries work in any workspace.",
             "Each row is one job run or pipeline update with trigger, identity, and result."
-          ]
+          ],
+          "section": "audit"
         },
         {
           "label": "Audit: who changed or started them, lineage, and query activity",
@@ -135,7 +137,8 @@
             "system.access.audit records who created, edited, ran, or repaired the job and pipeline.",
             "table_lineage shows which job or pipeline wrote each table; query.history shows SQL warehouse reads and writes.",
             "Spark reads and writes from serverless jobs appear in lineage rather than query history."
-          ]
+          ],
+          "section": "audit"
         },
         {
           "label": "Alert: quarantine rate above the threshold",
@@ -143,7 +146,53 @@
           "notes": [
             "A SQL alert evaluates the audit table hourly and emails when any feed quarantines more than quarantine_alert_pct.",
             "The threshold is a bundle variable, so each environment can set its own."
-          ]
+          ],
+          "section": "rules"
+        },
+        {
+          "label": "One task per feed, from a list",
+          "path": "reference/ingestion/resources/ingestion_framework.job.yml",
+          "notes": [
+            "for_each_task runs the same notebook once per feed name that land_files returns."
+          ],
+          "lines": [
+            24,
+            36
+          ],
+          "section": "flow"
+        },
+        {
+          "label": "Pick the feeds, load each config, run",
+          "path": "reference/ingestion/guides/configuration-vs-code/02_ingest_feeds.py",
+          "notes": [
+            "A feed name selects a YAML file. The loop body is the same for every feed."
+          ],
+          "lines": [
+            36,
+            53
+          ],
+          "section": "flow"
+        },
+        {
+          "label": "Rules declared in the feed config",
+          "path": "reference/ingestion/feeds/general/provider_a.yml",
+          "notes": [
+            "Each rule has a name and a type. validation.py compiles them to SQL."
+          ],
+          "lines": [
+            18,
+            37
+          ],
+          "section": "rules"
+        },
+        {
+          "label": "A feed config is a typed object",
+          "path": "reference/ingestion/src/capability_framework/config.py",
+          "notes": [
+            "parse_feed rejects a config that does not map every canonical column."
+          ],
+          "symbol": "FeedConfig",
+          "section": "config"
         }
       ]
     },
@@ -206,10 +255,6 @@
         {
           "label": "Pipeline parameters",
           "url": "https://docs.databricks.com/aws/en/ldp/parameters"
-        },
-        {
-          "label": "dbldatagen synthetic data",
-          "url": "https://databrickslabs.github.io/dbldatagen/"
         }
       ],
       "highlights": [
@@ -224,7 +269,8 @@
             "Job parameters default to bundle variables, so one deployment can run another use case with --params use_case=<spec>.",
             "{{job.parameters.use_case}} selects the spec and feed folder for every task.",
             "for_each iterates the feed list the first task publishes as a task value."
-          ]
+          ],
+          "section": "registry"
         },
         {
           "label": "Feed configs are rendered from the use-case spec",
@@ -233,16 +279,51 @@
           "notes": [
             "Feed configs are generated from the spec, and the output order is fixed, so diffs stay small.",
             "Shared rules are appended to every feed; feed-specific rules can be added per feed."
-          ]
+          ],
+          "section": "template"
         },
         {
           "label": "Sample data is generated deterministically from the spec",
           "path": "reference/ingestion/src/capability_framework/datagen.py",
           "symbol": "canonical",
           "notes": [
-            "dbldatagen builds the canonical entity from the spec's column definitions.",
+            "src/sample_data.py builds the canonical entity from the spec's column definitions.",
             "A fixed seed means every run lands identical rows, so reruns are idempotent."
-          ]
+          ],
+          "section": "evidence"
+        },
+        {
+          "label": "Second feed, configuration only",
+          "path": "reference/ingestion/feeds/general/provider_b.yml",
+          "notes": [
+            "No adapter code: adapter is generic and the mapping uses JSON paths."
+          ],
+          "section": "onboarding"
+        },
+        {
+          "label": "Validate the spec before rendering",
+          "path": "reference/ingestion/src/capability_framework/use_case.py",
+          "symbol": "validate_use_case",
+          "section": "template",
+          "notes": []
+        },
+        {
+          "label": "Render all feed files from the spec",
+          "path": "reference/ingestion/src/capability_framework/use_case.py",
+          "notes": [
+            "render_feeds returns file name to YAML text. The tool writes them or, with --check, fails if the files in Git are stale."
+          ],
+          "symbol": "render_feeds",
+          "section": "template"
+        },
+        {
+          "label": "Feed config parsing",
+          "path": "reference/ingestion/src/capability_framework/config.py",
+          "notes": [
+            "Every feed must map the same canonical columns."
+          ],
+          "symbol": "parse_feed",
+          "section": "mapping"
         }
       ]
     },
@@ -310,7 +391,8 @@
           "notes": [
             "STREAM read_files is Auto Loader: each update reads only files it has not seen.",
             "_metadata.file_path and ingested_at give lineage and latency inputs per row."
-          ]
+          ],
+          "section": "stream"
         },
         {
           "label": "Expectations and per-row latency",
@@ -318,7 +400,8 @@
           "notes": [
             "Expectations drop invalid rows and record pass and fail counts in the pipeline event log.",
             "latency_seconds measures event time to ingestion time for each row."
-          ]
+          ],
+          "section": "stream"
         },
         {
           "label": "Latency and throughput metrics",
@@ -330,7 +413,42 @@
           "lines": [
             42,
             75
-          ]
+          ],
+          "section": "evidence"
+        },
+        {
+          "label": "Batch path: a materialized view over the framework output",
+          "path": "reference/ingestion/guides/batch-real-time-ingestion/pipeline/transactions_daily_summary.sql",
+          "notes": [
+            "Reads the silver table the batch framework wrote. Recomputed on each update."
+          ],
+          "section": "batch"
+        },
+        {
+          "label": "Pipeline definition: serverless, triggered, with parameters",
+          "path": "reference/ingestion/resources/streaming.pipeline.yml",
+          "notes": [
+            "landing_events_path is a parameter. continuous: false runs it as a triggered update; set it to true to keep it running."
+          ],
+          "section": "stream"
+        },
+        {
+          "label": "Batch then stream, in one job",
+          "path": "reference/ingestion/resources/batch_real_time.job.yml",
+          "notes": [
+            "run_job_task runs the batch framework job. The pipeline task waits for it and for the landed events."
+          ],
+          "lines": [
+            20,
+            37
+          ],
+          "section": "stream"
+        },
+        {
+          "label": "Latency percentiles per minute",
+          "path": "reference/ingestion/guides/batch-real-time-ingestion/pipeline/ingestion_latency_by_minute.sql",
+          "section": "evidence",
+          "notes": []
         }
       ],
       "autoLoaderDrop": {
@@ -426,7 +544,8 @@
             "Failure and duration alerts route to the notification address; the health rule flags slow runs.",
             "max_retries and min_retry_interval_millis retry the ingest task on transient failures.",
             "max_concurrent_runs: 1 prevents overlapping runs from writing the same tables."
-          ]
+          ],
+          "section": "setup"
         },
         {
           "label": "Simulated transient failure exercised by the retry policy",
@@ -435,7 +554,8 @@
           "notes": [
             "The first attempt writes a marker and fails; the retry finds the marker and continues.",
             "This stands in for a source that is briefly unavailable."
-          ]
+          ],
+          "section": "setup"
         },
         {
           "label": "Rollback to an earlier Delta version",
@@ -447,7 +567,8 @@
           "lines": [
             34,
             39
-          ]
+          ],
+          "section": "setup"
         }
       ],
       "walkthroughs": [
@@ -528,7 +649,8 @@
           "lines": [
             25,
             64
-          ]
+          ],
+          "section": "setup"
         },
         {
           "label": "Usage and list-price cost by SKU",
@@ -540,7 +662,8 @@
           "lines": [
             25,
             51
-          ]
+          ],
+          "section": "setup"
         },
         {
           "label": "Alert routing from job and alert settings",
@@ -552,7 +675,8 @@
           "lines": [
             58,
             97
-          ]
+          ],
+          "section": "setup"
         }
       ]
     },
@@ -613,7 +737,8 @@
           "notes": [
             "Keys are normalized before de-duplication, which is the edge case the unit test catches.",
             "Window ordering with nulls last keeps the latest dated version of each key."
-          ]
+          ],
+          "section": "setup"
         },
         {
           "label": "Same tests run locally and on serverless",
@@ -625,7 +750,8 @@
           "lines": [
             33,
             40
-          ]
+          ],
+          "section": "setup"
         },
         {
           "label": "Post-transform SQL checks",
@@ -637,7 +763,21 @@
           "lines": [
             23,
             36
-          ]
+          ],
+          "section": "setup"
+        },
+        {
+          "label": "Targets for dev and test",
+          "path": "reference/developer-experience/databricks.yml",
+          "notes": [
+            "dev uses development mode; test prefixes names.",
+            "Schema comes from a per-target variable."
+          ],
+          "lines": [
+            36,
+            46
+          ],
+          "section": "setup"
         }
       ],
       "walkthroughs": [
@@ -753,7 +893,8 @@
           "notes": [
             "deploy-test waits for deploy-dev and for approval on the test GitHub environment.",
             "The same commit SHA is deployed and tagged as release on every resource."
-          ]
+          ],
+          "section": "setup"
         },
         {
           "label": "dev and test targets with release tags",
@@ -765,7 +906,21 @@
           "notes": [
             "dev uses development mode; test uses presets for name prefixes and tags.",
             "Environment-specific values come from variables, not edits to resource files."
-          ]
+          ],
+          "section": "setup"
+        },
+        {
+          "label": "Deploy to dev and smoke-run",
+          "path": ".github/workflows/reference-cicd.yml",
+          "notes": [
+            "Auth and bundle variables come from the GitHub environment.",
+            "The commit SHA becomes the release variable."
+          ],
+          "lines": [
+            48,
+            71
+          ],
+          "section": "setup"
         }
       ],
       "walkthroughs": [
@@ -879,7 +1034,8 @@
           "notes": [
             "Row count, null rate per column, and key uniqueness are computed in one query.",
             "These numbers feed both the docs page and the AI prompt."
-          ]
+          ],
+          "section": "setup"
         },
         {
           "label": "Draft descriptions with ai_query",
@@ -888,7 +1044,8 @@
           "notes": [
             "ai_query drafts table and column descriptions from schema, profile, and lineage.",
             "The model returns JSON that the job applies as Unity Catalog comments."
-          ]
+          ],
+          "section": "setup"
         },
         {
           "label": "Render one documentation page",
@@ -897,7 +1054,8 @@
           "notes": [
             "One markdown page per table covers ownership, schema, quality, lineage, and usage.",
             "Pages are regenerated on every refresh, so they track the table."
-          ]
+          ],
+          "section": "setup"
         }
       ]
     },
@@ -974,29 +1132,62 @@
         {
           "label": "Classify legacy constructs",
           "path": "reference/legacy-conversion/src/lc_helpers.py",
-          "symbol": "classify",
           "notes": [
-            "Each legacy step is classified by its main construct (MERGE, cursor, temp table, and so on).",
-            "The classification drives whether a step can be converted automatically."
-          ]
+            "Regex rules pick the main construct and the feature tags for each step."
+          ],
+          "symbol": "classify",
+          "section": "status"
         },
         {
           "label": "Transpile T-SQL to Databricks SQL",
           "path": "reference/legacy-conversion/src/lc_helpers.py",
-          "symbol": "convert_statement",
           "notes": [
-            "sqlglot transpiles T-SQL to Databricks SQL; failures are recorded as manual remediation instead of raising.",
-            "Temp tables and schema names are rewritten to the target catalog and schema."
-          ]
+            "sqlglot does the transpile. Status is manual, warning, or clean."
+          ],
+          "symbol": "convert_statement",
+          "section": "status"
         },
         {
           "label": "Role-based effort model",
           "path": "reference/legacy-conversion/src/lc_helpers.py",
-          "symbol": "effort_model",
           "notes": [
-            "Effort is estimated per role from counts of clean, warning, and manual steps.",
-            "Assumptions are stored with each row so the estimate can be reviewed."
-          ]
+            "Fixed hours plus a per-status rate for each role."
+          ],
+          "symbol": "effort_model",
+          "section": "effort"
+        },
+        {
+          "label": "The assessment job",
+          "path": "reference/legacy-conversion/resources/job.yml",
+          "notes": [
+            "Four notebook tasks in a line. Each reads the table the one before it wrote."
+          ],
+          "lines": [
+            16,
+            31
+          ],
+          "section": "flow"
+        },
+        {
+          "label": "Run each converted step",
+          "path": "reference/legacy-conversion/guides/legacy-conversion/03_reconcile.py",
+          "notes": [
+            "A step that fails is recorded as a failed check and the run continues."
+          ],
+          "lines": [
+            75,
+            86
+          ],
+          "section": "reconcile"
+        },
+        {
+          "label": "Compare one output table with the reference",
+          "path": "reference/legacy-conversion/src/lc_expected.py",
+          "notes": [
+            "Row counts, key sets, and column sums."
+          ],
+          "symbol": "reconcile_table",
+          "section": "reconcile"
         }
       ]
     },
@@ -1061,7 +1252,8 @@
           "notes": [
             "Every change between two contract versions is classified as breaking or nonbreaking.",
             "The version bump must match: minor for nonbreaking, major for breaking."
-          ]
+          ],
+          "section": "changes"
         },
         {
           "label": "Publish v2 and keep v1 consumers working",
@@ -1073,7 +1265,8 @@
           "lines": [
             58,
             97
-          ]
+          ],
+          "section": "v2"
         },
         {
           "label": "Release gate with a mislabeled-release dry run",
@@ -1085,7 +1278,51 @@
           "lines": [
             38,
             68
-          ]
+          ],
+          "section": "gate"
+        },
+        {
+          "label": "Release job parameters",
+          "path": "reference/versioning/resources/release.job.yml",
+          "notes": [
+            "The release id is a job parameter, so every registry row traces to one run."
+          ],
+          "lines": [
+            16,
+            25
+          ],
+          "section": "flow"
+        },
+        {
+          "label": "Contract v2.0.0",
+          "path": "reference/versioning/contracts/customers/v2.0.0.yml",
+          "notes": [
+            "A contract is a YAML file per version.",
+            "renamed_from marks a rename, which is a breaking change."
+          ],
+          "lines": [
+            1,
+            13
+          ],
+          "section": "changes"
+        },
+        {
+          "label": "Compatibility view for v1 consumers",
+          "path": "reference/versioning/src/compatibility.py",
+          "notes": [
+            "Builds the SELECT list that serves the old column names from the new table."
+          ],
+          "symbol": "compat_view_select",
+          "section": "v2"
+        },
+        {
+          "label": "Register each release",
+          "path": "reference/versioning/src/versioning_common.py",
+          "notes": [
+            "Writes the version, change type, release id, and Delta version to a registry table."
+          ],
+          "symbol": "register",
+          "section": "trace"
         }
       ],
       "walkthroughs": [
@@ -1153,23 +1390,24 @@
         {
           "label": "Quality gate and champion comparison",
           "path": "reference/model-deployment/src/common.py",
-          "symbol": "evaluate_gates",
           "notes": [
             "Thresholds come from bundle variables, so dev and test enforce different bars.",
             "A challenger must beat the current champion by the configured margin before promotion."
-          ]
+          ],
+          "symbol": "evaluate_gates",
+          "section": "flow"
         },
         {
           "label": "Approval gate",
           "path": "reference/model-deployment/guides/model-deployment-cicd/03_approval_gate.py",
           "notes": [
-            "Promotion needs an approver: the approved_by job parameter (CI passes the GitHub reviewer) or an approvals table row.",
-            "Without one, the run succeeds but stops before promotion, so nothing unapproved is deployed."
+            "No approver: stop and leave @champion alone. Approver: move @champion and tag who approved."
           ],
           "lines": [
-            70,
-            81
-          ]
+            74,
+            85
+          ],
+          "section": "ci"
         },
         {
           "label": "Deploy the champion and wait for READY",
@@ -1179,6 +1417,54 @@
             "A scoring request then measures latency for the release record."
           ],
           "symbol": "wait_ready"
+        },
+        {
+          "label": "Train, log, and register with release tags",
+          "path": "reference/model-deployment/guides/model-deployment-cicd/01_train_and_register.py",
+          "notes": [
+            "The release SHA is a run tag. log_model registers a new version in Unity Catalog."
+          ],
+          "lines": [
+            67,
+            79
+          ],
+          "section": "flow"
+        },
+        {
+          "label": "The test job on GitHub",
+          "path": ".github/workflows/model-deployment-cicd.yml",
+          "notes": [
+            "The test environment's required reviewers are the approval. The approving actor is passed as approved_by."
+          ],
+          "lines": [
+            72,
+            95
+          ],
+          "section": "ci"
+        },
+        {
+          "label": "Targets set the thresholds",
+          "path": "reference/model-deployment/databricks.yml",
+          "notes": [
+            "dev and test set min_auc, max_auc_regression, and the serving size."
+          ],
+          "lines": [
+            47,
+            69
+          ],
+          "section": "config"
+        },
+        {
+          "label": "Append to the release history",
+          "path": "reference/model-deployment/guides/model-deployment-cicd/05_record_release.py",
+          "notes": [
+            "One row per release with aliases, metrics, approver, target, and endpoint."
+          ],
+          "lines": [
+            87,
+            107
+          ],
+          "section": "audit"
         }
       ],
       "walkthroughs": [
@@ -1249,7 +1535,8 @@
           "notes": [
             "dataAddress selects the sheet; the cell form Orders!A1 fails.",
             "Schema hints keep dates and numbers typed; Excel needs schemaEvolutionMode none."
-          ]
+          ],
+          "section": "options"
         },
         {
           "label": "Build files locally, then copy to the volume",
@@ -1261,7 +1548,8 @@
           "lines": [
             24,
             68
-          ]
+          ],
+          "section": "flow"
         },
         {
           "label": "24 format checks",
@@ -1273,7 +1561,92 @@
           "lines": [
             24,
             131
-          ]
+          ],
+          "section": "checks"
+        },
+        {
+          "label": "CSV: header row and typed columns",
+          "path": "reference/source-ingestion/guides/file-format-ingestion/pipeline/fmt_customers_csv.sql",
+          "notes": [
+            "header reads the first row as names. schemaHints pins the decimal and date columns; the rest are inferred."
+          ],
+          "lines": [
+            8,
+            13
+          ],
+          "section": "options"
+        },
+        {
+          "label": "Pipe-delimited: delimiter and quote",
+          "path": "reference/source-ingestion/guides/file-format-ingestion/pipeline/fmt_orders_pipe.sql",
+          "notes": [
+            "quote keeps a pipe inside double quotes in one field."
+          ],
+          "lines": [
+            8,
+            15
+          ],
+          "section": "options"
+        },
+        {
+          "label": "Nested JSON: multiLine",
+          "path": "reference/source-ingestion/guides/file-format-ingestion/pipeline/fmt_customers_json.sql",
+          "notes": [
+            "multiLine reads a pretty-printed array. Structs and arrays arrive as written."
+          ],
+          "lines": [
+            8,
+            13
+          ],
+          "section": "options"
+        },
+        {
+          "label": "XML: rowTag",
+          "path": "reference/source-ingestion/guides/file-format-ingestion/pipeline/fmt_orders_xml.sql",
+          "notes": [
+            "rowTag makes each <order> element a row. Attributes arrive with an underscore prefix."
+          ],
+          "lines": [
+            8,
+            12
+          ],
+          "section": "options"
+        },
+        {
+          "label": "Run the pipeline between generate and verify",
+          "path": "reference/source-ingestion/resources/file_formats.job.yml",
+          "notes": [
+            "The pipeline task does a full refresh, so counts stay the same on every run."
+          ],
+          "lines": [
+            22,
+            40
+          ],
+          "section": "flow"
+        },
+        {
+          "label": "Rescued rows are counted, not ignored",
+          "path": "reference/source-ingestion/guides/file-format-ingestion/03_verify_tables.py",
+          "notes": [
+            "Zero rows may have a non-null _rescued_data. The same check runs for each format that has the column."
+          ],
+          "lines": [
+            62,
+            68
+          ],
+          "section": "schemas"
+        },
+        {
+          "label": "Pipeline parameters and the pipeline definition",
+          "path": "reference/source-ingestion/resources/file_formats.pipeline.yml",
+          "notes": [
+            "formats_path and excel_sheet reach the SQL as parameters. There is no schema location or checkpoint setting."
+          ],
+          "lines": [
+            1,
+            17
+          ],
+          "section": "state"
         }
       ]
     },
@@ -1334,7 +1707,8 @@
             "A 401 refreshes the token and retries once; 429 and 5xx back off and honor Retry-After.",
             "Every HTTP attempt becomes one request-log row."
           ],
-          "symbol": "fetch_all_pages"
+          "symbol": "fetch_all_pages",
+          "section": "request"
         },
         {
           "label": "Refresh tokens before they expire",
@@ -1343,7 +1717,8 @@
             "Tokens refresh at a set age, not only after a failure.",
             "The reference run refreshed three times over seven pages."
           ],
-          "symbol": "TokenManager"
+          "symbol": "TokenManager",
+          "section": "request"
         },
         {
           "label": "Land records and the request log",
@@ -1355,7 +1730,39 @@
           "lines": [
             61,
             112
-          ]
+          ],
+          "section": "run"
+        },
+        {
+          "label": "Settings come from the spec",
+          "path": "reference/source-ingestion/guides/rest-api-ingestion/01_pull_rest_api.py",
+          "notes": [
+            "Page size, retry count, backoff, and token lifetime are spec values, not code."
+          ],
+          "lines": [
+            38,
+            55
+          ],
+          "section": "request"
+        },
+        {
+          "label": "One job task with a retry",
+          "path": "reference/source-ingestion/resources/rest_api.job.yml",
+          "notes": [
+            "max_retries: 1 reruns the whole pull once if it fails."
+          ],
+          "lines": [
+            21,
+            27
+          ],
+          "section": "run"
+        },
+        {
+          "label": "Flatten a nested user record",
+          "path": "reference/source-ingestion/src/source_ingestion/api_records.py",
+          "symbol": "flatten_user",
+          "section": "responses",
+          "notes": []
         }
       ]
     },
@@ -1420,7 +1827,8 @@
             "Credentials come from a secret scope, never the code.",
             "Files already in sftp_transfer_log are skipped."
           ],
-          "symbol": "fetch_new_files"
+          "symbol": "fetch_new_files",
+          "section": "new-files"
         },
         {
           "label": "Decide what is new",
@@ -1429,7 +1837,8 @@
             "A file is new by path, size, and modified time.",
             "The same logic runs against a volume when SFTP is blocked."
           ],
-          "symbol": "plan_transfers"
+          "symbol": "plan_transfers",
+          "section": "new-files"
         },
         {
           "label": "Prove the second fetch copies nothing",
@@ -1437,7 +1846,64 @@
           "notes": [
             "04_refetch_finds_nothing reruns the fetch after ingestion.",
             "It fails if anything is copied twice."
-          ]
+          ],
+          "section": "result"
+        },
+        {
+          "label": "Store the credentials in a secret scope",
+          "path": "reference/source-ingestion/guides/sftp-ingestion/01_setup_secrets.py",
+          "notes": [
+            "The fetch reads sftp-username and sftp-password from the scope. Nothing is in the job or the repo."
+          ],
+          "lines": [
+            34,
+            44
+          ],
+          "section": "flow"
+        },
+        {
+          "label": "Fetch step",
+          "path": "reference/source-ingestion/guides/sftp-ingestion/02_fetch_files.py",
+          "lines": [
+            20,
+            27
+          ],
+          "section": "flow",
+          "notes": []
+        },
+        {
+          "label": "Text files: one row per file",
+          "path": "reference/source-ingestion/guides/sftp-ingestion/pipeline/sftp_text_files.sql",
+          "notes": [
+            "Auto Loader keeps a checkpoint, so a rerun reads only new files. wholeText makes each file one row."
+          ],
+          "lines": [
+            11,
+            16
+          ],
+          "section": "flow"
+        },
+        {
+          "label": "Binary files: catalog only",
+          "path": "reference/source-ingestion/guides/sftp-ingestion/pipeline/sftp_binary_files.sql",
+          "notes": [
+            "Image bytes stay in the volume. The table stores path, size, and modification time."
+          ],
+          "lines": [
+            9,
+            13
+          ],
+          "section": "flow"
+        },
+        {
+          "label": "Fetch, ingest, and prove no reprocessing",
+          "path": "reference/source-ingestion/resources/sftp.job.yml",
+          "lines": [
+            23,
+            56
+          ],
+          "section": "flow",
+          "notes": []
         }
       ]
     },
@@ -1493,7 +1959,8 @@
           "notes": [
             "Each source maps to the same seven columns and sets source_system.",
             "Expectations fail the update if source_system or source_id is null."
-          ]
+          ],
+          "section": "mapping"
         },
         {
           "label": "Prepare database, file, and API inputs",
@@ -1505,7 +1972,8 @@
           "lines": [
             24,
             88
-          ]
+          ],
+          "section": "graph"
         },
         {
           "label": "Check counts per source",
@@ -1513,7 +1981,52 @@
           "notes": [
             "120 database, 80 file, and 60 API rows in the reference run.",
             "(source_system, source_id) must be unique."
-          ]
+          ],
+          "section": "counts"
+        },
+        {
+          "label": "Source 2: CSV files through Auto Loader",
+          "path": "reference/source-ingestion/guides/multi-source-pipeline/pipeline/stg_files_customers.sql",
+          "notes": [
+            "schemaHints pins the key and date types; the rest is inferred."
+          ],
+          "lines": [
+            7,
+            12
+          ],
+          "section": "graph"
+        },
+        {
+          "label": "Source 3: API pages landed as JSON",
+          "path": "reference/source-ingestion/guides/multi-source-pipeline/pipeline/stg_api_users.sql",
+          "lines": [
+            7,
+            11
+          ],
+          "section": "graph",
+          "notes": []
+        },
+        {
+          "label": "Source 1: the database extract, read as a batch",
+          "path": "reference/source-ingestion/guides/multi-source-pipeline/pipeline/stg_db_customers.sql",
+          "lines": [
+            2,
+            4
+          ],
+          "section": "graph",
+          "notes": []
+        },
+        {
+          "label": "One pipeline, three parameters",
+          "path": "reference/source-ingestion/resources/multi_source.pipeline.yml",
+          "notes": [
+            "The glob picks up every SQL file in the folder. Adding a source means adding a file and a UNION branch."
+          ],
+          "lines": [
+            10,
+            18
+          ],
+          "section": "extend"
         }
       ]
     },
@@ -1573,7 +2086,8 @@
           "notes": [
             "The query runs inside the source database.",
             "net_amount() is a database function called from the query."
-          ]
+          ],
+          "section": "query"
         },
         {
           "label": "One checksum on both sides",
@@ -1581,7 +2095,8 @@
           "notes": [
             "The same canonical-row md5 runs in Postgres and Spark SQL.",
             "Counts, checksums, and types must match."
-          ]
+          ],
+          "section": "match"
         },
         {
           "label": "Extract through the connection",
@@ -1593,7 +2108,32 @@
           "lines": [
             20,
             44
-          ]
+          ],
+          "section": "flow"
+        },
+        {
+          "label": "Create or update the Unity Catalog connection",
+          "path": "reference/source-ingestion/guides/relational-db-ingestion/02_setup_federation.py",
+          "notes": [
+            "The connection holds host, port, user, and password. Queries then go through remote_query."
+          ],
+          "lines": [
+            40,
+            54
+          ],
+          "section": "flow"
+        },
+        {
+          "label": "Foreign catalog and a remote_query probe",
+          "path": "reference/source-ingestion/guides/relational-db-ingestion/02_setup_federation.py",
+          "notes": [
+            "remote_query pushes SQL to Postgres and returns only the result."
+          ],
+          "lines": [
+            65,
+            75
+          ],
+          "section": "query"
         }
       ]
     },
@@ -1644,32 +2184,65 @@
       ],
       "highlights": [
         {
-          "label": "Cast with a reject path",
-          "path": "reference/data-engineering/guides/transformation-patterns/pipeline/06_cast_with_reject_path.sql",
+          "label": "Pipeline resource: serverless, SQL files by glob",
+          "path": "reference/data-engineering/resources/transformations.pipeline.yml",
           "notes": [
-            "try_cast splits good rows from bad ones.",
-            "Rejected rows carry a reason string."
-          ]
+            "The pipeline library is a glob over the pipeline folder, so a new SQL file is picked up on the next update.",
+            "Catalog and schema come from bundle variables."
+          ],
+          "section": "flow"
         },
         {
-          "label": "Iterate over each group's records",
-          "path": "reference/data-engineering/guides/transformation-patterns/pipeline/10_per_group_iteration.sql",
+          "label": "Job: full refresh, then inspect, then check",
+          "path": "reference/data-engineering/resources/transformations.job.yml",
           "notes": [
-            "Orders are collected into an array per customer.",
-            "transform, aggregate, and filter run on the array."
-          ]
-        },
-        {
-          "label": "Independent expected counts",
-          "path": "reference/data-engineering/guides/transformation-patterns/03_check_row_counts.py",
-          "notes": [
-            "Each view is paired with its own expected-count query.",
-            "11,476 valid plus 524 rejected equals 12,000 orders."
+            "The pipeline task runs with full_refresh: true so every run rebuilds all 14 views.",
+            "Catalog, schema, and use_case are job parameters."
           ],
           "lines": [
-            30,
-            69
-          ]
+            22,
+            39
+          ],
+          "section": "flow"
+        },
+        {
+          "label": "Joins: inner, left, and full",
+          "path": "reference/data-engineering/guides/transformation-patterns/pipeline/02_joins.sql",
+          "notes": [
+            "Only the join type changes between the three views.",
+            "The full join adds match_side to show which side each row came from."
+          ],
+          "section": "joins"
+        },
+        {
+          "label": "Cast with try_cast and a reject table",
+          "path": "reference/data-engineering/guides/transformation-patterns/pipeline/06_cast_with_reject_path.sql",
+          "notes": [
+            "try_cast returns NULL instead of failing the update.",
+            "The reject view records which column failed and why."
+          ],
+          "section": "casting"
+        },
+        {
+          "label": "Per-group iteration with higher-order functions",
+          "path": "reference/data-engineering/guides/transformation-patterns/pipeline/10_per_group_iteration.sql",
+          "notes": [
+            "collect_list gathers each customer's orders; transform, aggregate, and filter walk the array."
+          ],
+          "section": "patterns"
+        },
+        {
+          "label": "Compare each view with its expected count",
+          "path": "reference/data-engineering/guides/transformation-patterns/03_check_row_counts.py",
+          "notes": [
+            "Each view is counted and compared with a query on the sources.",
+            "Any mismatch fails the task."
+          ],
+          "lines": [
+            62,
+            71
+          ],
+          "section": "checks"
         }
       ]
     },
@@ -1724,12 +2297,25 @@
       ],
       "highlights": [
         {
-          "label": "SCD type 1 and type 2 from one feed",
-          "path": "reference/data-engineering/guides/scd-change-capture/pipeline/accounts_scd.sql",
+          "label": "Pipeline resource for the SCD flows",
+          "path": "reference/data-engineering/resources/scd.pipeline.yml",
           "notes": [
-            "Two AUTO CDC INTO flows with APPLY AS DELETE WHEN.",
-            "Only STORED AS differs between them."
-          ]
+            "One pipeline holds both flows; the job runs it twice."
+          ],
+          "section": "flow"
+        },
+        {
+          "label": "Second update is incremental",
+          "path": "reference/data-engineering/resources/scd.job.yml",
+          "notes": [
+            "The first update uses full_refresh: true on the initial snapshot.",
+            "The second sets full_refresh: false, so AUTO CDC applies only the new change rows."
+          ],
+          "lines": [
+            45,
+            50
+          ],
+          "section": "flow"
         },
         {
           "label": "Plan inserts, updates, and deletes",
@@ -1738,7 +2324,17 @@
             "Disjoint ids by stride keep the change batch deterministic.",
             "60 inserts, 150 updates, 40 deletes in the reference run."
           ],
-          "symbol": "plan_changes"
+          "symbol": "plan_changes",
+          "section": "types"
+        },
+        {
+          "label": "SCD type 1 and type 2 from one feed",
+          "path": "reference/data-engineering/guides/scd-change-capture/pipeline/accounts_scd.sql",
+          "notes": [
+            "Two AUTO CDC INTO flows with APPLY AS DELETE WHEN.",
+            "Only STORED AS differs between them."
+          ],
+          "section": "sql"
         },
         {
           "label": "Count current, history, and deleted keys",
@@ -1747,7 +2343,243 @@
             "SCD type 2 kept 1,210 history rows; type 1 kept 1,020.",
             "Fails if counts differ from the spec."
           ],
-          "symbol": "measure"
+          "symbol": "measure",
+          "section": "counts"
+        }
+      ]
+    },
+    "cdc-incremental-refresh": {
+      "bundle": "reference/data-engineering",
+      "onePager": "reference/data-engineering/guides/cdc-incremental-refresh/README.md",
+      "code": [
+        {
+          "label": "Pipeline source: three CDC flows and a materialized view",
+          "path": "reference/data-engineering/guides/cdc-incremental-refresh/pipeline/cdc_orders.py"
+        },
+        {
+          "label": "Notebooks, one per job step",
+          "path": "reference/data-engineering/guides/cdc-incremental-refresh"
+        },
+        {
+          "label": "Pipeline definition",
+          "path": "reference/data-engineering/resources/cdc.pipeline.yml"
+        },
+        {
+          "label": "Debezium events and event log parsing",
+          "path": "reference/data-engineering/src/de_common/cdc.py"
+        },
+        {
+          "label": "Event log reader and run log",
+          "path": "reference/data-engineering/src/de_common/cdc_metrics.py"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_cdc",
+          "label": "CDC and incremental refresh job"
+        }
+      ],
+      "recordedRuns": [],
+      "docs": [
+        {
+          "label": "Change data capture with AUTO CDC",
+          "url": "https://docs.databricks.com/aws/en/ldp/cdc"
+        },
+        {
+          "label": "AUTO CDC in Python",
+          "url": "https://docs.databricks.com/aws/en/ldp/developer/ldp-python-ref-apply-changes"
+        },
+        {
+          "label": "AUTO CDC from snapshot",
+          "url": "https://docs.databricks.com/aws/en/ldp/developer/ldp-python-ref-apply-changes-from-snapshot"
+        },
+        {
+          "label": "Pipeline updates and full refresh",
+          "url": "https://docs.databricks.com/aws/en/ldp/updates"
+        },
+        {
+          "label": "Incremental refresh for materialized views",
+          "url": "https://docs.databricks.com/aws/en/optimizations/incremental-refresh"
+        },
+        {
+          "label": "Delta change data feed",
+          "url": "https://docs.databricks.com/aws/en/delta/delta-change-data-feed"
+        },
+        {
+          "label": "Row tracking",
+          "url": "https://docs.databricks.com/aws/en/delta/row-tracking"
+        },
+        {
+          "label": "Auto Loader file detection modes",
+          "url": "https://docs.databricks.com/aws/en/ingestion/cloud-object-storage/auto-loader/file-detection-modes"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Auto Loader bronze table with schema hints",
+          "path": "reference/data-engineering/guides/cdc-incremental-refresh/pipeline/cdc_orders.py",
+          "notes": [
+            "cloudFiles.schemaHints pins the nested types the flows depend on. The pipeline manages the checkpoint and schema locations.",
+            "Files already in the flow checkpoint are skipped on the next update."
+          ],
+          "lines": [
+            33,
+            41
+          ],
+          "section": "autoloader"
+        },
+        {
+          "label": "Change data feed read",
+          "path": "reference/data-engineering/guides/cdc-incremental-refresh/pipeline/cdc_orders.py",
+          "notes": [
+            "readChangeFeed adds _change_type, _commit_version and _commit_timestamp. The flow drops update_preimage rows.",
+            "The checkpoint stores the last table version read."
+          ],
+          "lines": [
+            90,
+            98
+          ],
+          "section": "delta-feed"
+        },
+        {
+          "label": "AUTO CDC flow from change files (SCD type 1)",
+          "path": "reference/data-engineering/guides/cdc-incremental-refresh/pipeline/cdc_orders.py",
+          "notes": [
+            "keys picks the row, sequence_by orders events by LSN, and apply_as_deletes removes rows.",
+            "The flow name is its checkpoint identity."
+          ],
+          "lines": [
+            72,
+            84
+          ],
+          "section": "autocdc"
+        },
+        {
+          "label": "AUTO CDC flow from the change data feed (SCD type 2)",
+          "path": "reference/data-engineering/guides/cdc-incremental-refresh/pipeline/cdc_orders.py",
+          "notes": [
+            "track_history_column_list limits new versions to status and amount.",
+            "_commit_version orders the events."
+          ],
+          "lines": [
+            106,
+            116
+          ],
+          "section": "autocdc"
+        },
+        {
+          "label": "AUTO CDC from a snapshot table",
+          "path": "reference/data-engineering/guides/cdc-incremental-refresh/pipeline/cdc_orders.py",
+          "notes": [
+            "The source is a table that is replaced whole each run. The flow compares it with the previous snapshot by key."
+          ],
+          "lines": [
+            126,
+            131
+          ],
+          "section": "snapshot"
+        },
+        {
+          "label": "Materialized view over the type 1 table",
+          "path": "reference/data-engineering/guides/cdc-incremental-refresh/pipeline/cdc_orders.py",
+          "notes": [
+            "A grouped aggregate over a table with row tracking. The planning event shows how each update refreshed it."
+          ],
+          "lines": [
+            137,
+            146
+          ],
+          "section": "matview"
+        },
+        {
+          "label": "Full refresh and selective full refresh tasks",
+          "path": "reference/data-engineering/resources/cdc.job.yml",
+          "notes": [
+            "full_refresh true clears every table that allows it. full_refresh_selection names the tables to recompute."
+          ],
+          "lines": [
+            61,
+            67
+          ],
+          "section": "full-refresh"
+        },
+        {
+          "label": "Initial full refresh task",
+          "path": "reference/data-engineering/resources/cdc.job.yml",
+          "notes": [
+            "The first update clears and rebuilds; the incremental task further down sets full_refresh false."
+          ],
+          "lines": [
+            30,
+            35
+          ],
+          "section": "full-refresh"
+        },
+        {
+          "label": "Table properties: reset.allowed",
+          "path": "reference/data-engineering/guides/cdc-incremental-refresh/pipeline/cdc_orders.py",
+          "notes": [
+            "pipelines.reset.allowed = false keeps this table and its checkpoint through a full refresh."
+          ],
+          "lines": [
+            28,
+            32
+          ],
+          "section": "settings"
+        },
+        {
+          "label": "Table properties: row tracking",
+          "path": "reference/data-engineering/guides/cdc-incremental-refresh/pipeline/cdc_orders.py",
+          "notes": [
+            "Row tracking on the type 1 table lets the materialized view find changed rows."
+          ],
+          "lines": [
+            66,
+            70
+          ],
+          "section": "settings"
+        },
+        {
+          "label": "Pipeline configuration keys",
+          "path": "reference/data-engineering/resources/cdc.pipeline.yml",
+          "notes": [
+            "Bundle variables fill the paths and table names. The pipeline code reads them with spark.conf.get."
+          ],
+          "lines": [
+            13,
+            19
+          ],
+          "section": "settings"
+        },
+        {
+          "label": "Reading the configuration in the pipeline",
+          "path": "reference/data-engineering/guides/cdc-incremental-refresh/pipeline/cdc_orders.py",
+          "notes": [
+            "Three spark.conf.get calls read the keys set in the pipeline YAML."
+          ],
+          "lines": [
+            20,
+            22
+          ],
+          "section": "settings"
+        },
+        {
+          "label": "Read the pipeline event log",
+          "path": "reference/data-engineering/src/de_common/cdc_metrics.py",
+          "notes": [
+            "Pulls create_update, flow_progress, stream_progress and planning_information events for the pipeline."
+          ],
+          "symbol": "read_events",
+          "section": "eventlog"
+        },
+        {
+          "label": "Describe where a flow started and stopped",
+          "path": "reference/data-engineering/src/de_common/cdc.py",
+          "notes": [
+            "Turns stream_progress offsets into Delta table versions or an Auto Loader file-queue position."
+          ],
+          "symbol": "describe_offsets",
+          "section": "eventlog"
         }
       ]
     },
@@ -1802,34 +2634,82 @@
       ],
       "highlights": [
         {
-          "label": "One MERGE for insert, update, and delete",
+          "label": "Job parameters and task order",
+          "path": "reference/data-engineering/resources/target_loading.job.yml",
+          "notes": [
+            "The volume name is a job parameter, so the same notebooks write to any volume.",
+            "Three tasks in order: prepare, merge, write."
+          ],
+          "lines": [
+            11,
+            33
+          ],
+          "section": "flow"
+        },
+        {
+          "label": "Volume for the output files",
+          "path": "reference/data-engineering/resources/exports.volume.yml",
+          "notes": [
+            "The bundle creates the volume and grants READ_VOLUME to the app service principal."
+          ],
+          "section": "files"
+        },
+        {
+          "label": "MERGE with a clause per change type",
           "path": "reference/data-engineering/guides/target-loading-outputs/02_merge_target.py",
           "notes": [
-            "whenMatchedDelete, whenMatchedUpdate, and whenNotMatchedInsert in one statement.",
-            "Operation metrics come from Delta history."
+            "The key is the match condition; change_type picks the clause.",
+            "One statement applies all inserts, updates, and deletes."
           ],
           "lines": [
             43,
-            64
-          ]
+            54
+          ],
+          "section": "merge"
         },
         {
-          "label": "Formatted Excel output",
+          "label": "Read the MERGE metrics from Delta history",
+          "path": "reference/data-engineering/guides/target-loading-outputs/02_merge_target.py",
+          "notes": [
+            "DESCRIBE HISTORY keeps operationMetrics for every MERGE.",
+            "The notebook compares them with the change batch and fails on a mismatch."
+          ],
+          "lines": [
+            67,
+            73
+          ],
+          "section": "merge"
+        },
+        {
+          "label": "Write the four files",
           "path": "reference/data-engineering/guides/target-loading-outputs/03_write_outputs.py",
           "notes": [
-            "Bold header, fitted widths, frozen header, number format.",
-            "Built in a temp folder and copied to the volume."
+            "Fixed file names mean a rerun overwrites.",
+            "The workbook is built in a temp folder and copied, because volume paths do not support seeks."
           ],
-          "symbol": "write_xlsx"
+          "lines": [
+            95,
+            102
+          ],
+          "section": "files"
         },
         {
-          "label": "Column widths and merge metrics",
+          "label": "Excel writer",
+          "path": "reference/data-engineering/guides/target-loading-outputs/03_write_outputs.py",
+          "notes": [
+            "Header style, column widths, number format, and frozen row."
+          ],
+          "symbol": "write_xlsx",
+          "section": "workbook"
+        },
+        {
+          "label": "Fit column widths",
           "path": "reference/data-engineering/src/de_common/files.py",
           "notes": [
-            "Pure helpers covered by unit tests.",
-            "Widths come from the longest value per column."
+            "Longest value or header, padded and clamped between 8 and 50."
           ],
-          "symbol": "column_widths"
+          "symbol": "column_widths",
+          "section": "workbook"
         }
       ]
     },
@@ -1894,33 +2774,88 @@
       ],
       "highlights": [
         {
-          "label": "The whole task graph",
+          "label": "Sequence and parallel branches",
           "path": "reference/orchestration/resources/orchestration_patterns.job.yml",
           "notes": [
-            "Condition task branches, a run_if join, retries, notifications, and a health rule.",
-            "record_run still runs when one branch is excluded."
-          ]
+            "extract then validate run in sequence.",
+            "Both branches depend only on validate, so they run at the same time; the join waits for both."
+          ],
+          "lines": [
+            44,
+            80
+          ],
+          "section": "graph"
         },
         {
-          "label": "Call an external process",
+          "label": "Condition and run_if",
+          "path": "reference/orchestration/resources/orchestration_patterns.job.yml",
+          "notes": [
+            "The condition task compares a task value with a job parameter.",
+            "record_run uses run_if: AT_LEAST_ONE_SUCCESS so the skipped branch does not block it."
+          ],
+          "lines": [
+            96,
+            134
+          ],
+          "section": "graph"
+        },
+        {
+          "label": "Schedule, notifications, and health rule",
+          "path": "reference/orchestration/resources/orchestration_patterns.job.yml",
+          "notes": [
+            "The schedule is deployed PAUSED.",
+            "The duration warning email fires when the health rule trips."
+          ],
+          "lines": [
+            13,
+            41
+          ],
+          "section": "settings"
+        },
+        {
+          "label": "Retry policy",
+          "path": "reference/orchestration/resources/orchestration_patterns.job.yml",
+          "notes": [
+            "Two retries, 10 seconds apart, also on timeout."
+          ],
+          "lines": [
+            82,
+            94
+          ],
+          "section": "settings"
+        },
+        {
+          "label": "Fail the first attempt once per run",
           "path": "reference/orchestration/guides/orchestration-patterns/05_external_call.py",
           "notes": [
-            "A shell command and an HTTP request from one task.",
-            "Attempt 0 fails on purpose so the retry shows."
+            "A marker row makes the failure happen once, so the retry succeeds."
           ],
           "lines": [
             29,
             33
-          ]
+          ],
+          "section": "settings"
         },
         {
-          "label": "Pause every scheduled guide job",
+          "label": "Bulk pause job",
+          "path": "reference/orchestration/resources/bulk_pause.job.yml",
+          "notes": [
+            "Four tasks in order; cleanup uses run_if: ALL_DONE so the probe is always deleted."
+          ],
+          "lines": [
+            18,
+            50
+          ],
+          "section": "bulk-pause"
+        },
+        {
+          "label": "Find tagged jobs with a schedule",
           "path": "reference/orchestration/src/bulk_pause.py",
           "notes": [
-            "Jobs are found by tag; only unpaused ones are flipped.",
-            "Resume restores only the jobs this run paused."
+            "Filters on the capability_guide_job tag and a cron schedule."
           ],
-          "symbol": "tagged_scheduled_jobs"
+          "symbol": "tagged_scheduled_jobs",
+          "section": "bulk-pause"
         }
       ]
     },
@@ -1967,40 +2902,85 @@
       ],
       "highlights": [
         {
-          "label": "Wait for lineage, then walk it",
+          "label": "Job tasks and dependencies",
+          "path": "reference/orchestration/resources/observability.job.yml",
+          "notes": [
+            "Lineage and schema drift depend on build_chain.",
+            "Data drift has no upstream task and runs alongside them."
+          ],
+          "lines": [
+            22,
+            44
+          ],
+          "section": "job"
+        },
+        {
+          "label": "Poll system.access.table_lineage",
           "path": "reference/orchestration/guides/data-observability/02_read_lineage.py",
           "notes": [
-            "Lineage appeared about 13 minutes after the writes, so the task polls.",
-            "Table and column lineage for source, silver, and gold."
+            "Lineage can take minutes to appear, so the task retries every 30 seconds until both edges show."
           ],
           "lines": [
             29,
-            63
-          ]
+            46
+          ],
+          "section": "lineage"
         },
         {
-          "label": "Detect schema drift",
-          "path": "reference/orchestration/guides/data-observability/03_detect_schema_drift.py",
+          "label": "Walk upstream from gold",
+          "path": "reference/orchestration/guides/data-observability/02_read_lineage.py",
           "notes": [
-            "information_schema snapshots around each ALTER.",
-            "Each change is matched to its Delta history version."
+            "Depth 1 is silver, depth 2 is the source.",
+            "Results land in obs_lineage_edges."
           ],
           "lines": [
-            30,
-            42
-          ]
+            57,
+            68
+          ],
+          "section": "lineage"
         },
         {
-          "label": "Detect data drift",
+          "label": "Change the schema, then snapshot again",
+          "path": "reference/orchestration/guides/data-observability/03_detect_schema_drift.py",
+          "notes": [
+            "Type widening must be enabled before a column type can change in place."
+          ],
+          "lines": [
+            51,
+            58
+          ],
+          "section": "schema"
+        },
+        {
+          "label": "Diff two snapshots",
+          "path": "reference/orchestration/src/guide_lib.py",
+          "notes": [
+            "Returns COLUMN_ADDED, COLUMN_DROPPED, and TYPE_CHANGED events."
+          ],
+          "symbol": "diff_schemas",
+          "section": "schema"
+        },
+        {
+          "label": "Create a data profiling monitor",
           "path": "reference/orchestration/guides/data-observability/04_detect_data_drift.py",
           "notes": [
-            "A data profiling monitor refreshes before and after the shifted batch.",
-            "PSI and mean shift are also computed in the job."
+            "Snapshot profile on the baseline table, written to the schema's output tables.",
+            "The job deletes and recreates the monitor on each run."
           ],
           "lines": [
             66,
             90
-          ]
+          ],
+          "section": "data-drift"
+        },
+        {
+          "label": "Population stability index",
+          "path": "reference/orchestration/src/guide_lib.py",
+          "notes": [
+            "PSI over matching histogram bins; the guide flags values above 0.2."
+          ],
+          "symbol": "psi",
+          "section": "data-drift"
         }
       ]
     },
@@ -2047,36 +3027,74 @@
       ],
       "highlights": [
         {
-          "label": "Time a 6M-row aggregation",
-          "path": "reference/analyst/guides/sql-notebook-analysis/04_large_aggregation.py",
+          "label": "Job: three notebooks after the data task",
+          "path": "reference/analyst/resources/sql_notebooks.job.yml",
           "notes": [
-            "6 million rows generated with dbldatagen, then aggregated.",
-            "Each step's time goes to large_aggregation_timing."
+            "The three analysis tasks all depend on generate_data, so they run in parallel."
           ],
           "lines": [
-            43,
-            82
-          ]
+            11,
+            40
+          ],
+          "section": "flow"
         },
         {
-          "label": "Python and pandas round trip",
-          "path": "reference/analyst/guides/sql-notebook-analysis/03_python_pandas_roundtrip.py",
+          "label": "SQL with a window share and QUALIFY",
+          "path": "reference/analyst/guides/sql-notebook-analysis/02_sql_exploration.py",
           "notes": [
-            "toPandas, pivot and rolling means, then back to a table.",
-            "The re-read row count is asserted."
+            "Revenue by region and segment with each group's share of the total, saved as a table."
           ],
           "lines": [
             25,
-            64
-          ]
+            35
+          ],
+          "section": "flow"
         },
         {
-          "label": "R with sparklyr",
+          "label": "Collect an aggregate into pandas",
+          "path": "reference/analyst/guides/sql-notebook-analysis/03_python_pandas_roundtrip.py",
+          "notes": [
+            "Aggregate in Spark first, so only a few hundred rows reach the driver."
+          ],
+          "lines": [
+            25,
+            33
+          ],
+          "section": "roundtrip"
+        },
+        {
+          "label": "Write the pandas result back",
+          "path": "reference/analyst/guides/sql-notebook-analysis/03_python_pandas_roundtrip.py",
+          "notes": [
+            "createDataFrame turns the pandas frame into a Spark table.",
+            "The notebook re-reads it and asserts the row count."
+          ],
+          "lines": [
+            59,
+            62
+          ],
+          "section": "roundtrip"
+        },
+        {
+          "label": "Time each step at scale",
+          "path": "reference/analyst/guides/sql-notebook-analysis/04_large_aggregation.py",
+          "notes": [
+            "timed() records rows and seconds for each step.",
+            "The aggregations run in Spark on serverless; the notebook needs no cluster sizing."
+          ],
+          "lines": [
+            75,
+            98
+          ],
+          "section": "scale"
+        },
+        {
+          "label": "sparklyr summary",
           "path": "reference/analyst/guides/sql-notebook-analysis/05_r_sparklyr_summary.r",
           "notes": [
-            "Aggregates in Spark, then fits lm and quantile in R.",
-            "Shipped but not run: serverless has no R runtime."
-          ]
+            "Aggregate in Spark, collect a small result into R, then use summary(), quantile(), and lm()."
+          ],
+          "section": "r"
         }
       ]
     },
@@ -2127,34 +3145,67 @@
       ],
       "highlights": [
         {
-          "label": "Upload to a per-user path, then join",
+          "label": "Job: simulate the upload, then join",
+          "path": "reference/analyst/resources/byod.job.yml",
+          "notes": [
+            "Three tasks in order; the join task gets the run id as a parameter."
+          ],
+          "lines": [
+            11,
+            35
+          ],
+          "section": "flow"
+        },
+        {
+          "label": "Volume for uploads",
+          "path": "reference/analyst/resources/uploads.volume.yml",
+          "notes": [
+            "One volume; each user writes to a folder named after their login."
+          ],
+          "section": "path"
+        },
+        {
+          "label": "Per-user folder name",
+          "path": "reference/analyst/src/analyst_common/helpers.py",
+          "notes": [
+            "Lowercases the login and collapses punctuation to underscores."
+          ],
+          "symbol": "user_folder",
+          "section": "path"
+        },
+        {
+          "label": "Read the CSV and tag each side",
           "path": "reference/analyst/guides/bring-your-own-data/03_join_to_governed.py",
           "notes": [
-            "The CSV lands under uploads/<user>/.",
-            "A full outer join labels matched, upload_only, and governed_only keys."
+            "header and inferSchema read the file in place; the key is trimmed before the join."
+          ],
+          "lines": [
+            33,
+            38
+          ],
+          "section": "flow"
+        },
+        {
+          "label": "Full outer join and match status",
+          "path": "reference/analyst/guides/bring-your-own-data/03_join_to_governed.py",
+          "notes": [
+            "A full outer join keeps unmatched keys on both sides.",
+            "in_upload and in_governed flags decide the status."
           ],
           "lines": [
             49,
-            81
-          ]
+            61
+          ],
+          "section": "status"
         },
         {
-          "label": "Label each key",
+          "label": "Classify a key",
           "path": "reference/analyst/src/analyst_common/helpers.py",
           "notes": [
-            "Pure helper covered by tests.",
-            "450 matched, 30 upload-only in the reference run."
+            "The same rule, as a function with unit tests."
           ],
-          "symbol": "match_status"
-        },
-        {
-          "label": "Per-user folder",
-          "path": "reference/analyst/src/analyst_common/helpers.py",
-          "notes": [
-            "Each user writes to their own folder.",
-            "The task fails if no key matches."
-          ],
-          "symbol": "user_folder"
+          "symbol": "match_status",
+          "section": "status"
         }
       ]
     },
@@ -2205,32 +3256,70 @@
       ],
       "highlights": [
         {
-          "label": "Connect with the SQL connector",
+          "label": "Databricks SQL connector with OAuth",
+          "path": "reference/analyst/examples/python_sql_connector.py",
+          "notes": [
+            "credentials_provider=lambda: cfg.authenticate works for U2M and M2M.",
+            "With a profile from databricks auth login, or DATABRICKS_CLIENT_ID and DATABRICKS_CLIENT_SECRET for a service principal."
+          ],
+          "section": "oauth"
+        },
+        {
+          "label": "Databricks Connect on serverless",
+          "path": "reference/analyst/examples/databricks_connect.py",
+          "notes": [
+            "DataFrame code runs on serverless compute; results come back to your local process."
+          ],
+          "section": "paths"
+        },
+        {
+          "label": "R with odbc",
+          "path": "reference/analyst/examples/r_odbc.R",
+          "notes": [
+            "DBI with odbc::databricks(); OAuth U2M opens a browser on first connect."
+          ],
+          "section": "paths"
+        },
+        {
+          "label": "Connect and query from the job",
           "path": "reference/analyst/guides/local-tool-connectivity/02_sql_connector_check.py",
           "notes": [
-            "Uses OAuth M2M when a client id is set, the job identity otherwise.",
-            "Returned 4 regions and 5,000 customers in 1.56 s."
+            "Same connector code a laptop would use.",
+            "M2M when DATABRICKS_CLIENT_ID is set, otherwise the job identity."
           ],
           "lines": [
             33,
-            71
-          ]
+            53
+          ],
+          "section": "job"
         },
         {
-          "label": "Python client example",
-          "path": "reference/analyst/examples/python_sql_connector.py",
+          "label": "Job parameters",
+          "path": "reference/analyst/resources/local_connectivity.job.yml",
           "notes": [
-            "Copy-paste U2M and M2M sign-in.",
-            "Same governed tables and permissions as the workspace."
-          ]
+            "warehouse_id is a job parameter; the HTTP path is built from it."
+          ],
+          "lines": [
+            11,
+            31
+          ],
+          "section": "job"
         },
         {
-          "label": "ODBC configuration for statistics tools",
+          "label": "ODBC data source",
           "path": "reference/analyst/examples/odbc.ini.example",
           "notes": [
-            "U2M and M2M variants for SAS and SPSS.",
-            "Not run in the reference workspace."
-          ]
+            "AuthMech=11 selects OAuth; Auth_Flow=2 is U2M, Auth_Flow=1 is M2M."
+          ],
+          "section": "examples"
+        },
+        {
+          "label": "JDBC URL",
+          "path": "reference/analyst/examples/jdbc_url.txt",
+          "notes": [
+            "For tools that take a driver jar."
+          ],
+          "section": "examples"
         }
       ]
     },
@@ -2280,13 +3369,37 @@
           "label": "The flow as one SQL statement",
           "path": "reference/analyst/guides/no-code-data-prep/02_build_flow_output.py",
           "notes": [
-            "Filter, join, rename, and derive, matching the Designer steps.",
-            "prep_flow_summary holds the totals to compare with the Designer output."
+            "Filter, join, rename, and derive columns, in the same order as the operators."
           ],
           "lines": [
             25,
-            54
-          ]
+            40
+          ],
+          "section": "sql"
+        },
+        {
+          "label": "Summary table for comparing outputs",
+          "path": "reference/analyst/guides/no-code-data-prep/02_build_flow_output.py",
+          "notes": [
+            "Row count, total, and distinct customers to check against the Designer output."
+          ],
+          "lines": [
+            52,
+            56
+          ],
+          "section": "compare"
+        },
+        {
+          "label": "Job: build the SQL output",
+          "path": "reference/analyst/resources/no_code_prep.job.yml",
+          "notes": [
+            "A job runs the SQL version on a schedule or on demand."
+          ],
+          "lines": [
+            11,
+            27
+          ],
+          "section": "saved"
         }
       ]
     },
@@ -2343,28 +3456,79 @@
       ],
       "highlights": [
         {
-          "label": "Formatted workbook and delimited file",
+          "label": "Job parameters and tasks",
+          "path": "reference/analyst/resources/extracts.job.yml",
+          "notes": [
+            "The dashboard id and warehouse id are job parameters.",
+            "schedule_dashboard runs after build_extracts."
+          ],
+          "lines": [
+            11,
+            43
+          ],
+          "section": "flow"
+        },
+        {
+          "label": "One filter, defined in the spec",
           "path": "reference/analyst/guides/self-service-extracts/02_build_extracts.py",
           "notes": [
-            "Styled header, number formats, autofilter, and a summary sheet.",
-            "Both files are read back and row counts checked."
+            "The filter values come from the use-case spec; the result is saved as extract_orders for the dashboard and the files."
+          ],
+          "lines": [
+            41,
+            59
+          ],
+          "section": "flow"
+        },
+        {
+          "label": "Excel workbook",
+          "path": "reference/analyst/guides/self-service-extracts/02_build_extracts.py",
+          "notes": [
+            "Styled header, number and date formats, frozen header, autofilter, and a Summary sheet.",
+            "Built locally, then copied to the volume."
           ],
           "lines": [
             86,
-            125
-          ]
+            121
+          ],
+          "section": "files"
         },
         {
-          "label": "Schedule and subscribe",
-          "path": "reference/analyst/guides/self-service-extracts/03_schedule_dashboard.py",
+          "label": "Verify both files",
+          "path": "reference/analyst/guides/self-service-extracts/02_build_extracts.py",
           "notes": [
-            "The bundle can't declare a subscription, so the task creates it.",
-            "Reruns reuse the existing schedule."
+            "Reads both files back and fails if row counts differ from the table."
           ],
           "lines": [
-            42,
-            81
-          ]
+            132,
+            139
+          ],
+          "section": "files"
+        },
+        {
+          "label": "Find or create the schedule",
+          "path": "reference/analyst/guides/self-service-extracts/03_schedule_dashboard.py",
+          "notes": [
+            "Quartz cron for Mondays at 07:00.",
+            "Reuses an existing schedule with the same name."
+          ],
+          "lines": [
+            38,
+            55
+          ],
+          "section": "subscription"
+        },
+        {
+          "label": "Find or create the subscription",
+          "path": "reference/analyst/guides/self-service-extracts/03_schedule_dashboard.py",
+          "notes": [
+            "Looks up the workspace user for the email, then adds a user subscription."
+          ],
+          "lines": [
+            64,
+            82
+          ],
+          "section": "subscription"
         }
       ]
     },
@@ -2425,7 +3589,15 @@
       ],
       "highlights": [
         {
-          "label": "Two governed views",
+          "label": "Dashboard resource",
+          "path": "reference/analyst/resources/visualization.dashboard.yml",
+          "notes": [
+            "The bundle deploys the dashboard from an lvdash.json file, on the job's warehouse, with catalog and schema set."
+          ],
+          "section": "flow"
+        },
+        {
+          "label": "Governed view",
           "path": "reference/analyst/guides/in-platform-visualization/02_create_views.py",
           "notes": [
             "Notebook charts and the dashboard read the same views.",
@@ -2433,32 +3605,69 @@
           ],
           "lines": [
             25,
-            54
-          ]
+            36
+          ],
+          "section": "flow"
         },
         {
-          "label": "Notebook charts",
-          "path": "reference/analyst/guides/in-platform-visualization/03_notebook_charts.py",
+          "label": "Dashboard datasets",
+          "path": "reference/analyst/src/dashboards/visualization.lvdash.json",
           "notes": [
-            "matplotlib images saved to a volume.",
-            "Chart totals written to chart_totals."
+            "Each dataset is a query on a view."
           ],
           "lines": [
-            53,
-            92
-          ]
+            2,
+            17
+          ],
+          "section": "flow"
         },
         {
-          "label": "Dashboard and charts agree",
+          "label": "Chart from a view",
+          "path": "reference/analyst/guides/in-platform-visualization/03_notebook_charts.py",
+          "notes": [
+            "Read the view into pandas, plot it, save the PNG to a volume."
+          ],
+          "lines": [
+            51,
+            60
+          ],
+          "section": "totals"
+        },
+        {
+          "label": "Record the plotted totals",
+          "path": "reference/analyst/guides/in-platform-visualization/03_notebook_charts.py",
+          "notes": [
+            "The check compares these with the dashboard."
+          ],
+          "lines": [
+            88,
+            96
+          ],
+          "section": "totals"
+        },
+        {
+          "label": "Run the dashboard's queries and compare",
           "path": "reference/analyst/guides/in-platform-visualization/04_confirm_totals.py",
           "notes": [
-            "Runs the dashboard's own dataset queries on the warehouse.",
-            "Fails if any total differs."
+            "Loads each dataset's queryLines, runs them on the warehouse with catalog and schema set, and compares totals."
+          ],
+          "lines": [
+            41,
+            51
+          ],
+          "section": "how"
+        },
+        {
+          "label": "Compare and fail on a mismatch",
+          "path": "reference/analyst/guides/in-platform-visualization/04_confirm_totals.py",
+          "notes": [
+            "totals_match allows half a cent."
           ],
           "lines": [
             60,
             76
-          ]
+          ],
+          "section": "how"
         }
       ]
     },
@@ -2515,7 +3724,8 @@
             "Raises on an email principal, so no person gets a direct grant.",
             "Privilege names are validated."
           ],
-          "symbol": "grant_sql"
+          "symbol": "grant_sql",
+          "section": "flow"
         },
         {
           "label": "Verify dev and prod differ",
@@ -2524,7 +3734,8 @@
             "Reads information_schema with inherited_from.",
             "Separates direct grants from cascaded catalog privileges."
           ],
-          "symbol": "verify_grants"
+          "symbol": "verify_grants",
+          "section": "environments"
         },
         {
           "label": "Fall back to a grantable group",
@@ -2533,7 +3744,52 @@
             "Workspace-local groups aren't Unity Catalog principals.",
             "The job records the fallback to account users."
           ],
-          "symbol": "resolve_grantee"
+          "symbol": "resolve_grantee",
+          "section": "principals"
+        },
+        {
+          "label": "Job parameters and task order",
+          "path": "reference/governance/resources/access.job.yml",
+          "notes": [
+            "The group, schemas, and service principal arrive as job parameters.",
+            "Grants run only after the group and data exist."
+          ],
+          "lines": [
+            12,
+            48
+          ],
+          "section": "flow"
+        },
+        {
+          "label": "Apply grants per environment",
+          "path": "reference/governance/guides/access-management/03_apply_grants.py",
+          "notes": [
+            "Each environment reads its privileges from the use-case spec.",
+            "Every statement goes through grant_sql, so an email principal is refused."
+          ],
+          "symbol": "apply_grants",
+          "section": "environments"
+        },
+        {
+          "label": "Query the grant-change audit trail",
+          "path": "reference/governance/guides/access-management/05_audit_grant_changes.sql",
+          "notes": [
+            "Reads grant and revoke events from system.access.audit."
+          ],
+          "lines": [
+            1,
+            18
+          ],
+          "section": "audit"
+        },
+        {
+          "label": "List service principals",
+          "path": "reference/governance/guides/access-management/07_list_service_principals.py",
+          "notes": [
+            "Lists service principals through the SDK so rotation and ownership can be reviewed."
+          ],
+          "symbol": "list_service_principals",
+          "section": "principals"
         }
       ]
     },
@@ -2594,7 +3850,8 @@
             "session_user() is checked before is_member().",
             "Identity expressions are parameters, so another identity can be simulated."
           ],
-          "symbol": "mask_body"
+          "symbol": "mask_body",
+          "section": "identities"
         },
         {
           "label": "Create and attach the policies",
@@ -2603,7 +3860,8 @@
             "A region_access mapping table drives the dynamic filter.",
             "Masks and filters attach with ALTER TABLE."
           ],
-          "symbol": "create_policies"
+          "symbol": "create_policies",
+          "section": "flow"
         },
         {
           "label": "Test as each identity",
@@ -2612,7 +3870,39 @@
             "The simulation must reproduce the real result for the job identity.",
             "Other identities are simulated; role switching is the real test."
           ],
-          "symbol": "test_policies"
+          "symbol": "test_policies",
+          "section": "testing"
+        },
+        {
+          "label": "Mask function SQL",
+          "path": "reference/governance/src/governance_lib/sqlgen.py",
+          "notes": [
+            "One CREATE FUNCTION per mask kind, generated from the spec."
+          ],
+          "symbol": "mask_function_sql",
+          "section": "flow"
+        },
+        {
+          "label": "Row filter keyed on a mapping table",
+          "path": "reference/governance/src/governance_lib/sqlgen.py",
+          "notes": [
+            "The filter looks up the caller in a principal-to-region table.",
+            "Changing access is an INSERT, not a policy rewrite."
+          ],
+          "symbol": "dynamic_filter_body",
+          "section": "identities"
+        },
+        {
+          "label": "Read policies back from information_schema",
+          "path": "reference/governance/sql/policy_inventory.sql",
+          "notes": [
+            "Lists every column mask and row filter without opening a table."
+          ],
+          "lines": [
+            1,
+            9
+          ],
+          "section": "inventory"
         }
       ]
     },
@@ -2675,7 +3965,8 @@
             "40 async statements against a temporary 2X-Small warehouse.",
             "Shared warehouses are only read, never resized."
           ],
-          "symbol": "generate_load"
+          "symbol": "generate_load",
+          "section": "settings"
         },
         {
           "label": "Measure queueing",
@@ -2684,7 +3975,8 @@
             "Waits for query history, then computes waits and peak concurrency.",
             "Median wait at capacity was 61.1 s in the reference run."
           ],
-          "symbol": "analyze_load"
+          "symbol": "analyze_load",
+          "section": "dashboard"
         },
         {
           "label": "Always delete the test warehouse",
@@ -2696,7 +3988,39 @@
           "lines": [
             48,
             55
-          ]
+          ],
+          "section": "run"
+        },
+        {
+          "label": "Job parameters and task order",
+          "path": "reference/governance/resources/compute_capacity.job.yml",
+          "notes": [
+            "Query count and row range are job parameters, so the load is tunable."
+          ],
+          "lines": [
+            12,
+            47
+          ],
+          "section": "run"
+        },
+        {
+          "label": "Read the production warehouse settings",
+          "path": "reference/governance/guides/compute-capacity-management/01_read_settings.py",
+          "notes": [
+            "Writes size, cluster range, auto-stop, and channel to a table through the SDK."
+          ],
+          "symbol": "read_settings",
+          "section": "settings"
+        },
+        {
+          "label": "Create a separate 2X-Small test warehouse",
+          "path": "reference/governance/guides/compute-capacity-management/02_create_load_warehouse.py",
+          "notes": [
+            "The load runs on a throwaway warehouse so production users never queue behind it.",
+            "Min and max clusters are 1, so queueing shows up."
+          ],
+          "symbol": "create_load_warehouse",
+          "section": "isolation"
         }
       ]
     },
@@ -2763,7 +4087,8 @@
             "Usage joined to list prices by effective window.",
             "Scoped to this workspace."
           ],
-          "symbol": "build_views"
+          "symbol": "build_views",
+          "section": "breakdown"
         },
         {
           "label": "30-day forecast",
@@ -2771,7 +4096,8 @@
           "notes": [
             "ai_forecast runs as a SQL task on the warehouse.",
             "With only 3 days of history, it shows the method, not a plan."
-          ]
+          ],
+          "section": "budget"
         },
         {
           "label": "Budget alert",
@@ -2779,7 +4105,29 @@
           "notes": [
             "Alerts when 7-day spend passes budget_threshold_usd.",
             "The threshold is a bundle variable per environment."
-          ]
+          ],
+          "section": "budget"
+        },
+        {
+          "label": "Job parameters and task order",
+          "path": "reference/governance/resources/cost_chargeback.job.yml",
+          "notes": [
+            "The budget threshold is a job parameter, not a literal in the notebook."
+          ],
+          "lines": [
+            12,
+            48
+          ],
+          "section": "flow"
+        },
+        {
+          "label": "Flag optimization candidates",
+          "path": "reference/governance/guides/cost-chargeback/06_optimization.py",
+          "notes": [
+            "Reads the enriched cost view plus warehouse and query history."
+          ],
+          "symbol": "optimization",
+          "section": "optimize"
         }
       ]
     },
@@ -2835,7 +4183,8 @@
           "lines": [
             34,
             48
-          ]
+          ],
+          "section": "flow"
         },
         {
           "label": "Quality checks from the spec",
@@ -2844,7 +4193,8 @@
             "16 checks built from the use-case spec.",
             "Any failure fails the task."
           ],
-          "symbol": "quality_queries"
+          "symbol": "quality_queries",
+          "section": "quality"
         },
         {
           "label": "Versioned training set",
@@ -2856,7 +4206,44 @@
           "lines": [
             48,
             59
-          ]
+          ],
+          "section": "version"
+        },
+        {
+          "label": "Four tasks, in order",
+          "path": "reference/ml-lifecycle/resources/feature_preparation.job.yml",
+          "notes": [
+            "Each task is a notebook. The use-case parameter selects the spec."
+          ],
+          "lines": [
+            22,
+            43
+          ],
+          "section": "flow"
+        },
+        {
+          "label": "Features are expressions from the spec",
+          "path": "reference/ml-lifecycle/guides/data-ingestion-feature-preparation/02_build_features.py",
+          "notes": [
+            "Passthrough columns and derived expressions come from the spec, so a new feature is a spec change."
+          ],
+          "lines": [
+            56,
+            59
+          ],
+          "section": "flow"
+        },
+        {
+          "label": "Read upstream tables from the lineage API",
+          "path": "reference/ml-lifecycle/guides/data-ingestion-feature-preparation/04_record_lineage.py",
+          "notes": [
+            "Checks that Unity Catalog recorded the source to feature to training-set chain."
+          ],
+          "lines": [
+            43,
+            49
+          ],
+          "section": "version"
         }
       ]
     },
@@ -2913,7 +4300,8 @@
             "Models-from-code loads the pickle as an artifact.",
             "The wrapper class itself is never pickled."
           ],
-          "symbol": "PickledModel"
+          "symbol": "PickledModel",
+          "section": "paths"
         },
         {
           "label": "Reproduce the recorded baseline",
@@ -2925,7 +4313,8 @@
           "lines": [
             65,
             84
-          ]
+          ],
+          "section": "baseline"
         },
         {
           "label": "Record library and runtime versions",
@@ -2935,6 +4324,66 @@
             "Shows exactly what differs between runtimes."
           ],
           "symbol": "environment_versions"
+        },
+        {
+          "label": "The legacy side: pickle and sidecar record",
+          "path": "reference/ml-lifecycle/guides/model-training-compatibility/01_export_legacy_model.py",
+          "notes": [
+            "The pickle and a JSON record (baseline AUC, table version, package versions) go to a volume."
+          ],
+          "lines": [
+            44,
+            56
+          ],
+          "section": "paths"
+        },
+        {
+          "label": "Native path: log with a signature and an alias",
+          "path": "reference/ml-lifecycle/guides/model-training-compatibility/02_train_native.py",
+          "notes": [
+            "sklearn flavor, signature, and input example, registered in Unity Catalog."
+          ],
+          "lines": [
+            40,
+            53
+          ],
+          "section": "paths"
+        },
+        {
+          "label": "Log the pickle as a pyfunc",
+          "path": "reference/ml-lifecycle/guides/model-training-compatibility/03_import_legacy_model.py",
+          "notes": [
+            "The wrapper file is python_model, the pickle is an artifact, and pip_requirements pin the training versions."
+          ],
+          "lines": [
+            66,
+            75
+          ],
+          "section": "paths"
+        },
+        {
+          "label": "Change log: recorded versus current",
+          "path": "reference/ml-lifecycle/guides/model-training-compatibility/03_import_legacy_model.py",
+          "notes": [
+            "One row per package plus the AUC, flagged when it differs. The task fails past the tolerance."
+          ],
+          "lines": [
+            93,
+            105
+          ],
+          "section": "versions"
+        },
+        {
+          "label": "The training job",
+          "path": "reference/ml-lifecycle/resources/model_training.job.yml",
+          "notes": [
+            "The volume name is a job parameter, so the notebooks never hard-code a path."
+          ],
+          "lines": [
+            15,
+            43
+          ],
+          "section": "setup"
         }
       ]
     },
@@ -2990,7 +4439,8 @@
           "lines": [
             45,
             54
-          ]
+          ],
+          "section": "refs"
         },
         {
           "label": "Move the data on",
@@ -3000,21 +4450,67 @@
             "Only a rerun that reads the recorded version can match."
           ],
           "lines": [
-            32,
+            29,
             36
-          ]
+          ],
+          "section": "job"
         },
         {
-          "label": "Rerun and assert the result",
+          "label": "Rerun on the recorded version",
           "path": "reference/ml-lifecycle/guides/experiment-tracking/03_rerun_and_compare.py",
           "notes": [
-            "Original and rerun AUC both 0.947689.",
-            "A latest-data control shows the difference new data makes."
+            "Reads VERSION AS OF the recorded version, not the latest, and tags the rerun with what it reproduces."
           ],
           "lines": [
-            72,
+            68,
             82
-          ]
+          ],
+          "section": "result"
+        },
+        {
+          "label": "The rerun job",
+          "path": "reference/ml-lifecycle/resources/experiment_rerun.job.yml",
+          "notes": [
+            "The rerun task gets the first run's ID from a task value."
+          ],
+          "lines": [
+            26,
+            43
+          ],
+          "section": "job"
+        },
+        {
+          "label": "Read the table at a fixed version",
+          "path": "reference/ml-lifecycle/guides/experiment-tracking/01_tracked_run.py",
+          "notes": [
+            "The Delta version is read first and used for training, so it can be recorded."
+          ],
+          "lines": [
+            31,
+            35
+          ],
+          "section": "job"
+        },
+        {
+          "label": "Hash the training code",
+          "path": "reference/ml-lifecycle/src/ml_common.py",
+          "notes": [
+            "Hashes the source of the pipeline, the split, and the scoring function."
+          ],
+          "symbol": "code_hash",
+          "section": "refs"
+        },
+        {
+          "label": "Record the comparison",
+          "path": "reference/ml-lifecycle/guides/experiment-tracking/03_rerun_and_compare.py",
+          "notes": [
+            "One row per check, and the task fails when the rerun does not reproduce."
+          ],
+          "lines": [
+            91,
+            102
+          ],
+          "section": "check"
         }
       ]
     },
@@ -3079,23 +4575,68 @@
             "Baseline quantile bins; a breach is PSI or mean shift over the threshold.",
             "days_since_login reached PSI 3.86 in the shifted batches."
           ],
-          "symbol": "psi"
+          "symbol": "psi",
+          "section": "metrics"
         },
         {
           "label": "Retrain only on a breach",
           "path": "reference/ml-lifecycle/resources/model_drift.job.yml",
           "notes": [
-            "breach_check gates the retrain_candidate task.",
-            "A person promotes the challenger."
-          ]
+            "breach_check gates retrain_candidate on the task value from detect_drift."
+          ],
+          "lines": [
+            41,
+            54
+          ],
+          "section": "retrain"
         },
         {
           "label": "Alert the owner",
           "path": "reference/ml-lifecycle/resources/drift.alert.yml",
           "notes": [
-            "SQL alert on the newest batch's max PSI.",
-            "Emails notification_email."
-          ]
+            "A SQL alert on the newest batch's max PSI, checked hourly."
+          ],
+          "lines": [
+            6,
+            27
+          ],
+          "section": "retrain"
+        },
+        {
+          "label": "Drift thresholds and the simulated shift",
+          "path": "reference/ml-lifecycle/use_cases/general.yml",
+          "notes": [
+            "Batches 4 and 5 add 30 days to days_since_login. Both thresholds live in the spec."
+          ],
+          "lines": [
+            53,
+            59
+          ],
+          "section": "flow"
+        },
+        {
+          "label": "Compute drift per batch and feature",
+          "path": "reference/ml-lifecycle/guides/model-performance-drift/03_detect_drift.py",
+          "notes": [
+            "One row per batch and feature in drift_metrics. The breach flag goes out as a task value."
+          ],
+          "lines": [
+            29,
+            44
+          ],
+          "section": "metrics"
+        },
+        {
+          "label": "Train a candidate and compare with prod",
+          "path": "reference/ml-lifecycle/guides/model-performance-drift/04_retrain_candidate.py",
+          "notes": [
+            "Both models score the newest batch. The candidate gets @challenger, not @prod."
+          ],
+          "lines": [
+            71,
+            82
+          ],
+          "section": "retrain"
         }
       ]
     },
@@ -3161,31 +4702,77 @@
           "lines": [
             62,
             80
-          ]
+          ],
+          "section": "latency"
         },
         {
           "label": "Optional features are filled",
           "path": "reference/realtime-scoring/guides/real-time-scoring/01_train_register.py",
           "notes": [
-            "The signature marks usage_score optional; an imputer fills it.",
-            "A missing required feature returns 400."
+            "A request that omits the optional feature is scored with the training median."
           ],
           "lines": [
-            74,
-            85
-          ]
+            72,
+            83
+          ],
+          "section": "failures"
         },
         {
           "label": "Create or update the endpoint",
           "path": "reference/realtime-scoring/guides/real-time-scoring/02_deploy_endpoint.py",
           "notes": [
-            "Small size with scale-to-zero.",
-            "Waits for READY before scoring."
+            "Update when it exists. Create with route optimization when the spec asks for it, and fall back without it."
           ],
           "lines": [
             79,
             97
-          ]
+          ],
+          "section": "flow"
+        },
+        {
+          "label": "The scoring job",
+          "path": "reference/realtime-scoring/resources/realtime_scoring.job.yml",
+          "notes": [
+            "The endpoint name is a job parameter shared by deploy and score."
+          ],
+          "lines": [
+            13,
+            39
+          ],
+          "section": "flow"
+        },
+        {
+          "label": "Failure scenarios and expected status",
+          "path": "reference/realtime-scoring/src/scoring_helpers.py",
+          "notes": [
+            "Malformed body, wrong shape, missing required feature (400); missing optional feature (200)."
+          ],
+          "symbol": "error_cases",
+          "section": "failures"
+        },
+        {
+          "label": "Endpoint size and scaling settings",
+          "path": "reference/realtime-scoring/use_cases/general.yml",
+          "notes": [
+            "workload_size, scale_to_zero, and route_optimized are read from the spec."
+          ],
+          "lines": [
+            22,
+            28
+          ],
+          "section": "scaling"
+        },
+        {
+          "label": "Delete the endpoint",
+          "path": "reference/realtime-scoring/guides/real-time-scoring/04_teardown_endpoint.py",
+          "notes": [
+            "A separate job, so scoring runs never delete what they just built."
+          ],
+          "lines": [
+            29,
+            41
+          ],
+          "section": "cleanup"
         }
       ]
     },
@@ -3255,16 +4842,21 @@
           "notes": [
             "Revenue excludes cancelled orders with a FILTER clause.",
             "Every term carries a synonyms list."
-          ]
+          ],
+          "lines": [
+            86,
+            106
+          ],
+          "section": "layers"
         },
         {
           "label": "Ask the same questions twice",
           "path": "reference/genie/src/ask_questions.py",
           "notes": [
-            "Creates a space per stage and asks through the API.",
-            "Matched 0 of 5 before semantics and 5 of 5 after."
+            "Runs the expected query, asks Genie, and compares the rows."
           ],
-          "symbol": "ask_all"
+          "symbol": "ask_all",
+          "section": "answers"
         },
         {
           "label": "Compare answers to expected rows",
@@ -3274,6 +4866,48 @@
             "A code like NA does not match North America."
           ],
           "symbol": "rows_match"
+        },
+        {
+          "label": "The five-task job",
+          "path": "reference/genie/resources/ontology.job.yml",
+          "notes": [
+            "ask_before and ask_after take run_id so both answer sets land in one table."
+          ],
+          "lines": [
+            21,
+            54
+          ],
+          "section": "flow"
+        },
+        {
+          "label": "Comment, tag, and define the metric view",
+          "path": "reference/genie/src/apply_semantics.py",
+          "notes": [
+            "Table and column comments, tags, then CREATE VIEW ... WITH METRICS LANGUAGE YAML."
+          ],
+          "symbol": "apply_semantics",
+          "section": "layers"
+        },
+        {
+          "label": "Instructions for the space",
+          "path": "reference/genie/use_cases/general.yml",
+          "notes": [
+            "The glossary text Genie reads, plus sample questions and one example query."
+          ],
+          "lines": [
+            108,
+            114
+          ],
+          "section": "layers"
+        },
+        {
+          "label": "Baseline space versus semantic space",
+          "path": "reference/genie/src/ask_questions.py",
+          "notes": [
+            "Baseline: raw tables only. Semantic: the metric view plus instructions, sample questions, and example SQL."
+          ],
+          "symbol": "stage_space",
+          "section": "answers"
         }
       ]
     },
@@ -3330,34 +4964,69 @@
       ],
       "highlights": [
         {
-          "label": "Scripted user tasks",
-          "path": "reference/genie/guides/user-experience/03_run_user_session.py",
-          "notes": [
-            "Discovery, a question, a refinement, an ambiguous ask, and feedback.",
-            "Each task becomes a ux_session_log row."
-          ],
-          "lines": [
-            71,
-            118
-          ]
-        },
-        {
-          "label": "Ask and give feedback",
+          "label": "Ask in one conversation",
           "path": "reference/genie/src/genie_lib.py",
           "notes": [
-            "Polls each message and retries on throttling.",
-            "Posts thumbs-up or thumbs-down feedback."
+            "The first message starts a conversation. Later ones post to it, so a follow-up keeps its context.",
+            "Polls the message until it completes or times out."
           ],
-          "symbol": "GenieClient"
+          "symbol": "ask",
+          "section": "session"
+        },
+        {
+          "label": "Rate an answer through the API",
+          "path": "reference/genie/src/genie_lib.py",
+          "notes": [
+            "POSITIVE or NEGATIVE is a POST on the message. The error text comes back instead of raising."
+          ],
+          "symbol": "feedback",
+          "section": "outcomes"
         },
         {
           "label": "Find issues and training needs",
           "path": "reference/genie/src/genie_lib.py",
           "notes": [
-            "Rules flag failures, missing SQL, mismatches, and slow answers.",
-            "The ambiguous ask drew a clarifying question."
+            "Plain rules: status, missing SQL, row mismatch, a guessed ambiguous request, slow answers."
           ],
-          "symbol": "find_issues"
+          "symbol": "find_issues",
+          "section": "issues"
+        },
+        {
+          "label": "The session is data",
+          "path": "reference/genie/use_cases/general.yml",
+          "notes": [
+            "Each step has a prompt, an optional expected query, and the training need to log.",
+            "new_conversation starts a fresh chat; the rest share one."
+          ],
+          "lines": [
+            161,
+            186
+          ],
+          "section": "session"
+        },
+        {
+          "label": "Create or update the space",
+          "path": "reference/genie/guides/user-experience/03_run_user_session.py",
+          "notes": [
+            "Builds the space from the metric view, instructions, and sample questions, then upserts it by title."
+          ],
+          "lines": [
+            41,
+            52
+          ],
+          "section": "setup"
+        },
+        {
+          "label": "The three-task job",
+          "path": "reference/genie/resources/genie_ux.job.yml",
+          "notes": [
+            "Four job parameters come from bundle variables. run_id ties log rows to the job run."
+          ],
+          "lines": [
+            12,
+            38
+          ],
+          "section": "setup"
         }
       ]
     },
@@ -3417,7 +5086,8 @@
           "lines": [
             103,
             164
-          ]
+          ],
+          "section": "lifecycle"
         },
         {
           "label": "Revoke and confirm the read fails",
@@ -3429,7 +5099,8 @@
           "lines": [
             197,
             221
-          ]
+          ],
+          "section": "lifecycle"
         },
         {
           "label": "Shared in place, not copied",
@@ -3438,7 +5109,8 @@
             "Checks pre-signed file URLs sit under the source table path.",
             "That is the evidence no replication happens."
           ],
-          "symbol": "served_from_source"
+          "symbol": "served_from_source",
+          "section": "replication"
         },
         {
           "label": "Collect the audit trail",
@@ -3450,7 +5122,67 @@
           "lines": [
             30,
             46
-          ]
+          ],
+          "section": "visibility"
+        },
+        {
+          "label": "Job parameters and task order",
+          "path": "reference/open-data/resources/data_sharing.job.yml",
+          "notes": [
+            "Parameters name the catalog and schema; the audit task receives the share start time from the share task."
+          ],
+          "lines": [
+            13,
+            41
+          ],
+          "section": "lifecycle"
+        },
+        {
+          "label": "Row-limiting view that omits customer_email",
+          "path": "reference/open-data/guides/data-sharing/01_prepare_data.py",
+          "notes": [
+            "The view fixes the region and the column list.",
+            "Only this view is added to the share, not the base orders table."
+          ],
+          "lines": [
+            56,
+            63
+          ],
+          "section": "visibility"
+        },
+        {
+          "label": "Add objects to the share",
+          "path": "reference/open-data/guides/data-sharing/02_share_and_read.py",
+          "notes": [
+            "Objects are shared under a neutral schema name, so the provider schema stays hidden."
+          ],
+          "lines": [
+            97,
+            102
+          ],
+          "section": "lifecycle"
+        },
+        {
+          "label": "Create the recipient and grant",
+          "path": "reference/open-data/guides/data-sharing/02_share_and_read.py",
+          "notes": [
+            "An open-sharing recipient uses a bearer token.",
+            "Access is a GRANT SELECT on the share."
+          ],
+          "lines": [
+            113,
+            119
+          ],
+          "section": "lifecycle"
+        },
+        {
+          "label": "Detect a missing metastore privilege",
+          "path": "reference/open-data/src/open_data/sharing.py",
+          "notes": [
+            "Turns a PERMISSION_DENIED on CREATE SHARE into a recorded gap."
+          ],
+          "symbol": "is_missing_privilege",
+          "section": "privileges"
         }
       ]
     },
@@ -3501,16 +5233,17 @@
       ],
       "highlights": [
         {
-          "label": "Create, evolve, and time travel",
+          "label": "Create a managed Iceberg table",
           "path": "reference/open-data/guides/iceberg-support/01_managed_iceberg_table.py",
           "notes": [
-            "USING ICEBERG, append, ADD COLUMN, VERSION AS OF.",
-            "Each step is recorded as a check."
+            "USING ICEBERG makes a managed Iceberg table.",
+            "DESCRIBE EXTENDED shows the provider."
           ],
           "lines": [
-            38,
-            95
-          ]
+            49,
+            50
+          ],
+          "section": "flow"
         },
         {
           "label": "PyIceberg REST catalog config",
@@ -3519,18 +5252,214 @@
             "URI, warehouse, token, and the vended-credentials header.",
             "Without the header the data read is denied."
           ],
-          "symbol": "catalog_properties"
+          "symbol": "catalog_properties",
+          "section": "external"
         },
         {
           "label": "Read externally and compare",
           "path": "reference/open-data/guides/iceberg-support/02_read_through_irc.py",
           "notes": [
-            "PyIceberg reads the table and matches the Spark row count.",
-            "A pushed-down filter returns only the West rows."
+            "Loads the table by schema.name through the REST catalog and compares the count with Spark."
           ],
           "lines": [
-            53,
+            61,
             69
+          ],
+          "section": "external"
+        },
+        {
+          "label": "The Iceberg job",
+          "path": "reference/open-data/resources/iceberg.job.yml",
+          "notes": [
+            "Write in the first task; the second reads the same table from outside Spark."
+          ],
+          "lines": [
+            23,
+            32
+          ],
+          "section": "flow"
+        },
+        {
+          "label": "Evolve the schema",
+          "path": "reference/open-data/guides/iceberg-support/01_managed_iceberg_table.py",
+          "notes": [
+            "ADD COLUMN, then backfill with UPDATE. Each is a new table version."
+          ],
+          "lines": [
+            76,
+            77
+          ],
+          "section": "versions"
+        },
+        {
+          "label": "Time travel to before the change",
+          "path": "reference/open-data/guides/iceberg-support/01_managed_iceberg_table.py",
+          "notes": [
+            "VERSION AS OF returns the old columns and rows."
+          ],
+          "lines": [
+            90,
+            94
+          ],
+          "section": "versions"
+        },
+        {
+          "label": "Allow external access",
+          "path": "reference/open-data/guides/iceberg-support/01_managed_iceberg_table.py",
+          "notes": [
+            "EXTERNAL USE SCHEMA on the schema is what lets an outside engine read through the catalog."
+          ],
+          "lines": [
+            106,
+            107
+          ],
+          "section": "access"
+        }
+      ]
+    },
+    "file-formats-delta-iceberg": {
+      "bundle": "reference/open-data",
+      "onePager": "reference/open-data/guides/file-formats-delta-iceberg/README.md",
+      "code": [
+        {
+          "label": "Notebooks, one per job task",
+          "path": "reference/open-data/guides/file-formats-delta-iceberg"
+        },
+        {
+          "label": "Size, type, and plan helpers",
+          "path": "reference/open-data/src/open_data/formats.py"
+        },
+        {
+          "label": "Job and volume",
+          "path": "reference/open-data/resources/file_formats_compare.job.yml"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_format_compare",
+          "label": "File formats job"
+        }
+      ],
+      "recordedRuns": [],
+      "docs": [
+        {
+          "label": "Delta Lake on Databricks",
+          "url": "https://docs.databricks.com/aws/en/delta/"
+        },
+        {
+          "label": "Iceberg on Databricks",
+          "url": "https://docs.databricks.com/aws/en/iceberg/"
+        },
+        {
+          "label": "Read Delta tables as Iceberg (UniForm)",
+          "url": "https://docs.databricks.com/aws/en/delta/uniform"
+        },
+        {
+          "label": "Parquet files",
+          "url": "https://docs.databricks.com/aws/en/query/formats/parquet"
+        },
+        {
+          "label": "read_files table-valued function",
+          "url": "https://docs.databricks.com/aws/en/sql/language-manual/functions/read_files"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Job parameters and task order",
+          "path": "reference/open-data/resources/file_formats_compare.job.yml",
+          "section": "dataset",
+          "notes": [
+            "Four job parameters feed every notebook as widgets.",
+            "Each task is one notebook, run in order."
+          ],
+          "lines": [
+            16,
+            36
+          ]
+        },
+        {
+          "label": "Write the same rows five ways",
+          "path": "reference/open-data/guides/file-formats-delta-iceberg/01_write_formats.py",
+          "section": "dataset",
+          "notes": [
+            "Rows are range-partitioned by order_date in every format.",
+            "Iceberg is created with USING ICEBERG and filled with SQL."
+          ],
+          "lines": [
+            74,
+            99
+          ]
+        },
+        {
+          "label": "Read back and compare inferred types",
+          "path": "reference/open-data/guides/file-formats-delta-iceberg/02_compare_reads.py",
+          "section": "compare",
+          "notes": [
+            "JSON and CSV infer types by sampling; Parquet and the tables read them from metadata."
+          ],
+          "lines": [
+            60,
+            82
+          ]
+        },
+        {
+          "label": "The same selective query on every format",
+          "path": "reference/open-data/guides/file-formats-delta-iceberg/02_compare_reads.py",
+          "section": "compare",
+          "notes": [
+            "One day, two columns, an aggregate; a different day per run."
+          ],
+          "lines": [
+            107,
+            114
+          ]
+        },
+        {
+          "label": "UPDATE, DELETE, and MERGE on a folder versus tables",
+          "path": "reference/open-data/guides/file-formats-delta-iceberg/03_table_only_features.py",
+          "section": "features",
+          "notes": [
+            "The folder is rejected; Delta and Iceberg run all three."
+          ],
+          "lines": [
+            77,
+            90
+          ]
+        },
+        {
+          "label": "History and time travel",
+          "path": "reference/open-data/guides/file-formats-delta-iceberg/03_table_only_features.py",
+          "section": "features",
+          "notes": [
+            "Every commit is a version that VERSION AS OF can read."
+          ],
+          "lines": [
+            100,
+            108
+          ]
+        },
+        {
+          "label": "List the Delta log",
+          "path": "reference/open-data/guides/file-formats-delta-iceberg/04_metadata_layout.py",
+          "section": "layout",
+          "notes": [
+            "JSON commits and Parquet checkpoints sit beside the data."
+          ],
+          "lines": [
+            61,
+            76
+          ]
+        },
+        {
+          "label": "Walk the Iceberg metadata layers",
+          "path": "reference/open-data/guides/file-formats-delta-iceberg/04_metadata_layout.py",
+          "section": "layout",
+          "notes": [
+            "metadata.json, manifest list, manifests, data files, through the REST catalog."
+          ],
+          "lines": [
+            125,
+            162
           ]
         }
       ]
@@ -3582,37 +5511,62 @@
       ],
       "highlights": [
         {
-          "label": "BI-style client on the warehouse",
+          "label": "Query the warehouse from a client",
           "path": "reference/open-data/guides/external-integrations/02_sql_connector_client.py",
           "notes": [
-            "Connects as the notebook or job identity, or with OAuth M2M.",
-            "Results are cross-checked against Spark."
+            "Server hostname, HTTP path, and a credentials provider. The second query uses a named parameter."
           ],
           "lines": [
-            64,
-            92
-          ]
+            74,
+            79
+          ],
+          "section": "connector"
         },
         {
-          "label": "Query Postgres in place",
+          "label": "Register the connection and create a foreign catalog",
           "path": "reference/open-data/guides/external-integrations/03_lakehouse_federation.py",
           "notes": [
-            "Creates the UC connection and tries a foreign catalog.",
+            "A Unity Catalog connection holds the host and credential.",
             "Falls back to remote_query when CREATE CATALOG is denied."
           ],
           "lines": [
-            72,
-            122
-          ]
+            86,
+            102
+          ],
+          "section": "federation"
         },
         {
           "label": "Remote query expression",
           "path": "reference/open-data/src/open_data/federation.py",
           "notes": [
-            "Builds the table expression for queries through the connection.",
-            "Aggregates run inside Postgres."
+            "Runs the query inside the external database through the connection."
           ],
-          "symbol": "remote_query_sql"
+          "symbol": "remote_query_sql",
+          "section": "federation"
+        },
+        {
+          "label": "The integrations job",
+          "path": "reference/open-data/resources/external_integrations.job.yml",
+          "notes": [
+            "Both patterns run after one data-prep task."
+          ],
+          "lines": [
+            27,
+            42
+          ],
+          "section": "patterns"
+        },
+        {
+          "label": "Choose the identity and connect settings",
+          "path": "reference/open-data/guides/external-integrations/02_sql_connector_client.py",
+          "notes": [
+            "A client ID and secret give OAuth M2M. Without them the notebook identity is used."
+          ],
+          "lines": [
+            53,
+            63
+          ],
+          "section": "identity"
         }
       ]
     },
@@ -3669,7 +5623,8 @@
             "Creates the group only if missing.",
             "A refused UC grant is recorded with its reason."
           ],
-          "symbol": "roles"
+          "symbol": "roles",
+          "section": "coverage"
         },
         {
           "label": "Idempotent action ledger",
@@ -3678,7 +5633,8 @@
             "MERGE keyed on run, category, action, and target.",
             "A retried task never duplicates rows."
           ],
-          "symbol": "ledger_merge_sql"
+          "symbol": "ledger_merge_sql",
+          "section": "flow"
         },
         {
           "label": "Apply a policy if it drifted",
@@ -3687,7 +5643,38 @@
             "Tries a budget policy, then a cluster policy.",
             "Edits only when the definition changed."
           ],
-          "symbol": "policies"
+          "symbol": "policies",
+          "section": "coverage"
+        },
+        {
+          "label": "Job tasks and failure email",
+          "path": "reference/platform-ops/resources/platform_admin.job.yml",
+          "notes": [
+            "Every task writes to the ledger; a failure emails the notification address."
+          ],
+          "lines": [
+            12,
+            34
+          ],
+          "section": "flow"
+        },
+        {
+          "label": "Read the access audit",
+          "path": "reference/platform-ops/guides/platform-administration/06_audit_access.py",
+          "notes": [
+            "Reads system.access.audit with a date filter and records the result."
+          ],
+          "symbol": "audit_access",
+          "section": "audit"
+        },
+        {
+          "label": "Check warehouse settings against policy",
+          "path": "reference/platform-ops/src/admin_lib.py",
+          "notes": [
+            "Flags a warehouse that is oversized or lacks auto-stop; a refused call is recorded as a refusal."
+          ],
+          "symbol": "evaluate_warehouse",
+          "section": "refusals"
         }
       ]
     },
@@ -3754,7 +5741,8 @@
             "The first matching pattern wins; tags pick the owner.",
             "High severity also pages the escalation contact."
           ],
-          "symbol": "classify"
+          "symbol": "classify",
+          "section": "routing"
         },
         {
           "label": "Count only the latest attempt",
@@ -3763,7 +5751,8 @@
             "Retries appear as separate task entries.",
             "A task that passed on retry is not an incident."
           ],
-          "symbol": "latest_attempts"
+          "symbol": "latest_attempts",
+          "section": "routing"
         },
         {
           "label": "Repair the failed run",
@@ -3775,7 +5764,38 @@
           "lines": [
             75,
             89
-          ]
+          ],
+          "section": "steps"
+        },
+        {
+          "label": "Job tasks, retries, and run_if",
+          "path": "reference/platform-ops/resources/operational_support.job.yml",
+          "notes": [
+            "write_with_retry retries twice; triage runs even when a task fails."
+          ],
+          "lines": [
+            19,
+            48
+          ],
+          "section": "flow"
+        },
+        {
+          "label": "Match the on-call owner",
+          "path": "reference/platform-ops/src/support_lib.py",
+          "notes": [
+            "Tags on the job pick the on-call row."
+          ],
+          "symbol": "match_on_call",
+          "section": "routing"
+        },
+        {
+          "label": "Retry a transient failure",
+          "path": "reference/platform-ops/guides/operational-support/02_write_with_retry.py",
+          "notes": [
+            "The task reads execution_count and fails only on the first attempt."
+          ],
+          "symbol": "write_with_retry",
+          "section": "resiliency"
         }
       ]
     },
@@ -3843,28 +5863,77 @@
           "label": "Call a Unity Catalog function through managed MCP",
           "path": "reference/agents/guides/agent-framework-support/02_mcp_tool_call.py",
           "notes": [
-            "initialize, tools/list, and tools/call with the SDK's OAuth headers.",
-            "Grants on the function govern the call; a column mask hid the email."
+            "One JSON-RPC session: initialize, tools/list, tools/call, with the caller's OAuth token."
           ],
-          "symbol": "main"
+          "lines": [
+            56,
+            72
+          ],
+          "section": "tool"
         },
         {
           "label": "Route one prompt to two models with a fallback",
           "path": "reference/agents/guides/agent-framework-support/04_gateway_routing.py",
           "notes": [
-            "Primary and fallback models, request and token limits, and an inference table.",
-            "A 30-request burst against a 4-per-minute limit got 9 HTTP 429s."
+            "Primary destination, fallback destination, two rate limits, and an inference table, all in one service config."
           ],
-          "symbol": "service_config"
+          "symbol": "service_config",
+          "section": "gateway"
         },
         {
           "label": "Use MCP tools from a chat model",
           "path": "reference/agents/src/agents_common.py",
-          "symbol": "mcp_tools_as_chat_tools",
           "notes": [
-            "Shortens tool names to fit the 64-character chat API limit.",
-            "Handles content returned as a list of parts."
-          ]
+            "Converts tools/list output into chat-completions tool definitions and keeps an alias map back to the MCP names."
+          ],
+          "symbol": "mcp_tools_as_chat_tools",
+          "section": "handoff"
+        },
+        {
+          "label": "Table, PII mask, and the function the agent calls",
+          "path": "reference/agents/src/tool_setup.py",
+          "notes": [
+            "The mask hides the email unless the caller is in the PII group.",
+            "The function is the tool; its comment and parameter comment become the tool description."
+          ],
+          "symbol": "prepare_tool",
+          "section": "tool"
+        },
+        {
+          "label": "The handoff is a tool",
+          "path": "reference/agents/guides/agent-framework-support/03_agent_handoff.py",
+          "notes": [
+            "The supervisor model calls handoff with an agent name and a task. The notebook runs that agent and returns its answer."
+          ],
+          "lines": [
+            45,
+            59
+          ],
+          "section": "handoff"
+        },
+        {
+          "label": "Usage and fallback attempts from the system table",
+          "path": "reference/agents/guides/agent-framework-support/05_gateway_audit.py",
+          "notes": [
+            "Counts requests, tokens, and requests that needed a second attempt, per service and destination model."
+          ],
+          "lines": [
+            86,
+            95
+          ],
+          "section": "controls"
+        },
+        {
+          "label": "The gateway job",
+          "path": "reference/agents/resources/agent_gateway.job.yml",
+          "notes": [
+            "Three parameters. gateway_audit waits for the system table, so it runs after routing."
+          ],
+          "lines": [
+            15,
+            27
+          ],
+          "section": "setup"
         }
       ]
     },
@@ -3929,31 +5998,72 @@
       ],
       "highlights": [
         {
-          "label": "Tool-calling assistant with traces",
+          "label": "The agent loop",
           "path": "reference/agents/src/agent/assistant.py",
-          "symbol": "SupportAssistant",
           "notes": [
-            "Loops between the chat model and one tool, tracing both.",
-            "Casts the order id before building SQL."
-          ]
+            "Ask the model, run any tool calls, repeat up to max_tool_rounds."
+          ],
+          "symbol": "predict",
+          "section": "inside"
         },
         {
           "label": "Log, register, and alias",
           "path": "reference/agents/guides/agent-build-deployment/02_log_and_register.py",
           "notes": [
-            "Runs a local traced test first, then logs with declared resources.",
-            "Version 3 holds the champion alias."
+            "Declared resources are what the endpoint credentials are scoped to.",
+            "The champion alias moves to the new version."
           ],
-          "symbol": "main"
+          "lines": [
+            84,
+            96
+          ],
+          "section": "flow"
         },
         {
           "label": "Call the endpoint and check the trace",
           "path": "reference/agents/guides/agent-build-deployment/04_call_and_record.py",
           "notes": [
-            "Fails unless the trace has a uc_function_tool span.",
-            "Records code path, packages, owners, and latency."
+            "Asks for the trace in the response and fails unless the tool span carries order data."
           ],
-          "symbol": "main"
+          "lines": [
+            70,
+            99
+          ],
+          "section": "record"
+        },
+        {
+          "label": "Create or update the endpoint",
+          "path": "reference/agents/guides/agent-build-deployment/03_deploy_endpoint.py",
+          "notes": [
+            "Tracing is switched on with an environment variable. Update when the endpoint exists, create when it does not."
+          ],
+          "lines": [
+            77,
+            93
+          ],
+          "section": "flow"
+        },
+        {
+          "label": "The tool call as a trace span",
+          "path": "reference/agents/src/agent/assistant.py",
+          "notes": [
+            "The decorator names the span the build check looks for.",
+            "order_id is cast to int before it reaches SQL."
+          ],
+          "symbol": "_call_tool",
+          "section": "inside"
+        },
+        {
+          "label": "The build job",
+          "path": "reference/agents/resources/agent_build.job.yml",
+          "notes": [
+            "Task values carry the version, run ID, and endpoint name from task to task."
+          ],
+          "lines": [
+            30,
+            58
+          ],
+          "section": "setup"
         }
       ]
     }

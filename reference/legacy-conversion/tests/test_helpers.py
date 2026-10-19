@@ -137,3 +137,15 @@ def test_reconcile_detects_mismatch():
     assert all(c["passed"] for c in good)
     bad = ex.reconcile_table("t", [{"k": 1, "v": 2}], [{"k": 2, "v": 3}], cfg)
     assert not any(c["passed"] for c in bad if c["check_type"] in ("key_set", "checksum"))
+
+
+def test_sample_input_spec_maps_to_generator_columns(spec):
+    import lc_datagen
+
+    sd = spec["sample_data"]
+    cols = lc_datagen.generator_columns(sd)
+    assert [c["name"] for c in cols] == [c["name"] for c in sd["columns"]]
+    amount = next(c for c in cols if c["name"] == "amount")
+    assert amount["min"] == 20 and amount["max"] == 500 and "expr" not in amount
+    order_id = next(c for c in cols if c["name"] == "order_id")
+    assert order_id["expr"] == "1000 + order_num"

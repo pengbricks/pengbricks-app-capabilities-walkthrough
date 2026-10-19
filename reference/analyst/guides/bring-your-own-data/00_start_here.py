@@ -8,7 +8,7 @@
 # MAGIC
 # MAGIC | Notebook | What it does |
 # MAGIC |---|---|
-# MAGIC | `01_generate_data` | Writes the governed sample tables from the use-case spec (dbldatagen, fixed seed). |
+# MAGIC | `01_generate_data` | Writes the governed sample tables from the use-case spec (sample-data generator, fixed seed). |
 # MAGIC | `02_simulate_upload` | Writes a CSV to `/Volumes/<catalog>/<schema>/uploads/<user>/`, as an upload from the UI would. |
 # MAGIC | `03_join_to_governed` | Full outer joins the upload to `analyst_customers`, saves `byod_joined`, and counts matched, upload-only and governed-only keys. |
 # MAGIC

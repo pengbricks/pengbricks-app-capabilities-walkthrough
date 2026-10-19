@@ -30,7 +30,7 @@ def _parse_ts(text: str) -> datetime:
 
 
 def generate_base_rows(spec: Dict[str, Any]) -> List[Dict[str, Any]]:
-    """Seeded pure-Python generator. Fallback when dbldatagen is not available."""
+    """Seeded pure-Python generator. Fallback when Spark is not available."""
     rng = random.Random(spec["seed"])
     rows = []
     for i in range(spec["rows"]):
@@ -49,26 +49,26 @@ def generate_base_rows(spec: Dict[str, Any]) -> List[Dict[str, Any]]:
     return rows
 
 
-def generate_base_rows_dbldatagen(spark, spec: Dict[str, Any]) -> List[Dict[str, Any]]:
-    """Same spec through dbldatagen with a fixed seed. Rows are returned sorted by key."""
-    import dbldatagen as dg
-
-    gen = dg.DataGenerator(spark, name=spec["name"], rows=spec["rows"], partitions=1, seedMethod="hash_fieldname", randomSeed=spec["seed"])
+def spark_columns(spec: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """The spec columns in the form sample_data.generate takes: a `prefix` column becomes an expression."""
+    out = []
     for c in spec["columns"]:
         if "prefix" in c:
-            gen = gen.withColumn(
-                c["name"], "string",
-                expr=f"concat('{c['prefix']}', lpad(cast(id as string), {c.get('width', 5)}, '0'))",
-                baseColumn="id",
-            )
-        elif "values" in c:
-            gen = gen.withColumn(c["name"], "string", values=c["values"], random=True)
+            expr = f"concat('{c['prefix']}', lpad(cast(id as string), {c.get('width', 5)}, '0'))"
+            out.append({"name": c["name"], "type": c["type"], "expr": expr})
         elif c["type"] == "timestamp":
-            gen = gen.withColumn(c["name"], "timestamp", begin=c["begin"], end=c["end"], interval="1 second", random=True)
+            out.append({**c, "interval": "1 second"})
         else:
-            gen = gen.withColumn(c["name"], c["type"], minValue=c["min"], maxValue=c["max"], random=True)
-    key = spec["key_column"]
-    return [r.asDict() for r in gen.build().orderBy(key).collect()]
+            out.append(dict(c))
+    return out
+
+
+def generate_base_rows_spark(spark, spec: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Same spec through the sample-data generator (src/sample_data.py). Rows are returned sorted by key."""
+    from sample_data import generate
+
+    df = generate(spark, spark_columns(spec), rows=spec["rows"], seed=spec["seed"], name=spec["name"], partitions=1)
+    return [r.asDict() for r in df.orderBy(spec["key_column"]).collect()]
 
 
 def inject_edge_cases(rows: List[Dict[str, Any]], spec: Dict[str, Any]) -> List[Dict[str, Any]]:

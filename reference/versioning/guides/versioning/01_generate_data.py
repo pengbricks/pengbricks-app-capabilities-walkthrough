@@ -31,7 +31,8 @@ CONTRACTS_DIR = ROOT / "contracts"
 
 # COMMAND ----------
 
-from versioning_common import column_options, contracts_for, fq, load_spec, spark_type
+from sample_data import generate
+from versioning_common import contracts_for, fq, load_spec
 
 spec = load_spec(SPEC_FILE)
 dataset = spec["dataset"]
@@ -51,15 +52,10 @@ assert declared == expected, f"spec columns {declared} do not match contract v{l
 
 # COMMAND ----------
 
-import dbldatagen as dg
-
-generator = dg.DataGenerator(
-    spark, name=f"{spec['name']}_{dataset['name']}", rows=int(dataset["rows"]), partitions=2,
-    randomSeedMethod="hash_fieldname", randomSeed=int(spec["seed"]),
-).withIdOutput()  # dbldatagen drops `id` from the output unless asked
-for column in dataset["columns"]:
-    generator = generator.withColumn(column["name"], spark_type(column["type"]), **column_options(column))
-df = generator.build().select(*declared)
+df = generate(
+    spark, dataset["columns"], rows=int(dataset["rows"]), seed=int(spec["seed"]),
+    name=f"{spec['name']}_{dataset['name']}", partitions=2,
+)
 
 target = fq(params["catalog"], params["schema"], f"{dataset['name']}_seed")
 df.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(target)

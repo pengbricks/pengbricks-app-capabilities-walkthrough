@@ -9,7 +9,7 @@ export const walkthrough: Walkthrough = {
   shortVersion: [
     {
       title: 'The model comes from a spec.',
-      body: 'dbldatagen builds 5,000 training rows from the use-case file, and the trained model is registered in Unity Catalog.',
+      body: 'Generated sample data gives 5,000 training rows from the use-case file, and the trained model is registered in Unity Catalog.',
     },
     {
       title: 'The endpoint is small and idle-free.',
@@ -44,7 +44,7 @@ export const walkthrough: Walkthrough = {
           { label: 'Serving and tables', fromRow: 1, toRow: 2 },
         ],
         nodes: [
-          { id: 'train', label: 'train_register', mono: true, sub: 'dbldatagen + sklearn', col: 0, row: 0 },
+          { id: 'train', label: 'train_register', mono: true, sub: 'sample data + sklearn', col: 0, row: 0 },
           { id: 'deploy', label: 'deploy_endpoint', mono: true, sub: 'Small, scale to zero', col: 1, row: 0 },
           { id: 'score', label: 'score_and_measure', mono: true, sub: 'OAuth bearer header', col: 2, row: 0, kind: 'highlight' },
           { id: 'model', label: 'account_risk_model', mono: true, sub: 'Unity Catalog model', col: 0, row: 1, kind: 'store' },
@@ -73,6 +73,14 @@ export const walkthrough: Walkthrough = {
     {
       id: 'latency',
       heading: 'What the requests measured',
+      examples: [
+        {
+          label: 'Query the endpoint from the CLI',
+          language: 'sh',
+          code: 'databricks serving-endpoints query capability-guides-realtime-scoring \\\n  --json \'{"dataframe_records": [{"tenure_months": 24, "monthly_spend": 120, "support_tickets": 2}]}\'',
+          notes: ['usage_score is left out on purpose. The endpoint fills it with the training median.'],
+        },
+      ],
       prose:
         'The job sends one request, then 50 one at a time, then 20 through five workers. The first request in this run found a running replica, because the job updated an endpoint that was already serving. It is not a cold start. A cold start appears when a request reaches an endpoint that scaled to zero after sitting idle.',
       diagram: {

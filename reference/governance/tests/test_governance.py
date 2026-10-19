@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from governance_lib.analysis import max_concurrency, over_budget, percentile  # noqa: E402
-from governance_lib.datagen import column_options  # noqa: E402
+from governance_lib.datagen import table_frame  # noqa: E402
 from governance_lib.spec import load_spec  # noqa: E402
 from governance_lib.sqlgen import (  # noqa: E402
     IndividualGrantError,
@@ -82,10 +82,14 @@ def test_twin_swaps_identity_literals():
     assert attribute_filter_body("sensitivity", "restricted", "admins", member="false").startswith("(false OR")
 
 
-def test_column_options_expr_and_values():
-    assert column_options({"name": "a", "expr": "id"}) == {"expr": "id", "baseColumn": "id"}
-    opts = column_options({"name": "r", "values": ["a", "b"], "weights": [1, 2]})
-    assert opts["values"] == ["a", "b"] and opts["weights"] == [1, 2] and opts["random"] is True
+def test_table_frame_uses_spec_columns_and_row_counts():
+    from unittest import mock
+
+    with mock.patch("sample_data.generate") as generate:
+        table_frame(None, SPEC, "orders", rows=7)
+    args, kwargs = generate.call_args
+    assert [c["name"] for c in args[1]] == [c["name"] for c in SPEC["tables"]["orders"]["columns"]]
+    assert kwargs["rows"] == 7 and kwargs["seed"] == int(SPEC["seed"])
 
 
 def test_max_concurrency():

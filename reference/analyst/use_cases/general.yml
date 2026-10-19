@@ -1,5 +1,5 @@
 # Use-case spec: the only file a new domain needs to author.
-# the generate_data notebook in each guide builds every table from it with dbldatagen and a fixed seed.
+# the generate_data notebook in each guide builds every table from it with the sample-data generator (src/sample_data.py) and a fixed seed.
 name: general
 seed: 20261014
 
