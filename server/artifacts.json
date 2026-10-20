@@ -5547,6 +5547,18 @@
         {
           "label": "Power BI",
           "url": "https://docs.databricks.com/aws/en/partners/bi/power-bi"
+        },
+        {
+          "label": "Excel Add-in",
+          "url": "https://docs.databricks.com/aws/en/integrations/excel"
+        },
+        {
+          "label": "Tableau",
+          "url": "https://docs.databricks.com/aws/en/partners/bi/tableau"
+        },
+        {
+          "label": "Lakebase Postgres",
+          "url": "https://docs.databricks.com/aws/en/oltp/"
         }
       ],
       "highlights": [
@@ -5554,7 +5566,8 @@
           "label": "Query the warehouse from a client",
           "path": "reference/open-data/guides/external-integrations/02_sql_connector_client.py",
           "notes": [
-            "Server hostname, HTTP path, and a credentials provider. The second query uses a named parameter."
+            "Server hostname, HTTP path, and a credentials provider.",
+            "The second query uses a named parameter."
           ],
           "lines": [
             74,
@@ -5567,7 +5580,7 @@
           "path": "reference/open-data/guides/external-integrations/03_lakehouse_federation.py",
           "notes": [
             "A Unity Catalog connection holds the host and credential.",
-            "Falls back to remote_query when CREATE CATALOG is denied."
+            "Creating a catalog needs CREATE CATALOG; remote_query reads through the connection without one."
           ],
           "lines": [
             86,
@@ -5588,7 +5601,7 @@
           "label": "The integrations job",
           "path": "reference/open-data/resources/external_integrations.job.yml",
           "notes": [
-            "Both patterns run after one data-prep task."
+            "Both reference patterns run after one data-prep task."
           ],
           "lines": [
             27,
@@ -5600,7 +5613,7 @@
           "label": "Choose the identity and connect settings",
           "path": "reference/open-data/guides/external-integrations/02_sql_connector_client.py",
           "notes": [
-            "A client ID and secret give OAuth M2M. Without them the notebook identity is used."
+            "A client ID and secret give OAuth M2M, the right identity for an unattended client."
           ],
           "lines": [
             53,

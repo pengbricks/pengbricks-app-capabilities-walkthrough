@@ -410,12 +410,13 @@ export const guides: readonly Guide[] = [
     title: 'Partner tool integrations',
     category: 'General Guides',
     difficulty: 3,
-    summary: 'Connect two priority tools through supported integration patterns.',
-    acceptanceCriteria: 'Connect two common tools to Databricks using supported connectors and patterns.',
+    summary: 'Choose the integration pattern for each tool: SQL warehouse, Federation, Lakeflow Connect, sharing, or Lakebase.',
+    acceptanceCriteria:
+      'Each priority tool connects through the pattern that fits it, with OAuth identity and Unity Catalog governance, and the choice between query in place, ingest, and share is explained.',
     evidence: [
-      'Two configured integrations',
-      'Identity and connectivity pattern',
-      'Successful end-to-end exchange runs',
+      'Pattern chosen for each tool, with the reason',
+      'OAuth identity and least-privilege grants for each connection',
+      'End-to-end exchange through the chosen path',
     ],
   },
   {
