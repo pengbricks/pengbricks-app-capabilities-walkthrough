@@ -79,6 +79,11 @@ export type Walkthrough = {
   area: string;
   title: string;
   intro: string;
+  /**
+   * Why the business should care, shown first: a one- or two-sentence summary and three or four
+   * outcomes a sponsor would recognize (cost, risk, speed, who it helps), stated concretely.
+   */
+  businessValue?: { summary: string; outcomes: { title: string; body: string }[] };
   shortVersion: { title: string; body: string }[];
   sections: WalkthroughSection[];
   related: { slug: string; title: string }[];

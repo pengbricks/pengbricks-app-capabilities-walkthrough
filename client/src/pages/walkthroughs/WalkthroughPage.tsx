@@ -31,7 +31,11 @@ export function WalkthroughPage() {
     );
   }
 
-  const toc = [{ id: 'short', heading: 'The short version' }, ...walkthrough.sections];
+  const toc = [
+    ...(walkthrough.businessValue ? [{ id: 'value', heading: 'Business value' }] : []),
+    { id: 'short', heading: 'The short version' },
+    ...walkthrough.sections,
+  ];
 
   return (
     <div className="walkthrough">
@@ -82,8 +86,24 @@ export function WalkthroughBody({
   walkthrough: Walkthrough;
   excerpts?: CodeHighlight[];
 }) {
+  const value = walkthrough.businessValue;
   return (
     <>
+      {value && (
+        <section className="guide-section" id="value" aria-labelledby="h-value">
+          <h2 id="h-value">Business value</h2>
+          <p className="value-summary">{value.summary}</p>
+          <ul className="value-list">
+            {value.outcomes.map((item) => (
+              <li key={item.title}>
+                <h3>{item.title}</h3>
+                <p>{item.body}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <section className="guide-section" id="short" aria-labelledby="h-short">
         <h2 id="h-short">The short version</h2>
         <ol className="short-list">
