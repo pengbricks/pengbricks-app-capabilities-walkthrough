@@ -1,0 +1,36 @@
+# Seeds the environment schema, audits the layout, then summarizes the findings on a SQL warehouse.
+resources:
+  jobs:
+    capability_guides_environments:
+      name: capability-guides-environments
+      description: Tags the environment schema and loads sample orders outside prod, then reads the catalog's isolation mode, workspace bindings, owner, and grants and writes pass, warn, and info findings about the layout.
+      tags:
+        capability_guide_job: capability_guides_environments
+      max_concurrent_runs: 1
+      timeout_seconds: 1800
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${resources.schemas.environment.name}
+        - name: environment
+          default: ${var.environment}
+      tasks:
+        - task_key: seed_environment
+          notebook_task:
+            notebook_path: ../guides/environment-workspaces-catalogs/01_seed_environment.py
+
+        - task_key: audit_layout
+          depends_on: [{task_key: seed_environment}]
+          notebook_task:
+            notebook_path: ../guides/environment-workspaces-catalogs/02_audit_layout.py
+
+        - task_key: audit_summary
+          depends_on: [{task_key: audit_layout}]
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file:
+              path: ../guides/environment-workspaces-catalogs/03_audit_summary.sql
+            parameters:
+              catalog: ${var.catalog}
+              schema: ${resources.schemas.environment.name}

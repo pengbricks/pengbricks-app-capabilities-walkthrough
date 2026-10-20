@@ -25,6 +25,7 @@ Each folder under `reference/` is a self-contained Declarative Automation Bundle
 | `agents/` | Agents, MCP, and model gateway; Building and shipping agents |
 | `ai-functions/` | AI Functions in SQL |
 | `dab-starter/` | Running a Declarative Automation Bundle (a standalone starter that the guide page offers as a download; it creates its own schema) |
+| `environments/` | Workspaces and catalogs across dev, test, stage, and prod (four targets that map to environment schemas in one catalog, plus a layout audit job; the four-workspace, four-catalog setup is in `setup/` as commands that the bundle does not run. It creates its own schemas) |
 | `lakeflow-connect/` | SQL Server connections with Lakeflow Connect (needs a reachable SQL Server and classic compute for the gateway) |
 
 The GitHub integration and CI/CD guide deploys the `ingestion/` bundle through `.github/workflows/reference-cicd.yml`.

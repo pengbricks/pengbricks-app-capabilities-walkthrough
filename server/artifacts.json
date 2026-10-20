@@ -6678,6 +6678,272 @@
           ]
         }
       ]
+    },
+    "environment-workspaces-catalogs": {
+      "bundle": "reference/environments",
+      "onePager": "reference/environments/guides/environment-workspaces-catalogs/README.md",
+      "code": [
+        {
+          "label": "Bundle definition: variables and the four targets",
+          "path": "reference/environments/databricks.yml"
+        },
+        {
+          "label": "Job resource",
+          "path": "reference/environments/resources/environments.job.yml"
+        },
+        {
+          "label": "Schema resource",
+          "path": "reference/environments/resources/environments.schema.yml"
+        },
+        {
+          "label": "Seed notebook",
+          "path": "reference/environments/guides/environment-workspaces-catalogs/01_seed_environment.py"
+        },
+        {
+          "label": "Audit notebook",
+          "path": "reference/environments/guides/environment-workspaces-catalogs/02_audit_layout.py"
+        },
+        {
+          "label": "Audit summary query",
+          "path": "reference/environments/guides/environment-workspaces-catalogs/03_audit_summary.sql"
+        },
+        {
+          "label": "Layout classification and checks",
+          "path": "reference/environments/src/layout_lib.py"
+        },
+        {
+          "label": "Targets for four workspaces and four catalogs",
+          "path": "reference/environments/setup/databricks.four-workspaces.yml.example"
+        },
+        {
+          "label": "Create catalogs and managed locations",
+          "path": "reference/environments/setup/01_catalogs.sql"
+        },
+        {
+          "label": "Storage credentials and workspace bindings",
+          "path": "reference/environments/setup/02_credentials_and_bindings.sh"
+        },
+        {
+          "label": "Grants to groups and service principals",
+          "path": "reference/environments/setup/03_grants.sql"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_environments",
+          "label": "Environment layout audit"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "Layout audit (dev target): 11 findings, 1 warning",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/446934294311969/runs/715117909586385",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-20T20:57:00Z"
+        }
+      ],
+      "docs": [
+        {
+          "label": "Developer best practices",
+          "url": "https://docs.databricks.com/aws/en/developers/best-practices"
+        },
+        {
+          "label": "Unity Catalog best practices",
+          "url": "https://docs.databricks.com/aws/en/data-governance/unity-catalog/best-practices"
+        },
+        {
+          "label": "What are catalogs?",
+          "url": "https://docs.databricks.com/aws/en/data-governance/unity-catalog/create-catalogs"
+        },
+        {
+          "label": "Workspace-catalog binding",
+          "url": "https://docs.databricks.com/aws/en/data-governance/unity-catalog/access-control/workspace-catalog-binding"
+        },
+        {
+          "label": "Managed storage locations",
+          "url": "https://docs.databricks.com/aws/en/connect/unity-catalog/cloud-storage/managed-storage"
+        },
+        {
+          "label": "External locations",
+          "url": "https://docs.databricks.com/aws/en/connect/unity-catalog/cloud-storage/external-locations"
+        },
+        {
+          "label": "Storage credentials",
+          "url": "https://docs.databricks.com/aws/en/connect/unity-catalog/cloud-storage/storage-credentials"
+        },
+        {
+          "label": "Privileges and ownership",
+          "url": "https://docs.databricks.com/aws/en/data-governance/unity-catalog/manage-privileges/"
+        },
+        {
+          "label": "Deployment modes",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/bundles/deployment-modes"
+        },
+        {
+          "label": "Run as a service principal",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/bundles/run-as"
+        },
+        {
+          "label": "Bundle variables",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/bundles/variables"
+        },
+        {
+          "label": "Service principals",
+          "url": "https://docs.databricks.com/aws/en/admin/users-groups/service-principals"
+        },
+        {
+          "label": "Delta Sharing",
+          "url": "https://docs.databricks.com/aws/en/delta-sharing/"
+        },
+        {
+          "label": "Serverless usage policies",
+          "url": "https://docs.databricks.com/aws/en/admin/usage/budget-policies"
+        },
+        {
+          "label": "Governed tags",
+          "url": "https://docs.databricks.com/aws/en/admin/governed-tags/"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Layout and three-level name",
+          "path": "reference/environments/src/layout_lib.py",
+          "symbol": "classify_layout",
+          "section": "layouts",
+          "notes": [
+            "A catalog named for an environment is layout (a). <env>_<domain> is (b). Environment names in the schemas are (c)."
+          ]
+        },
+        {
+          "label": "The name a table gets in each layout",
+          "path": "reference/environments/src/layout_lib.py",
+          "symbol": "three_level_name",
+          "section": "layouts",
+          "notes": [
+            "Only the catalog and schema variables change between layouts."
+          ]
+        },
+        {
+          "label": "Isolate a catalog, bind it, bind prod read-only into stage",
+          "path": "reference/environments/setup/02_credentials_and_bindings.sh",
+          "lines": [
+            19,
+            33
+          ],
+          "section": "bindings",
+          "notes": [
+            "Bindings are only consulted once the catalog is ISOLATED.",
+            "BINDING_TYPE_READ_ONLY blocks every write from the bound workspace."
+          ]
+        },
+        {
+          "label": "Dev target: development mode gives a personal schema",
+          "path": "reference/environments/databricks.yml",
+          "lines": [
+            36,
+            45
+          ],
+          "section": "sandboxes",
+          "notes": [
+            "The target sets schema once. Development mode prefixes it, so the schema becomes dev_<you>_envdemo."
+          ]
+        },
+        {
+          "label": "Storage credentials, one per environment",
+          "path": "reference/environments/setup/02_credentials_and_bindings.sh",
+          "lines": [
+            12,
+            17
+          ],
+          "section": "setup",
+          "notes": [
+            "Each credential uses a different cloud role, so dev cannot reach the prod bucket."
+          ]
+        },
+        {
+          "label": "External locations, catalogs, and domain schemas",
+          "path": "reference/environments/setup/01_catalogs.sql",
+          "lines": [
+            6,
+            25
+          ],
+          "section": "setup",
+          "notes": [
+            "MANAGED LOCATION sits inside the environment's external location.",
+            "Layout (b) and (c) variants are in the comments at the end of the file."
+          ]
+        },
+        {
+          "label": "Grants: engineers read, a service principal owns",
+          "path": "reference/environments/setup/03_grants.sql",
+          "lines": [
+            4,
+            20
+          ],
+          "section": "setup",
+          "notes": [
+            "Grant to groups. Ownership moves to the environment's run-as service principal."
+          ]
+        },
+        {
+          "label": "dev and test targets",
+          "path": "reference/environments/setup/databricks.four-workspaces.yml.example",
+          "lines": [
+            20,
+            48
+          ],
+          "section": "targets",
+          "notes": [
+            "Each target sets its workspace host and its catalog variable.",
+            "test uses production mode and run_as a service principal."
+          ]
+        },
+        {
+          "label": "prod target: main branch only, run as a service principal",
+          "path": "reference/environments/setup/databricks.four-workspaces.yml.example",
+          "lines": [
+            64,
+            79
+          ],
+          "section": "targets",
+          "notes": [
+            "git.branch makes a deploy from any other branch fail."
+          ]
+        },
+        {
+          "label": "Facts the audit reads through the SDK",
+          "path": "reference/environments/guides/environment-workspaces-catalogs/02_audit_layout.py",
+          "lines": [
+            49,
+            80
+          ],
+          "section": "reference-run",
+          "notes": [
+            "Isolation mode, owner, and managed location come from the catalog; bindings and grants from their own APIs.",
+            "A refused read becomes an info finding, not a failed task."
+          ]
+        },
+        {
+          "label": "Job: seed, audit, summary",
+          "path": "reference/environments/resources/environments.job.yml",
+          "lines": [
+            1,
+            36
+          ],
+          "section": "reference-run",
+          "notes": [
+            "The capability_guide_job tag is how the Capability Atlas app finds the job.",
+            "The summary is a SQL task on a warehouse."
+          ]
+        }
+      ],
+      "walkthroughs": [
+        {
+          "label": "Environment separation: workspaces, Unity Catalog, metastores",
+          "path": "docs/guides/environment-separation.md",
+          "route": "/walkthroughs/environment-separation"
+        }
+      ]
     }
   }
 }

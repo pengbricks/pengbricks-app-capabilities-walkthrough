@@ -1,7 +1,7 @@
 {
   "id": "capability-guides",
   "title": "Databricks Capability Guides",
-  "description": "53 guides rated by difficulty, from Unity Catalog and medallion basics to AI Functions, SQL Server ingestion with Lakeflow Connect, ML on public data, CI/CD, governance, ingestion, and platform operations, most with reference notebooks and a recorded run.",
+  "description": "54 guides rated by difficulty, from Unity Catalog and medallion basics to AI Functions, SQL Server ingestion with Lakeflow Connect, ML on public data, CI/CD, governance, ingestion, and platform operations, most with reference notebooks and a recorded run.",
   "category": "Shared services",
   "tags": ["Guides", "Reference", "Databricks", "AI Functions"],
   "status": "preview",

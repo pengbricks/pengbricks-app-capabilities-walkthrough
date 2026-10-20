@@ -5,7 +5,7 @@ export const walkthrough: Walkthrough = {
   area: 'CI/CD & Version Control Guides',
   title: 'Running a Declarative Automation Bundle',
   intro:
-    'A Declarative Automation Bundle (formerly Databricks Asset Bundles) puts jobs, pipelines, and schemas in YAML next to the code they run. The Databricks CLI validates the folder, deploys it to a workspace, and runs it. This page walks one small bundle end to end: download it, push it to your own Git repo, deploy it to a development target, run it, change it, deploy it to a second target, and take it down. The bundle holds a serverless Lakeflow Declarative Pipeline that builds bronze, silver, and gold tables from synthetic orders, and a job that runs it.',
+    'A Declarative Automation Bundle (formerly Databricks Asset Bundles) puts jobs, pipelines, and schemas in YAML next to the code they run. The Databricks CLI validates the folder, deploys it to a workspace, and runs it. This page walks one small bundle end to end: download it, push it to your own Git repo, deploy it to a development target, run it, change it, deploy it to a second target, and take it down. The bundle holds a serverless Lakeflow Spark Declarative Pipeline that builds bronze, silver, and gold tables from synthetic orders, and a job that runs it.',
   shortVersion: [
     {
       title: 'A bundle is a folder with a databricks.yml.',
@@ -251,7 +251,7 @@ GROUP BY product_category ORDER BY revenue DESC;`,
       ],
       links: [
         { label: 'Manage data quality with expectations', url: 'https://docs.databricks.com/aws/en/ldp/expectations' },
-        { label: 'Lakeflow Declarative Pipelines', url: 'https://docs.databricks.com/aws/en/ldp' },
+        { label: 'Lakeflow Spark Declarative Pipelines', url: 'https://docs.databricks.com/aws/en/ldp' },
         { label: 'Pipeline dependencies', url: 'https://docs.databricks.com/aws/en/ldp/developer/external-dependencies' },
       ],
     },
@@ -343,6 +343,60 @@ databricks bundle run capability_guides_dab_starter -t prod --var catalog=<catal
         { label: 'GitHub Actions with Databricks', url: 'https://docs.databricks.com/aws/en/dev-tools/ci-cd/github' },
         { label: 'OAuth for a service principal (M2M)', url: 'https://docs.databricks.com/aws/en/dev-tools/auth/oauth-m2m' },
         { label: 'Service principals', url: 'https://docs.databricks.com/aws/en/admin/users-groups/service-principals' },
+      ],
+    },
+    {
+      id: 'ci-best-practices',
+      heading: 'CI/CD best practices',
+      prose:
+        'The starter workflow keeps setup short: it signs in with an OAuth client secret and installs the CLI from the floating main branch. Before a team relies on it, change those two things and add the gates below. This list follows the Databricks developer best-practices page.',
+      table: {
+        caption: 'What to put in place, in the order a change travels',
+        columns: ['Practice', 'What to do'],
+        rows: [
+          ['Ship everything as a bundle from Git', 'Jobs, pipelines, schemas, and permissions live in the repo and deploy through CI. Nobody edits prod by hand. Keep Terraform for cloud-level resources such as workspaces and networking.'],
+          ['Trunk-based flow', 'Short-lived feature branches merge to main, and main stays deployable. CI deploys main forward through the environments.'],
+          ['Sign in to Databricks with OIDC', 'Add a federation policy to the service principal (issuer https://token.actions.githubusercontent.com, subject repo:<org>/<repo>:environment:<env>), set DATABRICKS_AUTH_TYPE=github-oidc, and grant the job id-token: write. No PAT and no stored client secret. Copy the exact sub from GitHub: repositories created after July 15, 2026 include numeric IDs in it.'],
+          ['Split deploy and run identities', 'The deploy service principal gets little data access. Each stage and prod job or pipeline runs as its own service principal through run_as, scoped to the data that workload needs.'],
+          ['mode: production on stage and prod', 'It checks that pipelines are not in development mode, leaves schedules live, and fails a deploy from the wrong branch when the target sets git: branch: main. Pair it with run_as and a fixed root_path; never deploy to /Workspace/Shared.'],
+          ['Gate every pull request', 'Run unit tests and databricks bundle validate --strict, and make both required checks on main. Validation catches schema and variable errors. A deploy to a non-prod workspace catches the rest.'],
+          ['Run integration in test', 'Deploy to test, run the job, and assert row counts, schema, and data-quality results. The starter\'s check_gold task is the pattern. Passing there is the gate for stage.'],
+          ['Promote one commit', 'dev, then test, then stage, then prod, each from the same SHA. One GitHub environment per target, with required reviewers on stage and prod. Pass the SHA as the release variable.'],
+          ['Pin the CLI version', 'Use databricks/setup-cli@v1.21.0 (a release tag) or with: version:, not @main. A floating CLI changes behavior between runs: the direct deployment engine became the default for new bundles in CLI 1.3.0.'],
+          ['Variables for environment values', 'Catalog, host, and service principal IDs are bundle variables set per target. CI passes them as BUNDLE_VAR_<name>. Nothing environment-specific is hard-coded in resource files.'],
+          ['Tag with environment and release', 'Set presets.tags on each target: environment and release. System tables and billing then report by environment and by commit.'],
+          ['Keep secrets out of the bundle', 'Store them in Databricks secret scopes backed by your cloud secret manager, and read them at run time. Never commit tokens, credentials, or files with PII.'],
+          ['Serverless compute and usage policies', 'Run jobs and pipelines on serverless compute. Assign a serverless usage policy (Public Preview, formerly budget policy) per environment so its tags land in system.billing.usage.'],
+          ['Generated data outside prod', 'Dev and test run on generated or masked samples. Bind the prod catalog to the prod workspace only, so prod data cannot reach lower environments.'],
+        ],
+      },
+      steps: [
+        {
+          title: 'Roll back by redeploying the previous tag',
+          body: 'Check out the last known good release and deploy that commit to the affected target. In CI, run the deploy workflow on the tag with workflow_dispatch. Merge any hotfix back to main afterwards.',
+          code: `git checkout <previous-tag>
+databricks bundle deploy -t prod --var catalog=<catalog> --var release=<previous-tag>`,
+        },
+      ],
+      points: [
+        {
+          strong: 'A redeploy restores code, not data.',
+          text: 'It puts back the job, pipeline, and notebook definitions of that commit. Tables keep what the bad release wrote. Use RESTORE TABLE on Delta history for those.',
+        },
+        {
+          strong: 'Keep bundles small.',
+          text: 'One bundle per team and lifecycle lets you roll back one workload without touching the others.',
+        },
+      ],
+      links: [
+        { label: 'Developer best practices', url: 'https://docs.databricks.com/aws/en/developers/best-practices' },
+        { label: 'Workload identity federation for GitHub Actions', url: 'https://docs.databricks.com/aws/en/dev-tools/auth/provider-github' },
+        { label: 'Specify a run identity', url: 'https://docs.databricks.com/aws/en/dev-tools/bundles/run-as' },
+        { label: 'Deployment modes', url: 'https://docs.databricks.com/aws/en/dev-tools/bundles/deployment-modes' },
+        { label: 'Pin the CLI with setup-cli', url: 'https://github.com/databricks/setup-cli#github-actions' },
+        { label: 'GitHub environments and required reviewers', url: 'https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/control-deployments' },
+        { label: 'Secret management', url: 'https://docs.databricks.com/aws/en/security/secrets/' },
+        { label: 'Serverless usage policies', url: 'https://docs.databricks.com/aws/en/admin/usage/budget-policies' },
       ],
     },
     {

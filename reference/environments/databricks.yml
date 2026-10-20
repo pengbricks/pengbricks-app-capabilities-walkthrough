@@ -1,0 +1,84 @@
+# Environment layout demo: dev, test, stage, and prod targets that map to environment schemas in one
+# catalog (layout c in the guide), plus a job that audits how that layout is set up.
+#
+# All four targets deploy to the one workspace in your profile. A real layout gives each environment its
+# own workspace and catalog; setup/databricks.four-workspaces.yml.example shows that targets block.
+bundle:
+  name: capability-guides-environments
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Unity Catalog catalog that holds the environment schemas
+  warehouse_id:
+    description: SQL warehouse that runs the audit summary query
+  app_service_principal:
+    description: Application ID of the Databricks App service principal that triggers quick runs
+  environment:
+    description: Environment this target stands for. Each target sets it
+    default: dev
+  schema:
+    description: Environment schema in the catalog. Each target's prefix is added in front of it (dev_<you>_, test_, stage_, prod_)
+    default: envdemo
+  release:
+    description: Release identifier recorded in resource tags
+    default: local
+
+permissions:
+  - level: CAN_MANAGE
+    user_name: ${workspace.current_user.userName}
+  - level: CAN_RUN
+    service_principal_name: ${var.app_service_principal}
+
+targets:
+  # Development mode is the default target. The schema becomes dev_<you>_envdemo: your personal sandbox.
+  dev:
+    default: true
+    mode: development
+    variables:
+      environment: dev
+    presets:
+      tags:
+        environment: dev
+        release: ${var.release}
+
+  # test, stage, and prod use production mode: live schedules and a fixed root_path. They share this one
+  # workspace and catalog, so name_prefix keeps them apart: it prefixes the job name and the schema
+  # (test_envdemo, stage_envdemo, prod_envdemo). With a catalog per environment you would drop it.
+  test:
+    mode: production
+    workspace:
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+    variables:
+      environment: test
+    presets:
+      name_prefix: "[test] "
+      tags:
+        environment: test
+        release: ${var.release}
+
+  stage:
+    mode: production
+    workspace:
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+    variables:
+      environment: stage
+    presets:
+      name_prefix: "[stage] "
+      tags:
+        environment: stage
+        release: ${var.release}
+
+  prod:
+    mode: production
+    workspace:
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+    variables:
+      environment: prod
+    presets:
+      name_prefix: "[prod] "
+      tags:
+        environment: prod
+        release: ${var.release}
