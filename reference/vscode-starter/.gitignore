@@ -1,0 +1,17 @@
+# Written by the Databricks IDE extension and the CLI: sign-in details, bundle state, synced files.
+.databricks/
+
+# Virtual environment, caches, and build output
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+dist/
+build/
+*.egg-info/
+
+.DS_Store
+
+# uv writes this on `uv sync`. Remove this line to commit it for exact repeat installs.
+uv.lock

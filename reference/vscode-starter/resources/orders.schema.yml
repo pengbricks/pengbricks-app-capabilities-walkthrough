@@ -1,0 +1,10 @@
+# The Unity Catalog schema the job writes daily_revenue to. The bundle creates it on deploy and drops it,
+# with its tables, on bundle destroy. Development mode prefixes the name with dev_<you>_, so each person
+# who deploys gets a schema of their own.
+# https://docs.databricks.com/aws/en/dev-tools/bundles/resources#schema-unity-catalog
+resources:
+  schemas:
+    demo:
+      name: ${var.schema}
+      catalog_name: ${var.catalog}
+      comment: Tables from the vscode-starter bundle. bundle destroy drops this schema.

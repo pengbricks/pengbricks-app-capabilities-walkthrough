@@ -92,6 +92,28 @@ def test_download_returns_the_starter_bundle_as_a_zip() -> None:
     assert info == {"filename": "dab-starter.zip", "sizeBytes": len(response.content)}
 
 
+def test_vscode_starter_download_keeps_editor_config_and_leaves_out_app_access() -> None:
+    response = client.get("/api/capability-guides/artifacts/vscode-databricks/download")
+
+    assert response.status_code == 200
+    archive = zipfile.ZipFile(io.BytesIO(response.content))
+    assert archive.testzip() is None
+    names = set(archive.namelist())
+    assert {
+        "vscode-starter/databricks.yml",
+        "vscode-starter/pyproject.toml",
+        "vscode-starter/src/notebook.py",
+        "vscode-starter/scratch/explore.py",
+        "vscode-starter/.vscode/launch.json",
+        "vscode-starter/.vscode/settings.json",
+        "vscode-starter/.vscode/extensions.json",
+    } <= names
+    assert "vscode-starter/resources/app_access.yml" not in names
+    assert not any(".venv/" in name or "uv.lock" in name for name in names)
+    launch = archive.read("vscode-starter/.vscode/launch.json").decode()
+    assert '"databricks": true' in launch
+
+
 def test_artifacts_fall_back_to_static_links_without_workspace(monkeypatch) -> None:
     def unavailable():
         raise RuntimeError("no credentials")

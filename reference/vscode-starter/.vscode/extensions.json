@@ -1,0 +1,8 @@
+{
+  "recommendations": [
+    "databricks.databricks",
+    "ms-python.python",
+    "ms-python.debugpy",
+    "charliermarsh.ruff"
+  ]
+}
