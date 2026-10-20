@@ -6,6 +6,28 @@ export const walkthrough: Walkthrough = {
   title: 'How Databricks works',
   intro:
     'Databricks keeps data and compute apart. Tables are open-format files in cloud object storage, compute is started when work arrives and stopped when it ends, and Unity Catalog sits over both so every engine sees the same tables and the same permissions. This page covers those three pieces and how they fit.',
+  businessValue: {
+    summary:
+      'Data stays in open files in your own cloud storage while compute starts and stops with the work. Finance pays for compute only while it runs, and every team queries the same governed copy.',
+    outcomes: [
+      {
+        title: 'Pay for work, not idle time',
+        body: 'Compute bills in DBUs only while it runs, and serverless needs no cluster sizing. Idle workloads stop costing compute, and tagged usage in system.billing.usage shows which team spent what.',
+      },
+      {
+        title: 'One copy, no extracts',
+        body: 'A SQL warehouse, a notebook, and a pipeline read the same table. Analysts and data scientists stop exporting files and reconciling copies.',
+      },
+      {
+        title: 'Data stays portable',
+        body: 'Tables are Delta or Iceberg files in your ADLS, S3, or GCS account. Stopping or replacing compute deletes nothing, so changing an engine does not require a data migration.',
+      },
+      {
+        title: 'Less table upkeep',
+        body: 'Predictive optimization runs OPTIMIZE, VACUUM, and ANALYZE on Unity Catalog managed tables, so engineers spend less time writing and watching maintenance jobs.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Data lives in object storage.',

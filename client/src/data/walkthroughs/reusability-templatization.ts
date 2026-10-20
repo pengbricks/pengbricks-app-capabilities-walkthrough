@@ -6,6 +6,28 @@ export const walkthrough: Walkthrough = {
   title: 'Reusable ingestion templates',
   intro:
     'Build an ingestion job once and stamp it out for many sources, tenants, and environments. This page covers the layers that carry parameters from deploy time to a single task, how to package shared code and project scaffolding, and how to override settings per target without copying files.',
+  businessValue: {
+    summary:
+      'Build an ingestion job once and reuse it across sources, tenants, and environments. Program owners get consistent delivery and stop paying to build each new feed from scratch.',
+    outcomes: [
+      {
+        title: 'New source costs a config entry',
+        body: 'Once the template exists, onboarding a source is a configuration entry plus a review, and a CI check validates it. The cost of the tenth source is far below the first.',
+      },
+      {
+        title: 'Same code in every environment',
+        body: 'One bundle holds dev, staging, and prod, with per-target overrides. What was tested is what runs in production, and there are no drifting copies of job files.',
+      },
+      {
+        title: 'Every team starts from a baseline',
+        body: 'A custom bundle template creates new projects with the same layout, jobs, and CI settings, so reviewed standards are built in from day one.',
+      },
+      {
+        title: 'Fixes ship once',
+        body: 'Shared logic lives in a Python wheel attached to jobs and pipelines. A bug fix reaches every job that uses it with one release.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Parameterize in layers.',

@@ -6,6 +6,28 @@ export const walkthrough: Walkthrough = {
   title: 'Feature preparation from source data',
   intro:
     'Model inputs need the same care as any production table: a governed home, a check before use, a join that does not leak the future, and a record of exactly what a model trained on. This page covers feature tables in Unity Catalog, point-in-time-correct training sets, logging the training set with the model, refreshing features, and how long you can reproduce an input.',
+  businessValue: {
+    summary:
+      'Model inputs get the same governance as production tables, plus a record of what each model trained on. ML leads and risk teams can explain a model\'s data and know where reproducibility ends.',
+    outcomes: [
+      {
+        title: 'Honest accuracy numbers',
+        body: 'Point-in-time joins give each label only the feature values known at that time. Future data stays out of training, so offline accuracy better predicts production.',
+      },
+      {
+        title: 'Know what a model used',
+        body: 'The model is logged with its training set, so lineage names its feature tables and serving looks up the same features by key.',
+      },
+      {
+        title: 'Bad features never reach training',
+        body: 'Checks run in the job that writes the feature table and fail the task on a violation, so a bad table never reaches a training set.',
+      },
+      {
+        title: 'Reproducibility has a limit',
+        body: 'Time travel works only while data files exist, and VACUUM removes old versions. Snapshot or clone training data when audits need inputs beyond the retention window.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'A feature table is a governed Delta table.',

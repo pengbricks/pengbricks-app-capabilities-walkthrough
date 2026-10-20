@@ -6,6 +6,28 @@ export const walkthrough: Walkthrough = {
   title: 'Apache Iceberg interoperability',
   intro:
     'The Databricks answer to Iceberg interoperability has three parts: managed Iceberg tables in Unity Catalog, the Unity Catalog Iceberg REST catalog for external engines, and credential vending so those engines never hold storage keys. You govern the table once in Unity Catalog, write it from Databricks or from an external Iceberg engine, and read it from Spark, Trino, Flink, PyIceberg, or Snowflake. This page covers which table type to use, how to expose it, and how to connect an outside client safely.',
+  businessValue: {
+    summary:
+      'Databricks governs one Iceberg table in Unity Catalog and lets other engines read or write it. Teams that run Snowflake, Trino, or Flink next to Databricks avoid duplicate copies and separate access rules.',
+    outcomes: [
+      {
+        title: 'One governed copy',
+        body: 'Unity Catalog manages the table once, whether Spark, Trino, Flink, PyIceberg, or Snowflake reads it. There is no duplicate dataset or second set of permissions.',
+      },
+      {
+        title: 'No storage keys outside',
+        body: 'Credential vending gives external engines short-lived storage credentials scoped to the principal, so partners and other platforms never hold long-lived keys.',
+      },
+      {
+        title: 'Format follows who owns it',
+        body: 'Pick managed Iceberg, a Delta table with Iceberg reads, or a foreign Iceberg table by who owns the format. Teams avoid a forced conversion.',
+      },
+      {
+        title: 'Share to Iceberg clients',
+        body: 'OpenSharing for managed and foreign Iceberg tables is generally available, including to recipients that use Iceberg clients.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Managed Iceberg + REST catalog + credential vending.',

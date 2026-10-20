@@ -6,6 +6,28 @@ export const walkthrough: Walkthrough = {
   title: 'Medallion architecture',
   intro:
     'The medallion architecture organizes a lakehouse into three layers. Bronze keeps raw data as it arrived, silver cleans and joins it, and gold shapes it for the people and tools that use it. It is a naming and design pattern, not a product feature, and most of the other guides build on it.',
+  businessValue: {
+    summary:
+      'A shared bronze, silver, and gold layout gives every team a raw record, a cleaned layer, and business-ready tables. Data leaders get predictable quality and a known home for each dataset.',
+    outcomes: [
+      {
+        title: 'Rebuild without re-extracting',
+        body: 'Bronze keeps raw data as it arrived. When a transformation bug turns up, the team rebuilds silver and gold from bronze instead of asking the source system for the data again.',
+      },
+      {
+        title: 'Quality gates before reports',
+        body: 'Expectations between layers warn, drop, or fail on bad rows, and a quarantine table holds rejects for review. Report readers see data that passed checks.',
+      },
+      {
+        title: 'Access set per layer',
+        body: 'Each layer is its own schema with its own grants. Analysts read gold while only the data engineering team touches raw data.',
+      },
+      {
+        title: 'One definition of each metric',
+        body: 'Metric views define governed measures once, so every tool that queries them by dimension reports the same figure.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Bronze is the raw record.',

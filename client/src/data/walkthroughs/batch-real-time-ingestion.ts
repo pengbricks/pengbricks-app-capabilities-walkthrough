@@ -6,6 +6,28 @@ export const walkthrough: Walkthrough = {
   title: 'Batch and streaming ingestion',
   intro:
     'The same streaming table definition can run as a scheduled batch, continuously, or in real-time mode. The choice is a trigger setting that trades latency against cost. This page covers how to pick the trigger, how to discover new files and read from message buses, and how checkpoints, watermarks, and backfills keep the result correct.',
+  businessValue: {
+    summary:
+      'Data freshness is a cost choice, set by a trigger on the same pipeline definition. Business owners pay for the latency they need and no more.',
+    outcomes: [
+      {
+        title: 'Pay only for needed speed',
+        body: 'A triggered pipeline starts compute, processes new data, and stops. A continuous pipeline keeps compute running around the clock for second-level latency. Pick from the business target.',
+      },
+      {
+        title: 'Tighten freshness later',
+        body: 'The same streaming table runs as scheduled batch or continuously. A new latency requirement becomes a setting change, so teams can start cheap without a rewrite.',
+      },
+      {
+        title: 'Reruns do not duplicate data',
+        body: 'Checkpoints track progress and keyed MERGE or AUTO CDC let a reprocessed record overwrite itself. A failed run costs a rerun, not a manual cleanup.',
+      },
+      {
+        title: 'Sub-second paths when justified',
+        body: 'Real-time mode serves operational uses such as fraud checks or personalization. Most analytics does not need it, and the guide says to leave it off there.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Start triggered; move only when a latency target requires it.',

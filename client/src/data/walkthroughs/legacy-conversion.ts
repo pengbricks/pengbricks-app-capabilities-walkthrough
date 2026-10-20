@@ -6,6 +6,28 @@ export const walkthrough: Walkthrough = {
   title: 'Legacy workload migration',
   intro:
     'Lakebridge is the Databricks Labs toolkit for migrating SQL workloads and data to Databricks. It covers the whole path: assess the estate, convert code, and reconcile the results against the legacy system. This page teaches that loop, a six-phase plan to run it, and the patterns to land on after conversion.',
+  businessValue: {
+    summary:
+      'Lakebridge assesses, converts, and reconciles SQL workloads moving off a legacy warehouse. Program owners get a sized plan up front and evidence that migrated results match.',
+    outcomes: [
+      {
+        title: 'Size the work before committing',
+        body: 'The Profiler surveys the source environment and the Analyzer scans SQL and orchestration code. Together they size the migration and flag problem constructs, so budget rests on a count.',
+      },
+      {
+        title: 'People spend time where it counts',
+        body: 'Transpilers convert the bulk of ordinary SQL. Staff review what is flagged, mainly cursors, dynamic SQL, and vendor features with no direct equivalent.',
+      },
+      {
+        title: 'Evidence the results match',
+        body: 'Lakebridge Reconcile compares schema, rows, and values between the legacy system and Databricks, so sign-off rests on a comparison.',
+      },
+      {
+        title: 'Cutover with a way back',
+        body: 'Parallel runs, and keeping the legacy system until reconciliation passes for a full business cycle, limit the risk of switching over.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Assess before you convert.',

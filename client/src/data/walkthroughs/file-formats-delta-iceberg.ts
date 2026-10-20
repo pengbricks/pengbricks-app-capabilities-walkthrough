@@ -6,6 +6,28 @@ export const walkthrough: Walkthrough = {
   title: 'JSON, CSV, Parquet, Delta, and Iceberg',
   intro:
     'Use Delta as the default table format. Add Iceberg reads when other engines need to query the same data, and choose managed Iceberg when Iceberg is the contract. Land raw JSON and CSV files into Delta with Auto Loader or read_files, keep them as Unity Catalog managed tables, and let liquid clustering and predictive optimization maintain them. This page covers when to use each format, why the table formats differ from files, and the settings that matter in practice.',
+  businessValue: {
+    summary:
+      'Delta is the default table format, with Iceberg access added only when other engines need the data. Platform owners get one copy, automatic maintenance, and queries that read less data than raw files.',
+    outcomes: [
+      {
+        title: 'One copy for many engines',
+        body: 'A Delta table with Iceberg reads enabled is readable by Iceberg clients through the Unity Catalog Iceberg REST catalog, without a second copy of the data.',
+      },
+      {
+        title: 'Less tuning labor',
+        body: 'Liquid clustering and predictive optimization on managed tables replace hand-tuned partitioning, compaction, and VACUUM.',
+      },
+      {
+        title: 'Faster than raw files',
+        body: 'Raw JSON and CSV lose types and cannot skip data. Landing them in Delta keeps types and lets engines skip data they do not need.',
+      },
+      {
+        title: 'A clear standard to set',
+        body: 'Use Delta by default and managed Iceberg when Iceberg is the contract. The rule keeps teams from picking formats case by case.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Delta is the default.',
