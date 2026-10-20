@@ -73,3 +73,13 @@ flowchart LR
 - Resume restores only the jobs that this run paused. Run it as one job so the log row that links the two steps exists.
 - The HTTP target is a public endpoint named in the use-case spec. If your network blocks it, change `orchestration.http_probe_url`.
 - Notifications go to email. Webhook destinations use the same `webhook_notifications` block.
+
+## Reference run
+
+Numbers from the recorded run of the bundle job.
+
+- The job has eleven tasks. `record_run` writes one row per task to `orch_task_log`.
+- Results: `extract` (2,400 rows) 47 s, `validate` (2,341 valid) 24 s, `branch_region` (4 groups) 26 s, `branch_status` (3 groups) 27 s, `publish` 28 s, all at attempt 0. `external_call` failed at attempt 0 after 22 s and succeeded at attempt 1 after 59 s. The condition was true, so `hold_for_review` was excluded.
+- `external_call` fails on purpose at attempt 0 (a marker row makes it happen once per run), runs `python3 --version` through `subprocess`, and makes an HTTP GET that returned 200 in 117 ms.
+- Settings: schedule `0 0 6 * * ?` in UTC with `pause_status: PAUSED`; `external_call` retries up to 2 times, 10 s apart, including on timeout; a health rule on `RUN_DURATION_SECONDS` greater than 900; email on success, failure, and duration warning.
+- Bulk pause: the job found 2 tagged scheduled jobs. A probe job went from UNPAUSED to PAUSED and back, and the orchestration job stayed PAUSED throughout. Dev mode keeps bundle schedules paused, so the probe gives the pause something to change.

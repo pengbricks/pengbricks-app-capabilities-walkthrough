@@ -5,65 +5,63 @@ export const walkthrough: Walkthrough = {
   area: 'Data Engineering Guides',
   title: 'Orchestration patterns',
   intro:
-    'One Lakeflow Job chains tasks that pass values, runs two branches in parallel, retries a flaky external call, and branches on a condition. A second job pauses every scheduled guide job in one operation and restores them afterward.',
+    'Lakeflow Jobs orchestrates notebooks, pipelines, SQL, dbt, and Python tasks as one dependency graph. This page covers the features to reach for first: task values and dependencies, parallel branches, run_if and condition tasks, For each loops, data-driven triggers, retries and repair runs, and notifications. It ends with how to run jobs safely as a team.',
   shortVersion: [
     {
-      title: 'Tasks pass values.',
-      body: 'extract sets row_count and validate sets valid_rows with task values. The next task reads them, so no table is needed to hand over a number.',
+      title: 'Pass values between tasks.',
+      body: 'A task sets a task value and the next task reads it, so a row count or a flag does not need a table.',
     },
     {
-      title: 'Branches run in parallel.',
-      body: 'branch_region and branch_status depend only on validate. join_branches waits for both.',
+      title: 'Parallelize and branch with the graph.',
+      body: 'Tasks that depend on the same upstream task run together. run_if and condition tasks choose a path, and For each runs one task per list item.',
     },
     {
-      title: 'A retry policy absorbs a bad first attempt.',
-      body: 'external_call fails on purpose at attempt 0 and succeeds at attempt 1. It runs a shell command and an HTTP request.',
+      title: 'Start on data, not on a clock.',
+      body: 'Use a table-update or file-arrival trigger when new data should start the work. Use a schedule when a deadline drives it.',
     },
     {
-      title: 'Alerts cover success, failure, and slow runs.',
-      body: 'Email notifications fire on all three, and a run-duration health rule drives the slow-run warning.',
+      title: 'Plan for failure.',
+      body: 'Set retries and timeouts on flaky tasks, alert on failure and slow runs, and repair a failed run to rerun only the tasks that need it.',
     },
     {
-      title: 'One run pauses every scheduled guide job.',
-      body: 'The bulk pause job records each schedule before and after, then restores only the jobs it paused.',
+      title: 'Run as a service principal, defined in Git.',
+      body: 'Own production jobs with a service principal, define them in a bundle, and tag them so you can find and manage them in bulk.',
     },
   ],
   sections: [
     {
       id: 'graph',
-      heading: 'The task graph',
+      heading: 'Compose the task graph',
       prose:
-        'The job has eleven tasks. A chain feeds a fan-out, the branches join, an external call retries, and a condition picks publish or hold. The record_run task runs after whichever branch was taken.',
+        'Dependencies define order. A task starts when its upstream tasks finish, so two tasks that share an upstream run in parallel. A task reads a value from upstream with a dynamic value reference such as {{tasks.validate.values.valid_rows}}.',
       diagram: {
         type: 'flow',
-        title: 'Tasks in capability-guides-orchestration',
+        title: 'Sequence, parallel branches, and a condition',
         description:
-          'extract feeds validate. validate feeds two parallel tasks, branch_region and branch_status. Both feed join_branches. join_branches feeds external_call, which retries. external_call feeds the enough_valid_rows condition. A true outcome runs publish and a false outcome runs hold_for_review. Both feed record_run.',
+          'Extract feeds validate. Validate feeds two parallel branches. Both feed a join task. A condition task checks a task value. A true outcome runs publish and a false outcome runs hold for review. Both paths feed a final record task.',
         lanes: [
           { label: 'Sequential', fromRow: 0, toRow: 0 },
           { label: 'Parallel branches', fromRow: 1, toRow: 1 },
-          { label: 'Join, call, branch', fromRow: 2, toRow: 3 },
+          { label: 'Join and branch', fromRow: 2, toRow: 3 },
         ],
         nodes: [
           { id: 'extract', label: 'extract', mono: true, sub: 'sets row_count', col: 0, row: 0 },
           { id: 'validate', label: 'validate', mono: true, sub: 'sets valid_rows', col: 1, row: 0 },
-          { id: 'region', label: 'branch_region', mono: true, col: 1, row: 1, kind: 'highlight' },
-          { id: 'status', label: 'branch_status', mono: true, col: 2, row: 1, kind: 'highlight' },
-          { id: 'join', label: 'join_branches', mono: true, sub: 'waits for both', col: 1, row: 2 },
-          { id: 'external', label: 'external_call', mono: true, sub: 'shell + HTTP, retries', col: 2, row: 2 },
-          { id: 'cond', label: 'enough_valid_rows', mono: true, sub: 'valid_rows > 2000', col: 3, row: 2, kind: 'gate' },
-          { id: 'publish', label: 'publish', mono: true, sub: 'true branch', col: 2, row: 3 },
-          { id: 'hold', label: 'hold_for_review', mono: true, sub: 'false branch', col: 3, row: 3 },
-          { id: 'record', label: 'record_run', mono: true, sub: 'writes orch_task_log', col: 4, row: 3, kind: 'store' },
+          { id: 'a', label: 'branch_a', mono: true, col: 1, row: 1, kind: 'highlight' },
+          { id: 'b', label: 'branch_b', mono: true, col: 2, row: 1, kind: 'highlight' },
+          { id: 'join', label: 'join', mono: true, sub: 'waits for both', col: 1, row: 2 },
+          { id: 'cond', label: 'enough_rows', mono: true, sub: 'condition task', col: 2, row: 2, kind: 'gate' },
+          { id: 'publish', label: 'publish', mono: true, sub: 'true path', col: 2, row: 3 },
+          { id: 'hold', label: 'hold_for_review', mono: true, sub: 'false path', col: 3, row: 3 },
+          { id: 'record', label: 'record', mono: true, sub: 'AT_LEAST_ONE_SUCCESS', col: 4, row: 3, kind: 'store' },
         ],
         edges: [
           { from: 'extract', to: 'validate' },
-          { from: 'validate', to: 'region' },
-          { from: 'validate', to: 'status' },
-          { from: 'region', to: 'join' },
-          { from: 'status', to: 'join' },
-          { from: 'join', to: 'external' },
-          { from: 'external', to: 'cond' },
+          { from: 'validate', to: 'a' },
+          { from: 'validate', to: 'b' },
+          { from: 'a', to: 'join' },
+          { from: 'b', to: 'join' },
+          { from: 'join', to: 'cond' },
           { from: 'cond', to: 'publish', label: 'true' },
           { from: 'cond', to: 'hold', label: 'false', dashed: true },
           { from: 'publish', to: 'record' },
@@ -72,101 +70,157 @@ export const walkthrough: Walkthrough = {
         legend: [
           { kind: 'highlight', label: 'Runs in parallel' },
           { kind: 'gate', label: 'Condition task' },
-          { kind: 'dashed', label: 'Branch not taken in this run' },
+          { kind: 'dashed', label: 'Path taken only when the condition is false' },
         ],
-        caption: 'In the reference run the condition was true, so hold_for_review shows as excluded.',
       },
-      examples: [
+      points: [
         {
-          label: "Run one task per item with For each",
-          language: 'yml',
-          code: "- task_key: per_region\n  for_each_task:\n    inputs: '[\"east\", \"west\", \"south\"]'\n    concurrency: 2\n    task:\n      task_key: per_region_iteration\n      notebook_task:\n        notebook_path: ../guides/orchestration-patterns/03_branch.py\n        base_parameters:\n          dimension: \"{{input}}\"",
-          notes: ["The reference job fans out to two fixed branches. For each handles a list that changes between runs."],
+          strong: 'run_if sets when a task runs.',
+          text: 'The default is ALL_SUCCESS. Use ALL_DONE for a cleanup task, AT_LEAST_ONE_FAILED for an alert task, and AT_LEAST_ONE_SUCCESS for a task that follows whichever branch ran.',
+        },
+        {
+          strong: 'Keep tasks small.',
+          text: 'One task per unit of retry. A single large notebook cannot be repaired in part.',
+        },
+        {
+          strong: 'Use native task types.',
+          text: 'Run pipelines, SQL, dbt, and Python wheel tasks directly instead of wrapping each in a notebook.',
+        },
+      ],
+      links: [
+        {
+          label: 'Lakeflow Jobs',
+          url: 'https://docs.databricks.com/aws/en/jobs/',
+        },
+        {
+          label: 'Task values',
+          url: 'https://docs.databricks.com/aws/en/jobs/task-values',
+        },
+        {
+          label: 'Run tasks conditionally with run_if',
+          url: 'https://docs.databricks.com/aws/en/jobs/run-if',
         },
       ],
     },
     {
-      id: 'run',
-      heading: 'What the reference run recorded',
+      id: 'foreach',
+      heading: 'Loop with For each',
       prose:
-        'record_run writes one row per task to orch_task_log. The run shows the retry as two external_call rows, and the skipped branch as excluded.',
-      diagram: {
-        type: 'matrix',
-        title: 'Task results in the reference run',
-        description:
-          'extract, validate, branch_region, branch_status, join_branches, enough_valid_rows, and publish each succeeded at attempt 0. external_call failed at attempt 0 after 22 seconds and succeeded at attempt 1 after 59 seconds. hold_for_review was excluded.',
-        corner: 'Task ↓ · Attempt →',
-        columns: ['Attempt 0', 'Attempt 1'],
-        rows: [
-          { label: 'extract', sub: '2,400 rows', cells: [{ state: 'own', text: 'SUCCESS 47 s' }, { state: 'none', text: 'not needed' }] },
-          { label: 'validate', sub: '2,341 valid', cells: [{ state: 'own', text: 'SUCCESS 24 s' }, { state: 'none', text: 'not needed' }] },
-          { label: 'branch_region', sub: '4 groups', cells: [{ state: 'own', text: 'SUCCESS 26 s' }, { state: 'none', text: 'not needed' }] },
-          { label: 'branch_status', sub: '3 groups', cells: [{ state: 'own', text: 'SUCCESS 27 s' }, { state: 'none', text: 'not needed' }] },
-          { label: 'external_call', sub: 'retry policy', cells: [{ state: 'optional', text: 'FAILED 22 s' }, { state: 'own', text: 'SUCCESS 59 s' }] },
-          { label: 'publish', sub: 'true branch', cells: [{ state: 'own', text: 'SUCCESS 28 s' }, { state: 'none', text: 'not needed' }] },
-          { label: 'hold_for_review', sub: 'false branch', cells: [{ state: 'none', text: 'EXCLUDED' }, { state: 'none', text: 'not needed' }] },
-        ],
-        legend: [
-          { state: 'own', label: 'Succeeded' },
-          { state: 'optional', label: 'Failed, then retried' },
-          { state: 'none', label: 'Not run' },
-        ],
-      },
+        'For each runs a nested task once per item in a list and can run several iterations at the same time. Use it when the list changes between runs, such as regions, tenants, or files, so you do not copy a task per item. The list can be a literal or the output of an upstream task.',
+      examples: [
+        {
+          label: 'Run one task per item',
+          language: 'yml',
+          code: '- task_key: per_region\n  for_each_task:\n    inputs: \'["east", "west", "south"]\'\n    concurrency: 2\n    task:\n      task_key: per_region_iteration\n      notebook_task:\n        notebook_path: ../src/process_region.py\n        base_parameters:\n          region: "{{input}}"',
+          notes: ['concurrency caps how many iterations run at once. A failed iteration can be repaired on its own.'],
+        },
+      ],
+      links: [
+        {
+          label: 'Run a parameterized task in a loop',
+          url: 'https://docs.databricks.com/aws/en/jobs/for-each',
+        },
+      ],
     },
     {
-      id: 'settings',
-      heading: 'Schedule, retries, and alerts',
-      prose: 'These settings sit on the job in resources/orchestration_patterns.job.yml.',
+      id: 'triggers',
+      heading: 'Start on data, not on a clock',
+      prose:
+        'A trigger starts the job when the data it depends on changes, so it does not poll on a fixed schedule and does not run when nothing is new. Use a cron schedule only when a deadline, such as a report due at 7 a.m., sets the time.',
       table: {
-        columns: ['Setting', 'Value'],
+        columns: ['Start the job when', 'Use'],
         rows: [
-          ['schedule', 'cron 0 0 6 * * ?, UTC, pause_status PAUSED'],
-          ['external_call retry', 'max_retries 2, 10 s interval, retry_on_timeout'],
-          ['email_notifications', 'on_success, on_failure, on_duration_warning_threshold_exceeded'],
-          ['health rule', 'RUN_DURATION_SECONDS greater than 900'],
-          ['external process', 'python3 --version via subprocess; HTTP GET returned 200 in 117 ms'],
-          ['condition', 'valid_rows task value greater than the min_valid_rows job parameter'],
+          ['A Unity Catalog table is updated', 'table_update trigger'],
+          ['Files land in a volume or external location', 'file_arrival trigger'],
+          ['Work must always be running, as in streaming', 'continuous mode'],
+          ['A deadline or calendar sets the time', 'cron schedule'],
         ],
       },
       examples: [
         {
-          label: "Start on new data instead of a clock",
+          label: 'Start when upstream tables change',
           language: 'yml',
-          code: "trigger:\n  pause_status: UNPAUSED\n  table_update:\n    table_names:\n      - ${var.catalog}.${var.schema}.orch_orders_valid\n    condition: ANY_UPDATED\n    min_time_between_triggers_seconds: 300",
-          notes: ["Use trigger in place of schedule. A file_arrival trigger works the same way for a volume path."],
+          code: 'trigger:\n  pause_status: UNPAUSED\n  table_update:\n    table_names:\n      - ${var.catalog}.${var.schema}.orders_valid\n    condition: ANY_UPDATED\n    min_time_between_triggers_seconds: 300',
+          notes: ['Use trigger in place of schedule. A file_arrival trigger takes a volume path in the same way.'],
+        },
+      ],
+      links: [
+        {
+          label: 'Trigger jobs when source tables are updated',
+          url: 'https://docs.databricks.com/aws/en/jobs/trigger-table-update',
+        },
+        {
+          label: 'Trigger jobs when new files arrive',
+          url: 'https://docs.databricks.com/aws/en/jobs/file-arrival-triggers',
+        },
+      ],
+    },
+    {
+      id: 'settings',
+      heading: 'Retries, timeouts, and alerts',
+      prose: 'Set these on the job in the bundle, so a review sees them. Tune them per task, not once for the whole job.',
+      table: {
+        columns: ['Setting', 'Use it for'],
+        rows: [
+          ['max_retries, min_retry_interval_millis', 'Retry a task that fails on a transient error, such as a network call'],
+          ['timeout_seconds', 'Stop a task that hangs instead of waiting forever'],
+          ['Duration health rule', 'Warn when a run is slower than expected, before it breaches an SLA'],
+          ['Notifications on failure, success, and slow runs', 'Send to email or a destination such as Slack, Microsoft Teams, or PagerDuty'],
+          ['queue and max_concurrent_runs', 'Decide whether an overlapping run waits, skips, or runs alongside'],
+        ],
+      },
+      links: [
+        {
+          label: 'Job notifications and alerts',
+          url: 'https://docs.databricks.com/aws/en/jobs/notifications',
+        },
+      ],
+    },
+    {
+      id: 'repair',
+      heading: 'Repair a failed run',
+      prose:
+        'A repair run reruns only the failed tasks and the tasks that depend on them, with the earlier results kept. Fix the cause, then repair, instead of rerunning the whole job. This is why tasks should be small and idempotent: a retried or repaired task must produce the same result.',
+      links: [
+        {
+          label: 'Troubleshoot and repair job failures',
+          url: 'https://docs.databricks.com/aws/en/jobs/repair-job-failures',
         },
       ],
     },
     {
       id: 'bulk-pause',
-      heading: 'Pause every scheduled job at once',
+      heading: 'Operate jobs as a team',
       prose:
-        'The bulk pause job lists jobs by the capability_guide_job tag, pauses those that are unpaused, logs each state, and restores only the jobs it paused. Dev mode keeps bundle schedules paused, so a probe job with an unpaused schedule gives the pause something to change.',
-      diagram: {
-        type: 'flow',
-        title: 'Bulk pause and resume',
-        description:
-          'prepare creates the probe job and records the before states. pause_all sets every unpaused tagged schedule to paused and records the jobs it changed. resume_all restores those jobs. cleanup_probe deletes the probe. Every phase writes to bulk_pause_log.',
-        nodes: [
-          { id: 'prepare', label: 'prepare', mono: true, sub: 'create probe, log before', col: 0, row: 0 },
-          { id: 'pause', label: 'pause_all', mono: true, sub: 'UNPAUSED to PAUSED', col: 1, row: 0, kind: 'highlight' },
-          { id: 'resume', label: 'resume_all', mono: true, sub: 'restore changed jobs', col: 2, row: 0, kind: 'highlight' },
-          { id: 'cleanup', label: 'cleanup_probe', mono: true, sub: 'delete probe', col: 3, row: 0 },
-          { id: 'log', label: 'bulk_pause_log', mono: true, sub: 'every phase', col: 1, row: 1, kind: 'store' },
-        ],
-        edges: [
-          { from: 'prepare', to: 'pause' },
-          { from: 'pause', to: 'resume' },
-          { from: 'resume', to: 'cleanup' },
-          { from: 'pause', to: 'log' },
-        ],
-        legend: [
-          { kind: 'highlight', label: 'Changes schedules through the Jobs API' },
-          { kind: 'store', label: 'Unity Catalog table' },
-        ],
-        caption:
-          'The run found 2 tagged scheduled jobs. The probe went from UNPAUSED to PAUSED and back; the orchestration job stayed PAUSED throughout.',
-      },
+        'Production jobs need an owner that is not a person, a source of truth in Git, and a way to act on many at once.',
+      points: [
+        {
+          strong: 'Run as a service principal.',
+          text: 'A job that runs as a person stops working when that person leaves. Set run_as to a service principal in the bundle.',
+        },
+        {
+          strong: 'Define jobs in a bundle.',
+          text: 'Review changes in Git, and let the target control pause_status so development copies do not run on their schedule.',
+        },
+        {
+          strong: 'Tag jobs.',
+          text: 'A tag lets one script list, pause, or resume a group of jobs through the Jobs API, for example before maintenance.',
+        },
+        {
+          strong: 'Watch runs from system tables.',
+          text: 'The system.lakeflow tables record job and task runs, so one query shows failures, durations, and trends across workspaces.',
+        },
+        {
+          strong: 'Prefer serverless jobs.',
+          text: 'They start fast and need no cluster sizing. Use budget policies to attribute their cost.',
+        },
+      ],
+      links: [
+        {
+          label: 'Jobs system tables',
+          url: 'https://docs.databricks.com/aws/en/admin/system-tables/jobs',
+        },
+      ],
     },
   ],
   related: [

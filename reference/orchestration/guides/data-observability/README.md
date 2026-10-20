@@ -69,3 +69,13 @@ flowchart LR
 - Creating the monitor starts a refresh and the job requests another, so the first two monitor windows both see the baseline. Drift appears in the third window.
 - The monitor outlives the job. The job deletes and recreates it on the next run. To remove it, call `delete_monitor` or run `DROP QUALITY MONITOR` on `obs_orders_batches`.
 - A real pipeline would run the monitor on a schedule and alert on its metrics table.
+
+## Reference run
+
+Numbers from the recorded run of the bundle job.
+
+- Tasks: `build_chain` writes `obs_source_orders`, `obs_silver_orders` (3,000 rows each) and `obs_gold_daily_revenue` (120 rows). `read_lineage` and `detect_schema_drift` depend on it. `detect_data_drift` has no upstream task.
+- Lineage reached `system.access.table_lineage` about 13 minutes after the writes, so the task polls every 30 seconds. `column_lineage` returned 10 column edges.
+- Schema drift: `loyalty_tier` added (history version 1, `ADD COLUMNS`) and `quantity` widened from int to long (version 3, `CHANGE COLUMN`). Version 2 set `delta.enableTypeWidening`.
+- Data drift: the baseline batch has 3,000 orders with amounts from 10 to 200. The later batch has 3,000 orders with amounts from 120 to 380 and most orders in one region. PSI on `amount` 4.94 and on `region` 1.89 (limit 0.2); mean of `amount` 105.6 to 250.9 (+137.5%, limit 15%). Monitor: Wasserstein distance on `amount` 0.0 in window 1 and 72.56 in window 2; Jensen-Shannon distance on `region` 0.0 and 0.253.
+- The first window shows 0 because creating the monitor starts a refresh and the job asks for another, so the first two windows both see the baseline. The job deletes and recreates the monitor each run. In production, create it once and give it a schedule.

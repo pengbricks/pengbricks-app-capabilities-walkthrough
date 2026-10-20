@@ -5,80 +5,44 @@ export const walkthrough: Walkthrough = {
   area: 'Data Engineering Guides',
   title: 'Lineage and drift detection',
   intro:
-    'A job builds a source, silver, and gold chain, then reads its lineage back from system tables. It changes a table schema and catches the change from table history. It loads a later batch with a shifted distribution and flags it with a data profiling monitor and two in-job checks.',
+    'Unity Catalog records lineage for you, and data quality monitoring watches tables for freshness, completeness, and distribution changes. This page covers how to trace lineage from system tables, how to catch schema changes, how to monitor data drift on a schedule, and where to put quality rules so problems stop at the source.',
   shortVersion: [
     {
-      title: 'Lineage comes from system tables.',
-      body: 'system.access.table_lineage returned silver to gold and source to silver, and column_lineage returned 10 column edges.',
+      title: 'Lineage is automatic.',
+      body: 'Unity Catalog captures table and column lineage from queries and pipelines. Read it from system.access tables or Catalog Explorer, and check it before you change a table.',
     },
     {
-      title: 'Schema drift comes from snapshots.',
-      body: 'Two information_schema snapshots differ by one added column and one changed type.',
+      title: 'Schema changes have a record.',
+      body: 'DESCRIBE HISTORY lists each schema change with its version, time, and user. Compare information_schema snapshots to watch many tables at once.',
     },
     {
-      title: 'DESCRIBE HISTORY names the versions.',
-      body: 'ADD COLUMNS at version 1 and CHANGE COLUMN at version 3 match the two events.',
+      title: 'Turn on data quality monitoring.',
+      body: 'Anomaly detection checks the freshness and completeness of every table in a schema. Data profiling tracks column statistics and drift on tables you choose.',
     },
     {
-      title: 'A monitor flags the shifted batch.',
-      body: 'The monitor on the batches table shows a Wasserstein distance of 72.56 on amount between its last two windows.',
+      title: 'Run monitors on a schedule and alert on them.',
+      body: 'A schedule refreshes the metrics tables without a job, and an alert on a drift metric tells an owner before a consumer finds the problem.',
     },
     {
-      title: 'The job checks the same shift itself.',
-      body: 'PSI on amount is 4.94 against a limit of 0.2, and the mean moves from 105.6 to 250.9.',
+      title: 'Stop bad data at the source.',
+      body: 'Pipeline expectations drop or fail on bad records and write counts to the event log. Monitors then catch what the rules did not anticipate.',
     },
   ],
   sections: [
     {
-      id: 'job',
-      heading: 'What the job does',
-      prose:
-        'Four tasks run in one job. Lineage and schema drift both start from the chain build. Data drift has its own table and runs alongside them. Each task writes its findings to Unity Catalog tables.',
-      diagram: {
-        type: 'flow',
-        title: 'Tasks and the tables they write',
-        description:
-          'build_chain creates obs_source_orders, obs_silver_orders, and obs_gold_daily_revenue. read_lineage and detect_schema_drift both depend on build_chain. read_lineage writes obs_lineage_edges and obs_column_lineage. detect_schema_drift writes obs_schema_snapshots and obs_schema_drift_events. detect_data_drift has no upstream task and writes obs_drift_results and the monitor tables.',
-        lanes: [
-          { label: 'Tasks', fromRow: 0, toRow: 1 },
-          { label: 'Tables written', fromRow: 2, toRow: 2 },
-        ],
-        nodes: [
-          { id: 'chain', label: 'build_chain', mono: true, sub: 'source, silver, gold', col: 0, row: 0 },
-          { id: 'lineage', label: 'read_lineage', mono: true, sub: 'polls system tables', col: 1, row: 0, kind: 'highlight' },
-          { id: 'schema', label: 'detect_schema_drift', mono: true, sub: 'ALTER, then diff', col: 2, row: 0, kind: 'highlight' },
-          { id: 'data', label: 'detect_data_drift', mono: true, sub: 'monitor, PSI, mean', col: 3, row: 1, kind: 'highlight' },
-          { id: 'ltables', label: 'obs_lineage_edges', mono: true, sub: 'plus obs_column_lineage', col: 1, row: 2, kind: 'store' },
-          { id: 'stables', label: 'obs_schema_drift_events', mono: true, sub: 'plus snapshots', col: 2, row: 2, kind: 'store' },
-          { id: 'dtables', label: 'obs_drift_results', mono: true, sub: 'plus monitor tables', col: 3, row: 2, kind: 'store' },
-        ],
-        edges: [
-          { from: 'chain', to: 'lineage' },
-          { from: 'chain', to: 'schema' },
-          { from: 'lineage', to: 'ltables' },
-          { from: 'schema', to: 'stables' },
-          { from: 'data', to: 'dtables' },
-        ],
-        legend: [
-          { kind: 'highlight', label: 'Detection task' },
-          { kind: 'store', label: 'Unity Catalog table' },
-        ],
-      },
-    },
-    {
       id: 'lineage',
       heading: 'Lineage from system tables',
       prose:
-        'The chain is built with CREATE OR REPLACE TABLE AS SELECT. Lineage reached system.access.table_lineage about 13 minutes after the writes, so the task polls every 30 seconds. It then walks upstream from gold.',
+        'system.access.table_lineage records which table each table was built from, and system.access.column_lineage does the same for columns. Lineage is not instant: events reach the system tables after a delay, so read them on a schedule instead of right after a write. Catalog Explorer shows the same data as a graph.',
       diagram: {
         type: 'flow',
         title: 'Three tables, two hops',
         description:
-          'obs_source_orders feeds obs_silver_orders, which feeds obs_gold_daily_revenue. Silver keeps rows with a positive amount. Gold aggregates silver by day and region. Column lineage maps amount to revenue and order_ts to order_date.',
+          'A source table feeds a silver table, which feeds a gold table. Silver keeps valid rows. Gold aggregates silver by day and region. Column lineage maps amount to revenue and order_ts to order_date.',
         nodes: [
-          { id: 'src', label: 'obs_source_orders', mono: true, sub: '3,000 rows', col: 0, row: 0, kind: 'store' },
-          { id: 'silver', label: 'obs_silver_orders', mono: true, sub: '3,000 rows', col: 1, row: 0, kind: 'store' },
-          { id: 'gold', label: 'obs_gold_daily_revenue', mono: true, sub: '120 rows', col: 2, row: 0, kind: 'store' },
+          { id: 'src', label: 'Source orders', sub: 'raw', col: 0, row: 0, kind: 'store' },
+          { id: 'silver', label: 'Silver orders', sub: 'valid rows', col: 1, row: 0, kind: 'store' },
+          { id: 'gold', label: 'Gold daily revenue', sub: 'day and region', col: 2, row: 0, kind: 'store' },
         ],
         edges: [
           { from: 'src', to: 'silver', label: 'hop 2 upstream' },
@@ -87,88 +51,117 @@ export const walkthrough: Walkthrough = {
         legend: [{ kind: 'store', label: 'Unity Catalog table' }],
         caption: 'Column lineage maps amount to revenue and order_ts to order_date.',
       },
+      points: [
+        {
+          strong: 'Do impact analysis first.',
+          text: 'Before you rename a column or change a type, query downstream tables and notify their owners.',
+        },
+        {
+          strong: 'Trace a bad number upstream.',
+          text: 'Walk table_lineage from the report table toward its sources to find where a value changed.',
+        },
+        {
+          strong: 'Use the other system tables too.',
+          text: 'system.lakeflow records job and pipeline runs, system.billing records cost, and system.access.audit records who did what.',
+        },
+      ],
+      examples: [
+        {
+          label: 'Find what feeds a table',
+          language: 'sql',
+          code: "SELECT source_table_full_name, MAX(event_time) AS last_seen\nFROM system.access.table_lineage\nWHERE target_table_full_name = 'main.sales.gold_daily_revenue'\n  AND source_table_full_name IS NOT NULL\nGROUP BY source_table_full_name;",
+        },
+      ],
+      links: [
+        {
+          label: 'Lineage system tables',
+          url: 'https://docs.databricks.com/aws/en/admin/system-tables/lineage',
+        },
+        {
+          label: 'View data lineage in Unity Catalog',
+          url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/data-lineage',
+        },
+      ],
     },
     {
       id: 'schema',
       heading: 'Schema drift',
       prose:
-        'The job snapshots information_schema for the silver table, adds a column, widens a type with Delta type widening, and snapshots again. The diff gives two events. DESCRIBE HISTORY supplies the version of each change.',
-      diagram: {
-        type: 'matrix',
-        title: 'Drift events on obs_silver_orders',
-        description:
-          'The loyalty_tier column was added, shown by ADD COLUMNS at history version 1. The quantity column changed type from int to long, shown by CHANGE COLUMN at version 3. Version 2 set the type widening table property.',
-        corner: 'Column ↓ · Evidence →',
-        columns: ['Before', 'After', 'DESCRIBE HISTORY'],
+        'Delta records every schema change in the table history. DESCRIBE HISTORY returns the operation, version, timestamp, and user for each one, so you can say what changed and who changed it. To watch many tables, snapshot information_schema.columns on a schedule and diff the snapshots.',
+      table: {
+        columns: ['Need', 'Use'],
         rows: [
-          {
-            label: 'loyalty_tier',
-            sub: 'COLUMN_ADDED',
-            cells: [
-              { state: 'none', text: 'absent' },
-              { state: 'own', text: 'string' },
-              { state: 'own', text: 'v1 ADD COLUMNS' },
-            ],
-          },
-          {
-            label: 'quantity',
-            sub: 'TYPE_CHANGED',
-            cells: [
-              { state: 'own', text: 'int' },
-              { state: 'own', text: 'long' },
-              { state: 'own', text: 'v3 CHANGE COLUMN' },
-            ],
-          },
-          {
-            label: 'amount',
-            sub: 'unchanged',
-            cells: [
-              { state: 'optional', text: 'double' },
-              { state: 'optional', text: 'double' },
-              { state: 'none', text: 'no entry' },
-            ],
-          },
+          ['What changed on this table, and when', 'DESCRIBE HISTORY: ADD COLUMNS and CHANGE COLUMN entries'],
+          ['Which tables changed anywhere in a schema', 'A scheduled diff of information_schema.columns snapshots'],
+          ['New columns arriving in files', 'Auto Loader schema evolution, or rescue mode to park them in _rescued_data'],
+          ['A source column widens, such as int to long', 'Delta type widening, so the table changes in place'],
+          ['An unexpected change should stop a load', 'Schema enforcement, which rejects writes that do not match'],
         ],
-        legend: [
-          { state: 'own', label: 'Part of a drift event' },
-          { state: 'optional', label: 'Unchanged' },
-          { state: 'none', label: 'Not present' },
-        ],
-        caption: 'Version 2 set delta.enableTypeWidening, which the type change needs.',
       },
+      examples: [
+        {
+          label: 'Read the schema changes on a table',
+          language: 'sql',
+          code: "DESCRIBE HISTORY main.sales.silver_orders;\n\n-- Schema changes show as ADD COLUMNS, CHANGE COLUMN, REPLACE COLUMNS, or DROP COLUMNS in the operation column.",
+          notes: ['From Python, spark.sql("DESCRIBE HISTORY ...") returns a DataFrame you can filter on operation.'],
+        },
+      ],
     },
     {
       id: 'data-drift',
-      heading: 'Data drift',
+      heading: 'Data drift and data quality monitoring',
       prose:
-        'The baseline batch has 3,000 orders with amounts from 10 to 200. The later batch has 3,000 orders with amounts from 120 to 380 and most orders in one region. A data profiling monitor refreshes before and after the later batch. The job also computes PSI and the mean shift itself.',
+        'Data quality monitoring has two parts. Anomaly detection learns the usual freshness and completeness of each table in a schema and flags departures, with no per-table setup. Data profiling creates a monitor on a table that computes column statistics and drift metrics into Unity Catalog tables you can query, chart, and alert on.',
       table: {
-        caption: 'Results in obs_drift_results and the monitor drift table',
-        columns: ['Check', 'Result'],
+        columns: ['Part', 'What it watches'],
         rows: [
-          ['PSI on amount', '4.94 (limit 0.2), flagged'],
-          ['PSI on region', '1.89 (limit 0.2), flagged'],
-          ['Mean of amount', '105.6 to 250.9, +137.5% (limit 15%), flagged'],
-          ['Monitor, amount', 'Wasserstein distance 0.0 in window 1, 72.56 in window 2'],
-          ['Monitor, region', 'Jensen-Shannon distance 0.0 in window 1, 0.253 in window 2'],
+          ['Anomaly detection (Public Preview)', 'Freshness and completeness of each table in a schema, from historical patterns'],
+          ['Data profiling', 'Column statistics, distribution drift against a baseline or the previous window, and custom metrics'],
+          ['Pipeline expectations', 'Row-level rules, checked as data flows through a pipeline'],
         ],
       },
       points: [
         {
-          strong: 'Why the first window shows 0.',
-          text: 'Creating the monitor starts a refresh and the job asks for another, so the first two windows both see the baseline. The shift shows up in the third.',
+          strong: 'Create the monitor once and schedule it.',
+          text: 'A cron schedule on the monitor refreshes its metrics tables. Do not recreate the monitor to refresh it.',
         },
         {
-          strong: 'The monitor is created by the job.',
-          text: 'The bundle does not declare it, so the job deletes and recreates it on each run.',
+          strong: 'Compare against a baseline.',
+          text: 'Drift metrics need a reference: the previous time window, or a baseline table of known-good data.',
+        },
+        {
+          strong: 'Alert on the metrics tables.',
+          text: 'A SQL alert on a drift metric notifies the table owner. Pick thresholds from a few weeks of history instead of a guess.',
+        },
+        {
+          strong: 'Pair it with a simple statistic.',
+          text: 'A population stability index on a key column is easy to explain to a business owner. A common rule treats PSI above 0.2 as a significant shift.',
         },
       ],
       examples: [
         {
-          label: "Refresh the monitor on a schedule",
+          label: 'Create a data profiling monitor that refreshes on a schedule',
           language: 'py',
-          code: "from databricks.sdk.service.dataquality import CronSchedule, DataProfilingConfig, SnapshotConfig\n\nconfig = DataProfilingConfig(\n    assets_dir=assets_dir,\n    output_schema_id=schema_info.schema_id,\n    snapshot=SnapshotConfig(),\n    schedule=CronSchedule(quartz_cron_expression=\"0 0 6 * * ?\", timezone_id=\"UTC\"),\n)",
-          notes: ["The reference job asks for refreshes by hand. In production, add a schedule so the monitor refreshes without the job."],
+          code: 'from databricks.sdk import WorkspaceClient\nfrom databricks.sdk.service.dataquality import CronSchedule, DataProfilingConfig, Monitor, SnapshotConfig\n\nw = WorkspaceClient()\ntable = w.tables.get("main.sales.orders")\nschema = w.schemas.get("main.sales")\n\nw.data_quality.create_monitor(\n    monitor=Monitor(\n        object_type="table",\n        object_id=table.table_id,\n        data_profiling_config=DataProfilingConfig(\n            assets_dir="/Workspace/Shared/monitors/orders",\n            output_schema_id=schema.schema_id,\n            snapshot=SnapshotConfig(),\n            schedule=CronSchedule(quartz_cron_expression="0 0 6 * * ?", timezone_id="UTC"),\n        ),\n    )\n)',
+          notes: ['Use a time series or inference profile instead of a snapshot when the table has a timestamp column.'],
+        },
+      ],
+      links: [
+        {
+          label: 'Data quality monitoring',
+          url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/data-quality-monitoring/',
+        },
+        {
+          label: 'Anomaly detection',
+          url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/data-quality-monitoring/anomaly-detection/',
+        },
+        {
+          label: 'Data profiling',
+          url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/data-quality-monitoring/data-profiling/',
+        },
+        {
+          label: 'Manage data quality with pipeline expectations',
+          url: 'https://docs.databricks.com/aws/en/ldp/expectations',
         },
       ],
     },
