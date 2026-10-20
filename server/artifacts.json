@@ -5306,6 +5306,167 @@
         }
       ]
     },
+    "genie-agents": {
+      "bundle": "reference/genie",
+      "onePager": "reference/genie/guides/genie-agents/README.md",
+      "code": [
+        {
+          "label": "Notebooks, one per job task",
+          "path": "reference/genie/guides/genie-agents"
+        },
+        {
+          "label": "Genie client and agent builder",
+          "path": "reference/genie/src/genie_lib.py"
+        },
+        {
+          "label": "Results and system-table helpers",
+          "path": "reference/genie/src/agent_results.py"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_genie_agents",
+          "label": "Genie Agents job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "Genie Agents run",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/55415546416176/runs/63456466541507",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-20T23:45:00Z"
+        },
+        {
+          "label": "Genie Agent",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/genie/rooms/01f1ccdaa91310ea969631e77b521e06",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-20T23:19:00Z"
+        }
+      ],
+      "docs": [
+        {
+          "label": "Create and manage a Genie Agent",
+          "url": "https://docs.databricks.com/aws/en/genie-agents/set-up"
+        },
+        {
+          "label": "Tune Genie Agent quality",
+          "url": "https://docs.databricks.com/aws/en/genie-agents/tune-quality"
+        },
+        {
+          "label": "Genie Agents API",
+          "url": "https://docs.databricks.com/aws/en/genie-agents/conversation-api"
+        },
+        {
+          "label": "Genie Agents concepts",
+          "url": "https://docs.databricks.com/aws/en/genie-agents/concepts"
+        },
+        {
+          "label": "Bundle resources",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/bundles/resources"
+        },
+        {
+          "label": "AI assistive features trust and safety",
+          "url": "https://docs.databricks.com/aws/en/databricks-ai/databricks-ai-trust"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Build the definition from the spec",
+          "path": "reference/genie/src/genie_lib.py",
+          "notes": [
+            "IDs come from the content, so a rerun rebuilds the same definition and Git shows no churn.",
+            "Collections are sorted the way the API validates them."
+          ],
+          "symbol": "build_agent_space",
+          "section": "create"
+        },
+        {
+          "label": "Create or update by title",
+          "path": "reference/genie/guides/genie-agents/02_create_agent.py",
+          "notes": [
+            "POST the first time, PATCH after. A duplicate with the same title is deleted."
+          ],
+          "lines": [
+            43,
+            48
+          ],
+          "section": "create"
+        },
+        {
+          "label": "Instructions as data",
+          "path": "reference/genie/use_cases/general.yml",
+          "notes": [
+            "Revenue lives in the metric view. The text carries the default year, when to ask, and formatting.",
+            "The example query carries date parameters so it does not contradict the clarification rule."
+          ],
+          "lines": [
+            212,
+            229
+          ],
+          "section": "instructions"
+        },
+        {
+          "label": "Find the agent's statements",
+          "path": "reference/genie/src/agent_results.py",
+          "notes": [
+            "query_source.genie_space_id picks the agent's statements; executed_by and compute.warehouse_id say who and where."
+          ],
+          "symbol": "history_sql",
+          "section": "compute"
+        },
+        {
+          "label": "Poll until system tables catch up",
+          "path": "reference/genie/src/agent_results.py",
+          "notes": [
+            "System tables lag. Poll, then report what arrived."
+          ],
+          "symbol": "wait_for_rows",
+          "section": "compute"
+        },
+        {
+          "label": "Record field names, never values",
+          "path": "reference/genie/src/genie_lib.py",
+          "notes": [
+            "Shows what Genie stores about a message without copying anyone's data."
+          ],
+          "symbol": "field_paths",
+          "section": "stored"
+        },
+        {
+          "label": "Read the messages back",
+          "path": "reference/genie/guides/genie-agents/04_read_back.py",
+          "notes": [
+            "List conversations, then read each message."
+          ],
+          "lines": [
+            41,
+            54
+          ],
+          "section": "stored"
+        },
+        {
+          "label": "Replace a step's rows",
+          "path": "reference/genie/src/agent_results.py",
+          "notes": [
+            "A rerun swaps its own rows, so the results table keeps its row count."
+          ],
+          "symbol": "write_step",
+          "section": "reference-run"
+        },
+        {
+          "label": "The five-task job",
+          "path": "reference/genie/resources/genie_agents.job.yml",
+          "notes": [
+            "Parameters come from bundle variables; run_id ties results to the run."
+          ],
+          "lines": [
+            13,
+            56
+          ],
+          "section": "reference-run"
+        }
+      ]
+    },
     "data-sharing": {
       "bundle": "reference/open-data",
       "onePager": "reference/open-data/guides/data-sharing/README.md",

@@ -1,0 +1,56 @@
+# Genie Agents: create an agent, ask it questions, read back what is stored, and find its queries in system tables.
+resources:
+  jobs:
+    capability_guides_genie_agents:
+      name: capability-guides-genie-agents
+      description: Creates or updates a Genie Agent over the sales metric view through the REST API, asks it questions through the Conversation API, reads the conversations back, and finds the statements it ran in system.query.history.
+      tags:
+        capability_guide_job: capability_guides_genie_agents
+        capability_guide_use_case: ${var.use_case}
+      max_concurrent_runs: 1
+      timeout_seconds: 5400
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${var.schema}
+        - name: use_case
+          default: ${var.use_case}
+        - name: warehouse_id
+          default: ${var.warehouse_id}
+      tasks:
+        - task_key: prepare_data
+          notebook_task:
+            notebook_path: ../guides/genie-agents/01_prepare_data.py
+
+        - task_key: create_agent
+          depends_on:
+            - task_key: prepare_data
+          notebook_task:
+            notebook_path: ../guides/genie-agents/02_create_agent.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
+
+        - task_key: ask_questions
+          depends_on:
+            - task_key: create_agent
+          notebook_task:
+            notebook_path: ../guides/genie-agents/03_ask_questions.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
+
+        - task_key: read_back
+          depends_on:
+            - task_key: ask_questions
+          notebook_task:
+            notebook_path: ../guides/genie-agents/04_read_back.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
+
+        - task_key: find_queries
+          depends_on:
+            - task_key: read_back
+          notebook_task:
+            notebook_path: ../guides/genie-agents/05_find_queries.py
+            base_parameters:
+              run_id: "{{job.run_id}}"

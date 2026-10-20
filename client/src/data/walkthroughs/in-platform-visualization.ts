@@ -193,5 +193,6 @@ export const walkthrough: Walkthrough = {
   related: [
     { slug: 'self-service-extracts', title: 'Self-service extracts and subscriptions' },
     { slug: 'sql-notebook-analysis', title: 'SQL and notebooks at scale' },
+    { slug: 'genie-agents', title: 'Genie Agents: setup, instructions, and data handling' },
   ],
 };

@@ -20,6 +20,7 @@
   "external-integrations": "2026-10-20",
   "file-format-ingestion": "2026-10-20",
   "file-formats-delta-iceberg": "2026-10-20",
+  "genie-agents": "2026-10-20",
   "github-cicd": "2026-10-20",
   "iceberg-support": "2026-10-20",
   "ide-developer-experience": "2026-10-20",

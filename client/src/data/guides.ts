@@ -314,6 +314,20 @@ export const guides: readonly Guide[] = [
     ],
   },
   {
+    slug: 'genie-agents',
+    title: 'Genie Agents: setup, instructions, and data handling',
+    category: 'AI Guides',
+    difficulty: 2,
+    summary: 'Create a Genie Agent, write the instructions that make it accurate, and know which compute, identity, and stored data sit behind each answer.',
+    acceptanceCriteria:
+      'A Genie Agent is scoped to one domain over curated tables or a metric view, with definitions in SQL and short text instructions. It runs on a serverless SQL warehouse sized for concurrency, answers with each asker’s Unity Catalog permissions, and is versioned in a bundle and tested as a non-admin before rollout.',
+    evidence: [
+      'Metric view, example SQL, and a short text instruction with a trigger and an action',
+      'Serverless warehouse, least-privilege grants, and a tested non-admin run',
+      'Stored conversation fields, query history by asker and warehouse, and a bundle definition',
+    ],
+  },
+  {
     slug: 'agent-framework-support',
     title: 'Agents, MCP, and model gateway',
     category: 'AI Guides',

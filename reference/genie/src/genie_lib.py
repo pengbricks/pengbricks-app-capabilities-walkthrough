@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import time
 import uuid
 from collections import Counter
@@ -157,6 +158,120 @@ def build_serialized_space(
     return json.dumps(space)
 
 
+def stable_id(*parts: str) -> str:
+    """A 32-character hex ID derived from the parts, so rebuilding the same definition gives the same IDs."""
+    return uuid.uuid5(uuid.NAMESPACE_URL, "|".join(parts)).hex
+
+
+def sql_lines(sql: str) -> list[str]:
+    """The API stores SQL as a list of lines; every line but the last keeps its newline."""
+    lines = sql.rstrip("\n").split("\n")
+    return [line + "\n" for line in lines[:-1]] + [lines[-1]]
+
+
+def build_agent_space(agent: dict[str, Any], catalog: str, schema: str) -> str:
+    """Return the serialized_space JSON for the spec's `genie_agent` block (version 2).
+
+    Covers metric views and tables with per-column settings, one text instruction, example SQL with parameters and
+    usage guidance, sample questions, and benchmarks. IDs are derived from the content, so a rerun rebuilds an identical
+    definition. Every collection the API validates is sorted the way it requires.
+    """
+
+    def source(kind: str) -> list[dict[str, Any]]:
+        out = []
+        for name in sorted(agent.get(kind, [])):
+            entry: dict[str, Any] = {"identifier": f"{catalog}.{schema}.{name}"}
+            configs = agent.get("column_configs", {}).get(name)
+            if configs:
+                entry["column_configs"] = sorted((dict(item) for item in configs), key=lambda item: item["column_name"])
+            out.append(entry)
+        return out
+
+    space: dict[str, Any] = {"version": 2}
+    questions = [{"id": stable_id("sample", text), "question": [text]} for text in agent.get("sample_questions", [])]
+    if questions:
+        space["config"] = {"sample_questions": sorted(questions, key=lambda item: item["id"])}
+    data_sources: dict[str, Any] = {}
+    if agent.get("tables"):
+        data_sources["tables"] = source("tables")
+    if agent.get("metric_views"):
+        data_sources["metric_views"] = source("metric_views")
+    space["data_sources"] = data_sources
+
+    instruction_block: dict[str, Any] = {}
+    if agent.get("instructions"):
+        text = agent["instructions"].strip()
+        instruction_block["text_instructions"] = [{"id": stable_id("text", text), "content": [text]}]
+    examples = []
+    for item in agent.get("example_sql", []):
+        sql = fill(item["sql"], catalog, schema)
+        example: dict[str, Any] = {"id": stable_id("example", item["question"]), "question": [item["question"]], "sql": sql_lines(sql)}
+        if item.get("parameters"):
+            example["parameters"] = [
+                {
+                    "name": param["name"],
+                    "type_hint": param["type_hint"],
+                    "description": [param["description"]],
+                    "default_value": {"values": [str(param["default"])]},
+                }
+                for param in item["parameters"]
+            ]
+        if item.get("usage_guidance"):
+            example["usage_guidance"] = [item["usage_guidance"]]
+        examples.append(example)
+    if examples:
+        instruction_block["example_question_sqls"] = sorted(examples, key=lambda item: item["id"])
+    if instruction_block:
+        space["instructions"] = instruction_block
+
+    benchmarks = [
+        {
+            "id": stable_id("benchmark", item["question"]),
+            "question": [item["question"]],
+            "answer": [{"format": "SQL", "content": sql_lines(fill(item["sql"], catalog, schema))}],
+        }
+        for item in agent.get("benchmarks", [])
+    ]
+    if benchmarks:
+        space["benchmarks"] = {"questions": sorted(benchmarks, key=lambda item: item["id"])}
+    return json.dumps(space)
+
+
+def definition_summary(serialized_space: str) -> dict[str, int]:
+    """Count what a stored space definition holds, for the results table."""
+    space = json.loads(serialized_space)
+    instructions = space.get("instructions", {})
+    sources = space.get("data_sources", {})
+    configs = sum(len(entry.get("column_configs", [])) for kind in ("tables", "metric_views") for entry in sources.get(kind, []))
+    return {
+        "tables": len(sources.get("tables", [])),
+        "metric_views": len(sources.get("metric_views", [])),
+        "column_configs": configs,
+        "text_instructions": len(instructions.get("text_instructions", [])),
+        "example_sql": len(instructions.get("example_question_sqls", [])),
+        "parameterized_example_sql": sum(1 for item in instructions.get("example_question_sqls", []) if item.get("parameters")),
+        "sample_questions": len(space.get("config", {}).get("sample_questions", [])),
+        "benchmarks": len(space.get("benchmarks", {}).get("questions", [])),
+        "bytes": len(serialized_space.encode("utf-8")),
+    }
+
+
+def field_paths(value: Any, prefix: str = "") -> list[str]:
+    """Dotted names of the fields in a JSON object. Lists are walked as `name[]`; values are never returned."""
+    paths: list[str] = []
+    if isinstance(value, dict):
+        for key, item in value.items():
+            path = f"{prefix}.{key}" if prefix else key
+            if isinstance(item, (dict, list)) and item:
+                paths += field_paths(item, path)
+            else:
+                paths.append(path)
+    elif isinstance(value, list):
+        for item in value[:1]:  # one element shows the shape
+            paths += field_paths(item, f"{prefix}[]")
+    return sorted(set(paths))
+
+
 def split_existing(space_ids: list[str]) -> tuple[str | None, list[str]]:
     """Pick the space to reuse (the first id, in the API's listing order) and the duplicates to delete."""
     if not space_ids:
@@ -165,6 +280,14 @@ def split_existing(space_ids: list[str]) -> tuple[str | None, list[str]]:
 
 
 # ---------- Conversation API client ----------
+
+
+_THROTTLE = re.compile(r"\b429\b|too many requests|rate[ _]limit|too_many|resource_exhausted", re.IGNORECASE)
+
+
+def is_throttled(error: Exception) -> bool:
+    """True for a throttling error. Whole-word matching keeps a hex ID such as 8429e5 from reading as HTTP 429."""
+    return bool(_THROTTLE.search(str(error)))
 
 
 class GenieClient:
@@ -179,8 +302,7 @@ class GenieClient:
             try:
                 return self.w.api_client.do(method, path, body=body) or {}
             except Exception as error:  # retry throttling only
-                text = str(error).upper()
-                if "429" in text or "RATE" in text or "TOO_MANY" in text:
+                if is_throttled(error):
                     time.sleep(20 * (attempt + 1))
                     continue
                 raise
@@ -234,6 +356,38 @@ class GenieClient:
         message["latency_s"] = round(time.time() - started, 1)
         time.sleep(self.pause_seconds)
         return message
+
+    def get_space(self, space_id: str) -> dict[str, Any]:
+        """The space with its title, warehouse, and serialized definition."""
+        return self._call("GET", f"/api/2.0/genie/spaces/{space_id}?include_serialized_space=true")
+
+    def list_conversations(self, space_id: str) -> list[dict[str, Any]]:
+        """Conversations the calling user started in the agent: ID, title, type, and creation time."""
+        found: list[dict[str, Any]] = []
+        token = None
+        while True:
+            page = self._call("GET", f"/api/2.0/genie/spaces/{space_id}/conversations" + (f"?page_token={token}" if token else ""))
+            found += page.get("conversations", [])
+            token = page.get("next_page_token")
+            if not token:
+                return found
+
+    def list_conversation_ids(self, space_id: str) -> list[str]:
+        return [c["conversation_id"] for c in self.list_conversations(space_id) if c.get("conversation_id")]
+
+    def delete_conversation(self, space_id: str, conversation_id: str) -> None:
+        self._call("DELETE", f"/api/2.0/genie/spaces/{space_id}/conversations/{conversation_id}")
+
+    def list_messages(self, space_id: str, conversation_id: str) -> list[dict[str, Any]]:
+        page = self._call("GET", f"/api/2.0/genie/spaces/{space_id}/conversations/{conversation_id}/messages")
+        return page.get("messages", [])
+
+    def get_message(self, space_id: str, conversation_id: str, message_id: str) -> dict[str, Any]:
+        return self._call("GET", f"/api/2.0/genie/spaces/{space_id}/conversations/{conversation_id}/messages/{message_id}")
+
+    def get_query_result(self, space_id: str, conversation_id: str, message_id: str, attachment_id: str) -> dict[str, Any]:
+        path = f"/api/2.0/genie/spaces/{space_id}/conversations/{conversation_id}/messages/{message_id}/attachments/{attachment_id}/query-result"
+        return self._call("GET", path)
 
     def feedback(self, space_id: str, conversation_id: str, message_id: str, rating: str) -> str:
         """Send thumbs up (POSITIVE) or thumbs down (NEGATIVE). Returns 'ok' or the error text."""
