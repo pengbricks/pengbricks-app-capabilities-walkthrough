@@ -43,8 +43,8 @@ Two Databricks features connect GitHub to the workspace. They do different jobs:
 |---|---|---|
 | What it is | A clone of the GitHub repository inside the workspace | Deployment as code: jobs, pipelines, schemas, volumes, dashboards, and permissions in YAML next to the code |
 | Used for | Authoring and review: branch, edit, commit, push, and open a pull request from the Databricks UI | Releasing: the same definition deploys to dev, test, stage, and prod targets |
-| Who changes prod | Nobody edits prod Git folders by hand. Automation can move a production folder to a release branch | CI/CD with a service principal (`bundle deploy --target prod`) |
-| Links | [Git folders](https://docs.databricks.com/aws/en/repos/) · [Git operations](https://docs.databricks.com/aws/en/repos/git-operations-with-repos) · [CI/CD with Git folders](https://docs.databricks.com/aws/en/repos/ci-cd-techniques-with-repos) | [Bundles](https://docs.databricks.com/aws/en/dev-tools/bundles/) · [Bundles in the workspace](https://docs.databricks.com/aws/en/dev-tools/bundles/workspace-bundles) · [Bundles in VS Code](https://docs.databricks.com/aws/en/dev-tools/vscode-ext/bundles) |
+| Who changes prod | Nobody. Production runs from bundle deployments; a production Git folder is a fallback for code-only deployments | CI/CD with a service principal (`bundle deploy --target prod`) |
+| Links | [Git folders](https://docs.databricks.com/aws/en/repos/) · [Git operations](https://docs.databricks.com/aws/en/repos/git-operations-with-repos) · [CI/CD with Git folders](https://docs.databricks.com/aws/en/repos/ci-cd) | [Bundles](https://docs.databricks.com/aws/en/dev-tools/bundles/) · [Bundles in the workspace](https://docs.databricks.com/aws/en/dev-tools/bundles/workspace) · [Bundles in VS Code](https://docs.databricks.com/aws/en/dev-tools/vscode-ext/bundles) |
 
 The developer loop that ties them together:
 
@@ -65,7 +65,11 @@ flowchart LR
 
 ## Reference code
 
-- `.github/workflows/reference-cicd.yml`: the pipeline
+The practices behind this workflow, including what a production setup adds, are in the guide's walkthrough.
+
+- `.github/workflows/reference-cicd.yml`: the pipeline, with `test`, `deploy-dev`, and `deploy-test` jobs; triggers are `pull_request`, `push` to `main`, and `workflow_dispatch`, filtered to `reference/ingestion/**`
+- The `test` GitHub environment holds the approval gate; the repository variable `REFERENCE_CICD_ENABLED` switches the deploy jobs on
+- The workflow installs the CLI with `databricks/setup-cli@main` to stay short. Pin a release tag in a real pipeline
 - `reference/ingestion/databricks.yml`: `dev` and `test` targets, `release` tag
 - `reference/ingestion/tests/`: unit tests run on every pull request
 

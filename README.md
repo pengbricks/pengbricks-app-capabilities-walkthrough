@@ -54,6 +54,17 @@ Reference code for each guide lives in `reference/<bundle>/` as a deployable bun
 - **Downloads:** a guide entry in `server/artifacts.json` can set `download: {"path": "reference/<bundle>", "filename": "<name>.zip", "exclude": [...]}`. `npm run build` zips that folder into `server/downloads/` (sorted entries, fixed timestamps, no compression, so rebuilds are byte-identical; local state such as `.databricks/` is left out), `GET /api/capability-guides/artifacts/<slug>/download` serves it, and the guide page shows a download button. `npm run test:python` fails when the zip is stale.
 - **Key functions and dates:** `npm run build` first runs `scripts/build_artifact_snippets.py`, which embeds highlighted code, function docstrings for hover text, Auto Loader samples, and each guide's last updated date from Git. `npm run test:python` fails when snippets are stale.
 
+## Reference run
+
+The `github-cicd` guide is backed by `.github/workflows/reference-cicd.yml`, which deploys `reference/ingestion` through GitHub Actions. The guide page explains the practices; this section covers running the workflow.
+
+- Create GitHub environments `dev` and `test`, each with the variables listed at the top of the workflow. Add required reviewers to `test` so promotion waits for approval.
+- Sign in with GitHub OIDC: add a federation policy to the deploy service principal, then set `DATABRICKS_AUTH_TYPE=github-oidc`. Use `oauth-m2m` with `DATABRICKS_CLIENT_SECRET` only if you cannot federate.
+- Set the repository variable `REFERENCE_CICD_ENABLED=true` once the environments are configured. Until then the deploy jobs are skipped and only the `test` job runs.
+- A pull request runs `test` only. A push to `main` runs `test`, `deploy-dev` with a smoke run, and `deploy-test` after approval. The commit SHA is the `release` tag on every deployed resource.
+- The workflow uses `databricks/setup-cli@main` for brevity. Pin a release tag in your own pipeline.
+- Stage and prod targets are not built here. To redeploy an earlier commit, run the workflow with `workflow_dispatch` on that SHA.
+
 ## Public repository rules
 
 - Actual Databricks workspace run URLs and resource IDs may be versioned; never include tokens, credentials, private repository paths, customer data, or user-home paths.

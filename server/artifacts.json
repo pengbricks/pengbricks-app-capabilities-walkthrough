@@ -879,6 +879,14 @@
         {
           "label": "Bundle deployment modes",
           "url": "https://docs.databricks.com/aws/en/dev-tools/bundles/deployment-modes"
+        },
+        {
+          "label": "Developer best practices",
+          "url": "https://docs.databricks.com/aws/en/developers/best-practices"
+        },
+        {
+          "label": "CI/CD with Git folders",
+          "url": "https://docs.databricks.com/aws/en/repos/ci-cd"
         }
       ],
       "highlights": [
@@ -893,7 +901,7 @@
             "deploy-test waits for deploy-dev and for approval on the test GitHub environment.",
             "The same commit SHA is deployed and tagged as release on every resource."
           ],
-          "section": "setup"
+          "section": "promote"
         },
         {
           "label": "dev and test targets with release tags",
@@ -906,7 +914,7 @@
             "dev uses development mode; test uses presets for name prefixes and tags.",
             "Environment-specific values come from variables, not edits to resource files."
           ],
-          "section": "setup"
+          "section": "bundle-practices"
         },
         {
           "label": "Deploy to dev and smoke-run",
@@ -919,7 +927,7 @@
             48,
             71
           ],
-          "section": "setup"
+          "section": "promote"
         }
       ],
       "walkthroughs": [
@@ -938,9 +946,9 @@
         },
         {
           "label": "CI/CD with Git folders",
-          "url": "https://docs.databricks.com/aws/en/repos/ci-cd-techniques-with-repos",
-          "description": "Patterns for keeping a production Git folder on a release branch and updating it from automation.",
-          "docsUrl": "https://docs.databricks.com/aws/en/repos/ci-cd-techniques-with-repos"
+          "url": "https://docs.databricks.com/aws/en/repos/ci-cd",
+          "description": "User, merge, and admin flows, and when a production Git folder is still acceptable.",
+          "docsUrl": "https://docs.databricks.com/aws/en/repos/ci-cd"
         },
         {
           "label": "Declarative Automation Bundles",
@@ -950,9 +958,9 @@
         },
         {
           "label": "Bundles in the workspace",
-          "url": "https://docs.databricks.com/aws/en/dev-tools/bundles/workspace-bundles",
-          "description": "Validate and deploy a bundle directly from a Git folder in the workspace UI.",
-          "docsUrl": "https://docs.databricks.com/aws/en/dev-tools/bundles/workspace-bundles"
+          "url": "https://docs.databricks.com/aws/en/dev-tools/bundles/workspace",
+          "description": "Edit, deploy, and run a bundle from a Git folder in the workspace UI, for development.",
+          "docsUrl": "https://docs.databricks.com/aws/en/dev-tools/bundles/workspace"
         },
         {
           "label": "Bundles in VS Code",

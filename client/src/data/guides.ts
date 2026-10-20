@@ -175,13 +175,13 @@ export const guides: readonly Guide[] = [
     title: 'GitHub-based CI/CD',
     category: 'CI/CD & Version Control Guides',
     difficulty: 4,
-    summary: 'Promote one traceable release across development and test.',
+    summary: 'Author in Git folders or an IDE, deploy with bundles from CI, and promote one commit through environments with approvals.',
     acceptanceCriteria:
-      'A pull request runs tests, a merge deploys the commit to dev, and an approval promotes the same commit to test. Every resource carries the release SHA.',
+      'People author on short-lived branches in their own Git folders or IDE clones, and production runs from bundle deployments made by CI, never from a hand-edited Git folder. A pull request runs unit tests and bundle validate --strict, a merge deploys the commit to dev, and approvals promote the same commit through the later environments. A service principal deploys over GitHub OIDC with no stored secret, the CLI version is pinned, and every resource carries the release SHA.',
     evidence: [
-      'GitHub source and release reference',
-      'Development and test deployment runs',
-      'Approval and immutable release evidence',
+      'Pull request checks, and one commit deployed to dev and test through the bundle',
+      'Approval on a GitHub environment and a release tag on every resource',
+      'OIDC sign-in for a service principal, with variables and targets instead of copies',
     ],
   },
   {
