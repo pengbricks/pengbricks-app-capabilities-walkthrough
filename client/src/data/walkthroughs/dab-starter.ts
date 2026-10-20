@@ -323,25 +323,28 @@ databricks bundle run capability_guides_dab_starter -t prod --var catalog=<catal
       id: 'ci',
       heading: 'CI with GitHub Actions',
       prose:
-        'The bundle ships .github/workflows/bundle.yml. On a pull request it runs validate. On a push to main it deploys to prod and runs the job. It signs in as a service principal with OAuth, using repository secrets, so no person\'s token sits in CI.',
+        'The bundle ships .github/workflows/bundle.yml. On a pull request it runs the unit tests and validate. On a push to main it deploys to prod and runs the job, behind a GitHub environment named prod that can require reviewers. It signs in as a service principal through GitHub OIDC, so CI stores no token and no client secret.',
       table: {
-        caption: 'Add these under Settings, Secrets and variables, Actions',
+        caption: 'Add these under Settings, Secrets and variables, Actions, as variables',
         columns: ['Name', 'Value'],
         rows: [
-          ['DATABRICKS_HOST (secret)', 'Your workspace URL.'],
-          ['DATABRICKS_CLIENT_ID (secret)', 'Application ID of a service principal.'],
-          ['DATABRICKS_CLIENT_SECRET (secret)', 'An OAuth secret for that service principal.'],
-          ['DATABRICKS_CATALOG (variable)', 'The catalog the bundle creates its schema in.'],
+          ['DATABRICKS_HOST', 'Your workspace URL.'],
+          ['DATABRICKS_CLIENT_ID', 'Application ID of the service principal CI signs in as.'],
+          ['DATABRICKS_CATALOG', 'The catalog the bundle creates its schema in.'],
         ],
       },
       points: [
+        {
+          strong: 'Add a federation policy to the service principal.',
+          text: 'Issuer https://token.actions.githubusercontent.com. One policy with subject repo:<org>/<repo>:environment:prod for the deploy job, and one with repo:<org>/<repo>:pull_request for validate. Copy the exact sub from a GitHub run: newer repositories include numeric IDs in it.',
+        },
         { strong: 'Grant the service principal what it needs.', text: 'USE CATALOG and CREATE SCHEMA on the catalog, and permission to create jobs and pipelines.' },
-        { strong: 'DATABRICKS_BUNDLE_ENV picks the target.', text: 'The workflow sets it to prod, so the same commands you ran by hand run in CI.' },
-        { strong: 'Protect main.', text: 'Require the validate check and a review before merge, so a deploy only follows a reviewed change.' },
+        { strong: 'DATABRICKS_BUNDLE_TARGET picks the target.', text: 'The workflow sets it to prod and passes the commit SHA as BUNDLE_VAR_release, so the same commands you ran by hand run in CI and every deploy is tagged with its commit.' },
+        { strong: 'Protect main.', text: 'Require the test and validate checks and a review before merge, and add required reviewers to the prod environment, so a deploy only follows a reviewed change.' },
       ],
       links: [
         { label: 'GitHub Actions with Databricks', url: 'https://docs.databricks.com/aws/en/dev-tools/ci-cd/github' },
-        { label: 'OAuth for a service principal (M2M)', url: 'https://docs.databricks.com/aws/en/dev-tools/auth/oauth-m2m' },
+        { label: 'Sign in from GitHub Actions with OIDC', url: 'https://docs.databricks.com/aws/en/dev-tools/auth/provider-github' },
         { label: 'Service principals', url: 'https://docs.databricks.com/aws/en/admin/users-groups/service-principals' },
       ],
     },
@@ -349,7 +352,7 @@ databricks bundle run capability_guides_dab_starter -t prod --var catalog=<catal
       id: 'ci-best-practices',
       heading: 'CI/CD best practices',
       prose:
-        'The starter workflow keeps setup short: it signs in with an OAuth client secret and installs the CLI from the floating main branch. Before a team relies on it, change those two things and add the gates below. This list follows the Databricks developer best-practices page.',
+        'The starter workflow already signs in with OIDC, pins the CLI, runs tests before validate, and gates the prod deploy on a GitHub environment. A team that runs more than one environment adds the rest of this list. It follows the Databricks developer best-practices page.',
       table: {
         caption: 'What to put in place, in the order a change travels',
         columns: ['Practice', 'What to do'],
@@ -362,7 +365,7 @@ databricks bundle run capability_guides_dab_starter -t prod --var catalog=<catal
           ['Gate every pull request', 'Run unit tests and databricks bundle validate --strict, and make both required checks on main. Validation catches schema and variable errors. A deploy to a non-prod workspace catches the rest.'],
           ['Run integration in test', 'Deploy to test, run the job, and assert row counts, schema, and data-quality results. The starter\'s check_gold task is the pattern. Passing there is the gate for stage.'],
           ['Promote one commit', 'dev, then test, then stage, then prod, each from the same SHA. One GitHub environment per target, with required reviewers on stage and prod. Pass the SHA as the release variable.'],
-          ['Pin the CLI version', 'Use databricks/setup-cli@v1.21.0 (a release tag) or with: version:, not @main. A floating CLI changes behavior between runs: the direct deployment engine became the default for new bundles in CLI 1.3.0.'],
+          ['Pin the CLI version', 'Use a release tag such as databricks/setup-cli@v1.17.0 (the version the starter pins), not @main. A floating CLI changes behavior between runs: the direct deployment engine became the default for new bundles in CLI 1.3.0.'],
           ['Variables for environment values', 'Catalog, host, and service principal IDs are bundle variables set per target. CI passes them as BUNDLE_VAR_<name>. Nothing environment-specific is hard-coded in resource files.'],
           ['Tag with environment and release', 'Set presets.tags on each target: environment and release. System tables and billing then report by environment and by commit.'],
           ['Keep secrets out of the bundle', 'Store them in Databricks secret scopes backed by your cloud secret manager, and read them at run time. Never commit tokens, credentials, or files with PII.'],
