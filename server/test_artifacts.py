@@ -45,8 +45,9 @@ def test_downloads_are_current() -> None:
     built = builder.build_downloads()
     assert built, "no guide offers a download"
     for name, data in built.items():
-        assert (builder.DOWNLOADS_DIR / name).read_bytes() == data, f"{name} is stale. Run: python scripts/build_artifact_snippets.py"
-    assert {path.name for path in builder.DOWNLOADS_DIR.glob("*.zip")} == set(built)
+        assert builder.stored_path(name).read_bytes() == data, f"{name} is stale. Run: python scripts/build_artifact_snippets.py"
+    # Stored as <name>.bin: workspace file import would unpack a .zip instead of uploading it.
+    assert {path.name for path in builder.DOWNLOADS_DIR.iterdir()} == {builder.stored_path(name).name for name in built}
 
 
 def test_download_zip_is_deterministic_and_leaves_out_local_state(tmp_path, monkeypatch) -> None:
@@ -83,6 +84,7 @@ def test_download_returns_the_starter_bundle_as_a_zip() -> None:
     assert archive.testzip() is None
     names = archive.namelist()
     assert "dab-starter/databricks.yml" in names
+    assert {"dab-starter/examples/app.app.yml", "dab-starter/examples/lakebase.postgres.yml", "dab-starter/examples/dashboard.dashboard.yml", "dab-starter/examples/genie.genie_space.yml", "dab-starter/examples/app/app.py"} <= set(names)
     assert not any(".databricks/" in name or "__pycache__" in name or name.endswith(".pyc") for name in names)
     assert "dab-starter/resources/app_access.yml" not in names
 

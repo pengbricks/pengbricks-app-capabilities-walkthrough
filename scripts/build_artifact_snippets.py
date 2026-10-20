@@ -30,6 +30,13 @@ INDEX = ROOT / "server" / "artifacts.json"
 OUTPUT = ROOT / "server" / "artifact_snippets.json"
 SAMPLES_OUTPUT = ROOT / "server" / "artifact_samples.json"
 DOWNLOADS_DIR = ROOT / "server" / "downloads"
+# Downloads are stored as <name>.bin and served as <name>. Workspace file import treats a .zip as an
+# archive to unpack, so a bundle sync that uploads the app cannot carry a .zip file.
+STORED_SUFFIX = ".bin"
+
+
+def stored_path(name: str) -> Path:
+    return DOWNLOADS_DIR / f"{name}{STORED_SUFFIX}"
 MAX_LINES = 40
 # Local state that never belongs in a download, whether or not the repository ignores it.
 LOCAL_STATE = {".databricks", "__pycache__", ".pytest_cache", ".venv", "node_modules", ".git", ".DS_Store", ".idea", ".vscode"}
@@ -213,9 +220,10 @@ def main() -> int:
         ]
         stale += [
             name for name, data in downloads.items()
-            if not (DOWNLOADS_DIR / name).exists() or (DOWNLOADS_DIR / name).read_bytes() != data
+            if not stored_path(name).exists() or stored_path(name).read_bytes() != data
         ]
-        stale += [path.name for path in DOWNLOADS_DIR.glob("*.zip") if path.name not in downloads]
+        stored = {stored_path(name).name for name in downloads}
+        stale += [path.name for path in DOWNLOADS_DIR.glob("*") if path.is_file() and path.name not in stored]
         if stale:
             print(f"Stale: {', '.join(stale)}. Run: python scripts/build_artifact_snippets.py")
             return 1
@@ -225,11 +233,12 @@ def main() -> int:
     OUTPUT.write_text(rendered, encoding="utf-8")
     SAMPLES_OUTPUT.write_text(samples, encoding="utf-8")
     DOWNLOADS_DIR.mkdir(exist_ok=True)
-    for path in DOWNLOADS_DIR.glob("*.zip"):
-        if path.name not in downloads:
+    stored = {stored_path(name).name for name in downloads}
+    for path in DOWNLOADS_DIR.glob("*"):
+        if path.is_file() and path.name not in stored:
             path.unlink()
     for name, data in downloads.items():
-        (DOWNLOADS_DIR / name).write_bytes(data)
+        stored_path(name).write_bytes(data)
     print(f"Wrote {OUTPUT.relative_to(ROOT)}, {SAMPLES_OUTPUT.relative_to(ROOT)}, and {len(downloads)} download(s)")
     return 0
 

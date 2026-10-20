@@ -1,0 +1,65 @@
+# A Databricks App that reads the gold table through a SQL warehouse. The source is in examples/app/.
+#
+# To use it: copy this file into resources/, set warehouse_id, then deploy and start it:
+#   databricks bundle deploy --var catalog=<catalog> --var warehouse_id=<id>
+#   databricks bundle run orders_app --var catalog=<catalog> --var warehouse_id=<id>
+# bundle deploy creates the app and uploads its files; bundle run deploys that source to the app's
+# compute and starts it.
+#
+# Learn more:
+#   Databricks Apps                     https://docs.databricks.com/aws/en/dev-tools/databricks-apps
+#   Build an app with a bundle          https://docs.databricks.com/aws/en/dev-tools/bundles/apps-tutorial
+#   app settings you can set here       https://docs.databricks.com/aws/en/dev-tools/bundles/resources#app
+#   Resources an app can attach         https://docs.databricks.com/aws/en/dev-tools/databricks-apps/resources
+#   Connect an app to Lakebase          https://docs.databricks.com/aws/en/dev-tools/databricks-apps/lakebase
+variables:
+  warehouse_id:
+    description: Existing SQL warehouse the app runs its queries on
+
+resources:
+  apps:
+    orders_app:
+      # Lowercase letters, digits, and hyphens, at most 26 characters, unique in the workspace.
+      # Development mode doesn't prefix app names, so dev and prod in one workspace would share this
+      # app. Set a different name per target, for example under targets.prod.resources.
+      name: orders-app
+      description: Daily revenue from the dab-starter gold table
+      # Relative to this YAML file once it's in resources/. The folder holds the code and its
+      # requirements.txt, which the app installs before it starts.
+      source_code_path: ../examples/app
+      # The start command and environment. value_from reads an attached resource below, so the
+      # warehouse ID never appears in code. TABLE follows the target: dev reads your dev_ schema.
+      config:
+        command: ['python', 'app.py']
+        env:
+          - name: WAREHOUSE_ID
+            value_from: warehouse
+          - name: TABLE
+            value: ${var.catalog}.${resources.schemas.starter.name}.orders_daily_revenue
+      # Each attached resource grants the app's service principal the permission listed. The app
+      # can't use anything that isn't attached here.
+      resources:
+        - name: warehouse
+          sql_warehouse:
+            id: ${var.warehouse_id}
+            permission: CAN_USE
+
+        # To attach the Lakebase database from examples/lakebase.postgres.yml, uncomment this. Get the
+        # database's resource path with:
+        #   databricks postgres list-databases projects/<project-id>/branches/production
+        # - name: orders-db
+        #   postgres:
+        #     branch: projects/${var.lakebase_project_id}/branches/production
+        #     database: <database resource path>
+        #     permission: CAN_CONNECT_AND_CREATE
+
+        # To let the app ask the Genie agent from examples/genie.genie_space.yml, uncomment this.
+        # - name: orders-genie
+        #   genie_space:
+        #     name: orders-genie
+        #     space_id: ${resources.genie_spaces.orders_genie.id}
+        #     permission: CAN_RUN
+
+      # The app's service principal also needs to read the table. Grant it in Unity Catalog:
+      #   GRANT USE CATALOG ON CATALOG <catalog> TO `<app service principal application ID>`;
+      #   GRANT USE SCHEMA, SELECT ON SCHEMA <catalog>.<schema> TO `<app service principal application ID>`;

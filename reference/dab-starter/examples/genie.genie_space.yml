@@ -1,0 +1,32 @@
+# A Genie agent (formerly Genie space) that answers questions about the orders tables in plain
+# language. Business users reach Genie agents from Genie One.
+#
+# Set the agent up in the workspace UI first: add the tables, sample questions, and instructions. Then
+# pull it into the bundle. This writes the YAML and the .geniespace.json for you:
+#   databricks bundle generate genie-space --existing-id <space-id> --key orders_genie
+# The space ID is in the agent's URL. Copy the generated YAML into resources/ (or replace this file's
+# values with it), then deploy. Keep the file in sync while you edit in the UI:
+#   databricks bundle generate genie-space --resource orders_genie --watch
+#
+# Learn more:
+#   Genie agents                     https://docs.databricks.com/aws/en/genie-agents
+#   Set up a Genie agent             https://docs.databricks.com/aws/en/genie-agents/set-up
+#   Genie One                        https://docs.databricks.com/aws/en/genie-one
+#   genie_space settings you can set https://docs.databricks.com/aws/en/dev-tools/bundles/resources#genie_space
+variables:
+  warehouse_id:
+    description: Existing SQL warehouse the agent runs its queries on
+
+resources:
+  genie_spaces:
+    orders_genie:
+      title: dab-starter orders
+      description: Ask about daily revenue, categories, and orders the silver rules dropped.
+      # Relative to this YAML file once it's in resources/. The file holds the tables, instructions,
+      # and sample questions.
+      file_path: ../examples/genie/orders_genie.geniespace.json
+      warehouse_id: ${var.warehouse_id}
+      # Users also need SELECT on the tables. CAN_RUN lets them ask questions, not edit the agent.
+      permissions:
+        - level: CAN_RUN
+          group_name: users

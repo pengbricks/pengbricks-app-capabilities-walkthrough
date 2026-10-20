@@ -1,3 +1,11 @@
+# A serverless Lakeflow Declarative Pipeline. Deploying creates or updates the pipeline definition; it
+# doesn't run it. The job in orders.job.yml runs it, or run it alone with:
+#   databricks bundle run orders --var catalog=<catalog>
+#
+# Learn more:
+#   Pipeline settings you can set here  https://docs.databricks.com/aws/en/dev-tools/bundles/resources#pipeline
+#   Build a pipeline with a bundle      https://docs.databricks.com/aws/en/dev-tools/bundles/pipelines-tutorial
+#   Lakeflow Declarative Pipelines      https://docs.databricks.com/aws/en/ldp
 resources:
   pipelines:
     orders:
@@ -5,15 +13,21 @@ resources:
       catalog: ${var.catalog}
       # Use the schema resource's name, not var.schema: development mode adds the dev_<you>_ prefix to it.
       schema: ${resources.schemas.starter.name}
+      # Serverless needs no cluster settings. https://docs.databricks.com/aws/en/compute/serverless
       serverless: true
+      # Triggered: each update processes new data, then stops. continuous: true keeps it running.
       continuous: false
       channel: CURRENT
       # Installs dbldatagen on the pipeline's serverless environment before the source runs.
       environment:
         dependencies:
           - "dbldatagen>=0.4"
+      # Read in the source with spark.conf.get("starter.row_count").
       configuration:
         starter.row_count: ${var.row_count}
+      # Every file under this folder is pipeline source. Paths are relative to this YAML file.
+      # The silver table's expectations are the data quality rules:
+      # https://docs.databricks.com/aws/en/ldp/expectations
       libraries:
         - glob:
             include: ../guides/dab-starter/pipeline/**
