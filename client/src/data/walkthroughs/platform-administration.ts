@@ -6,6 +6,32 @@ export const walkthrough: Walkthrough = {
   title: 'Workspace and account administration',
   intro:
     'Databricks administration splits into the account, which owns identity, metastores, workspaces, and billing, and the workspaces, which own compute, jobs, and day-to-day work. Getting that split right is most of the job. This page covers the operating model, how to manage identity and credentials, the network and encryption controls to decide on early, how to govern serverless and classic compute, and how to keep all of it in code.',
+  businessValue: {
+    summary:
+      'Platform leaders must decide identity, network, and cost controls early, because they are costly to change once teams are working. This guide gives the account and workspace operating model for a secure, governed Databricks estate.',
+    outcomes: [
+      {
+        title: 'One identity source',
+        body:
+          'Users and groups sync from your identity provider to the account, and grants go to account groups. When someone leaves, removing them from the group removes their access everywhere.',
+      },
+      {
+        title: 'Fewer long-lived secrets',
+        body:
+          'OAuth for people and automation replaces personal access tokens, which are legacy. Service principals run production jobs, so no pipeline depends on a person\'s credential.',
+      },
+      {
+        title: 'Network and encryption set up front',
+        body:
+          'Private Link, IP access lists, serverless egress control, and customer-managed keys are cheaper to design in at the start than to retrofit after workloads depend on open paths.',
+      },
+      {
+        title: 'Repeatable, reviewable setup',
+        body:
+          'Terraform or bundles hold workspace and compute configuration in Git, so changes are reviewed and a new workspace matches the standard. System tables enabled early give you history for audit and cost.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Manage identity at the account.',

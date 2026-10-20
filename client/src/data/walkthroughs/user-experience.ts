@@ -6,6 +6,32 @@ export const walkthrough: Walkthrough = {
   title: 'Assistant user experience',
   intro:
     'A Genie Agent earns trust one answer at a time. This page covers how to roll one out so business users keep using it: curate the agent with instructions, sample questions, and trusted assets; measure quality with benchmarks; run a pilot; read feedback; size access and compute; and put the agent where people already work.',
+  businessValue: {
+    summary:
+      'Business leaders get value from Genie Agents only if users trust the answers and keep coming back. This guide covers curating an agent, measuring accuracy, piloting with real users, and putting it where they work.',
+    outcomes: [
+      {
+        title: 'Answers people trust',
+        body:
+          'Example SQL, trusted assets, and metric views give the agent your definitions. Users can read the generated SQL and see where an answer came from.',
+      },
+      {
+        title: 'Accuracy you can measure',
+        body:
+          'Benchmarks hold the questions people ask and the SQL that answers them. Rerunning them after each change shows whether the agent got better or worse before users notice.',
+      },
+      {
+        title: 'Self-service without extra access',
+        body:
+          'Genie checks each question against the asker\'s own Unity Catalog permissions, so business users get answers without analyst tickets and without seeing data they should not.',
+      },
+      {
+        title: 'A feedback loop with an owner',
+        body:
+          'Flagged answers go to a weekly review. Each fix becomes an instruction, example query, or trusted asset. The Teams app is Beta and Slack features are in preview, so confirm before committing.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Start small and curate with SQL.',

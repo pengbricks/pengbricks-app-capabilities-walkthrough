@@ -6,6 +6,32 @@ export const walkthrough: Walkthrough = {
   title: 'CDC and incremental refresh in pipelines',
   intro:
     'Lakeflow Spark Declarative Pipelines load change data with AUTO CDC from three kinds of source: Debezium-style change files, the Delta change data feed of an operational table, and periodic snapshots. After the first load, run normal incremental updates. Use a full refresh only when logic or history needs rebuilding. This page covers how each source tracks what is new, what a refresh clears, and how to choose.',
+  businessValue: {
+    summary:
+      'Data platform owners need operational data to reach analytics quickly without reloading whole tables. This guide covers incremental change capture in Lakeflow Spark Declarative Pipelines and the protections to set before a full refresh is run.',
+    outcomes: [
+      {
+        title: 'Fresher data, less reprocessing',
+        body:
+          'After the first load, each update reads only new input and resumes from its checkpoint. Reports reflect recent changes without rereading the whole source.',
+      },
+      {
+        title: 'Lower compute for large tables',
+        body:
+          'Serverless materialized views refresh only what changed when the query supports it. Compute spend follows the change volume, not the table size.',
+      },
+      {
+        title: 'Protection for irreplaceable data',
+        body:
+          'Setting pipelines.reset.allowed to false on raw tables stops a full refresh from truncating data you cannot rebuild. Selective refresh limits the rest to one table.',
+      },
+      {
+        title: 'Bad feeds stopped early',
+        body:
+          'Expectations on bronze catch null keys and missing sequence values before they reach downstream tables. For databases, Lakeflow Connect provides managed CDC ingestion.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Match the source to the flow.',

@@ -6,6 +6,32 @@ export const walkthrough: Walkthrough = {
   title: 'Target loading and file outputs',
   intro:
     'Match the write pattern to the load: MERGE for batch upserts, AUTO CDC for ordered change feeds, and overwrite for whole partitions. Then deliver files from Unity Catalog volumes, and write them with Spark when they are large. This page covers when to use each, how to keep MERGE fast and repeatable, and how to deliver data to people and systems outside the lakehouse.',
+  businessValue: {
+    summary:
+      'Data engineering owners need loads that can be rerun safely and files that reach other teams and systems under governance. This guide covers write patterns for batch and change loads, and file delivery from Unity Catalog volumes.',
+    outcomes: [
+      {
+        title: 'Reruns that do no harm',
+        body:
+          'A MERGE keyed on a stable business key gives the same result when a batch is rerun. A failed overnight load can be retried without duplicate or missing rows.',
+      },
+      {
+        title: 'Right pattern for each load',
+        body:
+          'MERGE for batch upserts, AUTO CDC for ordered feeds, and INSERT OVERWRITE or REPLACE WHERE for partitions each fit a load shape. Teams avoid full table rewrites.',
+      },
+      {
+        title: 'Loads that stay fast',
+        body:
+          'Liquid clustering on the merge key and deletion vectors let MERGE touch fewer files. Predictive optimization keeps the table healthy, so load windows hold as data grows.',
+      },
+      {
+        title: 'Governed file delivery',
+        body:
+          'Files for partners or legacy systems are written to a Unity Catalog volume, and volume privileges control who can read them. Access to outputs follows the same model as tables.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Pick the write pattern by the load.',

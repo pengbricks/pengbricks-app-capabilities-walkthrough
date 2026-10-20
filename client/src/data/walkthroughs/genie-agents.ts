@@ -6,6 +6,32 @@ export const walkthrough: Walkthrough = {
   title: 'Genie Agents: setup, instructions, and data handling',
   intro:
     'A Genie Agent answers business questions over Unity Catalog data in plain language. This page covers how to create one, how to write the instructions that decide its accuracy, which compute and identity run each question, and what Databricks stores about the agent and its conversations. Rollout and benchmarks are in the assistant user experience guide, and metric views and synonyms are in the business terms guide.',
+  businessValue: {
+    summary:
+      'Business users can ask questions of governed data in plain language, without waiting for an analyst. This guide is for data and AI program owners who set up a Genie Agent that is accurate, secure, and maintainable.',
+    outcomes: [
+      {
+        title: 'Self-service answers',
+        body:
+          'Business users ask in plain language and Genie writes read-only SQL on a SQL warehouse. Routine questions stop queuing behind the analytics team.',
+      },
+      {
+        title: 'Existing governance applies',
+        body:
+          'Unity Catalog checks every table against the person asking, so grants, row filters, and column masks hold. Data is never copied into the agent.',
+      },
+      {
+        title: 'Accuracy comes from curated SQL',
+        body:
+          'Definitions live in metric views and SQL expressions, and example SQL covers hard questions. That keeps answers consistent and gives owners something concrete to review.',
+      },
+      {
+        title: 'Clear storage and change control',
+        body:
+          'Databricks stores the agent definition, conversations, and generated SQL in the control plane, and query results expire after seven days. Keeping the definition in Git gives reviewable change history.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'One agent per business domain.',

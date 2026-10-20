@@ -6,6 +6,32 @@ export const walkthrough: Walkthrough = {
   title: 'Agents, MCP, and model gateway',
   intro:
     'An agent calls models and tools. On Databricks, Unity Gateway governs both: model services for inference, and MCP servers for tools. You host custom MCP servers and agents on Databricks Apps, call Databricks-provided MCP servers without hosting anything, authenticate as the app or as the user, and trace and evaluate every run with MLflow. This page covers the current pattern for each piece and a status table so you can see what is GA, in preview, or Legacy.',
+  businessValue: {
+    summary:
+      'AI program owners and security leads need agents that call models and tools under central control. This guide shows how Unity Gateway, Databricks Apps, and MLflow give governed access, an audit trail, and a way to test before release.',
+    outcomes: [
+      {
+        title: 'One control point for agents',
+        body:
+          'Unity Gateway governs model services and MCP servers, with rate limits and fallback. Security sets policy once instead of reviewing each agent\'s own connections.',
+      },
+      {
+        title: 'Tools run under the right identity',
+        body:
+          'An agent can act as its service principal or as the signed-in user. Under the user\'s identity, row filters and column masks apply to that person.',
+      },
+      {
+        title: 'Swap models without rewriting agents',
+        body:
+          'Agents call a gateway model service, so changing the model behind it does not change agent code. Inference tables and a usage system table record what was called.',
+      },
+      {
+        title: 'Evidence before and after release',
+        body:
+          'MLflow tracing records each model and tool call, and evaluation scores a labeled set. The Agent Bricks CLI is Beta and Model Serving agent deployment is Legacy, so check status.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Host MCP servers and agents on Databricks Apps.',

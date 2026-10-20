@@ -6,6 +6,32 @@ export const walkthrough: Walkthrough = {
   title: 'Building and shipping agents',
   intro:
     'The current path for a custom agent is the Agent Bricks CLI (Beta). It scaffolds a project, runs it locally, and deploys it to Agent Runtime on Databricks Apps, served by DurableAgentServer. This page covers that path, the checks to run before you promote a version, how to trace and monitor in production, and how to declare every dependency and resource so a release is reproducible. Deploying agents to Model Serving is Legacy as of October 12, 2026.',
+  businessValue: {
+    summary:
+      'AI program owners need a repeatable way to get a custom agent from prototype to production. This guide covers the current Agent Bricks CLI path, with evaluation before release, tracing in production, and declared dependencies.',
+    outcomes: [
+      {
+        title: 'Releases gated on measured quality',
+        body:
+          'A labeled set runs through mlflow.genai.evaluate, and the release waits on the scores. A change that makes answers worse is caught before users see it.',
+      },
+      {
+        title: 'Failures investigated from traces',
+        body:
+          'Every production run lands in an MLflow experiment. Teams review failed runs and turn them into new evaluation cases, which shortens debugging.',
+      },
+      {
+        title: 'Reproducible and least-privilege deployments',
+        body:
+          'Pinned packages and declared resources in agent.toml mean a release can be rebuilt. The agent\'s service principal gets only the models, tools, and warehouses it lists.',
+      },
+      {
+        title: 'Runs survive interruptions',
+        body:
+          'DurableAgentServer keeps run state and recovers runs that a crash interrupted. The CLI is Beta, and Model Serving agents are Legacy, so plan migrations for existing ones.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Build and deploy with the Agent Bricks CLI.',

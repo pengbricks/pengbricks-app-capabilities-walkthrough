@@ -6,6 +6,32 @@ export const walkthrough: Walkthrough = {
   title: 'AI Functions in SQL',
   intro:
     'AI Functions call a language model from a SQL query or a DataFrame, one row at a time, with no endpoint to set up. Task functions such as ai_classify and ai_extract run on Databricks-hosted models. ai_query calls any serving endpoint you name. This page covers what each is for, when to reach for something else, and what to check before the data is regulated.',
+  businessValue: {
+    summary:
+      'Analysts and AI program owners can add classification, extraction, and summarization to SQL and pipelines without building model endpoints. This guide says which function fits, what each call costs, and what to check before regulated data is involved.',
+    outcomes: [
+      {
+        title: 'Unstructured data usable from SQL',
+        body:
+          'ai_classify, ai_extract, and ai_parse_document turn text and documents into columns an analyst can query. No ML team or endpoint is needed for these tasks.',
+      },
+      {
+        title: 'Controlled inference spend',
+        body:
+          'Every call is a billed model inference. Writing results to a Delta table once, and querying that table, avoids paying again each time a dashboard refreshes.',
+      },
+      {
+        title: 'Data stays where you expect',
+        body:
+          'Task functions run on Databricks-hosted models inside your Geo. ai_query sends rows to the endpoint you name, so an external provider is a decision you make deliberately.',
+      },
+      {
+        title: 'Quality you can measure',
+        body:
+          'Structured JSON output and a hand-labeled test set let you compare each prompt or model change against known answers. Several newer functions are Beta, so check status before relying on them.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Start with a task function.',

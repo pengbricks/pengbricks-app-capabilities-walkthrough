@@ -6,6 +6,32 @@ export const walkthrough: Walkthrough = {
   title: 'Row and column security',
   intro:
     'Row filters hide rows and column masks rewrite values, both enforced by Unity Catalog at query time. The current pattern is attribute-based access control (ABAC): tag the data with governed tags and write one policy per tag, instead of a function on every table. ABAC policies are generally available and, with cross-engine ABAC, also apply when supported external engines read your managed tables. Per-table filter and mask functions remain the right tool for a rule that belongs to one table. This page covers both, how to find sensitive columns, the limits that matter, and how to list what is in force.',
+  businessValue: {
+    summary:
+      'Compliance and data owners need sensitive rows and values hidden from people who should not see them, without maintaining a copy per audience. This guide covers ABAC policies, row filters, and column masks enforced at query time.',
+    outcomes: [
+      {
+        title: 'PII masked at query time',
+        body:
+          'Column masks rewrite values for people without the right group membership. Analysts keep working on the same table and see masked values, so no separate redacted copy exists.',
+      },
+      {
+        title: 'One policy covers new tables',
+        body:
+          'An ABAC policy on a catalog or schema applies to every table or column with the governed tag, including tables created later. Coverage does not depend on someone remembering to add a rule.',
+      },
+      {
+        title: 'Regional or team data separation',
+        body:
+          'Row filters show each group only its own rows, such as one region or business unit. The rule lives on the data, so every dashboard, notebook, and Genie question follows it.',
+      },
+      {
+        title: 'Evidence of what is enforced',
+        body:
+          'You can list the policies, filters, and masks in force and test them as the people they target. Auditors get an answer from the catalog. ABAC on views and metastore scope are in beta.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Lead with ABAC.',

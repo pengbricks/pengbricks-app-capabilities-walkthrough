@@ -6,6 +6,32 @@ export const walkthrough: Walkthrough = {
   title: 'Lineage and drift detection',
   intro:
     'Unity Catalog records lineage for you, and data quality monitoring watches tables for freshness, completeness, and distribution changes. This page covers how to trace lineage from system tables, how to catch schema changes, how to monitor data drift on a schedule, and where to put quality rules so problems stop at the source.',
+  businessValue: {
+    summary:
+      'Data owners need to learn about broken or stale data before a business user does. Unity Catalog lineage and data quality monitoring show what feeds what and flag unusual changes on a schedule.',
+    outcomes: [
+      {
+        title: 'Impact known before a change',
+        body:
+          'Automatic table and column lineage shows which tables, dashboards, and jobs depend on a table. Owners check the downstream effect before altering it.',
+      },
+      {
+        title: 'Stale or incomplete tables flagged',
+        body:
+          'Anomaly detection checks freshness and completeness for every table in a schema. It is Public Preview, so confirm its status before depending on it.',
+      },
+      {
+        title: 'Drift alerts reach the owner',
+        body:
+          'Scheduled monitors refresh metrics tables, and an alert on a drift metric notifies an owner before a consumer finds the problem.',
+      },
+      {
+        title: 'Schema changes have a record',
+        body:
+          'DESCRIBE HISTORY lists each schema change with its version, time, and user. Teams can see who changed a column that broke a report.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Lineage is automatic.',

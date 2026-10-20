@@ -6,6 +6,32 @@ export const walkthrough: Walkthrough = {
   title: 'Business terms and synonyms',
   intro:
     'Enterprise tables use codes such as seg_cd, rgn_cd, and ord_st. A person, a dashboard, or Genie can read them correctly only if the meaning is written down once, next to the data. There is no single ontology object to create in Unity Catalog. You build the governed semantic layer from comments, governed tags, metric views with synonyms, certification, and Genie Agent context, and you check it with benchmarks.',
+  businessValue: {
+    summary:
+      'Data and analytics leaders need terms like revenue, segment, and active customer to mean the same thing for every person, dashboard, and AI agent. This guide builds that shared meaning in Unity Catalog next to the data.',
+    outcomes: [
+      {
+        title: 'One definition of each metric',
+        body:
+          'A metric view holds the definition of revenue once. Dashboards, SQL users, and Genie all use it, so two teams stop reporting different totals for the same question.',
+      },
+      {
+        title: 'Cryptic codes made readable',
+        body:
+          'Table and column comments, plus metric view synonyms, map seg_cd and similar codes to business terms. People and Genie can ask for sales or turnover and reach the same measure.',
+      },
+      {
+        title: 'Trusted assets are visible',
+        body:
+          'The system.certification_status tag marks assets as certified or deprecated, so people and Genie One prefer the ones the data owner vouches for.',
+      },
+      {
+        title: 'Changes are tested',
+        body:
+          'Genie benchmarks score the expected SQL for real questions before and after a change to the semantics. A definition edit that breaks answers shows up before users find it.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Define each term once, next to the data.',

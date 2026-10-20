@@ -6,6 +6,32 @@ export const walkthrough: Walkthrough = {
   title: 'Transformation patterns',
   intro:
     'Write transformations as Lakeflow Spark Declarative Pipelines: each dataset is one SQL query, and the pipeline works out the order, the incremental processing, and the quality checks. This page covers which dataset type to use, how to keep updates incremental, how to handle bad values, and the ten SQL patterns most ETL work reuses.',
+  businessValue: {
+    summary:
+      'Data engineering leads can cut pipeline code and upkeep by declaring each dataset as one SQL query. Lakeflow Spark Declarative Pipelines handle ordering, incremental processing, and quality checks, so reports are fresh and trustworthy.',
+    outcomes: [
+      {
+        title: 'Less pipeline plumbing to maintain',
+        body:
+          'The pipeline resolves dependencies between datasets. Engineers write queries and stop hand-ordering steps, so changes are smaller and easier to review.',
+      },
+      {
+        title: 'Lower refresh cost',
+        body:
+          'On serverless pipelines, a materialized view refreshes only what changed when its query supports it. Teams avoid reprocessing everything on each run.',
+      },
+      {
+        title: 'Bad data is caught and counted',
+        body:
+          'Expectations warn on, drop, or fail bad rows and record counts in the event log. Quality problems become visible numbers before they reach a report.',
+      },
+      {
+        title: 'Less manual tuning',
+        body:
+          'CLUSTER BY AUTO lets liquid clustering choose keys from how the table is queried. Engineers spend less time on partitioning decisions.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Declare datasets and let the pipeline run them.',

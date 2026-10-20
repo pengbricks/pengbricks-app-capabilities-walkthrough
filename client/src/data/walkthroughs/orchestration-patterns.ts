@@ -6,6 +6,32 @@ export const walkthrough: Walkthrough = {
   title: 'Orchestration patterns',
   intro:
     'Lakeflow Jobs orchestrates notebooks, pipelines, SQL, dbt, and Python tasks as one dependency graph. This page covers the features to reach for first: task values and dependencies, parallel branches, run_if and condition tasks, For each loops, data-driven triggers, retries and repair runs, and notifications. It ends with how to run jobs safely as a team.',
+  businessValue: {
+    summary:
+      'Data platform and operations leads need pipelines that start when data arrives, recover from failure, and stay under team control. Lakeflow Jobs runs notebooks, pipelines, SQL, and dbt as one dependency graph.',
+    outcomes: [
+      {
+        title: 'Work starts when data is ready',
+        body:
+          'Table-update and file-arrival triggers start a job on new data. Reports are no longer built on stale inputs because a fixed schedule ran too early.',
+      },
+      {
+        title: 'Faster runs through parallel branches',
+        body:
+          'Tasks that share an upstream task run together, and For each runs one task per list item. Long sequential chains become shorter runs.',
+      },
+      {
+        title: 'Cheaper recovery from failure',
+        body:
+          'Retries absorb flaky tasks, and a repair run reruns only what failed and its dependents. Teams do not repeat a whole job for one broken step.',
+      },
+      {
+        title: 'Production owned by the team',
+        body:
+          'A service principal owns production jobs and bundles define them in Git. A job does not stop when an employee leaves, and changes go through review.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Pass values between tasks.',

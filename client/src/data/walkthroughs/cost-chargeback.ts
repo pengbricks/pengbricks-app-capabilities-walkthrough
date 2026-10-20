@@ -6,6 +6,32 @@ export const walkthrough: Walkthrough = {
   title: 'Cost tracking and chargeback',
   intro:
     'Chargeback works when every unit of spend carries a label for who owns it. On classic compute that label is a custom tag. On serverless it comes from a serverless usage policy, because there is no cluster to tag. Databricks writes the labels into system.billing.usage, where you join them to list prices, report by team, and raise alerts with Budgets. This page covers how to attribute spend for each product, how to enforce the labels, which columns identify the workload and the person, and how to forecast without fooling yourself.',
+  businessValue: {
+    summary:
+      'Finance and platform leaders need to bill each team for its own Databricks spend. This guide shows how to label usage so cost lands with the right owner, and how to alert before a budget is exceeded.',
+    outcomes: [
+      {
+        title: 'Each team sees its own bill',
+        body:
+          'Classic compute carries custom tags and serverless carries tags from serverless usage policies. Both land in system.billing.usage, so finance can report cost by team and cost center.',
+      },
+      {
+        title: 'Untagged spend gets smaller',
+        body:
+          'Compute policies require tags and every user, group, and service principal gets a serverless usage policy. Untagged cost shrinks to a short work queue that owners can clear.',
+      },
+      {
+        title: 'Alerts before the month closes',
+        body:
+          'Budgets email an owner when monthly spend crosses a threshold, scoped to workspaces, products, or tags. Owners can act before the invoice arrives.',
+      },
+      {
+        title: 'Shared warehouses can be split',
+        body:
+          'Query tags in system.query.history divide a shared SQL warehouse\'s cost by team or app, so shared compute does not have to be billed as one lump.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Tag classic compute; use policies for serverless.',

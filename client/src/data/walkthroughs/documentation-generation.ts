@@ -6,6 +6,32 @@ export const walkthrough: Walkthrough = {
   title: 'Automated data documentation',
   intro:
     'Document data where people already look for it: in Unity Catalog. Comments, governed tags, certification, lineage, and quality results are metadata on the table itself, so they show up in Catalog Explorer, in search, and in Genie, and they stay current when the table changes. A wiki page copied out of the catalog goes stale the day after it is written. This page covers what to record, how to draft it with AI without publishing unreviewed text, and which platform features supply the lineage and quality sections.',
+  businessValue: {
+    summary:
+      'Teams stop asking who owns a table or what a column means when the answer sits in Unity Catalog. This guide is for data stewards and CDOs who need documentation that stays current without a wiki project.',
+    outcomes: [
+      {
+        title: 'Documentation that stays current',
+        body:
+          'Comments, governed tags, and certification live on the table in Unity Catalog, so Catalog Explorer, search, and Genie show them. Nothing is copied into a wiki that goes stale after the next schema change.',
+      },
+      {
+        title: 'Faster first drafts, human sign-off',
+        body:
+          'AI drafts table and column comments, and owners approve them. Bulk drafts go to a review table first, and a tag marks AI-written text, so no one publishes unreviewed wording.',
+      },
+      {
+        title: 'Sensitive data is labeled once',
+        body:
+          'Governed tags with fixed values mark sensitive columns. Search and later access policies can rely on those labels because only permitted users can assign them.',
+      },
+      {
+        title: 'Lineage and quality come built in',
+        body:
+          'Lineage and data quality monitoring results come from the platform, so the documentation links to them. Anomaly detection is Public Preview, so confirm its status before you commit to it.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Write documentation into Unity Catalog metadata.',

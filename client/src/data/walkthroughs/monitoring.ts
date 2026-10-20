@@ -6,6 +6,32 @@ export const walkthrough: Walkthrough = {
   title: 'Platform observability',
   intro:
     'Databricks already records what your platform does: who accessed what, what ran, what it cost, how compute behaved, and which models were called. Those records are system tables in the system catalog, and they are the source for every dashboard and alert you build. This page maps each operational question to the system table that answers it, then covers how to expose the tables safely, what their scope and retention are, and which alerting features to use on top.',
+  businessValue: {
+    summary:
+      'Platform owners need one place to answer who accessed what, what ran, and what it cost. Databricks records this in system tables, so security, finance, and operations teams can build dashboards and alerts without collecting logs.',
+    outcomes: [
+      {
+        title: 'Audit evidence already exists',
+        body:
+          'system.access.audit records access and permission events, so a CISO can answer who touched what from a table query instead of requesting logs from each team.',
+      },
+      {
+        title: 'Cost questions answered from billing',
+        body:
+          'system.billing.usage covers the whole account. Finance can see spend by workspace and product, and Budgets email an owner when monthly spend crosses a line.',
+      },
+      {
+        title: 'Job failures reach the right person',
+        body:
+          'Lakeflow Jobs notifications and health rules flag failures and slow runs, so the owning team hears about a problem before a business user does.',
+      },
+      {
+        title: 'Access to logs stays controlled',
+        body:
+          'Only admins read system tables by default. Teams get views limited to their own columns and workspaces, so monitoring does not widen who sees sensitive audit detail.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Start from the question, then pick the system table.',

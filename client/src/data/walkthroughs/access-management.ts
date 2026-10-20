@@ -6,6 +6,32 @@ export const walkthrough: Walkthrough = {
   title: 'Access management',
   intro:
     'Unity Catalog decides who can see and change data through privileges on securable objects, evaluated against account-level principals. A sound model is small: grant to groups, separate environments by catalog, let tags drive broad rules, own objects with groups or service principals, and audit continuously. This page lays out that model and the checks that keep it from drifting.',
+  businessValue: {
+    summary:
+      'Security and data leaders need a small, auditable access model across every workspace. This guide shows how to grant by group, separate environments, and catch drift, so least privilege holds as teams and data grow.',
+    outcomes: [
+      {
+        title: 'Least privilege that survives turnover',
+        body:
+          'Grants go to account-level groups. When someone changes roles, they move groups in the identity provider and no grant needs editing, so no forgotten direct grants remain.',
+      },
+      {
+        title: 'Production walled off from development',
+        body:
+          'One catalog per environment, bound to its own workspaces, keeps a dev mistake from reaching production data. Two schemas in one catalog share a blast radius.',
+      },
+      {
+        title: 'Fewer rules to maintain',
+        body:
+          'ABAC with governed tags lets one policy cover every table that carries a tag. Admins stop writing a grant or function per table, which removes a common source of gaps.',
+      },
+      {
+        title: 'Permission changes are visible',
+        body:
+          'system.access.audit records grants, revokes, and ownership changes. Security can review them and alert on the ones that matter, such as a grant to a person instead of a group.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Grant to account-level groups, never to people.',

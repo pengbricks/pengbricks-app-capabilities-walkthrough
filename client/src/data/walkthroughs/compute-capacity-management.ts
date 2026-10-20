@@ -6,6 +6,32 @@ export const walkthrough: Walkthrough = {
   title: 'Compute and capacity management',
   intro:
     'Start with serverless. Serverless SQL warehouses, jobs, and notebooks start in seconds, scale themselves, and leave you few settings to get wrong. You still choose a size, a maximum cluster count, a performance mode, and how to split workloads across warehouses. Classic compute remains for workloads that need it, and it needs more tuning. This page covers the serverless defaults, how to size and isolate warehouses, how to tag queries, the classic controls, and how to read capacity from system tables.',
+  businessValue: {
+    summary:
+      'Platform owners want fast queries and predictable spend without tuning clusters. This guide recommends serverless by default, then shows how to size and separate warehouses so dashboards stay quick and each workload has its own cost line.',
+    outcomes: [
+      {
+        title: 'Less compute to administer',
+        body:
+          'Serverless SQL warehouses, jobs, and notebooks start in seconds and scale themselves. Platform teams have fewer cluster settings to tune and fewer idle clusters to chase.',
+      },
+      {
+        title: 'Dashboards protected from heavy jobs',
+        body:
+          'One warehouse per workload keeps an ETL run from queuing a BI dashboard. Business users see consistent response times at the busy hours.',
+      },
+      {
+        title: 'Spend traced to teams',
+        body:
+          'Query tags on shared warehouses and one warehouse per workload give finance a cost line for each team or application, taken from the billing and query history system tables.',
+      },
+      {
+        title: 'Capacity problems found from data',
+        body:
+          'system.query.history shows how long queries waited for capacity. Admins can raise the cluster count where users queue instead of guessing.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Serverless SQL warehouses by default.',

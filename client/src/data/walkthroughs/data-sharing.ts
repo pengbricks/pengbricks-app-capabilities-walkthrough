@@ -6,6 +6,32 @@ export const walkthrough: Walkthrough = {
   title: 'Governed data sharing',
   intro:
     'OpenSharing (formerly Delta Sharing; the open protocol keeps the name Delta Sharing) lets you share live data and AI assets from Unity Catalog without copying them. The provider creates a share and a recipient, grants one to the other, and revokes when the relationship ends. This page covers which recipient type to pick, the privileges involved, how to share a subset safely, which assets you can share, how to harden credentials for recipients outside Databricks, what crossing a region or cloud costs, and how to audit it. It also names the cases where Clean Rooms or Marketplace fit better.',
+  businessValue: {
+    summary:
+      'Data owners can give partners, customers, and other business units live access to governed data without copying it. This guide is for CDOs and data platform leads who must share outside the company and still control and audit it.',
+    outcomes: [
+      {
+        title: 'No copies to reconcile',
+        body:
+          'OpenSharing shares live Unity Catalog data, so recipients read current data. There are no extracts to send, no stale copies, and no second set of files to secure.',
+      },
+      {
+        title: 'Share only what is approved',
+        body:
+          'A view fixes the rows and columns a recipient sees, and the share holds the view, not the base table. Revoking the share ends access.',
+      },
+      {
+        title: 'Controlled access for outside recipients',
+        body:
+          'Databricks-to-Databricks sharing needs no token. For open recipients, OIDC federation, short token lifetimes, and IP access lists limit the risk of a leaked credential.',
+      },
+      {
+        title: 'A record of who received what',
+        body:
+          'Sharing activity appears in system tables, so security can review it. Cross-region and cross-cloud transfer is billed by the cloud provider, which finance should plan for.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Prefer Databricks-to-Databricks when the recipient has Unity Catalog.',

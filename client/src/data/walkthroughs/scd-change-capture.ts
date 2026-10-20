@@ -6,6 +6,32 @@ export const walkthrough: Walkthrough = {
   title: 'SCD and change capture',
   intro:
     'AUTO CDC in Lakeflow Spark Declarative Pipelines applies a feed of inserts, updates, and deletes to a streaming table. SCD type 1 keeps the latest row per key. SCD type 2 keeps every version with start and end timestamps. This page covers which type to pick, how ordering and deletes work, how to keep history on the right columns, and how to query the result.',
+  businessValue: {
+    summary:
+      'Analytics and compliance owners often need both the current state of a record and its history. AUTO CDC in Lakeflow Spark Declarative Pipelines keeps either, so reports and audits can say what was true on a given date.',
+    outcomes: [
+      {
+        title: 'History for audits',
+        body:
+          'SCD type 2 keeps every version of a row with start and end timestamps. Auditors and analysts can see what a customer record looked like on a past date.',
+      },
+      {
+        title: 'Out-of-order events handled',
+        body:
+          'SEQUENCE BY applies the event with the highest sequence value per key. Late or duplicated events do not overwrite newer data and quietly corrupt reports.',
+      },
+      {
+        title: 'Deletes handled by design',
+        body:
+          'APPLY AS DELETE WHEN removes the row in type 1 and closes the current version in type 2, so deleted source records do not linger in reporting tables.',
+      },
+      {
+        title: 'Controlled table growth',
+        body:
+          'TRACK HISTORY ON limits new versions to meaningful columns. A last-login timestamp does not create a new row and inflate storage and query cost.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Pick the type by the question you answer.',

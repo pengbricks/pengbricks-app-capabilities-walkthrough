@@ -6,6 +6,32 @@ export const walkthrough: Walkthrough = {
   title: 'Support and recovery',
   intro:
     'Support starts before an incident: tasks that retry safely, runs that clean up after a failure, streams that restart on their own, and a recovery plan for a lost region. After that come alerts that reach the right person, a severity scale people agree on, and runbooks. This page covers the current Databricks features for each layer and how to combine them.',
+  businessValue: {
+    summary:
+      'Support teams and IT owners need pipelines that recover on their own and a clear plan when they cannot. This guide covers retries, alerts, severity levels, runbooks, and disaster recovery for production data work.',
+    outcomes: [
+      {
+        title: 'Fewer overnight pages',
+        body:
+          'Task retries absorb transient errors, and streaming workloads restart automatically. People are paged only for failures that need a human.',
+      },
+      {
+        title: 'Shorter recovery after a failure',
+        body:
+          'A repair run reruns only the failed tasks and their dependents. Work that already succeeded is kept, so the fix does not repeat hours of processing.',
+      },
+      {
+        title: 'Agreed severity and ownership',
+        body:
+          'A short severity scale decides who is paged and how fast. Each alert links to a runbook that names the owner and the next step.',
+      },
+      {
+        title: 'Recovery targets set per tier',
+        body:
+          'RPO and RTO are chosen for each workload tier, and managed disaster recovery covers a lost region on AWS and Azure. Delta time travel covers corruption, which replication copies to both regions.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Make tasks safe to run twice.',
