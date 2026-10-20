@@ -2,7 +2,7 @@
 
 ## Overview
 
-One serverless Lakeflow Declarative Pipeline (`capability-guides-cdc`) loads change data from three kinds of source with AUTO CDC: Debezium-style change files, the Delta change data feed of an operational table, and a snapshot table that is replaced whole each run. A materialized view over the type 1 table shows incremental materialized view refresh. The job `capability_guides_cdc` runs the pipeline three times (full refresh, incremental update, selective full refresh) and records what each update did from the pipeline event log.
+One serverless Lakeflow Spark Declarative Pipeline (`capability-guides-cdc`) loads change data from three kinds of source with AUTO CDC: Debezium-style change files, the Delta change data feed of an operational table, and a snapshot table that is replaced whole each run. A materialized view over the type 1 table shows incremental materialized view refresh. The job `capability_guides_cdc` runs the pipeline three times (full refresh, incremental update, selective full refresh) and records what each update did from the pipeline event log.
 
 ## What this shows
 
@@ -113,3 +113,19 @@ Rows each update wrote, from the pipeline event log:
 - The snapshot flow reports no row metrics, so the comparison shows only its duration and its final row counts.
 - File notification mode with file events scales better than directory listing for large landing folders. This guide leaves detection at the default.
 - Materialized view maintenance depends on the query and the source. Check the planning event before relying on incremental refresh.
+
+## Reference run
+
+Numbers from the recorded run of the bundle job, read from the pipeline event log.
+
+| Dataset | Full refresh | Incremental | Selective refresh |
+|---|---|---|---|
+| Bronze (Auto Loader) | 500 events | 201 new events | not in update |
+| SCD 1 target (change files) | 500 rows | 170 upserted, 30 deleted | not in update |
+| SCD 2 target (change data feed) | 500 rows | 280 rows written | not in update |
+| SCD 2 target (snapshot) | rebuilt, no row metric | diffed, no row metric | not in update |
+| `cdc_orders_daily` (materialized view) | `COMPLETE_RECOMPUTE` | `GROUP_AGGREGATE` | `COMPLETE_RECOMPUTE` |
+
+- The late event is the 201st: bronze keeps it and AUTO CDC drops it because a later LSN is already applied.
+- The guide uses fixed file names, so the job deletes the old files and drops bronze before the first update.
+- Where each setting lives in this bundle: AUTO CDC arguments, table properties (`pipelines.reset.allowed`, row tracking), and Auto Loader options in `pipeline/cdc_orders.py`; `cdc_landing_path` and the source and snapshot table names in `cdc.pipeline.yml`; `full_refresh` and `full_refresh_selection` in `cdc.job.yml`. Flow and table names are the checkpoint identity.

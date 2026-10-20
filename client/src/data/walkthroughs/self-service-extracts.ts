@@ -5,100 +5,52 @@ export const walkthrough: Walkthrough = {
   area: 'Analyst Guides',
   title: 'Self-service extracts and subscriptions',
   intro:
-    'One filter feeds three outputs: an AI/BI dashboard with a weekly schedule and an email subscription, a formatted Excel workbook, and a pipe-delimited file for an external partner. The files land in a Unity Catalog volume, and the dashboard reads the same table the files came from.',
+    'Business users want numbers on a schedule and data in the tool they already use. Give them subscriptions to AI/BI dashboards, the Excel Add-in over governed tables, and Genie for ad hoc questions, and reserve file extracts for partners and systems that cannot connect. This page covers which delivery path fits each need, how credentials and permissions work, and how to deliver files safely.',
   shortVersion: [
     {
-      title: 'One filtered table.',
-      body: 'extract_orders holds West-region completed orders from January to June 2026: 13,211 rows and 18,124,357.00 in revenue.',
+      title: 'Subscribe people to a dashboard.',
+      body: 'A schedule refreshes the dashboard, and a subscription sends a snapshot by email, Slack, or Microsoft Teams. It can attach PDF pages and widget data as CSV, TSV, or Excel.',
     },
     {
-      title: 'Excel with formatting.',
-      body: 'openpyxl writes a styled header, number formats, frozen header row, autofilter, and a Summary sheet.',
+      title: 'Let Excel users pull governed data themselves.',
+      body: 'The Excel Add-in (GA) imports Unity Catalog tables and views, refreshes them on a schedule, and keeps the user’s permissions in force.',
     },
     {
-      title: 'Pipe-delimited for partners.',
-      body: 'A plain text file with a header row. Fields that contain a pipe are quoted.',
+      title: 'Answer ad hoc questions with Genie.',
+      body: 'Genie Agents on a curated dataset, or Genie One for business users, replace a request for a custom extract. Results can go to Excel.',
     },
     {
-      title: 'Row counts agree.',
-      body: 'The task reads both files back from the volume and fails unless they match the table.',
+      title: 'Choose the credential mode on purpose.',
+      body: 'Shared data permissions run queries as the publisher and share a cache. Individual data permissions run as each viewer and enforce row and column rules per person.',
     },
     {
-      title: 'The dashboard is scheduled.',
-      body: 'A task creates a Monday 07:00 America/New_York schedule and subscribes notification_email.',
+      title: 'Send files to partners from a volume, after a check.',
+      body: 'Write the file from a job, verify it, grant READ VOLUME to a group, or share the table with OpenSharing instead of copying it.',
     },
   ],
   sections: [
     {
-      id: 'flow',
-      heading: 'One filter, three outputs',
-      prose:
-        'build_extracts filters once and saves extract_orders. The dashboard and both files read from it, so a number on the dashboard can be traced to a row in the file.',
-      diagram: {
-        type: 'flow',
-        title: 'From orders to files and dashboard',
-        description:
-          'build_extracts joins analyst_orders to analyst_customers, filters by region, status, and date range, and writes extract_orders. It then writes an xlsx workbook and a pipe-delimited file to the extracts volume and records both in extract_manifest. The AI/BI dashboard reads extract_orders. schedule_dashboard creates a weekly schedule and a subscription for the notification address.',
-        lanes: [
-          { label: 'Job tasks', fromRow: 0, toRow: 0 },
-          { label: 'Outputs', fromRow: 1, toRow: 2 },
-        ],
-        nodes: [
-          { id: 'gen', label: 'generate_data', mono: true, col: 0, row: 0 },
-          { id: 'build', label: 'build_extracts', mono: true, sub: 'filter, write, verify', col: 1, row: 0, kind: 'highlight' },
-          { id: 'sched', label: 'schedule_dashboard', mono: true, sub: 'schedule, subscription', col: 2, row: 0 },
-          { id: 'table', label: 'extract_orders', mono: true, sub: '13,211 rows', col: 1, row: 1, kind: 'store' },
-          { id: 'xlsx', label: 'orders_extract.xlsx', mono: true, sub: 'formatted workbook', col: 0, row: 2, kind: 'store' },
-          { id: 'pipe', label: 'orders_extract.txt', mono: true, sub: 'pipe-delimited', col: 1, row: 2, kind: 'store' },
-          { id: 'dash', label: 'AI/BI dashboard', sub: 'published', col: 2, row: 1, kind: 'surface' },
-          { id: 'mail', label: 'Email subscriber', sub: 'notification_email', col: 3, row: 1 },
-        ],
-        edges: [
-          { from: 'gen', to: 'build' },
-          { from: 'build', to: 'sched' },
-          { from: 'build', to: 'table' },
-          { from: 'table', to: 'xlsx' },
-          { from: 'table', to: 'pipe' },
-          { from: 'table', to: 'dash' },
-          { from: 'sched', to: 'dash', label: 'weekly' },
-          { from: 'dash', to: 'mail' },
-        ],
-        legend: [
-          { kind: 'highlight', label: 'Shared filter' },
-          { kind: 'surface', label: 'Dashboard' },
-          { kind: 'store', label: 'Table or volume file' },
-        ],
-      },
-    },
-    {
-      id: 'files',
-      heading: 'What each file contains',
-      prose: 'Both files carry the same nine columns and 13,211 rows. The workbook adds formatting and a summary sheet.',
-      diagram: {
-        type: 'matrix',
-        title: 'Excel workbook and pipe-delimited file',
-        description:
-          'The xlsx file has an Orders sheet with a styled header, frozen header row, autofilter, number formats on unit_price and revenue, and a yyyy-mm-dd date format, plus a Summary sheet with the filters, row count, and revenue. The pipe-delimited file has a header row and quotes fields that contain a pipe.',
-        corner: 'Feature ↓ · File →',
-        columns: ['xlsx', 'pipe-delimited'],
+      id: 'paths',
+      heading: 'Pick the delivery path',
+      table: {
+        columns: ['Need', 'Use'],
         rows: [
-          { label: 'Header row', sub: 'column names', cells: [{ state: 'own', text: 'styled, frozen' }, { state: 'own', text: 'plain' }] },
-          { label: 'Number formats', sub: 'money, dates', cells: [{ state: 'own', text: '#,##0.00 and date' }, { state: 'none', text: 'raw values' }] },
-          { label: 'Filter and summary', sub: 'for the reader', cells: [{ state: 'own', text: 'autofilter, Summary' }, { state: 'none', text: 'none' }] },
-          { label: 'Size, reference run', sub: 'bytes', cells: [{ state: 'own', text: '621,272' }, { state: 'own', text: '1,052,781' }] },
+          ['A weekly report in the inbox or a channel', 'Dashboard schedule and subscription'],
+          ['A pivot table or model in Excel', 'Excel Add-in, with scheduled refresh'],
+          ['A one-off answer or a quick filter', 'Genie Agents or Genie One'],
+          ['A one-time download of what is on screen', 'Dashboard or SQL editor download, within its row limits'],
+          ['A recurring file for a system or partner', 'A Lakeflow Job that writes to a volume'],
+          ['Live data for an outside organization', 'OpenSharing, not file copies'],
         ],
-        legend: [
-          { state: 'own', label: 'Present' },
-          { state: 'none', label: 'Not part of the format' },
-        ],
-        caption: 'Run 480047373211928. Files are in the extracts volume under partner/.',
       },
-      examples: [
+      links: [
         {
-          label: "Grant read access to the extracts volume",
-          language: 'sql',
-          code: "GRANT READ VOLUME ON VOLUME <catalog>.<schema>.extracts TO `partner-analysts`;",
-          notes: ["The files sit in a Unity Catalog volume, so access is a grant, not a shared link."],
+          label: 'Databricks Excel Add-in',
+          url: 'https://docs.databricks.com/aws/en/integrations/excel/',
+        },
+        {
+          label: 'Genie One',
+          url: 'https://docs.databricks.com/aws/en/genie-one/',
         },
       ],
     },
@@ -106,21 +58,80 @@ export const walkthrough: Walkthrough = {
       id: 'subscription',
       heading: 'Schedule and subscription',
       prose:
-        'The bundle deploys the dashboard. It cannot declare a schedule or subscription, so schedule_dashboard creates them through the Databricks SDK, reuses them on rerun, and records the IDs in dashboard_subscription.',
+        'Create the schedule from the dashboard’s Schedule button. Set the cadence and time zone, pick the warehouse, and choose whether to apply the current filter selections. Add subscribers: workspace users, or a notification destination such as email, Slack, or Microsoft Teams for people outside the workspace. Refresh-only schedules warm the cache without sending anything.',
       steps: [
         {
           title: 'Create the schedule',
-          body: 'Quartz cron for Mondays at 07:00 in America/New_York, on the same warehouse.',
-          code: 'w.lakeview.create_schedule(dashboard_id, Schedule(display_name="Weekly partner orders", cron_schedule=CronSchedule(quartz_cron_expression="0 0 7 ? * MON", timezone_id="America/New_York"), warehouse_id=...))',
+          body: 'Use a Quartz cron or the pickers. Use a serverless SQL warehouse so the scheduled run starts quickly.',
         },
         {
-          title: 'Subscribe the address',
-          body: 'The task finds the workspace user for notification_email and adds a user subscription.',
-          code: 'w.lakeview.create_subscription(dashboard_id, schedule_id, Subscription(subscriber=Subscriber(user_subscriber=SubscriptionSubscriberUser(user_id=...))))',
+          title: 'Add subscribers and attachments',
+          body: 'Attach the pages you want as PDF, and widget data as CSV, TSV, or Excel when readers need numbers.',
         },
         {
-          title: 'Export by hand',
-          body: 'Analysts who need a one-off file can use the table download on the dashboard, which writes CSV or Excel from their browser.',
+          title: 'Automate when you have many',
+          body: 'The Databricks SDK and API create schedules and subscriptions, so a bundle deployment or a script can set them up for a set of dashboards.',
+          code: 'w.lakeview.create_schedule(dashboard_id, Schedule(display_name="Weekly orders", cron_schedule=CronSchedule(quartz_cron_expression="0 0 7 ? * MON", timezone_id="America/New_York"), warehouse_id=...))',
+        },
+      ],
+      points: [
+        {
+          strong: 'Shared data permissions.',
+          text: 'Queries run with the publisher’s credentials, every viewer sees the same data, and scheduled runs fill a shared cache. Use it for broad audiences on non-sensitive data.',
+        },
+        {
+          strong: 'Individual data permissions.',
+          text: 'Queries run as each viewer, so row filters and column masks apply per person. Use it when permissions differ across readers.',
+        },
+        {
+          strong: 'Make dashboards fast.',
+          text: 'Dataset materialization, in Beta per the release notes, stores dashboard dataset results on a schedule so published dashboards render from stored results.',
+        },
+      ],
+      links: [
+        {
+          label: 'Schedules and subscriptions',
+          url: 'https://docs.databricks.com/aws/en/dashboards/share/schedule-subscribe',
+        },
+        {
+          label: 'Share dashboards',
+          url: 'https://docs.databricks.com/aws/en/dashboards/share/',
+        },
+      ],
+    },
+    {
+      id: 'files',
+      heading: 'Files for partners and systems',
+      prose:
+        'When the reader cannot connect to Databricks, write a file. Define the filter once in a table, then write every format from that table so the numbers agree. Land the files in a Unity Catalog volume, so access is a grant instead of a shared link.',
+      table: {
+        columns: ['Format', 'Notes'],
+        rows: [
+          ['CSV or pipe-delimited text', 'Write with Spark for large files. Quote fields that contain the delimiter. Include a header row.'],
+          ['Excel workbook', 'Good for a human reader. Format the header, number columns, and add a summary sheet. Keep it to small extracts.'],
+          ['Parquet or Delta', 'Best for another data system. It keeps types and compresses.'],
+        ],
+      },
+      points: [
+        {
+          strong: 'Verify before you deliver.',
+          text: 'Read the file back and compare its row count with the source table. Fail the job if they differ.',
+        },
+        {
+          strong: 'Schedule it as a Lakeflow Job.',
+          text: 'Use a job for large or recurring files, with notifications on failure, instead of an analyst exporting by hand.',
+        },
+        {
+          strong: 'Share by grant.',
+          text: 'GRANT READ VOLUME to the partner group. For an organization outside your account, use OpenSharing to share the table itself.',
+        },
+      ],
+      examples: [
+        {
+          label: 'Grant read access to the extracts volume',
+          language: 'sql',
+          code: 'GRANT READ VOLUME ON VOLUME <catalog>.<schema>.extracts TO `partner-analysts`;',
+          notes: ['The files sit in a Unity Catalog volume, so access is a grant, not a shared link.'],
         },
       ],
     },

@@ -5,149 +5,123 @@ export const walkthrough: Walkthrough = {
   area: 'Data Engineering Guides',
   title: 'Transformation patterns',
   intro:
-    'One Lakeflow Declarative Pipeline in SQL holds ten common ETL patterns as 14 materialized views. A job generates messy source data, runs the pipeline, and checks the row count of every view against an independent query.',
+    'Write transformations as Lakeflow Spark Declarative Pipelines: each dataset is one SQL query, and the pipeline works out the order, the incremental processing, and the quality checks. This page covers which dataset type to use, how to keep updates incremental, how to handle bad values, and the ten SQL patterns most ETL work reuses.',
   shortVersion: [
     {
-      title: 'One view per pattern.',
-      body: 'Each SQL file defines the materialized views for one pattern, so a pattern is easy to find and copy.',
+      title: 'Declare datasets and let the pipeline run them.',
+      body: 'Write each table or view as a query. The pipeline resolves dependencies, so you do not order steps by hand.',
     },
     {
-      title: 'The inputs are messy on purpose.',
-      body: 'Names mix case and spaces, dates arrive in three formats, and 524 of 12,000 orders carry values that do not cast.',
+      title: 'Pick the dataset type by job.',
+      body: 'Streaming tables ingest append-only data, materialized views hold transformations and aggregates, and views hold intermediate logic.',
     },
     {
-      title: 'Bad casts go to a reject table.',
-      body: 'try_cast returns NULL instead of failing. Failed rows land in tp_cast_rejects with a reason.',
+      title: 'Update incrementally. Do not full refresh every run.',
+      body: 'On a serverless pipeline, a materialized view refreshes only what changed when its query supports it. Save full refresh for a logic change or a backfill.',
     },
     {
-      title: 'Joins show what each type keeps.',
-      body: 'The full join returns 11,000 matched rows, 1,000 orders with no customer, and 100 customers with no orders.',
+      title: 'Put quality rules in expectations.',
+      body: 'try_cast turns a bad value into NULL. An expectation then warns, drops the row, or fails the update, and records the count in the event log.',
     },
     {
-      title: 'Counts are checked.',
-      body: 'The job compares each view with its own expected count and fails if any differ.',
+      title: 'Prefer built-in SQL, and let Databricks choose the layout.',
+      body: 'Built-in and higher-order functions beat UDFs. CLUSTER BY AUTO lets liquid clustering pick clustering keys from how the table is queried.',
     },
   ],
   sections: [
     {
-      id: 'flow',
-      heading: 'How the job runs',
+      id: 'datasets',
+      heading: 'Choose the dataset type',
       prose:
-        'The use-case spec holds the domain. The job builds three source tables from it, runs the pipeline with a full refresh, then checks every view.',
-      diagram: {
-        type: 'flow',
-        title: 'From spec to checked views',
-        description:
-          'The use-case spec feeds generate_sources, which writes the de_customers, de_orders, and regions tables. The pipeline reads those tables and writes 14 materialized views. check_row_counts reads both the sources and the views and writes tp_view_counts.',
-        lanes: [
-          { label: 'Configuration in Git', fromRow: 0, toRow: 0 },
-          { label: 'Lakeflow job', fromRow: 1, toRow: 1 },
-          { label: 'Unity Catalog tables', fromRow: 2, toRow: 2 },
-        ],
-        nodes: [
-          { id: 'spec', label: 'Use-case spec', sub: 'use_cases/general.yml', col: 0, row: 0 },
-          { id: 'sql', label: 'Pattern SQL files', sub: 'src/transformations', col: 2, row: 0, kind: 'surface' },
-          { id: 'gen', label: 'generate_sources', mono: true, sub: 'generated data, fixed seed', col: 0, row: 1 },
-          { id: 'pipe', label: 'Pipeline update', sub: 'full refresh', col: 1, row: 1, kind: 'highlight' },
-          { id: 'check', label: 'check_row_counts', mono: true, sub: 'fail on any mismatch', col: 2, row: 1 },
-          { id: 'src', label: 'de_customers, de_orders', mono: true, sub: 'plus regions lookup', col: 0, row: 2, kind: 'store' },
-          { id: 'mvs', label: 'tp_* views', mono: true, sub: '14 materialized views', col: 1, row: 2, kind: 'store' },
-          { id: 'counts', label: 'tp_view_counts', mono: true, sub: 'actual vs expected', col: 2, row: 2, kind: 'store' },
-        ],
-        edges: [
-          { from: 'spec', to: 'gen' },
-          { from: 'gen', to: 'src' },
-          { from: 'sql', to: 'pipe' },
-          { from: 'gen', to: 'pipe' },
-          { from: 'src', to: 'mvs', label: 'read' },
-          { from: 'pipe', to: 'check' },
-          { from: 'mvs', to: 'counts' },
-          { from: 'check', to: 'counts' },
-        ],
-        legend: [
-          { kind: 'highlight', label: 'Declarative Pipeline' },
-          { kind: 'surface', label: 'SQL in Git' },
-          { kind: 'store', label: 'Unity Catalog table' },
+        'Layer datasets as bronze (raw), silver (cleaned and conformed), and gold (business-ready). The type you pick for each decides how it refreshes.',
+      table: {
+        columns: ['Need', 'Use'],
+        rows: [
+          ['Ingest files or messages that only append', 'Streaming table, read with Auto Loader or read_files'],
+          ['Cleaned, joined, or aggregated data that others query', 'Materialized view'],
+          ['Logic you reuse in one pipeline and do not need stored', 'View'],
+          ['Row-by-row change feeds with updates and deletes', 'AUTO CDC into a streaming table'],
         ],
       },
+      links: [
+        {
+          label: 'Lakeflow Spark Declarative Pipelines',
+          url: 'https://docs.databricks.com/aws/en/ldp/',
+          note: 'Dataset types, pipeline modes, and the editor.',
+        },
+      ],
     },
     {
-      id: 'patterns',
-      heading: 'The ten patterns',
-      prose: 'Each pattern lives in its own SQL file. The table lists the view each one produces and the SQL it leans on.',
-      diagram: {
-        type: 'matrix',
-        title: 'Pattern, view, and key SQL',
-        description:
-          'Ten patterns with the materialized views they produce and the main SQL feature each uses. Lookup enrichment uses LEFT JOIN. Joins produce three views. String functions use trim, initcap, and regexp. Null handling uses coalesce and nullif. Dates use try_to_date and from_utc_timestamp. Casting uses try_cast. Running totals use a window sum. Pivot uses PIVOT and UNPIVOT. Last record uses QUALIFY. Group iteration uses transform and aggregate.',
-        corner: 'Pattern ↓ · Detail →',
-        columns: ['Views', 'Key SQL'],
-        rows: [
-          { label: 'Lookup enrichment', cells: [{ state: 'own', text: '1 view' }, { state: 'own', text: 'LEFT JOIN' }] },
-          { label: 'Inner, left, full joins', cells: [{ state: 'own', text: '3 views' }, { state: 'own', text: 'JOIN types' }] },
-          { label: 'String functions', cells: [{ state: 'own', text: '1 view' }, { state: 'own', text: 'trim, initcap' }] },
-          { label: 'Null and conditional', cells: [{ state: 'own', text: '1 view' }, { state: 'own', text: 'coalesce, CASE' }] },
-          { label: 'Date and time', cells: [{ state: 'own', text: '1 view' }, { state: 'own', text: 'from_utc_timestamp' }] },
-          { label: 'Cast with rejects', cells: [{ state: 'own', text: '2 views' }, { state: 'own', text: 'try_cast' }] },
-          { label: 'Running totals', cells: [{ state: 'own', text: '1 view' }, { state: 'own', text: 'window sum' }] },
-          { label: 'Pivot and unpivot', cells: [{ state: 'own', text: '2 views' }, { state: 'own', text: 'PIVOT, UNPIVOT' }] },
-          { label: 'Last record per group', cells: [{ state: 'own', text: '1 view' }, { state: 'own', text: 'QUALIFY' }] },
-          { label: 'Per-group iteration', cells: [{ state: 'own', text: '1 view' }, { state: 'own', text: 'transform, aggregate' }] },
-        ],
-        legend: [{ state: 'own', label: 'Produced by this pattern' }],
-        caption: 'Total: 14 materialized views, all prefixed tp_.',
-      },
+      id: 'refresh',
+      heading: 'Update incrementally',
+      prose:
+        'A normal update processes new input only. A materialized view on a serverless pipeline detects what changed in its sources and recomputes just that part when the query is supported. Row tracking on the source tables makes more query shapes eligible, and deletion vectors and change data feed help further. A full refresh recomputes everything, so run one on purpose: after you change logic, fix bad history, or backfill.',
+      points: [
+        {
+          strong: 'Test a query before you ship it.',
+          text: 'EXPLAIN CREATE MATERIALIZED VIEW reports whether the query can refresh incrementally and why not if it cannot.',
+        },
+        {
+          strong: 'Schedule normal updates.',
+          text: 'Run the pipeline from a Lakeflow Job on a schedule or a table-update trigger. Do not set full_refresh on a recurring task.',
+        },
+        {
+          strong: 'Keep the pipeline serverless.',
+          text: 'Incremental materialized view refresh needs serverless compute, which also removes cluster sizing.',
+        },
+      ],
+      examples: [
+        {
+          label: 'Check whether a materialized view refreshes incrementally',
+          language: 'sql',
+          code: 'EXPLAIN CREATE MATERIALIZED VIEW daily_revenue AS\nSELECT order_date, region, SUM(amount) AS revenue\nFROM silver_orders\nGROUP BY order_date, region;',
+          notes: ['The output names the refresh technique the planner would use, such as incremental aggregation or complete recompute.'],
+        },
+      ],
+      links: [
+        {
+          label: 'Incremental refresh for materialized views',
+          url: 'https://docs.databricks.com/aws/en/optimizations/incremental-refresh',
+          note: 'Which SQL supports incremental refresh and what to enable on source tables.',
+        },
+      ],
     },
     {
-      id: 'joins',
-      heading: 'What each join keeps',
+      id: 'quality',
+      heading: 'Enforce quality with expectations',
       prose:
-        'Orders for customers that do not exist and customers with no orders are planted in the data, so the three join types return different counts.',
-      diagram: {
-        type: 'matrix',
-        title: 'Rows kept by join type',
-        description:
-          'Inner join keeps 11,000 matched rows. Left join keeps those plus 1,000 orders with no customer, 12,000 in total. Full join also keeps 100 customers with no orders, 12,100 in total.',
-        corner: 'Join ↓ · Rows →',
-        columns: ['Matched', 'Order only', 'Customer only'],
+        'An expectation is a SQL condition on a dataset. By default it keeps the row and counts the violation. You can drop the row or stop the update instead. The counts land in the pipeline event log, so one place shows how much data failed each rule.',
+      table: {
+        columns: ['Action', 'Behavior'],
         rows: [
-          {
-            label: 'tp_join_inner',
-            sub: '11,000 rows',
-            cells: [{ state: 'own', text: '11,000' }, { state: 'none', text: 'dropped' }, { state: 'none', text: 'dropped' }],
-          },
-          {
-            label: 'tp_join_left',
-            sub: '12,000 rows',
-            cells: [{ state: 'own', text: '11,000' }, { state: 'own', text: '1,000' }, { state: 'none', text: 'dropped' }],
-          },
-          {
-            label: 'tp_join_full',
-            sub: '12,100 rows',
-            cells: [{ state: 'own', text: '11,000' }, { state: 'own', text: '1,000' }, { state: 'own', text: '100' }],
-          },
-        ],
-        legend: [
-          { state: 'own', label: 'Kept' },
-          { state: 'none', label: 'Dropped' },
+          ['EXPECT (condition)', 'Keep the row and record the violation'],
+          ['ON VIOLATION DROP ROW', 'Drop the row and record the count'],
+          ['ON VIOLATION FAIL UPDATE', 'Stop the update until someone fixes the data'],
         ],
       },
+      links: [
+        {
+          label: 'Manage data quality with pipeline expectations',
+          url: 'https://docs.databricks.com/aws/en/ldp/expectations',
+          note: 'Actions, multiple expectations, and recommended patterns.',
+        },
+      ],
     },
     {
       id: 'casting',
-      heading: 'Casting with a reject path',
+      heading: 'Cast safely, then reject or repair',
       prose:
-        'The de_orders table stores amounts and quantities as text. Values such as N/A and abc fail to cast. They go to a reject table with the reason, and the job checks that valid and rejected rows add up to every order.',
+        'Use try_cast so one bad value does not fail the update. Then decide what the bad rows deserve. Drop them with an expectation when you only need the count, or route them to a reject table with a reason when someone must fix the source.',
       diagram: {
         type: 'flow',
         title: 'Valid rows and rejected rows',
         description:
-          'The de_orders table is cast with try_cast. A row whose amount and quantity both cast goes to tp_cast_valid, 11,476 rows. Any other row goes to tp_cast_rejects with a reject reason, 524 rows. Downstream running totals, pivot, last record, and iteration views read only tp_cast_valid.',
+          'Raw orders are cast with try_cast. A row whose amount and quantity both cast goes to the valid table. Any other row goes to a reject table with a reason. Downstream views read only the valid table.',
         nodes: [
-          { id: 'orders', label: 'de_orders', mono: true, sub: '12,000 rows', col: 0, row: 0, kind: 'store' },
+          { id: 'orders', label: 'Raw orders', sub: 'values stored as text', col: 0, row: 0, kind: 'store' },
           { id: 'gate', label: 'Both casts succeed?', sub: 'try_cast', col: 1, row: 0, kind: 'gate' },
-          { id: 'valid', label: 'tp_cast_valid', mono: true, sub: '11,476 rows', col: 2, row: 0, kind: 'store' },
-          { id: 'rejects', label: 'tp_cast_rejects', mono: true, sub: '524 rows, with reason', col: 2, row: 1, kind: 'store' },
+          { id: 'valid', label: 'Valid orders', sub: 'typed columns', col: 2, row: 0, kind: 'store' },
+          { id: 'rejects', label: 'Rejects', sub: 'row plus reason', col: 2, row: 1, kind: 'store' },
           { id: 'down', label: 'Downstream views', sub: 'totals, pivot, last', col: 3, row: 0, kind: 'highlight' },
         ],
         edges: [
@@ -163,31 +137,94 @@ export const walkthrough: Walkthrough = {
       },
       examples: [
         {
-          label: "Alternative: drop bad rows with an expectation",
+          label: 'Drop bad rows with an expectation',
           language: 'sql',
-          code: "CREATE OR REFRESH MATERIALIZED VIEW tp_cast_strict (\n  CONSTRAINT amount_is_numeric EXPECT (amount IS NOT NULL) ON VIOLATION DROP ROW\n) AS\nSELECT order_id, try_cast(amount_raw AS DECIMAL(12,2)) AS amount\nFROM de_orders;",
-          notes: ["The reference code keeps rejected rows in a table. An expectation drops them and records the count in the pipeline event log."],
+          code: 'CREATE OR REFRESH MATERIALIZED VIEW silver_orders (\n  CONSTRAINT amount_is_numeric EXPECT (amount IS NOT NULL) ON VIOLATION DROP ROW\n) AS\nSELECT order_id, try_cast(amount_raw AS DECIMAL(12,2)) AS amount\nFROM bronze_orders;',
+          notes: ['The expectation drops the row and records the count in the pipeline event log. Keep the reject table when you need the rows themselves.'],
         },
       ],
     },
     {
-      id: 'checks',
-      heading: 'Row count checks',
-      prose:
-        'check_row_counts runs one query per view on the sources and compares the result with the view. The reference run matched on all 14 views.',
-      table: {
-        columns: ['View', 'Rows (matches expected)'],
+      id: 'patterns',
+      heading: 'Ten patterns worth reusing',
+      prose: 'Most ETL work combines a few of these. Each is one materialized view in the reference code.',
+      diagram: {
+        type: 'matrix',
+        title: 'Pattern and the SQL it leans on',
+        description:
+          'Lookup enrichment uses LEFT JOIN. Joins use inner, left, and full types. String functions use trim, initcap, and regexp. Null handling uses coalesce and nullif. Dates use try_to_date and from_utc_timestamp. Casting uses try_cast. Running totals use a window sum. Pivot uses PIVOT and UNPIVOT. Last record uses QUALIFY. Group iteration uses transform and aggregate.',
+        corner: 'Pattern ↓ · Detail →',
+        columns: ['Use it to', 'Key SQL'],
         rows: [
-          ['tp_lookup_enrichment', '2,000 (1,823 matched, 122 unmatched code, 55 missing code)'],
-          ['tp_join_inner / left / full', '11,000 / 12,000 / 12,100'],
-          ['tp_string_functions, tp_null_conditional', '2,000 each'],
-          ['tp_date_time', '12,000'],
-          ['tp_cast_valid / tp_cast_rejects', '11,476 / 524'],
-          ['tp_running_totals', '724 (one per category and day)'],
-          ['tp_pivot / tp_unpivot', '4 / 12'],
-          ['tp_last_record, tp_group_iteration', '2,100 each (one per customer id with valid orders)'],
+          { label: 'Lookup enrichment', cells: [{ state: 'own', text: 'Add reference data' }, { state: 'own', text: 'LEFT JOIN' }] },
+          { label: 'Joins', cells: [{ state: 'own', text: 'Combine two datasets' }, { state: 'own', text: 'INNER, LEFT, FULL' }] },
+          { label: 'String functions', cells: [{ state: 'own', text: 'Standardize text' }, { state: 'own', text: 'trim, initcap' }] },
+          { label: 'Null and conditional', cells: [{ state: 'own', text: 'Fill or branch' }, { state: 'own', text: 'coalesce, CASE' }] },
+          { label: 'Date and time', cells: [{ state: 'own', text: 'Parse and shift zones' }, { state: 'own', text: 'from_utc_timestamp' }] },
+          { label: 'Cast with rejects', cells: [{ state: 'own', text: 'Type raw columns' }, { state: 'own', text: 'try_cast' }] },
+          { label: 'Running totals', cells: [{ state: 'own', text: 'Cumulative measures' }, { state: 'own', text: 'window sum' }] },
+          { label: 'Pivot and unpivot', cells: [{ state: 'own', text: 'Reshape rows and columns' }, { state: 'own', text: 'PIVOT, UNPIVOT' }] },
+          { label: 'Last record per group', cells: [{ state: 'own', text: 'Dedupe to the latest' }, { state: 'own', text: 'QUALIFY' }] },
+          { label: 'Per-group iteration', cells: [{ state: 'own', text: 'Loop inside a group' }, { state: 'own', text: 'transform, aggregate' }] },
+        ],
+        legend: [{ state: 'own', label: 'One materialized view each' }],
+      },
+    },
+    {
+      id: 'joins',
+      heading: 'Pick the join by what you keep',
+      prose:
+        'The join type decides which unmatched rows survive. Use an inner join when an unmatched row is not useful, a left join when the left side is the record of truth, and a full join when you are reconciling two sources and need to see the gaps.',
+      diagram: {
+        type: 'matrix',
+        title: 'Rows kept by join type',
+        description:
+          'An inner join keeps only matched rows. A left join keeps matched rows and rows that exist only on the left. A full join also keeps rows that exist only on the right.',
+        corner: 'Join ↓ · Rows →',
+        columns: ['Matched', 'Left only', 'Right only'],
+        rows: [
+          { label: 'INNER JOIN', cells: [{ state: 'own', text: 'kept' }, { state: 'none', text: 'dropped' }, { state: 'none', text: 'dropped' }] },
+          { label: 'LEFT JOIN', cells: [{ state: 'own', text: 'kept' }, { state: 'own', text: 'kept' }, { state: 'none', text: 'dropped' }] },
+          { label: 'FULL JOIN', cells: [{ state: 'own', text: 'kept' }, { state: 'own', text: 'kept' }, { state: 'own', text: 'kept' }] },
+        ],
+        legend: [
+          { state: 'own', label: 'Kept' },
+          { state: 'none', label: 'Dropped' },
         ],
       },
+    },
+    {
+      id: 'performance',
+      heading: 'Keep transformations fast',
+      points: [
+        {
+          strong: 'Use built-in functions.',
+          text: 'Built-in and higher-order functions such as transform, filter, and aggregate run inside the engine. A Python UDF moves rows out of it.',
+        },
+        {
+          strong: 'Dedupe with QUALIFY.',
+          text: 'QUALIFY ROW_NUMBER() OVER (...) = 1 keeps the latest row per key without a subquery.',
+        },
+        {
+          strong: 'Let liquid clustering choose the layout.',
+          text: 'Add CLUSTER BY AUTO to a pipeline table, or name the columns with CLUSTER BY. Prefer it to partitioning, which is hard to change later.',
+        },
+        {
+          strong: 'Enable predictive optimization.',
+          text: 'It runs maintenance on Unity Catalog managed tables so you do not schedule OPTIMIZE and VACUUM yourself.',
+        },
+      ],
+      links: [
+        {
+          label: 'Liquid clustering',
+          url: 'https://docs.databricks.com/aws/en/delta/clustering',
+          note: 'Choosing clustering keys and automatic liquid clustering.',
+        },
+        {
+          label: 'Predictive optimization',
+          url: 'https://docs.databricks.com/aws/en/optimizations/predictive-optimization',
+        },
+      ],
     },
   ],
   related: [

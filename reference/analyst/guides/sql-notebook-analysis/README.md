@@ -59,3 +59,12 @@ flowchart LR
 - The R notebook was not run. Serverless has no R runtime, so verify it on a classic cluster.
 - Timings include generation and a table write. They change with serverless load, so compare reruns in the timing table.
 - Collecting to pandas suits results that fit on the driver. Aggregate in Spark first.
+
+## Reference run
+
+Numbers from the recorded run of the bundle job (run 1119284534838043). Timings vary with warehouse and serverless load.
+
+- `generate_data` writes `analyst_customers` (5,000 rows) and `analyst_orders` (200,000 rows). `sql_exploration`, `python_pandas_roundtrip`, and `large_aggregation` run in parallel after it. The R notebook is not a job task.
+- `large_aggregation_timing`: `generate_and_write_events` 6,000,000 rows in 6.49 s; `full_scan_count` 6,000,000 rows in 0.42 s; `aggregate_customer_by_month` 59,594 rows in 4.18 s; `aggregate_percentiles_by_type` 4 rows in 0.83 s.
+- The pandas notebook writes `pandas_region_trend` and asserts that the re-read table has the same row count.
+- The R notebook (`src/notebooks/r_sparklyr_summary.r`) aggregates in Spark, collects a small result into R, runs `summary()`, `quantile()`, and `lm()`, and writes a Delta table. It needs classic compute.

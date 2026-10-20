@@ -2,7 +2,7 @@
 
 ## Overview
 
-One Lakeflow Declarative Pipeline written in SQL holds ten common ETL patterns, one materialized view per pattern. A Lakeflow Job generates three source tables, runs the pipeline, and compares the row count of every view with an independent query on the sources.
+One Lakeflow Spark Declarative Pipeline written in SQL holds ten common ETL patterns, one materialized view per pattern. A Lakeflow Job generates three source tables, runs the pipeline, and compares the row count of every view with an independent query on the sources.
 
 ## What this shows
 
@@ -62,3 +62,12 @@ flowchart LR
 - Materialized views recompute from batch sources here. On serverless pipelines with row tracking on the sources, refreshes can be incremental.
 - The reject path keeps the raw values and a reason. A production pipeline would also add a retry or repair step for rejected rows.
 - Time zone names come from the lookup table's `time_zone` column. `tp_date_time` hard-codes three zones to keep the example short.
+
+## Reference run
+
+Numbers from the recorded run of the bundle job. They describe the generated data, not a target to match.
+
+- The pipeline runs with `full_refresh: true` in this job so each run rebuilds the 14 `tp_*` views from freshly generated data. Production pipelines run normal updates.
+- `de_orders` has 12,000 rows. 11,476 cast cleanly (`tp_cast_valid`) and 524 go to `tp_cast_rejects` with a reason.
+- Joins: `tp_join_inner` 11,000 rows, `tp_join_left` 12,000, `tp_join_full` 12,100 (1,000 orders with no customer, 100 customers with no orders).
+- `check_row_counts` compares each view with an independent query and writes `tp_view_counts`. All 14 matched: `tp_lookup_enrichment` 2,000 (1,823 matched, 122 unmatched code, 55 missing code); `tp_string_functions` and `tp_null_conditional` 2,000 each; `tp_date_time` 12,000; `tp_running_totals` 724; `tp_pivot` 4 and `tp_unpivot` 12; `tp_last_record` and `tp_group_iteration` 2,100 each.

@@ -2197,20 +2197,19 @@
             "The pipeline library is a glob over the pipeline folder, so a new SQL file is picked up on the next update.",
             "Catalog and schema come from bundle variables."
           ],
-          "section": "flow"
+          "section": "refresh"
         },
         {
           "label": "Job: full refresh, then inspect, then check",
           "path": "reference/data-engineering/resources/transformations.job.yml",
           "notes": [
-            "The pipeline task runs with full_refresh: true so every run rebuilds all 14 views.",
+            "Reference-only: this job sets full_refresh: true so each run rebuilds the views from generated data. Production runs use normal updates, which process only new input.",
             "Catalog, schema, and use_case are job parameters."
           ],
           "lines": [
             22,
             39
-          ],
-          "section": "flow"
+          ]
         },
         {
           "label": "Joins: inner, left, and full",
@@ -2248,8 +2247,7 @@
           "lines": [
             62,
             71
-          ],
-          "section": "checks"
+          ]
         }
       ]
     },
@@ -2308,8 +2306,7 @@
           "path": "reference/data-engineering/resources/scd.pipeline.yml",
           "notes": [
             "One pipeline holds both flows; the job runs it twice."
-          ],
-          "section": "flow"
+          ]
         },
         {
           "label": "Second update is incremental",
@@ -2321,8 +2318,7 @@
           "lines": [
             45,
             50
-          ],
-          "section": "flow"
+          ]
         },
         {
           "label": "Plan inserts, updates, and deletes",
@@ -2331,8 +2327,7 @@
             "Disjoint ids by stride keep the change batch deterministic.",
             "60 inserts, 150 updates, 40 deletes in the reference run."
           ],
-          "symbol": "plan_changes",
-          "section": "types"
+          "symbol": "plan_changes"
         },
         {
           "label": "SCD type 1 and type 2 from one feed",
@@ -2350,8 +2345,7 @@
             "SCD type 2 kept 1,210 history rows; type 1 kept 1,020.",
             "Fails if counts differ from the spec."
           ],
-          "symbol": "measure",
-          "section": "counts"
+          "symbol": "measure"
         }
       ]
     },
@@ -2532,7 +2526,7 @@
             28,
             32
           ],
-          "section": "settings"
+          "section": "full-refresh"
         },
         {
           "label": "Table properties: row tracking",
@@ -2544,7 +2538,7 @@
             66,
             70
           ],
-          "section": "settings"
+          "section": "matview"
         },
         {
           "label": "Pipeline configuration keys",
@@ -2555,8 +2549,7 @@
           "lines": [
             13,
             19
-          ],
-          "section": "settings"
+          ]
         },
         {
           "label": "Reading the configuration in the pipeline",
@@ -2567,8 +2560,7 @@
           "lines": [
             20,
             22
-          ],
-          "section": "settings"
+          ]
         },
         {
           "label": "Read the pipeline event log",
@@ -2650,8 +2642,7 @@
           "lines": [
             11,
             33
-          ],
-          "section": "flow"
+          ]
         },
         {
           "label": "Volume for the output files",
@@ -2678,8 +2669,7 @@
           "label": "Read the MERGE metrics from Delta history",
           "path": "reference/data-engineering/guides/target-loading-outputs/02_merge_target.py",
           "notes": [
-            "DESCRIBE HISTORY keeps operationMetrics for every MERGE.",
-            "The notebook compares them with the change batch and fails on a mismatch."
+            "DESCRIBE HISTORY keeps operationMetrics for every MERGE, so a load can check rows inserted, updated, and deleted against the batch it expected."
           ],
           "lines": [
             67,
@@ -2840,8 +2830,7 @@
           "lines": [
             29,
             33
-          ],
-          "section": "settings"
+          ]
         },
         {
           "label": "Bulk pause job",
@@ -2852,8 +2841,7 @@
           "lines": [
             18,
             50
-          ],
-          "section": "bulk-pause"
+          ]
         },
         {
           "label": "Find tagged jobs with a schedule",
@@ -2918,14 +2906,13 @@
           "lines": [
             22,
             44
-          ],
-          "section": "job"
+          ]
         },
         {
           "label": "Poll system.access.table_lineage",
           "path": "reference/orchestration/guides/data-observability/02_read_lineage.py",
           "notes": [
-            "Lineage can take minutes to appear, so the task retries every 30 seconds until both edges show."
+            "Lineage reaches the system tables after a delay, so read it on a schedule instead of straight after a write."
           ],
           "lines": [
             29,
@@ -2971,8 +2958,8 @@
           "label": "Create a data profiling monitor",
           "path": "reference/orchestration/guides/data-observability/04_detect_data_drift.py",
           "notes": [
-            "Snapshot profile on the baseline table, written to the schema's output tables.",
-            "The job deletes and recreates the monitor on each run."
+            "Snapshot profile on the table, written to the schema's output tables.",
+            "The reference job recreates the monitor each run. Create it once and give it a schedule in production."
           ],
           "lines": [
             66,
@@ -3042,8 +3029,7 @@
           "lines": [
             11,
             40
-          ],
-          "section": "flow"
+          ]
         },
         {
           "label": "SQL with a window share and QUALIFY",
@@ -3092,8 +3078,7 @@
           "lines": [
             75,
             98
-          ],
-          "section": "scale"
+          ]
         },
         {
           "label": "sparklyr summary",
@@ -3160,8 +3145,7 @@
           "lines": [
             11,
             35
-          ],
-          "section": "flow"
+          ]
         },
         {
           "label": "Volume for uploads",
@@ -3189,8 +3173,7 @@
           "lines": [
             33,
             38
-          ],
-          "section": "flow"
+          ]
         },
         {
           "label": "Full outer join and match status",
@@ -3297,8 +3280,7 @@
           "lines": [
             33,
             53
-          ],
-          "section": "job"
+          ]
         },
         {
           "label": "Job parameters",
@@ -3309,8 +3291,7 @@
           "lines": [
             11,
             31
-          ],
-          "section": "job"
+          ]
         },
         {
           "label": "ODBC data source",
@@ -3381,8 +3362,7 @@
           "lines": [
             25,
             40
-          ],
-          "section": "sql"
+          ]
         },
         {
           "label": "Summary table for comparing outputs",
@@ -3393,8 +3373,7 @@
           "lines": [
             52,
             56
-          ],
-          "section": "compare"
+          ]
         },
         {
           "label": "Job: build the SQL output",
@@ -3405,8 +3384,7 @@
           "lines": [
             11,
             27
-          ],
-          "section": "saved"
+          ]
         }
       ]
     },
@@ -3472,8 +3450,7 @@
           "lines": [
             11,
             43
-          ],
-          "section": "flow"
+          ]
         },
         {
           "label": "One filter, defined in the spec",
@@ -3484,8 +3461,7 @@
           "lines": [
             41,
             59
-          ],
-          "section": "flow"
+          ]
         },
         {
           "label": "Excel workbook",
@@ -3601,7 +3577,7 @@
           "notes": [
             "The bundle deploys the dashboard from an lvdash.json file, on the job's warehouse, with catalog and schema set."
           ],
-          "section": "flow"
+          "section": "dashboards"
         },
         {
           "label": "Governed view",
@@ -3626,7 +3602,7 @@
             2,
             17
           ],
-          "section": "flow"
+          "section": "dashboards"
         },
         {
           "label": "Chart from a view",
@@ -3638,7 +3614,7 @@
             51,
             60
           ],
-          "section": "totals"
+          "section": "notebooks"
         },
         {
           "label": "Record the plotted totals",
@@ -3649,8 +3625,7 @@
           "lines": [
             88,
             96
-          ],
-          "section": "totals"
+          ]
         },
         {
           "label": "Run the dashboard's queries and compare",
@@ -3661,8 +3636,7 @@
           "lines": [
             41,
             51
-          ],
-          "section": "how"
+          ]
         },
         {
           "label": "Compare and fail on a mismatch",
@@ -3673,8 +3647,7 @@
           "lines": [
             60,
             76
-          ],
-          "section": "how"
+          ]
         }
       ]
     },
