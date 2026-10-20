@@ -201,7 +201,7 @@
       "onePager": "reference/ingestion/guides/reusability-templatization/README.md",
       "code": [
         {
-          "label": "Notebook (shared with Configuration-driven ingestion): ingest each feed",
+          "label": "Notebook (shared with Metadata-driven ingestion): ingest each feed",
           "path": "reference/ingestion/guides/configuration-vs-code/02_ingest_feeds.py"
         },
         {

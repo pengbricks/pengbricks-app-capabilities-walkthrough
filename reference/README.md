@@ -5,7 +5,7 @@ Each folder under `reference/` is a self-contained Declarative Automation Bundle
 | Bundle | Guides |
 |---|---|
 | `foundation/` | Owns the shared `capability_guides` schema; deploy first |
-| `ingestion/` | Configuration-driven ingestion, Reusable ingestion templates, Batch and streaming ingestion, Pipeline operations |
+| `ingestion/` | Metadata-driven ingestion, Reusable ingestion templates, Batch and streaming ingestion, Pipeline operations |
 | `monitoring/` | Platform observability |
 | `developer-experience/` | Developer workflow in the IDE |
 | `documentation/` | Automated data documentation |

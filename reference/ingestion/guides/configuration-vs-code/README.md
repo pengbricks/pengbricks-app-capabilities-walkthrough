@@ -1,8 +1,8 @@
-# Configuration-driven ingestion
+# Metadata-driven ingestion
 
 ## Overview
 
-Two providers send the same kind of record in different shapes. Provider-specific logic lives in one adapter file. Everything else runs through one shared framework: reading, mapping, validation, quarantine, upsert, audit, and error handling.
+Metadata-driven ingestion describes each source in configuration and runs every source through one shared code path. Use native expectations for row rules, AUTO CDC for upserts, and a for_each task for fan-out before writing a custom runner. Isolate source quirks behind a small adapter, and quarantine rejected rows with the rule they failed. This reference implements the pattern for two providers.
 
 ## What this shows
 
@@ -58,7 +58,11 @@ flowchart LR
    ```
    Both feeds fail the same rules, because the rules are shared.
 
-## Artifacts produced
+## Reference run
+
+Two providers send the same kind of record in different shapes. Provider-specific logic lives in one adapter file. Everything else runs through one shared framework: reading, mapping, validation, quarantine, upsert, audit, and error handling.
+
+Artifacts:
 
 - Tables: `transactions_silver`, `transactions_quarantine`, `audit_log`
 - Volume: `landing/provider_a/`, `landing/provider_b/`

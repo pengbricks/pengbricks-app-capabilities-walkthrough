@@ -2,7 +2,7 @@
 
 ## Overview
 
-The second feed, provider B, was onboarded without new code. It is a block in the use-case spec. A renderer turns that block into a feed config, and the same job ingests it next to provider A. The whole use case is templated the same way, so a new tenant or domain is one new spec file.
+Parameterize ingestion in layers (bundle variables, job parameters, task parameters, for_each inputs, pipeline configuration), override per target instead of copying files, share code as a wheel, and scaffold new projects from a bundle template. A new source then costs a configuration entry and a review. This reference shows the layering with a second provider added by configuration only.
 
 ## What this shows
 
@@ -63,7 +63,11 @@ Two ways to add a use case:
 6. Show the parameter layers (table above): run the framework job with `--params use_case=general`, then point out where `{{job.parameters.use_case}}` flows into task parameters and `for_each` inputs.
 7. Show reuse: `databricks bundle deploy --var use_case=<new-spec> --var schema=<schema>` stamps out the same jobs with new data, feeds, and tags.
 
-## Artifacts produced
+## Reference run
+
+The second feed, provider B, was onboarded without new code. It is a block in the use-case spec. A renderer turns that block into a feed config, and the same job ingests it next to provider A. The whole use case is templated the same way, so a new tenant or domain is one new spec file.
+
+Artifacts:
 
 - Generated configs: `feeds/general/provider_a.yml`, `feeds/general/provider_b.yml`
 - Run: both feeds in one job run, each with its own `audit_log` row

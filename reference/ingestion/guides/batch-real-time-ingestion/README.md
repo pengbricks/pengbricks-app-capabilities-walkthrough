@@ -2,7 +2,7 @@
 
 ## Overview
 
-One job runs both paths. The batch path is the configuration-driven framework writing `transactions_silver`. The real-time path is a serverless Lakeflow Declarative Pipeline: Auto Loader picks up new event files incrementally, expectations validate them, and a materialized view tracks latency and throughput per minute. A final task records the run's metrics in a table.
+Choose the trigger mode from the latency target: triggered for the lowest cost, continuous for seconds, real-time mode for sub-second operational paths. Discover files with file events, read message buses or write with Zerobus where producers emit events, and keep reruns safe with checkpoints, watermarks, and one-time backfill flows. This reference runs a batch framework and a serverless streaming pipeline in one job.
 
 ## What this shows
 
@@ -65,7 +65,11 @@ flowchart LR
    ```
 8. Explain the latency number honestly. The pipeline runs in triggered mode, so latency includes the wait for the update to start. For seconds-level latency, set `continuous: true` on the pipeline. For sub-second operational paths, use real-time mode or Zerobus ingest.
 
-## Artifacts produced
+## Reference run
+
+One job runs both paths. The batch path is the configuration-driven framework writing `transactions_silver`. The real-time path is a serverless Lakeflow Declarative Pipeline: Auto Loader picks up new event files incrementally, expectations validate them, and a materialized view tracks latency and throughput per minute. A final task records the run's metrics in a table.
+
+Artifacts:
 
 - Tables: `events_bronze`, `events_silver`, `ingestion_latency_by_minute`, `transactions_daily_summary`, `ingestion_run_metrics`
 - Reference run: 4,800 events across two runs (98 dropped by expectations), p50 latency 124 s and p95 150 s in triggered mode, peak 40 events/s
