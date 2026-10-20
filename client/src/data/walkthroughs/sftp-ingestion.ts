@@ -6,6 +6,28 @@ export const walkthrough: Walkthrough = {
   title: 'SFTP file retrieval',
   intro:
     'Use the Lakeflow Connect SFTP connector: a Unity Catalog connection stores the credentials, and Auto Loader reads files straight from the server incrementally. Fall back to a copy job only when the server needs something the connector does not support. This page covers the connector setup, key-based authentication, the network path, and the fallback.',
+  businessValue: {
+    summary:
+      'Partners that still deliver files over SFTP can feed Databricks directly, with credentials held in Unity Catalog. Data teams drop the copy scripts and the servers that ran them.',
+    outcomes: [
+      {
+        title: 'No copy job to operate',
+        body: 'The connector reads files from the SFTP server and Auto Loader ingests each once. There is no transfer job or transfer log to own, unless you need the fallback.',
+      },
+      {
+        title: 'Users never see the key',
+        body: 'Granting USE CONNECTION lets people and service principals read from the server without seeing the key or password.',
+      },
+      {
+        title: 'Least privilege by default',
+        body: 'A PEM private key on a read-only account limited to the ingested directories narrows what a compromised credential can reach.',
+      },
+      {
+        title: 'Reruns skip finished files',
+        body: 'Auto Loader keeps a checkpoint, so a rerun reads only files it has not seen. A partner resending a day late does not trigger a reload of old data.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Read from SFTP with a connection and Auto Loader.',

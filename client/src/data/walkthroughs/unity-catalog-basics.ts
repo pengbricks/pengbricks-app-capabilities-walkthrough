@@ -6,6 +6,28 @@ export const walkthrough: Walkthrough = {
   title: 'Unity Catalog basics',
   intro:
     'Unity Catalog is where every table, view, volume, function, and model gets its name, its owner, and its permissions. This page covers the object hierarchy, the three-level name, how a grant works, and where to find lineage.',
+  businessValue: {
+    summary:
+      'Unity Catalog gives every table, file, and model one name, one owner, and one set of permissions. Security and compliance teams control access in one place instead of tool by tool.',
+    outcomes: [
+      {
+        title: 'Audits become queries',
+        body: 'Unity Catalog records access in system.access tables, so an auditor\'s question about who touched a table becomes a query instead of a spreadsheet exercise.',
+      },
+      {
+        title: 'Access follows group membership',
+        body: 'Grants go to account-level groups. Onboarding or offboarding a person is one group change, not edits across every table they could read.',
+      },
+      {
+        title: 'One policy covers many columns',
+        body: 'Attribute-based access control applies row filters and column masks by governed tag, so a single policy protects every column tagged as sensitive, in every team\'s schema.',
+      },
+      {
+        title: 'Impact checks before changes',
+        body: 'Lineage is captured automatically on Unity Catalog compute. Owners can see what depends on a table before they change it.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Three levels name everything.',

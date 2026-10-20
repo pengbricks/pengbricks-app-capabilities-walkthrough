@@ -6,6 +6,28 @@ export const walkthrough: Walkthrough = {
   title: 'SQL Server connections with Lakeflow Connect',
   intro:
     'Lakeflow Connect ingests SQL Server tables into Unity Catalog with two managed pipelines and no extract code. The ingestion gateway runs on classic compute in your workspace network and reads CDC or Change Tracking from SQL Server. The ingestion pipeline runs on serverless compute and applies the staged changes to bronze tables. Credentials live in a Unity Catalog connection. This page covers the questions customers ask, the source setup, the connection, the wizard, live changes, day-two operations, silver with lineage and Genie, and the same pipeline as a bundle in Git. The gateway needs classic compute, so run it in a workspace that allows classic compute.',
+  businessValue: {
+    summary:
+      'Lakeflow Connect replicates SQL Server tables into Unity Catalog with managed pipelines and no extract code. Reporting moves off the production database, and the DBA setup sets the schedule.',
+    outcomes: [
+      {
+        title: 'No extract code to maintain',
+        body: 'Databricks runs the ingestion gateway and the ingestion pipeline. Your team configures them and does not write or patch an extraction job.',
+      },
+      {
+        title: 'Reporting leaves the source',
+        body: 'Changes land in bronze Delta tables, so analysts and dashboards query the Delta copy instead of the production SQL Server.',
+      },
+      {
+        title: 'History depth chosen per table',
+        body: 'CDC keeps every version of a row (SCD type 2) for audit needs. Change Tracking keeps only the latest row and is lighter. Pick per table.',
+      },
+      {
+        title: 'Plan for DBA lead time',
+        body: 'The DBA setup has the longest lead time, and the gateway needs classic compute. Start the DBA work first and confirm the workspace allows classic compute.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Two pipelines, two kinds of compute.',

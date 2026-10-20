@@ -6,6 +6,28 @@ export const walkthrough: Walkthrough = {
   title: 'Authenticated REST API ingestion',
   intro:
     'Check for a managed connector before you write a client. When none exists, you can build a custom Lakeflow Connect connector, wrap the API in a Python data source, or land raw responses and ingest them with Auto Loader. This page ranks those options, shows where secrets belong, and covers the parts every API client needs: paging, token refresh, retries, incremental cursors, and idempotent writes.',
+  businessValue: {
+    summary:
+      'Managed connectors pull SaaS data with no client code, and a ranked fallback covers APIs without one. Data owners spend less engineering time on integrations and keep credentials out of code.',
+    outcomes: [
+      {
+        title: 'Less custom code to run',
+        body: 'Lakeflow Connect managed connectors handle authentication, incremental sync, and retries, so there is no API client for your team to maintain.',
+      },
+      {
+        title: 'Credentials stay protected',
+        body: 'API credentials live in a Unity Catalog connection or secret scope, never in code, job parameters, or logs. A leaked repository does not leak the key.',
+      },
+      {
+        title: 'Predictable under failure',
+        body: 'The client refreshes tokens, backs off on rate limits, and stops on errors a retry cannot fix. A request log row per response gives support a trail.',
+      },
+      {
+        title: 'Retries do not duplicate',
+        body: 'Pulls keep a cursor and write with MERGE on the record key, so a retry or overlap window does not double count records.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Use a managed connector first.',

@@ -6,6 +6,28 @@ export const walkthrough: Walkthrough = {
   title: 'Partner tool integrations',
   intro:
     'Connecting a tool to Databricks starts with a choice of pattern. A SQL warehouse with OAuth serves BI tools and applications. Federation, Lakeflow Connect, and OpenSharing or the Iceberg REST catalog move or expose data from other systems. Partner tools cover the rest of the ecosystem, and Lakebase serves transactional apps. This page helps you pick the pattern, then covers the identity that goes with it.',
+  businessValue: {
+    summary:
+      'A decision guide for connecting BI tools, apps, partner tools, and other databases to Databricks. IT sponsors reuse existing tools under one governance layer instead of building an integration per tool.',
+    outcomes: [
+      {
+        title: 'Keep your BI tools',
+        body: 'Power BI, Tableau, Excel, and custom apps connect to a SQL warehouse with a hostname, an HTTP path, and an OAuth identity. Reporting does not need to move.',
+      },
+      {
+        title: 'Unattended access without personal logins',
+        body: 'Scheduled reports and apps use a service principal with OAuth M2M, scoped to the tables they read. Long-lived secrets stay out of code.',
+      },
+      {
+        title: 'One governance across tools',
+        body: 'Grants, row filters, column masks, and audit logs from Unity Catalog apply whichever tool connects.',
+      },
+      {
+        title: 'The right back end for apps',
+        body: 'Lakebase, managed Postgres, serves apps that read and write single rows. Analytical engines stay free for analytics.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'BI tools and apps connect to a SQL warehouse with OAuth.',

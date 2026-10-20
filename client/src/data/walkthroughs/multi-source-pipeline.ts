@@ -6,6 +6,28 @@ export const walkthrough: Walkthrough = {
   title: 'Multi-source pipeline',
   intro:
     'Several systems describe the same business entity in different shapes. Conformance maps each system into one schema, tags every row with where it came from, and resolves duplicates across systems. This page covers the design: a staging table per source, append flows into one streaming table, per-source expectations, and entity resolution with survivorship.',
+  businessValue: {
+    summary:
+      'When several systems describe the same customer or entity differently, this design produces one conformed table with traceable origins. Business teams get a single view without losing which system said what.',
+    outcomes: [
+      {
+        title: 'One record per real-world entity',
+        body: 'Entity resolution matches records across systems, so reports count a customer once. Exact key matches merge automatically, and fuzzy matches go through review.',
+      },
+      {
+        title: 'Every value traces to its source',
+        body: 'Each row carries source_system and source_id, and a crosswalk links the surviving record to its sources. Anyone can ask where a value came from.',
+      },
+      {
+        title: 'Adding a system is low risk',
+        body: 'Each source has its own staging table, append flow, and checkpoint. A new source adds a flow without reprocessing or touching the others.',
+      },
+      {
+        title: 'Problems caught in the right place',
+        body: 'Expectations on each staging table catch source quirks, and expectations on the conformed table enforce the shared contract.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Stage each source on its own.',

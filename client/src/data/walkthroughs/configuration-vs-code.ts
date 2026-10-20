@@ -6,6 +6,28 @@ export const walkthrough: Walkthrough = {
   title: 'Metadata-driven ingestion',
   intro:
     'Metadata-driven ingestion describes each source in configuration and runs every source through one shared code path. Onboarding a source becomes a reviewed config change. This page covers what belongs in configuration, which platform features to use before you write a custom runner, and how to keep source quirks from spreading into shared code.',
+  businessValue: {
+    summary:
+      'Describing each source in reviewed configuration lets teams add feeds without writing new pipeline code. Program owners get faster onboarding and a smaller code base to maintain.',
+    outcomes: [
+      {
+        title: 'Onboarding is a config change',
+        body: 'A new source is a configuration entry that goes through review, not a new engineering project. Time from request to data depends on the review.',
+      },
+      {
+        title: 'Less code to own',
+        body: 'Every source runs through one shared, tested code path. A fix or upgrade happens once instead of once per feed, which cuts maintenance and on-call load.',
+      },
+      {
+        title: 'Bad data stops at the door',
+        body: 'Each config is validated when it loads, and rows that fail a rule go to a quarantine table with the rule named. Reject-rate alerts warn owners early.',
+      },
+      {
+        title: 'Change history on record',
+        body: 'Configs live in Git, each run writes an audit record, and system tables show who changed or ran each job and pipeline.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Put what differs per source in configuration.',

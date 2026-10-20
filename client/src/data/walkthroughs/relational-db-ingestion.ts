@@ -6,6 +6,28 @@ export const walkthrough: Walkthrough = {
   title: 'Relational database extracts',
   intro:
     'Databricks has three ways to bring a relational database into Delta: Lakehouse Federation to query it in place, Lakeflow Connect change data capture (CDC) connectors for continuous replication, and query-based connectors for scheduled incremental pulls. This page helps you choose between them, shows how pushdown works for custom SQL, and covers how to verify that what landed matches the source.',
+  businessValue: {
+    summary:
+      'Three options bring operational database data into the lakehouse, from live queries to continuous replication. Data owners match freshness and source load to the need instead of copying everything the same way.',
+    outcomes: [
+      {
+        title: 'Query before you build',
+        body: 'A Unity Catalog connection and foreign catalog let analysts query and join source tables with Delta tables right away, with no pipeline. Materialize the data if dashboards read it often.',
+      },
+      {
+        title: 'Protect the production database',
+        body: 'CDC connectors read the transaction log, which puts the least load on the source. Federation queries hit the source every time, so heavy use loads it.',
+      },
+      {
+        title: 'Match cost to freshness',
+        body: 'Query-based connectors poll on a schedule and need no CDC setup on the source. Check each connector\'s release stage before committing a production plan.',
+      },
+      {
+        title: 'Proof the copy is right',
+        body: 'Row counts, a checksum, and column types compared against the source show whether what landed matches what the source holds.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Choose by freshness, volume, and source load.',

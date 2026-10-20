@@ -6,6 +6,28 @@ export const walkthrough: Walkthrough = {
   title: 'File format ingestion',
   intro:
     'Files arrive as CSV, delimited text, Excel, JSON, XML, and PDFs, and each needs a few format options. Land them with Auto Loader or read_files into Delta tables, keep the schema flexible without losing data, and verify what landed. This page covers the options per format, how schemas and state are managed, how to discover new files, and when to use JSON as a Variant or parse documents with ai_parse_document.',
+  businessValue: {
+    summary:
+      'Files from partners and internal systems land in governed Delta tables without custom parsers. Analysts can query CSV, Excel, JSON, XML, and PDF content as tables.',
+    outcomes: [
+      {
+        title: 'New files load on their own',
+        body: 'Auto Loader tracks which files it has read and ingests each once, so no one writes or watches a file tracker.',
+      },
+      {
+        title: 'Schema surprises do not lose data',
+        body: 'When a partner adds a column or sends a value that does not fit, it lands in _rescued_data for review instead of being dropped.',
+      },
+      {
+        title: 'Documents become queryable',
+        body: 'ai_parse_document turns PDFs and scans into structured text that lands in tables, so staff stop retyping content from documents.',
+      },
+      {
+        title: 'Cheaper file discovery',
+        body: 'With file events on the external location, Auto Loader learns of new files from storage events instead of listing the directory, which is cheaper on large landing zones.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'One pattern, different options.',
