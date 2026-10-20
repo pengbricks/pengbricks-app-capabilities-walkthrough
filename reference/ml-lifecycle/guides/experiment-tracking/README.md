@@ -2,6 +2,10 @@
 
 ## Overview
 
+Best practice: log the dataset with `mlflow.data` and `mlflow.log_input`, capture the Git commit, parameters, seed, and a pinned environment, and size Delta retention to your replay window. The reference job records the data version as a run tag; `mlflow.log_input` is the preferred pattern. The guide page in the app explains the practice.
+
+## Reference run
+
 A tracked run records which data version, code, and environment produced its metric. A second run reads only those records, trains again, and asserts the metric matches. Between the two runs the job appends the 945 customers who are new by the 2010-12-01 snapshot, so only the recorded Delta version reproduces the result. Job key: `capability_guides_experiment_rerun`.
 
 Data: UCI Online Retail II (CC BY 4.0), invoice lines from a UK online retailer, 2009-12-01 to 2011-12-09. Chen, D. (2012). Online Retail II [Dataset]. UCI Machine Learning Repository. https://doi.org/10.24432/C5CG6D. The job downloads the zip into a Unity Catalog volume, checks its SHA-256, and builds one row per customer at the 2010-09-01 snapshot (3,321 customers).

@@ -545,17 +545,16 @@
             "max_retries and min_retry_interval_millis retry the ingest task on transient failures.",
             "max_concurrent_runs: 1 prevents overlapping runs from writing the same tables."
           ],
-          "section": "setup"
+          "section": "alerts"
         },
         {
-          "label": "Simulated transient failure exercised by the retry policy",
+          "label": "Exercise the retry policy",
           "path": "reference/ingestion/src/capability_framework/retry_demo.py",
           "symbol": "simulate_transient_failure",
           "notes": [
-            "The first attempt writes a marker and fails; the retry finds the marker and continues.",
-            "This stands in for a source that is briefly unavailable."
-          ],
-          "section": "setup"
+            "A stand-in for a source that is briefly unavailable, so the retry setting can be tested.",
+            "The first attempt writes a marker and fails; the retry finds it and continues."
+          ]
         },
         {
           "label": "Rollback to an earlier Delta version",
@@ -568,7 +567,7 @@
             34,
             39
           ],
-          "section": "setup"
+          "section": "recovery"
         }
       ],
       "walkthroughs": [
@@ -731,53 +730,53 @@
       ],
       "highlights": [
         {
-          "label": "Transform with the edge case the tests catch",
+          "label": "A transform with an edge-case test",
           "path": "reference/developer-experience/src/dx_demo/transforms.py",
           "symbol": "clean_records",
           "notes": [
-            "Keys are normalized before de-duplication, which is the edge case the unit test catches.",
-            "Window ordering with nulls last keeps the latest dated version of each key."
+            "Keys are normalized before de-duplication, so keys that differ only in case or whitespace collapse.",
+            "A function over a DataFrame is simple to test and reuse."
           ],
-          "section": "setup"
+          "section": "tests"
         },
         {
-          "label": "Same tests run locally and on serverless",
+          "label": "The same tests in a job task",
           "path": "reference/developer-experience/guides/ide-developer-experience/01_unit_tests.py",
           "notes": [
-            "The same pytest suite runs locally and in the serverless job task.",
-            "A non-zero exit fails the task, so broken code cannot reach the transform step."
+            "pytest runs unchanged locally and in a serverless task.",
+            "A non-zero exit fails the task, so later tasks never run on broken code."
           ],
           "lines": [
             33,
             40
           ],
-          "section": "setup"
+          "section": "git-ci"
         },
         {
           "label": "Post-transform SQL checks",
           "path": "reference/developer-experience/guides/ide-developer-experience/03_sql_checks.py",
           "notes": [
-            "assert_true fails the SQL task when a check does not hold.",
-            "The checks run on the warehouse after the Python transform writes the table."
+            "assert_true fails the task when a data check does not hold.",
+            "The checks run after the transform writes the table."
           ],
           "lines": [
             23,
             36
           ],
-          "section": "setup"
+          "section": "tests"
         },
         {
           "label": "Targets for dev and test",
           "path": "reference/developer-experience/databricks.yml",
           "notes": [
-            "dev uses development mode; test prefixes names.",
-            "Schema comes from a per-target variable."
+            "Development mode prefixes resource names per user.",
+            "The schema comes from a per-target variable."
           ],
           "lines": [
             36,
             46
           ],
-          "section": "setup"
+          "section": "packaging"
         }
       ],
       "walkthroughs": [
@@ -1246,34 +1245,34 @@
       ],
       "highlights": [
         {
-          "label": "Classify changes and enforce the semver bump",
+          "label": "Optional custom gate: classify changes and check the bump",
           "path": "reference/versioning/src/compatibility.py",
           "symbol": "check_contracts",
           "notes": [
-            "Every change between two contract versions is classified as breaking or nonbreaking.",
-            "The version bump must match: minor for nonbreaking, major for breaking."
+            "Each change between two contract versions is classified as breaking or nonbreaking.",
+            "The required version bump follows from the classification."
           ],
-          "section": "changes"
+          "section": "gate"
         },
         {
-          "label": "Publish v2 and keep v1 consumers working",
+          "label": "Publish a new version and keep the old interface",
           "path": "reference/versioning/guides/versioning/04_apply_v2.py",
           "notes": [
-            "The old table is renamed and the old name becomes a compatibility view over v2.",
-            "v1 is tagged deprecated with a sunset date and a comment pointing to v2."
+            "The old name becomes a compatibility view over the new table.",
+            "The old object is tagged deprecated, with a sunset date and a comment naming the replacement."
           ],
           "lines": [
             58,
             97
           ],
-          "section": "v2"
+          "section": "interface"
         },
         {
-          "label": "Release gate with a mislabeled-release dry run",
+          "label": "Gate check with a mislabeled-release dry run",
           "path": "reference/versioning/guides/versioning/02_compatibility_gate.py",
           "notes": [
-            "The gate checks every consecutive pair of contract versions.",
-            "A dry run relabels the breaking release as a minor version and shows the gate rejecting it."
+            "The gate checks each consecutive pair of contract versions.",
+            "A dry run relabels a breaking change as minor and shows the check rejecting it."
           ],
           "lines": [
             38,
@@ -1285,19 +1284,19 @@
           "label": "Release job parameters",
           "path": "reference/versioning/resources/release.job.yml",
           "notes": [
-            "The release id is a job parameter, so every registry row traces to one run."
+            "The release id is a job parameter, so every recorded change traces to one run."
           ],
           "lines": [
             16,
             25
           ],
-          "section": "flow"
+          "section": "deprecate"
         },
         {
-          "label": "Contract v2.0.0",
+          "label": "A contract file per version",
           "path": "reference/versioning/contracts/customers/v2.0.0.yml",
           "notes": [
-            "A contract is a YAML file per version.",
+            "Columns, types, and nullability live in one file per version.",
             "renamed_from marks a rename, which is a breaking change."
           ],
           "lines": [
@@ -1313,16 +1312,16 @@
             "Builds the SELECT list that serves the old column names from the new table."
           ],
           "symbol": "compat_view_select",
-          "section": "v2"
+          "section": "interface"
         },
         {
-          "label": "Register each release",
+          "label": "Record each change",
           "path": "reference/versioning/src/versioning_common.py",
           "notes": [
             "Writes the version, change type, release id, and Delta version to a registry table."
           ],
           "symbol": "register",
-          "section": "trace"
+          "section": "deprecate"
         }
       ],
       "walkthroughs": [
@@ -1395,11 +1394,11 @@
           "label": "Quality gate and champion comparison",
           "path": "reference/model-deployment/src/common.py",
           "notes": [
-            "Thresholds come from bundle variables, so dev and test enforce different bars.",
-            "A challenger must beat the current champion by the configured margin before promotion."
+            "Thresholds come from bundle variables, so each environment sets its own bar.",
+            "A challenger must stay within the allowed margin of the current champion before promotion."
           ],
           "symbol": "evaluate_gates",
-          "section": "flow"
+          "section": "gates"
         },
         {
           "label": "Approval gate",
@@ -1411,7 +1410,7 @@
             74,
             85
           ],
-          "section": "ci"
+          "section": "approval"
         },
         {
           "label": "Deploy the champion and wait for READY",
@@ -1420,7 +1419,8 @@
             "The job polls until the endpoint is ready and the config update finishes.",
             "A scoring request then measures latency for the release record."
           ],
-          "symbol": "wait_ready"
+          "symbol": "wait_ready",
+          "section": "rollout"
         },
         {
           "label": "Train, log, and register with release tags",
@@ -1432,7 +1432,7 @@
             67,
             79
           ],
-          "section": "flow"
+          "section": "aliases"
         },
         {
           "label": "The test job on GitHub",
@@ -1444,19 +1444,19 @@
             72,
             95
           ],
-          "section": "ci"
+          "section": "approval"
         },
         {
-          "label": "Targets set the thresholds",
+          "label": "Targets set the quality bar",
           "path": "reference/model-deployment/databricks.yml",
           "notes": [
-            "dev and test set min_auc, max_auc_regression, and the serving size."
+            "dev and test set the quality bar and the serving size."
           ],
           "lines": [
             47,
             69
           ],
-          "section": "config"
+          "section": "aliases"
         },
         {
           "label": "Append to the release history",
@@ -1468,7 +1468,7 @@
             87,
             107
           ],
-          "section": "audit"
+          "section": "record"
         }
       ],
       "walkthroughs": [
@@ -4323,20 +4323,20 @@
             "The wrapper class itself is never pickled."
           ],
           "symbol": "PickledModel",
-          "section": "paths"
+          "section": "formats"
         },
         {
           "label": "Reproduce the recorded baseline",
           "path": "reference/ml-lifecycle/guides/model-training-compatibility/03_import_legacy_model.py",
           "notes": [
             "Scores the same holdout through the registered model.",
-            "AUC 0.716529 reproduced exactly, within the 0.001 tolerance."
+            "The reproduced metric must match the recorded baseline within the tolerance."
           ],
           "lines": [
             65,
             84
           ],
-          "section": "baseline"
+          "section": "validate"
         },
         {
           "label": "Record library and runtime versions",
@@ -4345,19 +4345,20 @@
             "Versions become run tags and a change log.",
             "Shows exactly what differs between runtimes."
           ],
-          "symbol": "environment_versions"
+          "symbol": "environment_versions",
+          "section": "validate"
         },
         {
           "label": "The legacy side: pickle and sidecar record",
           "path": "reference/ml-lifecycle/guides/model-training-compatibility/01_export_legacy_model.py",
           "notes": [
-            "The pickle and a JSON record (baseline AUC, table version, package versions) go to a volume."
+            "The pickle and a JSON record (baseline metric, table version, package versions) go to a volume."
           ],
           "lines": [
             46,
             58
           ],
-          "section": "paths"
+          "section": "formats"
         },
         {
           "label": "Native path: log with a signature and an alias",
@@ -4369,7 +4370,7 @@
             40,
             53
           ],
-          "section": "paths"
+          "section": "log"
         },
         {
           "label": "Log the pickle as a pyfunc",
@@ -4381,19 +4382,19 @@
             66,
             75
           ],
-          "section": "paths"
+          "section": "formats"
         },
         {
           "label": "Change log: recorded versus current",
           "path": "reference/ml-lifecycle/guides/model-training-compatibility/03_import_legacy_model.py",
           "notes": [
-            "One row per package plus the AUC, flagged when it differs. The task fails past the tolerance."
+            "One row per package plus the metric, flagged when it differs. The task fails past the tolerance."
           ],
           "lines": [
             93,
             105
           ],
-          "section": "versions"
+          "section": "validate"
         },
         {
           "label": "The training job",
@@ -4404,8 +4405,7 @@
           "lines": [
             15,
             45
-          ],
-          "section": "setup"
+          ]
         }
       ]
     },
@@ -4456,30 +4456,30 @@
       ],
       "highlights": [
         {
-          "label": "Tag data, code, and environment",
+          "label": "Run tags in the reference code",
           "path": "reference/ml-lifecycle/guides/experiment-tracking/01_tracked_run.py",
           "notes": [
-            "data_version, git_sha, code_hash, and the environment are tags.",
-            "Everything needed to rerun is on the run."
+            "The reference bundle records the data version, Git SHA, code hash, and environment as run tags.",
+            "mlflow.log_input is the preferred record for the dataset; see the guide."
           ],
           "lines": [
             47,
             56
           ],
-          "section": "refs"
+          "section": "code-env"
         },
         {
           "label": "Move the data on",
           "path": "reference/ml-lifecycle/guides/experiment-tracking/02_append_new_data.py",
           "notes": [
-            "Customers who are new by the next snapshot land after the recorded version.",
+            "New rows land after the recorded version.",
             "Only a rerun that reads the recorded version can match."
           ],
           "lines": [
             29,
             40
           ],
-          "section": "job"
+          "section": "limits"
         },
         {
           "label": "Rerun on the recorded version",
@@ -4491,7 +4491,7 @@
             68,
             82
           ],
-          "section": "result"
+          "section": "rerun"
         },
         {
           "label": "The rerun job",
@@ -4502,8 +4502,7 @@
           "lines": [
             28,
             45
-          ],
-          "section": "job"
+          ]
         },
         {
           "label": "Read the table at a fixed version",
@@ -4515,7 +4514,7 @@
             31,
             37
           ],
-          "section": "job"
+          "section": "data"
         },
         {
           "label": "Hash the training code",
@@ -4524,7 +4523,7 @@
             "Hashes the source of the pipeline, the split, and the scoring function."
           ],
           "symbol": "code_hash",
-          "section": "refs"
+          "section": "code-env"
         },
         {
           "label": "Record the comparison",
@@ -4536,7 +4535,7 @@
             91,
             102
           ],
-          "section": "check"
+          "section": "rerun"
         }
       ]
     },
@@ -4602,11 +4601,10 @@
           "label": "Population stability index",
           "path": "reference/ml-lifecycle/src/ml_common.py",
           "notes": [
-            "Baseline quantile bins; a breach is PSI or mean shift over the threshold.",
-            "tenure_months reached PSI 1.919 by the June 2011 snapshot as the customer base aged."
+            "Baseline quantile bins; a breach is PSI or mean shift over the threshold."
           ],
           "symbol": "psi",
-          "section": "metrics"
+          "section": "custom"
         },
         {
           "label": "Retrain only on a breach",
@@ -4630,7 +4628,7 @@
             6,
             27
           ],
-          "section": "retrain"
+          "section": "alerts"
         },
         {
           "label": "Drift batches and thresholds",
@@ -4642,8 +4640,7 @@
           "lines": [
             54,
             59
-          ],
-          "section": "flow"
+          ]
         },
         {
           "label": "Compute drift per batch and feature",
@@ -4655,7 +4652,7 @@
             29,
             44
           ],
-          "section": "metrics"
+          "section": "custom"
         },
         {
           "label": "Train a candidate and compare with prod",
@@ -4728,29 +4725,29 @@
       ],
       "highlights": [
         {
-          "label": "Secured requests and latency",
+          "label": "Secured requests",
           "path": "reference/realtime-scoring/guides/real-time-scoring/03_score_and_measure.py",
           "notes": [
             "OAuth from the SDK; no PAT or secret.",
-            "p50 74.2 ms, p95 141.7 ms over 50 warm requests."
+            "Every request is timed so latency can be summarized."
           ],
           "lines": [
             62,
             80
           ],
-          "section": "latency"
+          "section": "security"
         },
         {
           "label": "Optional features are filled",
           "path": "reference/realtime-scoring/guides/real-time-scoring/01_train_register.py",
           "notes": [
-            "A request that omits last_payment is scored with the training median."
+            "A request that omits an optional feature is scored with the training median."
           ],
           "lines": [
             71,
             82
           ],
-          "section": "failures"
+          "section": "flow"
         },
         {
           "label": "Create or update the endpoint",
@@ -4762,7 +4759,7 @@
             79,
             97
           ],
-          "section": "flow"
+          "section": "scaling"
         },
         {
           "label": "The scoring job",
@@ -4773,17 +4770,16 @@
           "lines": [
             13,
             41
-          ],
-          "section": "flow"
+          ]
         },
         {
           "label": "Failure scenarios and expected status",
           "path": "reference/realtime-scoring/src/scoring_helpers.py",
           "notes": [
-            "Malformed body, wrong shape, missing required feature (400); missing optional feature (200)."
+            "Malformed bodies, wrong shapes, and a missing required feature return 400; a missing optional feature scores."
           ],
           "symbol": "error_cases",
-          "section": "failures"
+          "section": "flow"
         },
         {
           "label": "Endpoint size and scaling settings",
@@ -4806,8 +4802,7 @@
           "lines": [
             29,
             41
-          ],
-          "section": "cleanup"
+          ]
         }
       ]
     },

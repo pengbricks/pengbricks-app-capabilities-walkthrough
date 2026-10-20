@@ -2,6 +2,10 @@
 
 ## Overview
 
+Best practice: make tasks idempotent (MERGE or overwrite by partition) so retries and repair runs are safe, send failure and duration alerts to Slack, PagerDuty, or a webhook, track trends in `system.lakeflow` tables with SQL alerts, set `max_concurrent_runs`, queueing, and timeouts, and recover with RESTORE inside retention plus deep clone backups. The guide page in the app explains the practice. This README covers the reference job.
+
+## Reference run
+
 The DataOps job runs a feed through settings an operations team relies on: retries, failure and duration alerts, a timeout, single-run concurrency, run history, and an audit trail. The first attempt of the ingest task fails on purpose to show the retry working. A separate rollback job restores the silver table to an earlier Delta version, and the CI/CD guide covers redeploying a known-good release.
 
 ## What this shows

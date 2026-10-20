@@ -2,6 +2,8 @@
 
 ## Overview
 
+Best practice: release models through Unity Catalog aliases, test gates, approval in a protected CI environment, a catalog per environment, a traffic-split rollout, and a release record. Roll back by moving the alias, set Unity Gateway rate limits and inference tables, authenticate CI with GitHub OIDC, and use MLflow 3 GenAI evaluation as the gate for LLM apps. The guide page in the app explains the practice. This README covers the reference job.
+
 One serverless job takes a churn model from training to a live endpoint. It trains a small scikit-learn model with MLflow 3 on real invoice lines from UCI Online Retail II, registers it in Unity Catalog, runs automated tests, promotes it only when someone has approved it, deploys it to Model Serving, and appends a row to a release history table. A GitHub Actions workflow runs the same job in `dev` and `test`, and the GitHub `test` environment approval supplies the approver.
 
 ## What this shows

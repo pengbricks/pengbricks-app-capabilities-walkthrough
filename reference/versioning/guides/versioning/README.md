@@ -2,6 +2,10 @@
 
 ## Overview
 
+Best practice: evolve schemas in place with Delta type widening, column mapping, and schema evolution. Protect the contract with NOT NULL and CHECK constraints, give readers a view as a stable interface, mark deprecations with Unity Catalog tags, and find consumers with `system.access.table_lineage` and `system.query.history`. Use OpenSharing for external readers. The semver compatibility gate in this bundle is an optional custom check for CI. The guide page in the app explains the practice.
+
+## Reference run
+
 The release job treats a dataset's schema as a versioned data contract. It publishes a nonbreaking change in place (v1.0.0 to v1.1.0), then a breaking change (v2.0.0) as a new table with a deprecated compatibility view that keeps the old shape alive. A gate compares contract versions and fails the job when the semantic version bump does not match the change. A registry, Unity Catalog tags, and a consumer notification table record what happened.
 
 ## What this shows
