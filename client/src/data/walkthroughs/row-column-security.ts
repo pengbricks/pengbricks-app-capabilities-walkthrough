@@ -5,32 +5,153 @@ export const walkthrough: Walkthrough = {
   area: 'Governance/Monitoring',
   title: 'Row and column security',
   intro:
-    'Two sensitive columns get masks and two tables get row filters, all generated from the use-case spec. The same queries then run for several identities. The job identity is tested for real; the other identities are evaluated with the same policy logic, and role switching is the way to test them for real.',
+    'Row filters hide rows and column masks rewrite values, both enforced by Unity Catalog at query time. The current pattern is attribute-based access control (ABAC): tag the data with governed tags and write one policy per tag, instead of a function on every table. ABAC policies are generally available and, with cross-engine ABAC, also apply when supported external engines read your managed tables. Per-table filter and mask functions remain the right tool for a rule that belongs to one table. This page covers both, how to find sensitive columns, the limits that matter, and how to list what is in force.',
   shortVersion: [
     {
-      title: 'Masks sit on the columns.',
-      body: 'email and national_id show NULL to the restricted role, the real value to admins, and a partial value to everyone else.',
+      title: 'Lead with ABAC.',
+      body: 'One policy on a catalog or schema covers every table and column that carries the governed tag, including tables created later.',
     },
     {
-      title: 'Two filters, two jobs.',
-      body: 'An attribute filter hides restricted orders. A dynamic filter limits customers to the regions listed for the caller in a mapping table.',
+      title: 'Tags are the control surface.',
+      body: 'Use governed tags with fixed values, and restrict who can assign them. Changing a tag changes which policies apply.',
     },
     {
-      title: 'Policies read session_user() first.',
-      body: 'An assumed role fails is_member() checks, so each policy matches the restricted role by name before it checks membership.',
+      title: 'Keep table-level functions for one-off rules.',
+      body: 'A row filter or column mask set with ALTER TABLE suits logic that belongs to a single table, such as a mapping-table lookup.',
     },
     {
-      title: 'Access changes are inserts.',
-      body: 'Moving someone to another region means adding a row to region_access. No policy is rewritten.',
+      title: 'Check groups with is_account_group_member().',
+      body: 'It tests account-level groups, which are the ones Unity Catalog grants to. is_member() also sees workspace-local groups, so prefer the account-level function.',
     },
     {
-      title: 'The inventory comes from SQL.',
-      body: 'information_schema.column_masks and row_filters list all four policies without opening any table.',
+      title: 'Keep policy functions simple.',
+      body: 'Use SQL functions, small lookup tables, and a few reusable masks. Complex UDFs slow every query on the table.',
     },
   ],
   sections: [
     {
-      id: 'flow',
+      id: 'abac',
+      heading: 'ABAC policies with governed tags',
+      prose:
+        'Define the rule once, then let tags decide where it applies. A policy names the function, who it applies to (TO), who is exempt (EXCEPT), and which tables and columns it matches by tag.',
+      diagram: {
+        type: 'flow',
+        title: 'One policy, many tables',
+        description:
+          'A steward defines a governed tag and assigns it to columns, by hand or from data classification. A single ABAC policy at the catalog or schema matches columns by that tag. Every table and every future table with a tagged column is masked for the principals in the policy, and principals in EXCEPT see real values. Supported external engines get the same enforcement through serverless compute.',
+        nodes: [
+          { id: 'tag', label: 'Governed tag', sub: 'class = email', col: 0, row: 0, kind: 'highlight' },
+          { id: 'cols', label: 'Tagged columns', sub: 'any table in scope', col: 1, row: 0, kind: 'store' },
+          { id: 'pol', label: 'One ABAC policy', sub: 'catalog or schema', col: 1, row: 1, kind: 'gate' },
+          { id: 'fn', label: 'SQL mask function', sub: 'reused across tables', col: 0, row: 1 },
+          { id: 'res', label: 'Enforced at query', sub: 'SQL and external engines', col: 2, row: 1, kind: 'surface' },
+        ],
+        edges: [
+          { from: 'tag', to: 'cols' },
+          { from: 'cols', to: 'pol', label: 'matched by tag' },
+          { from: 'fn', to: 'pol' },
+          { from: 'pol', to: 'res' },
+        ],
+        legend: [
+          { kind: 'highlight', label: 'Governed tag' },
+          { kind: 'gate', label: 'Policy' },
+          { kind: 'surface', label: 'Enforcement' },
+        ],
+      },
+      examples: [
+        {
+          label: 'Mask every column tagged class=email, and filter rows by a region tag',
+          language: 'sql',
+          code: `CREATE OR REPLACE FUNCTION prod.governance.mask_email(v STRING) RETURNS STRING
+  RETURN concat(left(v, 1), '***@', split_part(v, '@', 2));
+
+CREATE OR REPLACE POLICY mask_email ON CATALOG prod
+  COLUMN MASK prod.governance.mask_email
+  TO \`account users\` EXCEPT \`pii-readers\`
+  FOR TABLES
+  MATCH COLUMNS has_tag_value('class', 'email') AS c
+  ON COLUMN c;
+
+CREATE OR REPLACE FUNCTION prod.governance.region_ok(r STRING) RETURNS BOOLEAN
+  RETURN EXISTS (SELECT 1 FROM prod.governance.region_access a
+                 WHERE a.principal = current_user() AND a.region = r);
+
+CREATE OR REPLACE POLICY region_rows ON SCHEMA prod.sales
+  ROW FILTER prod.governance.region_ok
+  TO \`account users\` EXCEPT \`sales-global\`
+  FOR TABLES
+  MATCH COLUMNS has_tag('region') AS r
+  USING COLUMNS (r);`,
+          notes: [
+            'The policy needs MANAGE on the catalog or schema (or ownership) and EXECUTE on the function.',
+            'Governed tags must exist and be assigned before the policy matches anything. A tag change can take a few minutes to take effect.',
+          ],
+        },
+      ],
+      points: [
+        {
+          strong: 'Attach at the highest useful scope.',
+          text: 'Catalog or schema, not table. Policies at a parent apply to all matching tables beneath it, and a metastore-level scope is in beta for rules that must span catalogs.',
+        },
+        {
+          strong: 'Start small.',
+          text: 'A few broad policies such as PII masking and regional row filtering beat one policy per edge case. Consolidate overlaps.',
+        },
+        {
+          strong: 'Fail closed.',
+          text: 'Tag new objects with a restrictive default until a steward reviews them, and write a policy that limits access to that default tag.',
+        },
+      ],
+      links: [
+        {
+          label: 'Attribute-based access control',
+          url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/abac/',
+        },
+        {
+          label: 'Create and manage row filter and column mask policies',
+          url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/abac/policies',
+        },
+        {
+          label: 'Best practices for ABAC policies',
+          url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/abac/best-practices',
+        },
+        {
+          label: 'CREATE POLICY',
+          url: 'https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-ddl-create-policy',
+        },
+      ],
+    },
+    {
+      id: 'classification',
+      heading: 'Find sensitive columns with data classification',
+      prose:
+        'Policies only protect columns that are tagged, so tag them systematically. Data classification scans enabled catalogs, detects sensitive classes such as email addresses and national IDs, and can apply governed tags automatically. Review the results and correct them, then let the ABAC policies act on the tags.',
+      points: [
+        {
+          strong: 'Permissions.',
+          text: 'Enabling classification needs ownership or MANAGE on the catalog. Automatic tagging also needs APPLY TAG on the catalog and ASSIGN on each tag.',
+        },
+        {
+          strong: 'Results.',
+          text: 'Detections are stored in system.data_classification.results, which you can query for coverage.',
+        },
+        {
+          strong: 'Do not use AI-written comments for this.',
+          text: 'Comment generation reads schema names, not data, and is not a PII detector.',
+        },
+      ],
+      links: [
+        {
+          label: 'Data classification',
+          url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/data-classification',
+        },
+      ],
+    },
+    {
+      id: 'table-functions',
+      heading: 'Per-table row filters and column masks',
+      prose:
+        'Attach a SQL function directly to a table when the rule is specific to it. This is the original mechanism, and it still fits a rule with its own lookup, such as a per-table entitlement map.',
       examples: [
         {
           label: 'Attach and remove a mask and a row filter',
@@ -41,169 +162,136 @@ export const walkthrough: Walkthrough = {
 ALTER TABLE main.sales.customers ALTER COLUMN email SET MASK main.sales.mask_email;
 
 CREATE OR REPLACE FUNCTION main.sales.region_filter(region STRING) RETURNS BOOLEAN
-  RETURN is_account_group_member('admins') OR region = 'WEST';
+  RETURN is_account_group_member('admins')
+      OR EXISTS (SELECT 1 FROM main.sales.region_access a
+                 WHERE a.principal = current_user() AND a.region = region);
 ALTER TABLE main.sales.orders SET ROW FILTER main.sales.region_filter ON (region);
 
 -- Detach
 ALTER TABLE main.sales.customers ALTER COLUMN email DROP MASK;
 ALTER TABLE main.sales.orders DROP ROW FILTER;`,
-          notes: ['The reference code branches on session_user() first; this shorter form uses only group membership.'],
+          notes: [
+            'The mapping table makes access a data change: add or remove a row in region_access, and the function does not change.',
+            'Keep the mapping table small so the engine can broadcast it.',
+          ],
         },
       ],
-      heading: 'How the policies are built',
-      prose:
-        'The spec names the masked columns, the filter columns, and the mapping rows. The job generates the tables, creates the functions, and attaches them to the table objects.',
-      diagram: {
-        type: 'flow',
-        title: 'From spec to policies',
-        description:
-          'The use-case spec drives generate_data, which writes gov_customers and gov_orders as generated sample data. create_policies writes the region_access mapping table, creates two mask functions and two filter functions, and attaches them with ALTER TABLE. test_policies runs the same queries for several identities. policy_inventory reads information_schema.',
-        lanes: [
-          { label: 'Spec and data', fromRow: 0, toRow: 0 },
-          { label: 'Policies', fromRow: 1, toRow: 2 },
-        ],
-        nodes: [
-          { id: 'spec', label: 'Use-case spec', sub: 'general.yml', col: 0, row: 0 },
-          { id: 'gen', label: 'generate_data', mono: true, sub: 'generated data, fixed seed', col: 1, row: 0 },
-          { id: 'tables', label: 'gov_ tables', mono: true, sub: '5,000 and 20,000 rows', col: 2, row: 0, kind: 'store' },
-          { id: 'map', label: 'region_access', mono: true, sub: 'principal to region', col: 0, row: 1, kind: 'store' },
-          { id: 'create', label: 'create_policies', mono: true, col: 1, row: 1, kind: 'highlight' },
-          { id: 'mask', label: 'Column masks', sub: 'email, national_id', col: 2, row: 1, kind: 'surface' },
-          { id: 'filter', label: 'Row filters', sub: 'sensitivity, region', col: 3, row: 1, kind: 'surface' },
-          { id: 'test', label: 'test_policies', mono: true, sub: 'several identities', col: 1, row: 2 },
-          { id: 'inv', label: 'policy_inventory', mono: true, sub: 'information_schema', col: 2, row: 2, kind: 'store' },
-        ],
-        edges: [
-          { from: 'spec', to: 'gen' },
-          { from: 'gen', to: 'tables' },
-          { from: 'map', to: 'create' },
-          { from: 'create', to: 'mask' },
-          { from: 'create', to: 'filter' },
-          { from: 'mask', to: 'tables', dashed: true, label: 'SET MASK' },
-          { from: 'create', to: 'test' },
-          { from: 'test', to: 'inv' },
-        ],
-        legend: [
-          { kind: 'highlight', label: 'Policy functions and ALTER TABLE' },
-          { kind: 'surface', label: 'Attached to the table' },
-          { kind: 'store', label: 'Table' },
-        ],
-        caption: 'The filters attach to the table objects too (SET ROW FILTER), like the masks.',
-      },
-    },
-    {
-      id: 'identities',
-      heading: 'What each identity sees',
-      prose:
-        'The numbers below are for customer CUST-000001 and the full tables. The job identity row is a real session. The other two rows apply the same policy logic with the identity swapped in, and they are labelled simulated in the table.',
-      diagram: {
-        type: 'matrix',
-        title: 'Same queries, different identities',
-        description:
-          'The job identity, an admin, sees 5,000 customers, 20,000 orders, all four regions, and real values. The account users role sees 3,478 customers in EMEA and NA, 17,972 orders, and NULL for both masked columns. The app service principal sees 1,019 customers in APAC, 17,972 orders, a partial email, and a partial national ID.',
-        corner: 'Identity ↓ · Result →',
-        columns: ['Customers', 'Orders', 'Email', 'National ID'],
-        rows: [
-          {
-            label: 'Job identity',
-            sub: 'admin, real session',
-            cells: [
-              { state: 'own', text: '5,000' },
-              { state: 'own', text: '20,000' },
-              { state: 'own', text: 'Real value' },
-              { state: 'own', text: 'Real value' },
-            ],
-          },
-          {
-            label: 'account users role',
-            sub: 'simulated',
-            cells: [
-              { state: 'optional', text: '3,478', sub: 'EMEA, NA' },
-              { state: 'optional', text: '17,972' },
-              { state: 'none', text: 'NULL' },
-              { state: 'none', text: 'NULL' },
-            ],
-          },
-          {
-            label: 'App service principal',
-            sub: 'simulated',
-            cells: [
-              { state: 'optional', text: '1,019', sub: 'APAC' },
-              { state: 'optional', text: '17,972' },
-              { state: 'optional', text: 'u***@example.com' },
-              { state: 'optional', text: '***-**-0031' },
-            ],
-          },
-        ],
-        legend: [
-          { state: 'own', label: 'Everything, real values' },
-          { state: 'optional', label: 'Filtered or partial' },
-          { state: 'none', label: 'Hidden' },
-        ],
-        caption: 'Before it reports the other rows, the job checks that the same logic reproduces the real result for the job identity on all five measures.',
-      },
-    },
-    {
-      id: 'testing',
-      heading: 'Testing as a second identity',
-      prose:
-        'An admin session cannot confirm a restriction, because admins pass every policy. Three methods exist, and the job uses the third because the first two were not available in this run.',
-      diagram: {
-        type: 'flow',
-        title: 'Ways to test a policy',
-        description:
-          'Role switching assumes the account users role in the workspace menu and reruns the test queries; this is the real test and is documented in sql/policy_test_queries.sql. Running as the app service principal needs a secret or a run_as binding that this run did not have. Twin evaluation swaps session_user and is_member for literals, and the job runs it after confirming it matches the real result for the job identity.',
-        nodes: [
-          { id: 'q', label: 'Same test queries', sub: 'policy_test_queries.sql', col: 0, row: 1 },
-          { id: 'role', label: 'Role switching', sub: 'real, manual', col: 1, row: 0, kind: 'highlight' },
-          { id: 'sp', label: 'Run as service principal', sub: 'needs secret or run_as', col: 1, row: 1 },
-          { id: 'twin', label: 'Twin evaluation', sub: 'job does this', col: 1, row: 2, kind: 'surface' },
-          { id: 'real', label: 'Real policy result', sub: 'UC evaluates policies', col: 2, row: 0, kind: 'store' },
-          { id: 'sim', label: 'Simulated result', sub: 'same logic, literals', col: 2, row: 2, kind: 'store' },
-        ],
-        edges: [
-          { from: 'q', to: 'role' },
-          { from: 'q', to: 'sp' },
-          { from: 'q', to: 'twin' },
-          { from: 'role', to: 'real' },
-          { from: 'sp', to: 'real', dashed: true, label: 'not run' },
-          { from: 'twin', to: 'sim' },
-        ],
-        legend: [
-          { kind: 'highlight', label: 'Real test' },
-          { kind: 'surface', label: 'Run by the job' },
-        ],
-      },
       points: [
-        { strong: 'Why session_user().', text: 'While a role is assumed it returns the role name. is_member(\'admins\') is false, and a group is not a member of itself.' },
-        { strong: 'Audit survives the switch.', text: 'system.access.audit keeps the human in identity_metadata.run_by and the role in run_as.' },
+        {
+          strong: 'is_account_group_member().',
+          text: 'Use it for group checks in policy functions. is_member() also matches workspace-local groups, which are not Unity Catalog principals, and Databricks recommends the account-level function in most cases.',
+        },
+        {
+          strong: 'When to choose which.',
+          text: 'Prefer ABAC for rules that follow a classification across tables. Use a table function when the rule belongs to one table, or when you need logic that tags cannot express.',
+        },
+        {
+          strong: 'Sharing.',
+          text: 'Delta Sharing skips tables that have row filters or column masks. Share a view of the rows and columns the recipient should see.',
+        },
+      ],
+      links: [
+        {
+          label: 'Row filters and column masks',
+          url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/filters-and-masks/',
+        },
+        {
+          label: 'Manually apply row filters and column masks',
+          url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/filters-and-masks/manually-apply',
+        },
+        {
+          label: 'is_account_group_member',
+          url: 'https://docs.databricks.com/aws/en/sql/language-manual/functions/is_account_group_member',
+        },
+      ],
+    },
+    {
+      id: 'limits',
+      heading: 'Limits and performance',
+      table: {
+        caption: 'Current limits and requirements for ABAC row filter and column mask policies',
+        columns: ['Topic', 'What to know'],
+        rows: [
+          [
+            'Compute',
+            'Serverless, standard compute on Databricks Runtime 16.4 or above, or dedicated compute on 16.4 or above with fine-grained access control. Older runtimes cannot read ABAC-secured tables.',
+          ],
+          [
+            'Quotas',
+            'Policies per catalog: 100. Per schema: 100. Per table: 50. Principals per policy: 20. Column conditions per MATCH COLUMNS: 6 for row filters and 3 for column masks.',
+          ],
+          ['Tags', 'ABAC uses governed tags only. After you assign or change a tag, allow a few minutes.'],
+          [
+            'Identity attributes',
+            'has_identity_attribute_value() and related functions work in the WHEN clause of column mask policies only, and need SQL to create them.',
+          ],
+          [
+            'Views',
+            'ABAC on views is in beta and needs Databricks Runtime 19 or above. Metric views are not supported. CREATE OR REPLACE VIEW drops tags and attached policies, so use ALTER VIEW.',
+          ],
+          [
+            'Performance',
+            'Use simple SQL functions, not Python UDFs. Keep lookup tables small enough to broadcast. Reuse the same mask across columns. Avoid regex masking of large text. Policies can limit predicate pushdown, so test with real queries.',
+          ],
+        ],
+      },
+      links: [
+        {
+          label: 'Requirements, quotas, and limitations',
+          url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/abac/requirements',
+        },
+        {
+          label: 'Performance considerations',
+          url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/abac/performance',
+        },
       ],
     },
     {
       id: 'inventory',
-      heading: 'Policy inventory',
-      prose: 'The inventory is two queries. A table with no policy is the gap to look for, and it will not appear here unless you compare against the table list.',
-      table: {
-        caption: 'policy_inventory from the reference run',
-        columns: ['Policy', 'Table and column'],
-        rows: [
-          ['Column mask', 'gov_customers.email (mask_email)'],
-          ['Column mask', 'gov_customers.national_id (mask_national_id)'],
-          ['Row filter', 'gov_customers.region (filter_customers_region)'],
-          ['Row filter', 'gov_orders.sensitivity (filter_orders_sensitivity)'],
-        ],
-      },
-      steps: [
+      heading: 'List the policies in force',
+      prose: 'You can read policies back with SQL, so an inventory is a query, not a document that goes stale.',
+      examples: [
         {
-          title: 'List masks and filters',
-          body: 'sql/policy_inventory.sql reads information_schema.column_masks and information_schema.row_filters for the whole catalog.',
-          code: 'SELECT table_name, column_name, mask_name\nFROM <catalog>.information_schema.column_masks;\nSELECT table_name, filter_name, target_columns\nFROM <catalog>.information_schema.row_filters;',
+          label: 'ABAC policies, table-level masks and filters, and a policy gap check',
+          language: 'sql',
+          code: `-- ABAC policies across the metastore (needs MANAGE on where the policy is attached)
+SELECT * FROM system.information_schema.abac_policy_definitions
+ORDER BY policy_name;
+
+-- Policies on one table, including inherited ones
+SHOW EFFECTIVE POLICIES ON TABLE prod.sales.customers;
+
+-- Table-level masks and filters in a catalog
+SELECT table_name, column_name, mask_name FROM prod.information_schema.column_masks;
+SELECT table_name, filter_name, target_columns FROM prod.information_schema.row_filters;`,
+          notes: [
+            'The gap to look for is a sensitive column with no policy. Compare tagged columns in information_schema.column_tags against the policies that cover them.',
+          ],
+        },
+      ],
+    },
+    {
+      id: 'testing',
+      heading: 'Test as the people the policy targets',
+      points: [
+        {
+          strong: 'Use a real member of the target group.',
+          text: 'Owners, admins, and principals in an EXCEPT list bypass the policy, so their results prove nothing. Run the same queries as a user or service principal that the policy covers, and compare.',
+        },
+        {
+          strong: 'Check both sides.',
+          text: 'Confirm the covered principal sees masked values and fewer rows, and the exempt principal sees real data.',
+        },
+        {
+          strong: 'Audit tag and policy changes.',
+          text: 'Tag edits change what is protected. Review them in system.access.audit.',
         },
       ],
     },
   ],
   related: [
     { slug: 'access-management', title: 'Access management' },
-    { slug: 'cost-chargeback', title: 'Cost tracking and chargeback' },
+    { slug: 'data-sharing', title: 'Governed data sharing' },
+    { slug: 'documentation-generation', title: 'Automated data documentation' },
   ],
 };
