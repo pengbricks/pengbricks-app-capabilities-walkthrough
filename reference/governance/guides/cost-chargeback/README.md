@@ -63,6 +63,12 @@ This guide records a SQL alert on 7-day list-price spend. The account budgets AP
 - View `cost_usage_enriched`; tables `cost_by_*`, `cost_daily`, `cost_forecast_30d`, `cost_actual_vs_forecast`, `budget_status`, `opt_idle_warehouses`, `opt_costly_jobs`
 - SQL alert and AI/BI dashboard `Capability guides cost`
 
+## Reference run
+
+- 7-day list-price spend was 107.70 USD against the 50 USD `budget_threshold_usd`, so `budget_check` reported a breach. The account budgets API was not reachable from the workspace, so the reference uses a SQL alert and a threshold variable. The guide's walkthrough recommends Budgets for threshold alerts.
+- The 30-day forecast covered 2026-10-15 to 2026-11-13 and summed to 10,318.55 USD (range 9,655.43 to 11,256.42). It rested on 3 days of history, so it shows the method and not a plan.
+- `opt_idle_warehouses` lists 30-day spend, statement count, USD per statement, and auto-stop, and flags auto-stop above 10 minutes or disabled and fewer than 100 statements in 30 days. `opt_costly_jobs` ranks jobs by USD per run.
+
 ## Limitations and next steps
 
 - Costs are list prices. Discounts and commitments change the invoice.

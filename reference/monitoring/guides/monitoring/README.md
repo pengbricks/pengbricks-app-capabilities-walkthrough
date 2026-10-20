@@ -79,6 +79,10 @@ All code is in `reference/monitoring/`.
 - SQL alert: "capability guide job failures in the last 24h".
 - Job: `capability_guides_monitoring_snapshot` and its runs.
 
+## Reference run
+
+The snapshot job scoped account-wide system tables to this workspace and wrote seven `ops_*` tables for a 14-day lookback (7 days for audit events). The dashboard has seven pages: runs, failures, usage and cost, compute and capacity, audit events, alert routing, and filters. One SQL alert counts guide job failures in the last 24 hours and emails the notification address. The guide's walkthrough covers the system-table map, scope, retention, and alerting patterns; the `ops_*` tables and dashboard pages are specific to this reference bundle.
+
 ## Limitations and next steps
 
 - Data is a snapshot from the last job run. The dashboard is as fresh as the last run; add a schedule if you need it current. System tables lag by minutes to hours.

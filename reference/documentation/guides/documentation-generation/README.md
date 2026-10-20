@@ -72,6 +72,10 @@ flowchart LR
 - Unity Catalog table comments and column comments on the three sample tables, plus tags from the spec
 - One job run per refresh, with the task output showing each table documented
 
+## Reference run
+
+The reference run documented the three sample tables (`bronze_orders`, `silver_orders`, `gold_daily_revenue`) and wrote four Markdown pages to the `docs` volume: one per table plus `index.md`. Each page has the same five sections (ownership, schema, quality, lineage, usage). The job applied AI-drafted table and column comments directly through `ai_query`, and it logged each refresh in `documentation_refresh_log`. This is a demo shortcut. The guide's walkthrough describes the production pattern: write drafts to a proposals table, apply only owner-approved rows, and never overwrite a human comment.
+
 ## Limitations and next steps
 
 - System tables lag. `system.access.table_lineage` can take minutes to hours to show new tables, so the first run may show "none recorded" for lineage and readers. A second run fills them in.

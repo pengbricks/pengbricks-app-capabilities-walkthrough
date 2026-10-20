@@ -67,6 +67,12 @@ sequenceDiagram
 - Jobs: `capability_guides_operational_support` and `capability_guides_support_repair`
 - Reference runs: support run 787779100759308 ended as succeeded with one failed task. Repair run 473831755972947 repaired it as repair 305177685386087, and the original run finished as SUCCESS.
 
+## Reference run
+
+- `write_with_retry` failed on execution 1 and passed on execution 2, leaving 25 rows. `fragile_step` failed once on purpose, so the run ended as succeeded with one failed task.
+- Triage classified a `TransientSourceError` from the support job as class `transient`, severity `low`, with the route "notify platform-support, escalate after 30 minutes". A `PERMISSION_DENIED` error from another guide job came out as class `permission`, severity `high`, and the route pages the owner and the escalation contact.
+- The repair job reran only `fragile_step` as repair 305177685386087, and the original run, 787779100759308, finished as SUCCESS. The incident row moved to `repaired`.
+
 ## Limitations and next steps
 
 - Triage records incidents with `status = open` and does not close them. Only the repair job sets `repaired`; a run fixed by hand stays open.

@@ -90,6 +90,12 @@ To rotate the app service principal's credential without downtime:
 - Tables `access_group`, `access_grants_applied`, `access_effective_grants`, `access_audit_grant_changes`, `access_service_principals`
 - Workspace group `capability-guides-readers`
 
+## Reference run
+
+- `ensure_group` created a workspace group, found that Unity Catalog could not grant to it, and fell back to `account users`. A real deployment uses an account-level group synced from the identity provider.
+- `system.access.audit` recorded 45 grant changes in the catalog over 30 days. Twelve rows were on this guide's schemas: nine with status 200, and three with status 404 for the attempts to grant to the workspace-local group.
+- Dev and prod were two schemas in one catalog because only one catalog was available. The guide's walkthrough recommends a catalog per environment with workspace binding.
+
 ## Limitations and next steps
 
 - Dev and prod are two schemas in one catalog because only one catalog was available. Real segregation uses separate catalogs, with the same grant pattern per catalog.
