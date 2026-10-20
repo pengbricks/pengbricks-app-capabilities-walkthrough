@@ -12,6 +12,19 @@ describe.each(walkthroughs.map((walkthrough) => [walkthrough.slug, walkthrough] 
     for (const related of walkthrough.related) expect(slugs.has(related.slug)).toBe(true);
   });
 
+  it('leads with a business value summary and three or four outcomes', () => {
+    const value = walkthrough.businessValue;
+    expect(value, 'businessValue').toBeDefined();
+    const words = (text: string) => text.trim().split(/\s+/).length;
+    expect(words(value!.summary)).toBeLessThanOrEqual(50);
+    expect(value!.outcomes.length).toBeGreaterThanOrEqual(3);
+    expect(value!.outcomes.length).toBeLessThanOrEqual(4);
+    for (const outcome of value!.outcomes) {
+      expect(words(outcome.title), outcome.title).toBeLessThanOrEqual(7);
+      expect(words(outcome.body), outcome.title).toBeLessThanOrEqual(45);
+    }
+  });
+
   it('has unique section ids and a short version', () => {
     const ids = walkthrough.sections.map((section) => section.id);
     expect(new Set(ids).size).toBe(ids.length);
