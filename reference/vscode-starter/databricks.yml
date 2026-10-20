@@ -1,0 +1,86 @@
+# A starter Declarative Automation Bundle for working in VS Code with the Databricks IDE extension: one
+# serverless Lakeflow job that runs a notebook and a Python wheel built from src/orders_demo.
+#
+# The extension reads this file. Its Target selector lists the targets below, its Bundle Resource Explorer
+# lists the resources, and its Bundle Variables view edits the variables.
+#
+#   databricks bundle validate --var catalog=<catalog>
+#   databricks bundle deploy   --var catalog=<catalog>
+#   databricks bundle run capability_guides_vscode_starter --var catalog=<catalog>
+#
+# Learn more:
+#   What bundles are and how they deploy  https://docs.databricks.com/aws/en/dev-tools/bundles
+#   Every top-level key in this file      https://docs.databricks.com/aws/en/dev-tools/bundles/settings
+#   The extension's bundle features       https://docs.databricks.com/aws/en/dev-tools/vscode-ext/bundles
+#   Example bundles from Databricks       https://github.com/databricks/bundle-examples
+
+# The bundle name is part of the workspace path the files deploy to, so keep it stable once deployed.
+bundle:
+  name: vscode-starter
+
+# Every resources/*.yml file is merged into this one.
+include:
+  - resources/*.yml
+
+# Build the Python wheel from pyproject.toml. The job's environment installs dist/*.whl on serverless
+# compute. This step runs `uv build`, so uv must be on your PATH (the extension installs it for you).
+# https://docs.databricks.com/aws/en/dev-tools/bundles/library-dependencies
+artifacts:
+  orders_demo:
+    type: whl
+    build: uv build --wheel
+    path: .
+
+# Files that stay on your machine. scratch/ is for debugging, tests/ run locally, .vscode/ is editor setup.
+sync:
+  exclude:
+    - scratch/**
+    - tests/**
+    - .vscode/**
+
+# Variables are set with --var name=value, a BUNDLE_VAR_name environment variable, or the extension's
+# Bundle Variables view. A variable with no default must be set before validate succeeds.
+# https://docs.databricks.com/aws/en/dev-tools/bundles/variables
+variables:
+  catalog:
+    description: Existing Unity Catalog catalog where the bundle creates its schema
+  schema:
+    description: Schema the bundle creates for its tables. Development mode prefixes it with dev_<you>_
+    default: vscode_starter
+
+# Top-level permissions apply to every resource the bundle deploys. CAN_MANAGE for you keeps the deploy
+# identity explicit, which `validate --strict` expects.
+# https://docs.databricks.com/aws/en/dev-tools/bundles/permissions
+permissions:
+  - level: CAN_MANAGE
+    user_name: ${workspace.current_user.userName}
+
+# A target is one deployment of the bundle: a workspace, a mode, and overrides. The extension's Target
+# selector switches between them; on the command line, pass -t <name>.
+#
+# The workspace host comes from your sign-in profile. To pin a target to one workspace, add
+#   workspace:
+#     host: https://<your-workspace-url>
+# under it. The extension shows the host and mode of the selected target in its Configuration view.
+# https://docs.databricks.com/aws/en/dev-tools/bundles/deployment-modes
+targets:
+  # Development mode is the default target. Resource names get a "[dev <you>]" prefix and the schema
+  # is yours alone, so two people can deploy the same bundle. Folder sync and the cluster override in
+  # the extension work only in development mode.
+  dev:
+    default: true
+    mode: development
+
+  # Production mode deploys one shared copy. Names are unprefixed. Keep real prod deploys in CI.
+  prod:
+    mode: production
+    workspace:
+      # Production mode requires a fixed path that names the target, so only one copy is deployed.
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+    # For a real production deployment, deploy as a service principal and add run_as here:
+    #   run_as:
+    #     service_principal_name: <application-id>
+    # https://docs.databricks.com/aws/en/dev-tools/bundles/run-as
+    presets:
+      tags:
+        environment: prod

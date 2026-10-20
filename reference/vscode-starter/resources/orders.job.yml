@@ -1,0 +1,45 @@
+# A Lakeflow job with two tasks on serverless compute: the notebook in src/, then the package's
+# Python wheel entry point, which writes a table. Click the play icon beside the job in the extension's
+# Bundle Resource Explorer to deploy and run it, or use `databricks bundle run`.
+#
+# Learn more:
+#   Job settings you can set here   https://docs.databricks.com/aws/en/dev-tools/bundles/resources#job
+#   Task types and their settings   https://docs.databricks.com/aws/en/dev-tools/bundles/job-task-types
+#   Serverless environment versions https://docs.databricks.com/aws/en/release-notes/serverless/environment-version/
+resources:
+  jobs:
+    capability_guides_vscode_starter:
+      name: vscode-starter-orders
+      description: Runs the daily orders notebook, then writes the daily_revenue table from the orders_demo wheel.
+      tags:
+        capability_guide_job: capability_guides_vscode_starter
+      max_concurrent_runs: 1
+      timeout_seconds: 1800
+      # Serverless compute needs an environment: a version, plus the wheel this bundle builds (see
+      # `artifacts` in databricks.yml). Version 5 matches the databricks-connect pin in pyproject.toml.
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "5"
+            dependencies:
+              - ../dist/*.whl
+      tasks:
+        - task_key: daily_orders_notebook
+          environment_key: default
+          notebook_task:
+            # Relative to this YAML file. The notebook deploys with the bundle's other files.
+            notebook_path: ../src/notebook.py
+
+        - task_key: write_daily_revenue
+          depends_on:
+            - task_key: daily_orders_notebook
+          environment_key: default
+          python_wheel_task:
+            package_name: orders_demo
+            # The console script named in [project.scripts] in pyproject.toml.
+            entry_point: orders-demo
+            # Passed to the entry point as --catalog=<value> --schema=<value>.
+            named_parameters:
+              catalog: ${var.catalog}
+              # The schema resource's name, not var.schema: development mode adds a dev_<you>_ prefix.
+              schema: ${resources.schemas.demo.name}

@@ -1,0 +1,52 @@
+[project]
+name = "orders_demo"
+version = "0.1.0"
+description = "Starter project for the Databricks IDE extension: a small package, a notebook, tests, and a bundle."
+readme = "README.md"
+# Serverless environment version 5 runs Python 3.12.
+requires-python = "==3.12.*"
+dependencies = [
+    "pandas>=2.2",
+]
+
+# The job's Python wheel task calls this: entry_point "orders-demo" in resources/orders.job.yml.
+[project.scripts]
+orders-demo = "orders_demo.main:main"
+
+# `uv sync` installs the dev group too.
+[dependency-groups]
+dev = [
+    # Match databricks-connect to the compute you run on. Serverless environment version 5 pairs with
+    # Databricks Connect 18.0 (`databricks environments setup-local --serverless-version 5` resolves to
+    # the same line), so the job's environment_version in resources/orders.job.yml is "5" too. For another
+    # version, look up its Databricks Connect line in the serverless environment version release notes
+    # and change both. X.Y.* takes the newest patch release.
+    # https://docs.databricks.com/aws/en/release-notes/serverless/environment-version/
+    # https://docs.databricks.com/aws/en/dev-tools/databricks-connect/python/install
+    "databricks-connect==18.0.*",
+    "pytest>=8",
+    "ruff>=0.6",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/orders_demo"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+markers = ["connect: needs Databricks Connect and a signed-in profile; skipped otherwise"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+# spark and display are globals that Databricks and the extension provide to notebooks.
+"src/notebook.py" = ["F821"]
