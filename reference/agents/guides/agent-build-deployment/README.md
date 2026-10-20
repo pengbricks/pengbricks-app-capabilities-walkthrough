@@ -64,11 +64,17 @@ flowchart LR
 - Model Serving endpoint `capability-guides-support-assistant` (deleted by the teardown job)
 - Runs: one build run and one teardown run, linked from the guide page
 
-## Limitations and next steps
+## Reference run
 
+What the reference run hit. The guide page teaches the current Agent Bricks CLI path; these notes are specific to this bundle.
+
+- Version 1 failed at request time with `No module named httpx`: the `openai` client needs it and it was not in the logged requirements. Version 2 added it.
 - **The tool runs through a SQL warehouse, not MCP.** The first deployed version used the managed MCP server for the function. On the endpoint, `tools/list` returned no tools, so the model answered without a lookup. Endpoint credentials are scoped to the declared resources, and the MCP route was not covered. The build now asserts that the `uc_function_tool` span exists, so this failure stops the job.
 - **Endpoint updates take minutes.** Updating the existing endpoint to version 3 took 512 seconds to reach READY.
 - **Two calls are not a latency benchmark.** The first call took 4.7 s and the second 3.6 s, mostly model time.
-- **Scale to zero is configured, not exercised.** The job deletes the endpoint before it idles long enough to scale down.
 - **Versions 1 and 2 are earlier iterations** of the same job. Version 3 holds `champion`.
+
+## Limitations and next steps
+
+- **Scale to zero is configured, not exercised.** The job deletes the endpoint before it idles long enough to scale down.
 - Next step: move the agent to the Agent Bricks CLI and Agent Runtime, which is the current path for new agents, and add `mlflow.genai.evaluate` scorers before promoting a version.

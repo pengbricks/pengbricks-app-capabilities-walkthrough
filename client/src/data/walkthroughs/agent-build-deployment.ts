@@ -5,110 +5,116 @@ export const walkthrough: Walkthrough = {
   area: 'AI Guides',
   title: 'Building and shipping agents',
   intro:
-    'One job builds a small support assistant that calls a Unity Catalog function as its tool. It registers version 3 in Unity Catalog, deploys it to a Small Model Serving endpoint that scales to zero, calls it, and records the answer, the packages, the owners, and the trace spans. A second job deletes the endpoint.',
+    'The current path for a custom agent is the Agent Bricks CLI (Beta). It scaffolds a project, runs it locally, and deploys it to Agent Runtime on Databricks Apps, served by DurableAgentServer. This page covers that path, the checks to run before you promote a version, how to trace and monitor in production, and how to declare every dependency and resource so a release is reproducible. Deploying agents to Model Serving is Legacy as of October 12, 2026.',
   shortVersion: [
     {
-      title: 'The agent is one Python file.',
-      body: 'An MLflow ResponsesAgent loops between a chat model and one tool, with a trace span on each model and tool call.',
+      title: 'Build and deploy with the Agent Bricks CLI.',
+      body: 'agentbricks init scaffolds a LangGraph or OpenAI Agents SDK project, agentbricks dev runs it against Databricks models, and agentbricks deploy ships it to Agent Runtime on Apps.',
     },
     {
-      title: 'The tool is a Unity Catalog function.',
-      body: 'The endpoint runs it on a SQL warehouse with credentials scoped to the declared resources.',
+      title: 'Use DurableAgentServer.',
+      body: 'It serves synchronous, streaming, and background runs from one invocation API, keeps run state, and recovers runs that a crash interrupted.',
     },
     {
-      title: 'The registered version is the release.',
-      body: 'support_assistant version 3 carries the champion alias and tags for the release and the tool function.',
+      title: 'Evaluate before you promote.',
+      body: 'Run a labeled set through mlflow.genai.evaluate and gate the release on the scores. Compare against the version in production.',
     },
     {
-      title: 'The endpoint costs nothing at rest.',
-      body: 'It is Small with scale to zero, and the teardown job deletes it and confirms it is gone.',
+      title: 'Trace in production.',
+      body: 'Every run lands in an MLflow experiment. Review traces and feedback, and turn failures into new evaluation cases.',
     },
     {
-      title: 'Model Serving is the legacy path.',
-      body: 'Release notes from October 12, 2026 point new agents to the Agent Bricks CLI and Agent Runtime.',
+      title: 'Declare every dependency and resource.',
+      body: 'Pin packages, list models, tools, stores, and warehouses in agent.toml and the app configuration, and grant the agent’s service principal only those.',
+    },
+    {
+      title: 'Treat Model Serving agents as Legacy.',
+      body: 'Build new agents on Agent Runtime on Apps, and plan migrations for existing ones.',
     },
   ],
   sections: [
     {
-      id: 'flow',
-      heading: 'From code to a live endpoint',
+      id: 'path',
+      heading: 'The current path: Agent Bricks CLI to Agent Runtime',
       prose:
-        'Four tasks run in order. The local test writes traces to an MLflow experiment before anything is logged. The endpoint task polls until the endpoint is READY, and the last task calls it and writes the build record.',
+        'A deployed agent has three layers. You own the first, and Databricks provides the others.',
       diagram: {
         type: 'flow',
-        title: 'The build job',
+        title: 'From an empty directory to a live agent',
         description:
-          'prepare_tool creates the sample agent_orders table, the agent_mask_email mask, and the order_status function. log_and_register tests the agent locally, logs it with its declared resources, registers a version in Unity Catalog, and sets the champion alias. deploy_endpoint creates or updates a Small scale-to-zero Model Serving endpoint and waits for READY. call_and_record sends two requests with return_trace, checks for the tool span, and appends a row to agent_build_record. The teardown job deletes the endpoint.',
+          'agentbricks init scaffolds a project from a LangGraph or OpenAI Agents SDK template. agentbricks dev runs it locally. An evaluation gate scores it against a labeled set. agentbricks deploy provisions the resources in agent.toml and deploys the agent to Agent Runtime on Databricks Apps, where DurableAgentServer serves the invocation API. Traces flow to an MLflow experiment, and feedback from production feeds the evaluation set.',
         lanes: [
-          { label: 'Build', fromRow: 0, toRow: 0 },
-          { label: 'Serve and record', fromRow: 1, toRow: 1 },
+          { label: 'Develop', fromRow: 0, toRow: 0 },
+          { label: 'Run in production', fromRow: 1, toRow: 2 },
         ],
         nodes: [
-          { id: 'prep', label: 'prepare_tool', sub: 'table, mask, function', mono: true, col: 0, row: 0 },
-          { id: 'log', label: 'log_and_register', sub: 'local test, log_model', mono: true, col: 1, row: 0, kind: 'highlight' },
-          { id: 'uc', label: 'support_assistant', sub: 'UC version 3, champion', mono: true, col: 2, row: 0, kind: 'store' },
-          { id: 'deploy', label: 'deploy_endpoint', sub: 'Small, scale to zero', mono: true, col: 3, row: 0 },
-          { id: 'ep', label: 'Serving endpoint', sub: 'waits for READY', col: 3, row: 1, kind: 'surface' },
-          { id: 'call', label: 'call_and_record', sub: '2 calls, trace check', mono: true, col: 2, row: 1 },
-          { id: 'rec', label: 'agent_build_record', sub: 'code, packages, owners', mono: true, col: 1, row: 1, kind: 'store' },
-          { id: 'down', label: 'agent_teardown', sub: 'deletes the endpoint', mono: true, col: 0, row: 1, kind: 'gate' },
+          { id: 'init', label: 'agentbricks init', sub: 'scaffold a project', mono: true, col: 0, row: 0 },
+          { id: 'dev', label: 'agentbricks dev', sub: 'run locally', mono: true, col: 1, row: 0 },
+          { id: 'gate', label: 'Evaluation gate', sub: 'mlflow.genai.evaluate', col: 2, row: 0, kind: 'gate' },
+          { id: 'deploy', label: 'agentbricks deploy', sub: 'provision and ship', mono: true, col: 3, row: 0, kind: 'highlight' },
+          { id: 'rt', label: 'Agent Runtime', sub: 'on Databricks Apps', col: 3, row: 1, kind: 'surface' },
+          { id: 'srv', label: 'DurableAgentServer', sub: 'invocation API', col: 2, row: 1, kind: 'surface' },
+          { id: 'trace', label: 'MLflow traces', sub: 'every run', col: 1, row: 2, kind: 'store' },
+          { id: 'fb', label: 'Feedback', sub: 'new evaluation cases', col: 2, row: 2 },
         ],
         edges: [
-          { from: 'prep', to: 'log' },
-          { from: 'log', to: 'uc' },
-          { from: 'uc', to: 'deploy' },
-          { from: 'deploy', to: 'ep' },
-          { from: 'ep', to: 'call' },
-          { from: 'call', to: 'rec' },
-          { from: 'down', to: 'ep', label: 'delete', dashed: true },
+          { from: 'init', to: 'dev' },
+          { from: 'dev', to: 'gate' },
+          { from: 'gate', to: 'deploy', label: 'passes' },
+          { from: 'deploy', to: 'rt' },
+          { from: 'rt', to: 'srv' },
+          { from: 'srv', to: 'trace' },
+          { from: 'trace', to: 'fb' },
+          { from: 'fb', to: 'gate', label: 'regression set', dashed: true },
         ],
         legend: [
-          { kind: 'highlight', label: 'Logs from code' },
-          { kind: 'store', label: 'Unity Catalog asset or table' },
-          { kind: 'gate', label: 'Separate job, run after' },
+          { kind: 'gate', label: 'Promotion check' },
+          { kind: 'highlight', label: 'Deploy step' },
+          { kind: 'surface', label: 'Managed by Databricks' },
         ],
       },
-    },
-    {
-      id: 'setup',
-      heading: 'Set it up',
-      prose:
-        'The agent is plain Python in src/agent/assistant.py. The notebooks log it, register it, and deploy it. What the agent does is set in the build block of use_cases/general.yml: the chat model, the system prompt, the tool round limit, and the endpoint size.',
-      steps: [
+      table: {
+        caption: 'The agent compute stack',
+        columns: ['Layer', 'Choice'],
+        rows: [
+          ['Framework or harness', 'Your agent loop. LangGraph and the OpenAI Agents SDK have CLI templates; bring an existing agent with agentbricks init --existing.'],
+          ['Agent server', 'DurableAgentServer (recommended). The MLflow AgentServer and LongRunningAgentServer are Legacy.'],
+          ['Agent runtime', 'Agent Runtime on Databricks Apps. Gives a stable OAuth-protected URL, an agent identity, durable run state, tracing, and 1 to 5 instances.'],
+        ],
+      },
+      links: [
         {
-          title: 'Deploy the bundle',
-          body: 'Set the catalog, warehouse, app service principal, and failure-mail address. The warehouse runs the tool.',
-          code: 'cd reference/agents\ndatabricks bundle deploy -t dev \\\n  --var catalog=<catalog> --var warehouse_id=<warehouse-id> \\\n  --var app_service_principal=<app-sp-application-id> \\\n  --var notification_email=<email>',
+          label: 'Deploy agents on Databricks',
+          url: 'https://docs.databricks.com/aws/en/agents/deploy/',
+          note: 'The three-layer stack and options at each layer.',
         },
         {
-          title: 'Run the build job',
-          body: 'Prepare the tool, log and register, deploy, then call the endpoint and record the build.',
-          code: 'databricks bundle run capability_guides_agent_build -t dev',
+          label: 'Agent Bricks CLI',
+          url: 'https://docs.databricks.com/aws/en/agents/custom-agents/agent-bricks-cli',
         },
         {
-          title: 'Delete the endpoint',
-          body: 'A serving endpoint is not owned by the bundle. The teardown job deletes it.',
-          code: 'databricks bundle run capability_guides_agent_teardown -t dev',
+          label: 'Agent Runtime',
+          url: 'https://docs.databricks.com/aws/en/agents/deploy/agent-runtime',
         },
       ],
     },
     {
       id: 'inside',
-      heading: 'What the agent does per request',
+      heading: 'What a good agent looks like inside',
       prose:
-        'The agent sends the question and the tool definition to databricks-claude-haiku-5-5. When the model asks for order_status, the agent runs the function on a SQL warehouse and returns the text. The endpoint returns three spans with the answer.',
+        'Keep the agent loop plain: send the question and tool definitions to a model, run the tool the model asks for, return the result, and stop at a round limit. Governed tools and traces make the loop reviewable.',
       diagram: {
         type: 'flow',
-        title: 'One request through the endpoint',
+        title: 'One request through a deployed agent',
         description:
-          'A caller posts a question to the Model Serving endpoint. The predict span wraps the whole request. The chat_model span calls the Claude Haiku 5.5 foundation model endpoint, which asks for the order_status tool. The uc_function_tool span runs SELECT order_status on a SQL warehouse using credentials scoped to the declared resources. The result goes back to the model, which writes the answer.',
+          'A caller posts a question to the agent’s invocation API. The agent span wraps the request. A model span calls a foundation model, which asks for a tool. A tool span runs a governed Unity Catalog function using credentials scoped to the declared resources. The result goes back to the model, which writes the answer.',
         nodes: [
-          { id: 'caller', label: 'Caller', sub: 'POST /invocations', col: 0, row: 0 },
-          { id: 'predict', label: 'predict', sub: 'agent span', mono: true, col: 1, row: 0, kind: 'highlight' },
-          { id: 'llm', label: 'chat_model', sub: 'Claude Haiku 5.5', mono: true, col: 2, row: 0, kind: 'surface' },
-          { id: 'tool', label: 'uc_function_tool', sub: 'SELECT order_status(id)', mono: true, col: 2, row: 1, kind: 'gate' },
-          { id: 'wh', label: 'SQL warehouse', sub: 'masked email column', col: 3, row: 1, kind: 'store' },
-          { id: 'answer', label: 'Answer', sub: 'status and age of order', col: 0, row: 1 },
+          { id: 'caller', label: 'Caller', sub: 'invocation API', col: 0, row: 0 },
+          { id: 'predict', label: 'Agent span', sub: 'wraps the request', col: 1, row: 0, kind: 'highlight' },
+          { id: 'llm', label: 'Model span', sub: 'foundation model', col: 2, row: 0, kind: 'surface' },
+          { id: 'tool', label: 'Tool span', sub: 'UC function or MCP tool', col: 2, row: 1, kind: 'gate' },
+          { id: 'wh', label: 'Governed data', sub: 'masks and filters apply', col: 3, row: 1, kind: 'store' },
+          { id: 'answer', label: 'Answer', sub: 'grounded in tool output', col: 0, row: 1 },
         ],
         edges: [
           { from: 'caller', to: 'predict' },
@@ -123,47 +129,123 @@ export const walkthrough: Walkthrough = {
           { kind: 'gate', label: 'Governed tool' },
           { kind: 'dashed', label: 'Return path' },
         ],
-        caption:
-          'For order 1042 the endpoint answered "delivered", carrier Harborline, 38 days since the order. The first call took 4.7 s and the second 3.6 s.',
       },
+      points: [
+        {
+          strong: 'Check the trace, not just the answer.',
+          text: 'A fluent answer can come from a model that never called its tool. Assert in your tests that the trace contains the tool span with real data.',
+        },
+        {
+          strong: 'Make tool calls idempotent.',
+          text: 'DurableAgentServer can start a replacement attempt after a crash, and clients retry with an invocation ID. Tools that write should tolerate a repeat.',
+        },
+      ],
+    },
+    {
+      id: 'evaluate',
+      heading: 'Evaluate before you promote',
+      prose:
+        'Treat each agent version like a release. It ships only if it scores at least as well as the version in production on a set you trust.',
+      steps: [
+        {
+          title: 'Build a labeled set',
+          body: 'Start with 30 to 100 realistic questions, each with the expected facts or the tool the agent should call. Include hard cases, refusals, and questions with no answer.',
+        },
+        {
+          title: 'Score with mlflow.genai.evaluate',
+          body: 'Run the set through the agent and score with built-in and custom scorers: correctness, groundedness, safety, and a check that the right tool was called. Log the run so versions compare side by side.',
+        },
+        {
+          title: 'Gate the release',
+          body: 'Set a minimum score per scorer and fail the deploy step below it. Keep the gate in CI, so a promotion needs a passing run on record.',
+        },
+        {
+          title: 'Keep the set growing',
+          body: 'Add traces from production failures and negative feedback to the set. Every incident becomes a regression test.',
+        },
+      ],
+      links: [
+        {
+          label: 'Evaluate and monitor GenAI apps',
+          url: 'https://docs.databricks.com/aws/en/mlflow3/genai/eval-monitor',
+        },
+      ],
+    },
+    {
+      id: 'resources',
+      heading: 'Declare every dependency and resource',
+      prose:
+        'An agent that works on your laptop fails in production when something it relied on is missing: a package, a grant, a warehouse. Declare it all, so the deployment either has it or fails loudly.',
+      points: [
+        {
+          strong: 'Pin packages.',
+          text: 'List every Python dependency with a version in the project’s requirements. A client library that arrives as an unlisted transitive dependency is the usual cause of a failure that only shows up after deploy.',
+        },
+        {
+          strong: 'List the Databricks resources in agent.toml.',
+          text: 'Tool bindings (Unity Catalog functions, managed MCP services, sandbox), and the memory, session, and tracing resources go in agent.toml. agentbricks deploy reads it to provision and wire them, and grants the agent’s service principal access to the stores it uses.',
+        },
+        {
+          strong: 'Grant the rest to the agent’s service principal.',
+          text: 'The agent runs as its app’s service principal. Grant it EXECUTE on the functions, SELECT on the tables, and CAN USE on the warehouse it needs, and nothing more. Use user authorization for tools that must run as the caller.',
+        },
+        {
+          strong: 'Keep configuration in Git.',
+          text: 'Model name, system prompt, round limit, and instance count belong in version control with the code, so a release maps to one commit.',
+        },
+        {
+          strong: 'Name an owner.',
+          text: 'Every agent has an agent owner, a tool owner, and an on-call contact recorded with the release.',
+        },
+      ],
+      links: [
+        {
+          label: 'Databricks Apps authorization',
+          url: 'https://docs.databricks.com/aws/en/dev-tools/databricks-apps/auth',
+        },
+      ],
     },
     {
       id: 'record',
-      heading: 'The record that documents it',
+      heading: 'Record each release',
       prose:
-        'The last task writes one row to agent_build_record. It answers the questions an owner or reviewer asks about a deployed agent.',
+        'Write one record per deployed version. It answers the questions an owner, auditor, or on-call engineer asks. Use this field list as a template.',
       table: {
-        columns: ['Field', 'Value in the reference run'],
+        columns: ['Field', 'What to record'],
         rows: [
-          ['model, version', 'support_assistant, version 3, alias champion'],
-          ['code', 'reference/agents/src/agent/assistant.py'],
-          ['chat model', 'databricks-claude-haiku-5-5'],
-          ['tool', 'order_status, a Unity Catalog SQL function'],
-          ['packages', 'mlflow 3.17.1, databricks-sdk 0.152.0, openai 3.31.0, httpx 0.27.0'],
-          ['declared resources', 'chat endpoint, function, agent_orders table, SQL warehouse'],
-          ['endpoint', 'capability-guides-support-assistant, Small, scale to zero'],
-          ['trace spans', 'predict, chat_model, uc_function_tool'],
-          ['owners', 'agent owner, tool owner, on-call (roles from the spec)'],
+          ['agent, version', 'Name, commit SHA, and release tag'],
+          ['code', 'Repository path of the agent and its tools'],
+          ['model', 'Foundation model or model service the agent calls'],
+          ['tools', 'Each tool, its type, and who owns it'],
+          ['packages', 'Pinned dependency versions'],
+          ['declared resources', 'Functions, tables, warehouses, stores, and MCP servers, with the grant each needs'],
+          ['deployment', 'App name, URL, instance count, and identity'],
+          ['evaluation', 'Evaluation run, scores, and the gate that passed'],
+          ['trace location', 'MLflow experiment that receives traces'],
+          ['owners', 'Agent owner, tool owner, on-call'],
         ],
       },
     },
     {
-      id: 'limits',
-      heading: 'What went wrong on the way',
+      id: 'legacy',
+      heading: 'If you already deploy to Model Serving',
       prose:
-        'The build hit two failures. Both changed the code, so both are kept here.',
-      steps: [
+        'Agents deployed to Model Serving are Legacy as of October 12, 2026. So are the MLflow AgentServer, LongRunningAgentServer, Knowledge Assistant, and Supervisor Agent. Legacy means no longer recommended for new agents: build them on Agent Runtime. The docs map each Legacy offering to its replacement.',
+      points: [
         {
-          title: 'Missing package on the endpoint',
-          body: 'Version 1 failed at request time with No module named httpx. The openai client needs it, and it was not in the logged requirements. Version 2 added it.',
+          strong: 'The pattern is the same, the target differs.',
+          text: 'Logging a model, registering a version in Unity Catalog, setting an alias, and creating an endpoint is the old flow. The new flow deploys code with the CLI and keeps the version in Git, with the evaluation gate in front of it.',
         },
         {
-          title: 'An answer with no tool call',
-          body: 'Version 2 called the function through the managed MCP server. On the endpoint, tools/list returned an empty list, so the model said it could not look up the order. The job still succeeded, because it only checked for a non-empty answer.',
+          strong: 'Migrate with the documented path.',
+          text: 'Follow the migration guide from Model Serving to Databricks Apps, move the tools and resources into agent.toml, and rerun your evaluation set against the new deployment before you switch traffic.',
         },
+      ],
+      links: [
         {
-          title: 'The fix and a stricter check',
-          body: 'Version 3 runs the function on a SQL warehouse, declared as a resource. The build task now fails unless the returned trace has a uc_function_tool span with order data.',
+          label: 'Legacy agent offerings',
+          url: 'https://docs.databricks.com/aws/en/agents/legacy/',
+          note: 'Each Legacy offering and what replaces it.',
         },
       ],
     },

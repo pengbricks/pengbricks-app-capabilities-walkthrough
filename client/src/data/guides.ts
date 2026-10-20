@@ -274,13 +274,13 @@ export const guides: readonly Guide[] = [
     title: 'Agents, MCP, and model gateway',
     category: 'AI Guides',
     difficulty: 5,
-    summary: 'Evaluate governed MCP, A2A, and model-gateway operations end to end.',
+    summary: 'Host MCP servers and agents on Databricks Apps, govern tools and models through Unity Gateway, and trace and evaluate runs.',
     acceptanceCriteria:
-      'One governed MCP tool call, one agent-to-agent handoff, and the same prompt routed to two models through a gateway with limits, safety checks, tracing, and fallback.',
+      'MCP servers and agents run on Databricks Apps with the right identity (app or on-behalf-of user), tools are governed through Unity Gateway and Unity Catalog, models are routed with limits and fallback, and runs are traced and evaluated with MLflow.',
     evidence: [
-      'Governed MCP call and cross-agent trace',
-      'Two-model gateway comparison and fallback',
-      'Controls, cost, latency, and portability matrix',
+      'Governed MCP tool call under Unity Catalog permissions',
+      'Model service with routing, fallback, rate limits, and audit',
+      'MLflow tracing, mlflow.genai.evaluate scores, and a status table of GA, Beta, and Legacy options',
     ],
   },
   {
@@ -288,13 +288,13 @@ export const guides: readonly Guide[] = [
     title: 'Building and shipping agents',
     category: 'AI Guides',
     difficulty: 5,
-    summary: 'Document the full assistant build-to-operations lifecycle.',
+    summary: 'Build with the Agent Bricks CLI, deploy to Agent Runtime on Apps, and promote only after evaluation.',
     acceptanceCriteria:
-      'An assistant is built, deployed, versioned, secured, and monitored, with its code, dependencies, and owners documented.',
+      'An agent is built with the Agent Bricks CLI and deployed to Agent Runtime on Databricks Apps with DurableAgentServer, evaluated before promotion, traced in production, and released with every dependency and resource declared.',
     evidence: [
-      'Versioned assistant implementation',
-      'Security and deployment configuration',
-      'Monitoring and operational ownership record',
+      'Agent project with agent.toml and pinned dependencies',
+      'Evaluation scores that gate promotion, and production tracing',
+      'Release record with resources, identity, and owners',
     ],
   },
   {

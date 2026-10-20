@@ -5,88 +5,190 @@ export const walkthrough: Walkthrough = {
   area: 'AI Guides',
   title: 'Agents, MCP, and model gateway',
   intro:
-    'One job checks four things on a us-west-2 workspace. A Python client calls a Unity Catalog function as an MCP tool with an OAuth token. A supervisor hands the result to a second agent. The same prompt goes through two Unity Gateway model services with rate limits, a fallback model, and inference tables. A capability table records what is GA, what is preview, and what the workspace does not have.',
+    'An agent calls models and tools. On Databricks, Unity Gateway governs both: model services for inference, and MCP servers for tools. You host custom MCP servers and agents on Databricks Apps, call Databricks-provided MCP servers without hosting anything, authenticate as the app or as the user, and trace and evaluate every run with MLflow. This page covers the current pattern for each piece and a status table so you can see what is GA, in preview, or Legacy.',
   shortVersion: [
     {
-      title: 'The tool call is a Unity Catalog call.',
-      body: 'The managed MCP server for the schema lists the functions the caller can run. The result masks the customer email through a column mask.',
+      title: 'Host MCP servers and agents on Databricks Apps.',
+      body: 'Apps gives the server compute, an HTTPS URL, and OAuth. Build a custom MCP server from a template, expose a REST API as tools, or deploy a server you already have.',
     },
     {
-      title: 'A2A is not available here.',
-      body: 'The docs and release notes list no A2A endpoint. A supervisor model hands work to two specialist agents through a handoff tool instead.',
+      title: 'Tools come from three places.',
+      body: 'Databricks-provided MCP servers in system.ai (Genie One is GA), external servers you register in Unity Gateway, and custom servers on Apps. Unity Catalog permissions govern all three.',
     },
     {
-      title: 'Two models answer one prompt.',
-      body: 'Claude Haiku 5.5 and GPT-5.4 nano each sit behind a model service with GPT-5.4 mini as the fallback.',
+      title: 'Choose whose identity runs the tool.',
+      body: 'The app’s service principal for shared actions, or the signed-in user for on-behalf-of access, so row filters and column masks apply to that person.',
     },
     {
-      title: 'Limits returned HTTP 429.',
-      body: 'Thirty requests to a service limited to 4 per minute produced 21 answers and 9 rejections.',
+      title: 'Build agents with the Agent Bricks CLI.',
+      body: 'The CLI (Beta) scaffolds LangGraph or OpenAI Agents SDK projects and deploys them to Agent Runtime on Apps with DurableAgentServer. Model Serving agent deployment is Legacy.',
     },
     {
-      title: 'Guardrails are Beta and UI-only.',
-      body: 'Service policies attach in the Unity Gateway UI. The job attaches none, and the capability table says so.',
+      title: 'Route models through Unity Gateway.',
+      body: 'Model services add routing, fallback, rate limits, inference tables, and a usage system table, so changing a model does not change agent code.',
+    },
+    {
+      title: 'Trace everything and evaluate before you ship.',
+      body: 'MLflow tracing records each model and tool call. mlflow.genai.evaluate scores a labeled set so you can compare versions.',
     },
   ],
   sections: [
     {
+      id: 'hosting',
+      heading: 'Where tools and agents run',
+      prose:
+        'Databricks Apps is the host for both custom MCP servers and agents. Unity Gateway is the single place to find, share, and govern the MCP servers, whoever runs them.',
+      diagram: {
+        type: 'flow',
+        title: 'Agent, gateway, and tool sources',
+        description:
+          'An agent running on Agent Runtime on Databricks Apps calls tools through Unity Gateway. Gateway reaches three kinds of MCP server: Databricks-provided servers in the system.ai schema, custom servers hosted on Databricks Apps, and external servers registered in the gateway with their credentials held in a Unity Catalog connection.',
+        lanes: [
+          { label: 'Agent', fromRow: 0, toRow: 0 },
+          { label: 'Tool sources', fromRow: 1, toRow: 2 },
+        ],
+        nodes: [
+          { id: 'agent', label: 'Agent', sub: 'Agent Runtime on Apps', col: 1, row: 0, kind: 'highlight' },
+          { id: 'gw', label: 'Unity Gateway', sub: 'access, policies, audit', col: 2, row: 0, kind: 'gate' },
+          { id: 'managed', label: 'Databricks-provided', sub: 'system.ai MCP services', col: 0, row: 1, kind: 'surface' },
+          { id: 'custom', label: 'Custom MCP server', sub: 'hosted on Databricks Apps', col: 2, row: 1, kind: 'surface' },
+          { id: 'external', label: 'External MCP server', sub: 'self-hosted or partner', col: 3, row: 1, kind: 'surface' },
+          { id: 'uc', label: 'Unity Catalog', sub: 'functions, data, grants', col: 0, row: 2, kind: 'store' },
+          { id: 'conn', label: 'UC connection', sub: 'holds credentials', col: 3, row: 2, kind: 'store' },
+        ],
+        edges: [
+          { from: 'agent', to: 'gw' },
+          { from: 'gw', to: 'managed' },
+          { from: 'gw', to: 'custom' },
+          { from: 'gw', to: 'external' },
+          { from: 'managed', to: 'uc' },
+          { from: 'external', to: 'conn', dashed: true },
+        ],
+        legend: [
+          { kind: 'gate', label: 'Governance point' },
+          { kind: 'surface', label: 'MCP server' },
+          { kind: 'store', label: 'Unity Catalog object' },
+        ],
+      },
+      points: [
+        {
+          strong: 'Pick the MCP server by the job.',
+          text: 'For business questions in natural language, use the Genie One MCP server. For specific SQL and engineering work, use the Databricks SQL MCP server. Build a custom server when you own the tools.',
+        },
+        {
+          strong: 'Name custom servers with the mcp- prefix.',
+          text: 'The prefix lets AI Playground find the server on Apps.',
+        },
+        {
+          strong: 'External servers use a Unity Catalog connection.',
+          text: 'Register the server in Unity Gateway so credentials and OAuth flows sit in a connection instead of agent code, and share it by grant. Check the current status of external MCP servers in the release notes before you depend on them.',
+        },
+      ],
+      links: [
+        {
+          label: 'MCP on Databricks',
+          url: 'https://docs.databricks.com/aws/en/agents/mcp-tools/',
+          note: 'Choosing, registering, and governing MCP servers.',
+        },
+        {
+          label: 'Custom MCP servers on Apps',
+          url: 'https://docs.databricks.com/aws/en/agents/mcp-tools/custom-mcp',
+        },
+        {
+          label: 'Databricks-provided MCP servers',
+          url: 'https://docs.databricks.com/aws/en/agents/mcp-tools/managed-mcp',
+        },
+      ],
+    },
+    {
       id: 'tool',
       heading: 'A governed MCP tool call',
       prose:
-        'The job creates 500 sample orders, a column mask on the email address, and a SQL function that looks up one order. The managed MCP server for the schema exposes the function. The client sends initialize, tools/list, and tools/call with the job identity\'s OAuth token, so Unity Catalog decides what the caller sees.',
+        'A Unity Catalog function becomes an MCP tool. The client sends initialize, tools/list, and tools/call with an OAuth token, so Unity Catalog decides which functions the caller sees and which data they return. A column mask on a sensitive column hides it from callers outside the allowed group.',
       diagram: {
         type: 'flow',
         title: 'One tool call, checked by Unity Catalog',
         description:
-          'The job task authenticates with the Databricks SDK and sends JSON-RPC requests to the managed MCP server for the schema. The server lists the Unity Catalog functions the caller has EXECUTE on. The tools/call request runs order_status, which reads the orders table. A column mask on customer_email hides the address from callers outside the PII group. The result and the function grants are written to mcp_tool_call.',
+          'The client authenticates with OAuth and sends JSON-RPC requests to the MCP server for the schema. The server lists the Unity Catalog functions the caller has EXECUTE on. The tools/call request runs the function, which reads a table. A column mask hides sensitive columns from callers outside the allowed group.',
         lanes: [
           { label: 'Caller', fromRow: 0, toRow: 0 },
           { label: 'Unity Catalog', fromRow: 1, toRow: 2 },
         ],
         nodes: [
-          { id: 'task', label: 'mcp_tool_call', sub: 'job task, SDK OAuth', mono: true, col: 0, row: 0 },
-          { id: 'rpc', label: 'JSON-RPC', sub: 'protocol 2025-06-18', col: 1, row: 0, kind: 'highlight' },
-          { id: 'rec', label: 'mcp_tool_call', sub: 'result, grants, latency', mono: true, col: 3, row: 0, kind: 'store' },
-          { id: 'server', label: 'Managed MCP server', sub: '/api/2.0/mcp/functions', col: 1, row: 1, kind: 'surface' },
+          { id: 'task', label: 'MCP client', sub: 'OAuth token', col: 0, row: 0 },
+          { id: 'rpc', label: 'JSON-RPC', sub: 'tools/list, tools/call', col: 1, row: 0, kind: 'highlight' },
+          { id: 'server', label: 'MCP server', sub: 'for the schema', col: 1, row: 1, kind: 'surface' },
           { id: 'grants', label: 'EXECUTE on function', sub: 'checked per caller', col: 2, row: 1, kind: 'gate' },
-          { id: 'fn', label: 'order_status', sub: 'UC SQL function', mono: true, col: 2, row: 2 },
-          { id: 'orders', label: 'agent_orders', sub: 'email column masked', mono: true, col: 3, row: 2, kind: 'store' },
+          { id: 'fn', label: 'UC SQL function', sub: 'the tool', col: 2, row: 2 },
+          { id: 'orders', label: 'Table', sub: 'sensitive column masked', col: 3, row: 2, kind: 'store' },
         ],
         edges: [
           { from: 'task', to: 'rpc' },
-          { from: 'rpc', to: 'server', label: 'tools/list, tools/call' },
+          { from: 'rpc', to: 'server' },
           { from: 'server', to: 'grants' },
           { from: 'grants', to: 'fn', label: 'allowed' },
           { from: 'fn', to: 'orders' },
-          { from: 'server', to: 'rec', dashed: true },
         ],
         legend: [
           { kind: 'gate', label: 'Unity Catalog privilege check' },
-          { kind: 'surface', label: 'Managed MCP server (Public Preview)' },
+          { kind: 'surface', label: 'MCP server' },
           { kind: 'store', label: 'Table' },
         ],
         caption:
-          'The call returned in a median 1.9 s over three calls. The schema lists two tools: order_status and the mask function, because both are functions the caller can run.',
+          'The schema lists every function the caller can run, including helper functions such as mask functions. Grant EXECUTE only on the functions you mean to expose.',
       },
     },
     {
-      id: 'handoff',
-      heading: 'A handoff between agents',
+      id: 'identity',
+      heading: 'Whose identity runs the tool',
       prose:
-        'A supervisor model gets one customer question and a handoff tool. It sends the order lookup to the orders agent, which calls the MCP tool. It then sends the facts and the return policy to the policy agent and returns that reply. Each step lands in agent_handoff_trace with its latency.',
+        'An agent on Apps has two identities available. Pick per tool, not per agent.',
+      table: {
+        columns: ['Identity', 'Use it when'],
+        rows: [
+          ['App service principal (OAuth M2M)', 'The action is the same for every caller, such as writing run state or reading shared reference data'],
+          [
+            'On-behalf-of user',
+            'Results must follow the person’s permissions. Databricks forwards the user’s token, scoped, and Unity Catalog applies row filters and column masks to that user.',
+          ],
+        ],
+      },
+      points: [
+        {
+          strong: 'Default to least privilege.',
+          text: 'Grant the app’s service principal only the functions, tables, and endpoints the agent needs. Do not run it as a person or with a PAT.',
+        },
+        {
+          strong: 'Use user authorization for anything personal.',
+          text: 'Querying tables, SQL warehouses, and jobs tied to a user action should run as that user, so the agent can never return more than the user could see.',
+        },
+      ],
+      links: [
+        {
+          label: 'Databricks Apps authorization',
+          url: 'https://docs.databricks.com/aws/en/dev-tools/databricks-apps/auth',
+          note: 'App identity and user authorization.',
+        },
+      ],
+    },
+    {
+      id: 'handoff',
+      heading: 'Several agents, one task',
+      prose:
+        'Multi-agent work is a supervisor pattern: one model routes work to specialist agents, each with its own tools, and combines their results. Build it in code with the Agent Bricks CLI. Keep each specialist narrow so you can trace and evaluate it alone.',
       diagram: {
         type: 'flow',
-        title: 'Supervisor to orders agent to policy agent',
+        title: 'Supervisor to specialist agents',
         description:
-          'The supervisor calls handoff for orders_agent. The orders agent calls the Unity Catalog function through MCP and returns the order facts with the email masked. The supervisor calls handoff for policy_agent with those facts. The policy agent drafts the reply using the return policy text. The supervisor returns that reply as the final answer. The whole run took about 16 seconds.',
+          'The supervisor receives a question and calls a handoff tool for the first specialist, which calls a governed MCP tool and returns facts. The supervisor then hands those facts to a second specialist that drafts the reply. The supervisor returns that reply. Each step is a span in the MLflow trace.',
         nodes: [
-          { id: 'ask', label: 'Customer question', sub: 'order 1042 not arrived', col: 0, row: 0 },
-          { id: 'sup', label: 'Supervisor', sub: 'Claude Haiku 5.5', col: 1, row: 0, kind: 'highlight' },
-          { id: 'orders', label: 'orders_agent', sub: 'GPT-5.4 mini', mono: true, col: 2, row: 0 },
-          { id: 'tool', label: 'order_status over MCP', sub: 'UC function', col: 3, row: 0, kind: 'surface' },
-          { id: 'policy', label: 'policy_agent', sub: 'Claude Haiku 5.5', mono: true, col: 2, row: 1 },
-          { id: 'final', label: 'Final reply', sub: 'applies return policy', col: 1, row: 1 },
-          { id: 'trace', label: 'agent_handoff_trace', sub: '6 steps with latency', mono: true, col: 3, row: 1, kind: 'store' },
+          { id: 'ask', label: 'User question', sub: 'one request', col: 0, row: 0 },
+          { id: 'sup', label: 'Supervisor', sub: 'routes work', col: 1, row: 0, kind: 'highlight' },
+          { id: 'orders', label: 'Specialist A', sub: 'looks up facts', col: 2, row: 0 },
+          { id: 'tool', label: 'Governed MCP tool', sub: 'UC function', col: 3, row: 0, kind: 'surface' },
+          { id: 'policy', label: 'Specialist B', sub: 'drafts the reply', col: 2, row: 1 },
+          { id: 'final', label: 'Final reply', sub: 'returned to the user', col: 1, row: 1 },
+          { id: 'trace', label: 'MLflow trace', sub: 'one span per step', col: 3, row: 1, kind: 'store' },
         ],
         edges: [
           { from: 'ask', to: 'sup' },
@@ -99,64 +201,78 @@ export const walkthrough: Walkthrough = {
         legend: [
           { kind: 'highlight', label: 'Routing model' },
           { kind: 'surface', label: 'Governed tool' },
-          { kind: 'store', label: 'Trace table' },
+          { kind: 'store', label: 'Trace' },
         ],
-        caption: 'This is a supervisor pattern. No A2A endpoint exists on the workspace, so the guide does not claim one.',
+        caption:
+          'The Databricks docs describe no A2A endpoint, so this guide does not claim one. Supervisor Agent and Knowledge Assistant are Legacy; use Genie Agents for low-code agents and the Agent Bricks CLI to coordinate agents in code.',
       },
     },
     {
       id: 'gateway',
-      heading: 'One prompt, two models',
+      heading: 'Models through Unity Gateway',
       prose:
-        'The job creates two Unity Gateway model services and sends the same prompt to each three times. Each service routes to one primary model and has a fallback destination, a per-minute rate limit, and an inference table. The served model comes back in the response.',
+        'A model service is a Unity Catalog name your agent calls instead of a provider endpoint. Behind it you choose the primary model, a fallback, and limits. That lets you swap models, compare two on the same prompt, and cap spend without touching agent code.',
       diagram: {
         type: 'matrix',
-        title: 'Same prompt through two model services',
+        title: 'What a model service lets you set',
         description:
-          'Two model services are compared on primary model, fallback model, request limit, median latency, and tokens. agents_gateway_a routes to Claude Haiku 5.5 with a limit of 60 requests per minute and answered in a median 1411 ms with 35 input and 107 output tokens. agents_gateway_b routes to GPT-5.4 nano with a limit of 4 requests per minute and answered in a median 962 ms with 25 input and 62 output tokens. Both fall back to GPT-5.4 mini, which was not needed.',
-        corner: 'Model service',
-        columns: ['Primary', 'Fallback', 'Request limit', 'Median latency', 'Tokens in / out'],
+          'A model service sets the primary model, a fallback model for failures, a request or token rate limit, and an inference table. Usage is recorded in the system.ai_gateway.usage system table.',
+        corner: 'Setting',
+        columns: ['What it does', 'Why set it'],
         rows: [
           {
-            label: 'agents_gateway_a',
-            sub: 'prompt x3',
+            label: 'Primary model',
             cells: [
-              { state: 'own', text: 'Claude Haiku 5.5' },
-              { state: 'optional', text: 'GPT-5.4 mini', sub: 'not used' },
-              { state: 'own', text: '60 per min' },
-              { state: 'own', text: '1,411 ms' },
-              { state: 'own', text: '35 / 107' },
+              { state: 'own', text: 'Serves the request' },
+              { state: 'own', text: 'Swap or A/B models', sub: 'no agent change' },
             ],
           },
           {
-            label: 'agents_gateway_b',
-            sub: 'prompt x3',
+            label: 'Fallback model',
             cells: [
-              { state: 'own', text: 'GPT-5.4 nano' },
-              { state: 'optional', text: 'GPT-5.4 mini', sub: 'not used' },
-              { state: 'own', text: '4 per min' },
-              { state: 'own', text: '962 ms' },
-              { state: 'own', text: '25 / 62' },
+              { state: 'own', text: 'Takes over on failure' },
+              { state: 'own', text: 'Keep answering', sub: 'during a provider outage' },
+            ],
+          },
+          {
+            label: 'Rate limits',
+            sub: 'requests or tokens per minute',
+            cells: [
+              { state: 'own', text: 'Returns HTTP 429 over limit' },
+              { state: 'own', text: 'Cap spend', sub: 'protect shared capacity' },
+            ],
+          },
+          {
+            label: 'Inference tables',
+            cells: [
+              { state: 'own', text: 'Log requests and responses' },
+              { state: 'own', text: 'Audit and evaluate', sub: 'replay real traffic' },
+            ],
+          },
+          {
+            label: 'Usage system table',
+            sub: 'system.ai_gateway.usage',
+            cells: [
+              { state: 'own', text: 'Records tokens and callers' },
+              { state: 'own', text: 'Chargeback', sub: 'and budgets' },
             ],
           },
         ],
-        legend: [
-          { state: 'own', label: 'Measured or configured' },
-          { state: 'optional', label: 'Configured, not triggered' },
-        ],
-        caption: 'Token counts come from the response usage field. Each service has 3 calls, so treat latency as indicative.',
+        legend: [{ state: 'own', label: 'Available on a model service' }],
+        caption:
+          'Rate limits count usage after a response and run per instance, so treat them as a cap with some overshoot, not an exact meter. Audit rows can arrive late.',
       },
     },
     {
       id: 'controls',
       heading: 'Limits, fallback, and audit',
       prose:
-        'A burst of 30 requests went to the 4-per-minute service. The limiter rejected 9 of them with HTTP 429. It lets some extra requests through because it counts usage after a response and runs per instance. Every call also lands in the service\'s inference table and in system.ai_gateway.usage.',
+        'Every request passes the same checks. Design your client to handle the 429 and to read which model actually answered.',
       diagram: {
         type: 'flow',
         title: 'What a gateway request passes through',
         description:
-          'A caller sends a request to a model service by its Unity Catalog name. Unity Catalog checks EXECUTE on the service. The rate limiter allows or returns HTTP 429. Allowed requests go to the primary model, and a failure there sends them to the fallback model. Every request is written to the service inference table and to system.ai_gateway.usage. Service policies for guardrails sit between the caller and the model but are attached in the UI and were not attached in this run.',
+          'A caller sends a request to a model service by its Unity Catalog name. Unity Catalog checks EXECUTE on the service. The rate limiter allows the request or returns HTTP 429. Allowed requests go to the primary model, and a failure there sends them to the fallback model. Every request is written to the service inference table and to the usage system table. Service policies for guardrails sit between the caller and the model and are attached in the gateway UI.',
         lanes: [
           { label: 'Request path', fromRow: 0, toRow: 1 },
           { label: 'Audit', fromRow: 2, toRow: 2 },
@@ -164,12 +280,12 @@ export const walkthrough: Walkthrough = {
         nodes: [
           { id: 'caller', label: 'Caller', sub: 'OAuth token', col: 0, row: 0 },
           { id: 'svc', label: 'Model service', sub: 'catalog.schema.name', col: 1, row: 0, kind: 'highlight' },
-          { id: 'limit', label: 'Rate limit', sub: 'QPM and TPM', col: 2, row: 0, kind: 'gate' },
+          { id: 'limit', label: 'Rate limit', sub: 'requests and tokens', col: 2, row: 0, kind: 'gate' },
           { id: 'primary', label: 'Primary model', sub: 'pay-per-token', col: 3, row: 0 },
-          { id: 'reject', label: 'HTTP 429', sub: '9 of 30 burst calls', col: 2, row: 1 },
+          { id: 'reject', label: 'HTTP 429', sub: 'over the limit', col: 2, row: 1 },
           { id: 'fallback', label: 'Fallback model', sub: 'on primary failure', col: 3, row: 1 },
-          { id: 'policy', label: 'Service policy', sub: 'Beta, UI only', col: 1, row: 1, kind: 'surface' },
-          { id: 'inf', label: '*_payload', sub: 'inference table', mono: true, col: 1, row: 2, kind: 'store' },
+          { id: 'policy', label: 'Service policy', sub: 'guardrails (Beta)', col: 1, row: 1, kind: 'surface' },
+          { id: 'inf', label: 'Inference table', sub: 'requests and responses', col: 1, row: 2, kind: 'store' },
           { id: 'usage', label: 'ai_gateway.usage', sub: 'system table', mono: true, col: 3, row: 2, kind: 'store' },
         ],
         edges: [
@@ -183,65 +299,84 @@ export const walkthrough: Walkthrough = {
           { from: 'primary', to: 'usage' },
         ],
         legend: [
-          { kind: 'gate', label: 'Enforced in this run' },
-          { kind: 'surface', label: 'Available, not attached' },
-          { kind: 'dashed', label: 'Configured or optional path' },
+          { kind: 'gate', label: 'Enforced check' },
+          { kind: 'surface', label: 'Optional control' },
+          { kind: 'dashed', label: 'Optional or failure path' },
           { kind: 'store', label: 'Audit table' },
         ],
-        caption:
-          'Audit rows arrive late; the usage table showed them about 30 minutes after the calls. It recorded 36 requests: 3 for service a, and 24 answers plus 9 rejections for service b. The inference tables held 3 and 23 rows. The fallback never ran because both primaries answered every call.',
       },
+    },
+    {
+      id: 'observe',
+      heading: 'Trace and evaluate',
+      prose:
+        'A gateway tells you what was called. MLflow tells you whether the agent did the right thing.',
+      points: [
+        {
+          strong: 'Trace every run.',
+          text: 'MLflow 3 tracing records each model call, tool call, and handoff as a span with inputs, outputs, and latency. Agent Runtime configures tracing to an experiment when you deploy, so a bad answer in production has a trace you can open.',
+        },
+        {
+          strong: 'Evaluate with mlflow.genai.evaluate.',
+          text: 'Run a labeled set of questions through the agent and score the outputs with built-in and custom scorers, such as correctness, groundedness, and tool-call checks. Compare versions before you promote one.',
+        },
+        {
+          strong: 'Turn production failures into test cases.',
+          text: 'Add traces with thumbs-down feedback or wrong answers to the evaluation set, so each incident becomes a regression test.',
+        },
+      ],
+      links: [
+        {
+          label: 'MLflow tracing',
+          url: 'https://docs.databricks.com/aws/en/mlflow3/genai/tracing',
+        },
+        {
+          label: 'Evaluate and monitor GenAI apps',
+          url: 'https://docs.databricks.com/aws/en/mlflow3/genai/eval-monitor',
+        },
+      ],
     },
     {
       id: 'matrix',
-      heading: 'What is GA, preview, or missing',
+      heading: 'What is GA, preview, or Legacy',
       prose:
-        'The capability table is written by the job, so the result column comes from this run. Status text comes from the Databricks docs and release notes, with the page named in the source column.',
+        'Status changes quickly. Check the release notes before you commit a design to anything marked Beta or preview.',
       diagram: {
         type: 'matrix',
-        title: 'Capability status and result in this run',
+        title: 'Capability status',
         description:
-          'Eight capabilities with their status and what happened in the run. The managed MCP server for Unity Catalog functions is Public Preview and worked. Unity Gateway model services, rate limits, inference tables, and the usage system table are GA and worked, although the usage table filled in about 30 minutes after the calls. Service policies are Beta and were not attached. A2A is not available. Agents on Model Serving are Legacy as of October 12, 2026.',
+          'The Genie One MCP server, Unity Gateway model services, rate limits, inference tables, the usage system table, and MLflow tracing are GA. The Agent Bricks CLI and gateway service policies are Beta. Databricks-provided MCP servers other than Genie One are available, some behind the Unity Gateway beta. On-behalf-of user authorization on Apps and custom MCP servers on Apps are supported. An A2A endpoint is not documented. Agents on Model Serving, MLflow AgentServer, LongRunningAgentServer, Knowledge Assistant, and Supervisor Agent are Legacy.',
         corner: 'Capability',
-        columns: ['Status', 'Result in this run'],
+        columns: ['Status', 'Use for'],
         rows: [
-          { label: 'UC function MCP', sub: 'protocol 2025-06-18', cells: [{ state: 'optional', text: 'Public Preview' }, { state: 'own', text: 'Worked' }] },
-          { label: 'Model services', sub: 'routing and fallback', cells: [{ state: 'own', text: 'GA' }, { state: 'own', text: 'Worked' }] },
-          { label: 'Rate limits', sub: 'QPM and TPM', cells: [{ state: 'own', text: 'GA' }, { state: 'own', text: '429 observed' }] },
-          { label: 'Inference tables', sub: 'per service', cells: [{ state: 'own', text: 'GA' }, { state: 'own', text: 'Rows landed' }] },
-          { label: 'ai_gateway.usage', sub: 'system table', cells: [{ state: 'own', text: 'GA' }, { state: 'optional', text: 'Rows after ~30 min' }] },
-          { label: 'Service policies', sub: 'guardrails', cells: [{ state: 'optional', text: 'Beta' }, { state: 'none', text: 'Not attached' }] },
-          { label: 'A2A endpoint', sub: 'agent-to-agent', cells: [{ state: 'none', text: 'Not available' }, { state: 'none', text: 'Supervisor used' }] },
-          { label: 'Agents on Model Serving', sub: 'deployment target', cells: [{ state: 'none', text: 'Legacy' }, { state: 'own', text: 'Used in the build guide' }] },
+          { label: 'Genie One MCP server', sub: 'system.ai.genie_one_mcp', cells: [{ state: 'own', text: 'GA' }, { state: 'own', text: 'Natural-language analytics' }] },
+          { label: 'Other provided MCP', sub: 'SQL, sandbox, web search', cells: [{ state: 'optional', text: 'Unity Gateway beta' }, { state: 'own', text: 'Ready-made tools' }] },
+          { label: 'Custom MCP on Apps', sub: 'your tools', cells: [{ state: 'own', text: 'Supported' }, { state: 'own', text: 'Your own tools' }] },
+          { label: 'On-behalf-of user auth', sub: 'Apps', cells: [{ state: 'own', text: 'Supported' }, { state: 'own', text: 'Per-user permissions' }] },
+          { label: 'Agent Bricks CLI', sub: 'build and deploy', cells: [{ state: 'optional', text: 'Beta' }, { state: 'own', text: 'New agents' }] },
+          { label: 'Agent Runtime + DurableAgentServer', sub: 'on Databricks Apps', cells: [{ state: 'own', text: 'Recommended' }, { state: 'own', text: 'Hosting agents' }] },
+          { label: 'Model services', sub: 'Unity Gateway', cells: [{ state: 'own', text: 'GA' }, { state: 'own', text: 'Routing, fallback, limits' }] },
+          { label: 'MLflow tracing + evaluate', sub: 'mlflow.genai.evaluate', cells: [{ state: 'own', text: 'GA' }, { state: 'own', text: 'Debug and score' }] },
+          { label: 'Service policies', sub: 'guardrails', cells: [{ state: 'optional', text: 'Beta' }, { state: 'optional', text: 'Safety checks' }] },
+          { label: 'A2A endpoint', sub: 'agent-to-agent', cells: [{ state: 'none', text: 'Not documented' }, { state: 'none', text: 'Use a supervisor' }] },
+          { label: 'Agents on Model Serving', sub: 'and MLflow AgentServer', cells: [{ state: 'none', text: 'Legacy' }, { state: 'none', text: 'Move to Agent Runtime' }] },
+          { label: 'Knowledge Assistant', sub: 'and Supervisor Agent', cells: [{ state: 'none', text: 'Legacy' }, { state: 'none', text: 'Genie Agents or the CLI' }] },
         ],
         legend: [
-          { state: 'own', label: 'GA or worked' },
-          { state: 'optional', label: 'Preview, Beta, or partial' },
-          { state: 'none', label: 'Missing or not used' },
+          { state: 'own', label: 'GA, supported, or recommended' },
+          { state: 'optional', label: 'Beta or preview' },
+          { state: 'none', label: 'Legacy or not available' },
         ],
-        caption: 'The full table, with region, protocol version, and latency per row, is agent_capability_matrix.',
       },
-    },
-    {
-      id: 'setup',
-      heading: 'Set it up',
-      prose:
-        'The agents bundle holds both jobs. Models, rate limits, and fallbacks are not bundle settings. They are the gateway block in use_cases/general.yml, and the notebooks create the model services through the SDK.',
-      steps: [
+      links: [
         {
-          title: 'Deploy the bundle',
-          body: 'Set the catalog, warehouse, app service principal, and the address that gets failure mail.',
-          code: 'cd reference/agents\ndatabricks bundle deploy -t dev \\\n  --var catalog=<catalog> --var warehouse_id=<warehouse-id> \\\n  --var app_service_principal=<app-sp-application-id> \\\n  --var notification_email=<email>',
+          label: 'Unity Gateway',
+          url: 'https://docs.databricks.com/aws/en/unity-gateway',
         },
         {
-          title: 'Run the job',
-          body: 'The job calls the tool, runs the handoff, routes through two model services, and reads the audit table.',
-          code: 'databricks bundle run capability_guides_agent_gateway -t dev',
-        },
-        {
-          title: 'Clean up',
-          body: 'The model services and their inference tables are not owned by the bundle. The teardown job removes them.',
-          code: 'databricks bundle run capability_guides_agent_teardown -t dev',
+          label: 'Legacy agent offerings',
+          url: 'https://docs.databricks.com/aws/en/agents/legacy/',
+          note: 'Each Legacy offering and its replacement.',
         },
       ],
     },

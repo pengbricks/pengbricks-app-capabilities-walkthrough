@@ -5916,7 +5916,7 @@
           "label": "Route one prompt to two models with a fallback",
           "path": "reference/agents/guides/agent-framework-support/04_gateway_routing.py",
           "notes": [
-            "Primary destination, fallback destination, two rate limits, and an inference table, all in one service config."
+            "Primary destination, fallback destination, rate limits, and an inference table, all in one service config."
           ],
           "symbol": "service_config",
           "section": "gateway"
@@ -5956,7 +5956,8 @@
           "label": "Usage and fallback attempts from the system table",
           "path": "reference/agents/guides/agent-framework-support/05_gateway_audit.py",
           "notes": [
-            "Counts requests, tokens, and requests that needed a second attempt, per service and destination model."
+            "Counts requests, tokens, and requests that needed a second attempt, per service and destination model.",
+            "Audit rows can arrive late; poll or rerun later."
           ],
           "lines": [
             86,
@@ -5968,13 +5969,13 @@
           "label": "The gateway job",
           "path": "reference/agents/resources/agent_gateway.job.yml",
           "notes": [
-            "Three parameters. gateway_audit waits for the system table, so it runs after routing."
+            "Job parameters come from bundle variables; the audit task runs after routing because the system table lags."
           ],
           "lines": [
             15,
             27
           ],
-          "section": "setup"
+          "section": "controls"
         }
       ]
     },
@@ -6042,7 +6043,7 @@
           "label": "The agent loop",
           "path": "reference/agents/src/agent/assistant.py",
           "notes": [
-            "Ask the model, run any tool calls, repeat up to max_tool_rounds."
+            "Ask the model, run any tool calls, repeat up to a round limit."
           ],
           "symbol": "predict",
           "section": "inside"
@@ -6051,45 +6052,47 @@
           "label": "Log, register, and alias",
           "path": "reference/agents/guides/agent-build-deployment/02_log_and_register.py",
           "notes": [
-            "Declared resources are what the endpoint credentials are scoped to.",
-            "The champion alias moves to the new version."
+            "Declared resources are what the deployment credentials are scoped to.",
+            "Reference bundle uses the Model Serving path, now Legacy; the current path is the Agent Bricks CLI."
           ],
           "lines": [
             84,
             96
           ],
-          "section": "flow"
+          "section": "legacy"
         },
         {
           "label": "Call the endpoint and check the trace",
           "path": "reference/agents/guides/agent-build-deployment/04_call_and_record.py",
           "notes": [
-            "Asks for the trace in the response and fails unless the tool span carries order data."
+            "Asks for the trace in the response and fails unless the tool span carries data.",
+            "The same check works as a gate on any deployment."
           ],
           "lines": [
             70,
             99
           ],
-          "section": "record"
+          "section": "evaluate"
         },
         {
           "label": "Create or update the endpoint",
           "path": "reference/agents/guides/agent-build-deployment/03_deploy_endpoint.py",
           "notes": [
-            "Tracing is switched on with an environment variable. Update when the endpoint exists, create when it does not."
+            "Update when the endpoint exists, create when it does not.",
+            "Model Serving agent deployment is Legacy."
           ],
           "lines": [
             77,
             93
           ],
-          "section": "flow"
+          "section": "legacy"
         },
         {
           "label": "The tool call as a trace span",
           "path": "reference/agents/src/agent/assistant.py",
           "notes": [
-            "The decorator names the span the build check looks for.",
-            "order_id is cast to int before it reaches SQL."
+            "A decorator names the span the check looks for.",
+            "Cast tool arguments to the type SQL expects before they reach the query."
           ],
           "symbol": "_call_tool",
           "section": "inside"
@@ -6098,13 +6101,14 @@
           "label": "The build job",
           "path": "reference/agents/resources/agent_build.job.yml",
           "notes": [
-            "Task values carry the version, run ID, and endpoint name from task to task."
+            "Task values carry the version and endpoint name from task to task.",
+            "Reference job for the Legacy Model Serving path."
           ],
           "lines": [
             30,
             58
           ],
-          "section": "setup"
+          "section": "legacy"
         }
       ]
     },

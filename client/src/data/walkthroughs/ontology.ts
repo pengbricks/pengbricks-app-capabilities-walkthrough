@@ -5,7 +5,7 @@ export const walkthrough: Walkthrough = {
   area: 'AI Guides',
   title: 'Business terms and synonyms',
   intro:
-    'Enterprise tables use codes such as seg_cd, rgn_cd, and ord_st. A person, a dashboard, or Genie can read them correctly only if the meaning is written down once, next to the data. Unity Catalog does not have a feature called an ontology. You build the same result from comments, governed tags, metric views with synonyms, certification, and Genie Agent context, and you check it with benchmarks.',
+    'Enterprise tables use codes such as seg_cd, rgn_cd, and ord_st. A person, a dashboard, or Genie can read them correctly only if the meaning is written down once, next to the data. There is no single ontology object to create in Unity Catalog. You build the governed semantic layer from comments, governed tags, metric views with synonyms, certification, and Genie Agent context, and you check it with benchmarks.',
   shortVersion: [
     {
       title: 'Define each term once, next to the data.',
