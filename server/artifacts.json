@@ -642,40 +642,40 @@
           "label": "Job runs joined to job tags from system tables",
           "path": "reference/monitoring/guides/monitoring/02_ops_job_runs.py",
           "notes": [
-            "All runs in the workspace are included; tag columns let the dashboard filter to guide jobs.",
-            "Joining on ops_context scopes account-wide system tables to this workspace."
+            "Joins job runs to job metadata from system tables.",
+            "Tag columns let a view or dashboard filter to one team."
           ],
           "lines": [
             25,
             64
           ],
-          "section": "setup"
+          "section": "expose"
         },
         {
           "label": "Usage and list-price cost by SKU",
           "path": "reference/monitoring/guides/monitoring/04_ops_usage_cost.py",
           "notes": [
-            "List prices are joined by SKU and the price's effective window.",
+            "List prices are joined by SKU and the price window.",
             "Usage is grouped by day, SKU, and product for cost trends."
           ],
           "lines": [
             25,
             51
           ],
-          "section": "setup"
+          "section": "cost-alerts"
         },
         {
           "label": "Alert routing from job and alert settings",
           "path": "reference/monitoring/guides/monitoring/01_setup_context_and_alert_routing.py",
           "notes": [
-            "Notification destinations are not in system tables, so they come from the Jobs and Alerts APIs.",
+            "Reads notification settings from the Jobs and Alerts APIs.",
             "The result is one table that shows which alert routes where."
           ],
           "lines": [
             58,
             97
           ],
-          "section": "setup"
+          "section": "alerting"
         }
       ]
     },
@@ -1031,10 +1031,10 @@
           "path": "reference/documentation/guides/documentation-generation/02_generate_docs.py",
           "symbol": "profile",
           "notes": [
-            "Row count, null rate per column, and key uniqueness are computed in one query.",
-            "These numbers feed both the docs page and the AI prompt."
+            "Row count, null rate per column, and key uniqueness come from one query.",
+            "The numbers go into the page and into the AI prompt as context."
           ],
-          "section": "setup"
+          "section": "propose-approve"
         },
         {
           "label": "Draft descriptions with ai_query",
@@ -1042,9 +1042,9 @@
           "symbol": "draft_descriptions",
           "notes": [
             "ai_query drafts table and column descriptions from schema, profile, and lineage.",
-            "The model returns JSON that the job applies as Unity Catalog comments."
+            "The reference job applies the JSON result directly; a production flow writes proposals first."
           ],
-          "section": "setup"
+          "section": "ai-functions"
         },
         {
           "label": "Render one documentation page",
@@ -1054,7 +1054,7 @@
             "One markdown page per table covers ownership, schema, quality, lineage, and usage.",
             "Pages are regenerated on every refresh, so they track the table."
           ],
-          "section": "setup"
+          "section": null
         }
       ]
     },
@@ -3705,7 +3705,7 @@
             "Privilege names are validated."
           ],
           "symbol": "grant_sql",
-          "section": "flow"
+          "section": "groups"
         },
         {
           "label": "Verify dev and prod differ",
@@ -3725,7 +3725,7 @@
             "The job records the fallback to account users."
           ],
           "symbol": "resolve_grantee",
-          "section": "principals"
+          "section": null
         },
         {
           "label": "Job parameters and task order",
@@ -3738,7 +3738,7 @@
             12,
             48
           ],
-          "section": "flow"
+          "section": null
         },
         {
           "label": "Apply grants per environment",
@@ -3766,7 +3766,7 @@
           "label": "List service principals",
           "path": "reference/governance/guides/access-management/07_list_service_principals.py",
           "notes": [
-            "Lists service principals through the SDK so rotation and ownership can be reviewed."
+            "Lists service principals through the SDK so ownership and rotation can be reviewed."
           ],
           "symbol": "list_service_principals",
           "section": "principals"
@@ -3827,11 +3827,10 @@
           "label": "Masks that branch on identity",
           "path": "reference/governance/src/governance_lib/sqlgen.py",
           "notes": [
-            "session_user() is checked before is_member().",
-            "Identity expressions are parameters, so another identity can be simulated."
+            "Checks the caller, then group membership, then falls through to a partial mask."
           ],
           "symbol": "mask_body",
-          "section": "identities"
+          "section": "table-functions"
         },
         {
           "label": "Create and attach the policies",
@@ -3841,7 +3840,7 @@
             "Masks and filters attach with ALTER TABLE."
           ],
           "symbol": "create_policies",
-          "section": "flow"
+          "section": "table-functions"
         },
         {
           "label": "Test as each identity",
@@ -3851,7 +3850,7 @@
             "Other identities are simulated; role switching is the real test."
           ],
           "symbol": "test_policies",
-          "section": "testing"
+          "section": null
         },
         {
           "label": "Mask function SQL",
@@ -3860,7 +3859,7 @@
             "One CREATE FUNCTION per mask kind, generated from the spec."
           ],
           "symbol": "mask_function_sql",
-          "section": "flow"
+          "section": "table-functions"
         },
         {
           "label": "Row filter keyed on a mapping table",
@@ -3870,7 +3869,7 @@
             "Changing access is an INSERT, not a policy rewrite."
           ],
           "symbol": "dynamic_filter_body",
-          "section": "identities"
+          "section": "table-functions"
         },
         {
           "label": "Read policies back from information_schema",
@@ -3942,21 +3941,20 @@
           "label": "Generate concurrent load",
           "path": "reference/governance/guides/compute-capacity-management/03_generate_load.py",
           "notes": [
-            "40 async statements against a temporary 2X-Small warehouse.",
+            "Submits a burst of concurrent statements against a throwaway warehouse.",
             "Shared warehouses are only read, never resized."
           ],
           "symbol": "generate_load",
-          "section": "settings"
+          "section": "sizing"
         },
         {
           "label": "Measure queueing",
           "path": "reference/governance/guides/compute-capacity-management/04_analyze_load.py",
           "notes": [
-            "Waits for query history, then computes waits and peak concurrency.",
-            "Median wait at capacity was 61.1 s in the reference run."
+            "Waits for query history, then computes waits and peak concurrency."
           ],
           "symbol": "analyze_load",
-          "section": "dashboard"
+          "section": "monitor"
         },
         {
           "label": "Always delete the test warehouse",
@@ -3969,7 +3967,7 @@
             48,
             55
           ],
-          "section": "run"
+          "section": null
         },
         {
           "label": "Job parameters and task order",
@@ -3981,7 +3979,7 @@
             12,
             47
           ],
-          "section": "run"
+          "section": null
         },
         {
           "label": "Read the production warehouse settings",
@@ -3990,17 +3988,16 @@
             "Writes size, cluster range, auto-stop, and channel to a table through the SDK."
           ],
           "symbol": "read_settings",
-          "section": "settings"
+          "section": "sizing"
         },
         {
           "label": "Create a separate 2X-Small test warehouse",
           "path": "reference/governance/guides/compute-capacity-management/02_create_load_warehouse.py",
           "notes": [
-            "The load runs on a throwaway warehouse so production users never queue behind it.",
-            "Min and max clusters are 1, so queueing shows up."
+            "The load runs on a throwaway warehouse so production users never queue behind it."
           ],
           "symbol": "create_load_warehouse",
-          "section": "isolation"
+          "section": "sizing"
         }
       ]
     },
@@ -4064,20 +4061,18 @@
           "label": "Spend by product, tag, user, and job",
           "path": "reference/governance/guides/cost-chargeback/01_build_views.py",
           "notes": [
-            "Usage joined to list prices by effective window.",
-            "Scoped to this workspace."
+            "Usage joined to list prices by effective window."
           ],
           "symbol": "build_views",
-          "section": "breakdown"
+          "section": "metadata"
         },
         {
           "label": "30-day forecast",
           "path": "reference/governance/guides/cost-chargeback/04_forecast.sql",
           "notes": [
-            "ai_forecast runs as a SQL task on the warehouse.",
-            "With only 3 days of history, it shows the method, not a plan."
+            "ai_forecast runs as a SQL task on the warehouse."
           ],
-          "section": "budget"
+          "section": "forecast"
         },
         {
           "label": "Budget alert",
@@ -4086,7 +4081,7 @@
             "Alerts when 7-day spend passes budget_threshold_usd.",
             "The threshold is a bundle variable per environment."
           ],
-          "section": "budget"
+          "section": null
         },
         {
           "label": "Job parameters and task order",
@@ -4098,7 +4093,7 @@
             12,
             48
           ],
-          "section": "flow"
+          "section": null
         },
         {
           "label": "Flag optimization candidates",
@@ -4107,7 +4102,7 @@
             "Reads the enriched cost view plus warehouse and query history."
           ],
           "symbol": "optimization",
-          "section": "optimize"
+          "section": null
         }
       ]
     },
@@ -5063,7 +5058,7 @@
       ],
       "recordedRuns": [
         {
-          "label": "Data sharing run (share creation blocked)",
+          "label": "Data sharing run",
           "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/782848950254257/runs/547286982470216",
           "workspace": "Reference workspace",
           "recordedAt": "2026-10-16T17:06:54Z"
@@ -5071,7 +5066,7 @@
       ],
       "docs": [
         {
-          "label": "Delta Sharing",
+          "label": "OpenSharing",
           "url": "https://docs.databricks.com/aws/en/delta-sharing/"
         },
         {
@@ -5092,14 +5087,13 @@
           "label": "Share, read, revoke",
           "path": "reference/open-data/guides/data-sharing/02_share_and_read.py",
           "notes": [
-            "Create, grant, read with the delta-sharing client, revoke, confirm the read fails.",
-            "Records BLOCKED with the needed GRANT when CREATE SHARE is missing."
+            "Create, grant, read with the delta-sharing client, revoke, confirm the read fails."
           ],
           "lines": [
             103,
             164
           ],
-          "section": "lifecycle"
+          "section": "privileges"
         },
         {
           "label": "Revoke and confirm the read fails",
@@ -5112,7 +5106,7 @@
             197,
             221
           ],
-          "section": "lifecycle"
+          "section": "privileges"
         },
         {
           "label": "Shared in place, not copied",
@@ -5122,20 +5116,20 @@
             "That is the evidence no replication happens."
           ],
           "symbol": "served_from_source",
-          "section": "replication"
+          "section": "egress"
         },
         {
           "label": "Collect the audit trail",
           "path": "reference/open-data/guides/data-sharing/03_collect_audit.py",
           "notes": [
             "Polls system.access.audit for the share and recipient.",
-            "Tolerates audit lag."
+            "Allows for audit lag."
           ],
           "lines": [
             30,
             46
           ],
-          "section": "visibility"
+          "section": "audit"
         },
         {
           "label": "Job parameters and task order",
@@ -5147,7 +5141,7 @@
             13,
             41
           ],
-          "section": "lifecycle"
+          "section": null
         },
         {
           "label": "Row-limiting view that omits customer_email",
@@ -5160,7 +5154,7 @@
             56,
             63
           ],
-          "section": "visibility"
+          "section": "subsets"
         },
         {
           "label": "Add objects to the share",
@@ -5172,7 +5166,7 @@
             97,
             102
           ],
-          "section": "lifecycle"
+          "section": "assets"
         },
         {
           "label": "Create the recipient and grant",
@@ -5185,7 +5179,7 @@
             113,
             119
           ],
-          "section": "lifecycle"
+          "section": "recipients"
         },
         {
           "label": "Detect a missing metastore privilege",
@@ -5194,7 +5188,7 @@
             "Turns a PERMISSION_DENIED on CREATE SHARE into a recorded gap."
           ],
           "symbol": "is_missing_privilege",
-          "section": "privileges"
+          "section": null
         }
       ]
     },
@@ -5648,7 +5642,7 @@
             "A refused UC grant is recorded with its reason."
           ],
           "symbol": "roles",
-          "section": "coverage"
+          "section": null
         },
         {
           "label": "Idempotent action ledger",
@@ -5658,17 +5652,16 @@
             "A retried task never duplicates rows."
           ],
           "symbol": "ledger_merge_sql",
-          "section": "flow"
+          "section": null
         },
         {
           "label": "Apply a policy if it drifted",
           "path": "reference/platform-ops/guides/platform-administration/04_policies.py",
           "notes": [
-            "Tries a budget policy, then a cluster policy.",
-            "Edits only when the definition changed."
+            "Applies a policy only when its definition changed, so reruns change nothing."
           ],
           "symbol": "policies",
-          "section": "coverage"
+          "section": "compute"
         },
         {
           "label": "Job tasks and failure email",
@@ -5680,25 +5673,25 @@
             12,
             34
           ],
-          "section": "flow"
+          "section": null
         },
         {
           "label": "Read the access audit",
           "path": "reference/platform-ops/guides/platform-administration/06_audit_access.py",
           "notes": [
-            "Reads system.access.audit with a date filter and records the result."
+            "Reads system.access.audit with a date filter."
           ],
           "symbol": "audit_access",
-          "section": "audit"
+          "section": "as-code"
         },
         {
           "label": "Check warehouse settings against policy",
           "path": "reference/platform-ops/src/admin_lib.py",
           "notes": [
-            "Flags a warehouse that is oversized or lacks auto-stop; a refused call is recorded as a refusal."
+            "Flags a warehouse that is oversized or lacks auto-stop."
           ],
           "symbol": "evaluate_warehouse",
-          "section": "refusals"
+          "section": "compute"
         }
       ]
     },
@@ -5727,7 +5720,7 @@
       ],
       "recordedRuns": [
         {
-          "label": "Support run with a failure by design",
+          "label": "Support run",
           "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/795846009467607/runs/824147783745294",
           "workspace": "Reference workspace",
           "recordedAt": "2026-10-16T17:06:54Z"
@@ -5766,7 +5759,7 @@
             "High severity also pages the escalation contact."
           ],
           "symbol": "classify",
-          "section": "routing"
+          "section": "severity"
         },
         {
           "label": "Count only the latest attempt",
@@ -5776,20 +5769,19 @@
             "A task that passed on retry is not an incident."
           ],
           "symbol": "latest_attempts",
-          "section": "routing"
+          "section": "resiliency"
         },
         {
           "label": "Repair the failed run",
           "path": "reference/platform-ops/guides/operational-support/05_repair_failed_run.py",
           "notes": [
-            "Repairs only failed tasks through the Jobs API.",
-            "The original run ended SUCCESS after repair."
+            "Repairs only failed tasks through the Jobs API."
           ],
           "lines": [
             75,
             89
           ],
-          "section": "steps"
+          "section": "resiliency"
         },
         {
           "label": "Job tasks, retries, and run_if",
@@ -5801,7 +5793,7 @@
             19,
             48
           ],
-          "section": "flow"
+          "section": "resiliency"
         },
         {
           "label": "Match the on-call owner",
@@ -5810,7 +5802,7 @@
             "Tags on the job pick the on-call row."
           ],
           "symbol": "match_on_call",
-          "section": "routing"
+          "section": "runbooks"
         },
         {
           "label": "Retry a transient failure",
@@ -5819,7 +5811,7 @@
             "The task reads execution_count and fails only on the first attempt."
           ],
           "symbol": "write_with_retry",
-          "section": "resiliency"
+          "section": null
         }
       ]
     },

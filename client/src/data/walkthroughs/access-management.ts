@@ -5,180 +5,256 @@ export const walkthrough: Walkthrough = {
   area: 'Governance/Monitoring',
   title: 'Access management',
   intro:
-    'One job grants two schemas to a group with different privileges, checks the grants in information_schema, reads the grant changes from the audit log, and lists the workspace’s service principals. It never grants to a person.',
+    'Unity Catalog decides who can see and change data through privileges on securable objects, evaluated against account-level principals. A sound model is small: grant to groups, separate environments by catalog, let tags drive broad rules, own objects with groups or service principals, and audit continuously. This page lays out that model and the checks that keep it from drifting.',
   shortVersion: [
     {
-      title: 'Grants go to a group.',
-      body: 'Every GRANT targets one group. The grant builder rejects an email address, and a check fails the run if a person holds an explicit grant.',
+      title: 'Grant to account-level groups, never to people.',
+      body: 'A person joins or leaves a group in the identity provider. No grant has to change, and no one holds a forgotten direct grant.',
     },
     {
-      title: 'Dev and prod differ by privilege.',
-      body: 'The dev-like schema allows read, write, and create. The prod-like schema allows reads on one table.',
+      title: 'One catalog per environment.',
+      body: 'Dev, staging, and prod are separate catalogs bound to their own workspaces. Two schemas in one catalog share a blast radius.',
     },
     {
-      title: 'A workspace group is not enough.',
-      body: 'Unity Catalog only grants to account-level groups. The job creates the workspace group, finds it is not grantable, and falls back to account users.',
+      title: 'Use ABAC for rules that span many tables.',
+      body: 'Tag the data with governed tags and write one policy per tag, instead of a grant or function per table.',
     },
     {
-      title: 'The audit log shows every change.',
-      body: 'system.access.audit recorded 45 grant changes in the catalog over 30 days, including three refused attempts.',
+      title: 'Own with groups and service principals.',
+      body: "Ownership carries full control, including the right to grant. Move it off the creator's account for anything in production.",
     },
     {
-      title: 'Credentials are listed, not read.',
-      body: 'The service principal table shows roles, secret count, and expiry. The rotation procedure replaces a secret without downtime.',
+      title: 'Audit what changed.',
+      body: 'system.access.audit records grants, revokes, and ownership changes. Review them and alert on the ones that matter.',
     },
   ],
   sections: [
     {
-      id: 'flow',
-      heading: 'How access is granted and checked',
+      id: 'groups',
+      heading: 'Grant to account-level groups',
       prose:
-        'The job resolves which principal can receive grants, grants both environments from the use-case spec, and then proves the result from the catalog and the audit log.',
-      diagram: {
-        type: 'flow',
-        title: 'From group to verified grants',
-        description:
-          'ensure_group creates the workspace group through the SDK and probes whether Unity Catalog can grant to it. If not, the job uses the account users group. apply_grants grants the dev-like schema read, write, and create, and the prod-like schema USE SCHEMA plus SELECT on orders. verify_grants reads information_schema and asserts the difference. audit_grant_changes queries system.access.audit.',
-        lanes: [
-          { label: 'Principal', fromRow: 0, toRow: 0 },
-          { label: 'Grants and checks', fromRow: 1, toRow: 2 },
-        ],
-        nodes: [
-          { id: 'group', label: 'ensure_group', mono: true, sub: 'SDK, workspace group', col: 0, row: 0 },
-          { id: 'gate', label: 'Grantable?', sub: 'account-level only', col: 1, row: 0, kind: 'gate' },
-          { id: 'reader', label: 'reader_group', mono: true, sub: 'if grantable', col: 2, row: 0 },
-          { id: 'fallback', label: 'account users', sub: 'used in this run', col: 3, row: 0, kind: 'highlight' },
-          { id: 'apply', label: 'apply_grants', mono: true, col: 1, row: 1, kind: 'highlight' },
-          { id: 'dev', label: 'access_dev', mono: true, sub: 'read, write, create', col: 2, row: 1, kind: 'store' },
-          { id: 'prod', label: 'access_prod', mono: true, sub: 'SELECT on orders', col: 3, row: 1, kind: 'store' },
-          { id: 'verify', label: 'verify_grants', mono: true, sub: 'information_schema', col: 1, row: 2 },
-          { id: 'audit', label: 'audit_grant_changes', mono: true, sub: 'system.access.audit', col: 2, row: 2 },
-        ],
-        edges: [
-          { from: 'group', to: 'gate' },
-          { from: 'gate', to: 'reader', label: 'yes' },
-          { from: 'gate', to: 'fallback', label: 'no' },
-          { from: 'fallback', to: 'apply' },
-          { from: 'reader', to: 'apply', dashed: true },
-          { from: 'apply', to: 'dev' },
-          { from: 'apply', to: 'prod' },
-          { from: 'apply', to: 'verify' },
-          { from: 'apply', to: 'audit' },
-        ],
-        legend: [
-          { kind: 'highlight', label: 'Principal that received grants' },
-          { kind: 'gate', label: 'Probe by GRANT' },
-          { kind: 'store', label: 'Schema' },
-        ],
-      },
+        'Unity Catalog privileges attach to account-level principals. Workspace-local groups are not Unity Catalog principals, so create groups in the account and sync them from your identity provider with automatic identity management or SCIM.',
+      points: [
+        {
+          strong: 'Name groups by role and scope.',
+          text: 'For example analysts-sales-prod or engineers-platform-dev. A group maps to a job function, not to a project that will end.',
+        },
+        {
+          strong: 'Grant at the highest sensible level.',
+          text: 'Privileges inherit down the hierarchy. USE CATALOG and SELECT on a schema cover current and future tables, so you do not re-grant for each new table.',
+        },
+        {
+          strong: 'Grant the minimum.',
+          text: 'Readers get USE CATALOG, USE SCHEMA, and SELECT. Writers add MODIFY. Only builders get CREATE TABLE. Avoid ALL PRIVILEGES.',
+        },
+        {
+          strong: 'Check for direct grants.',
+          text: 'Any grant whose principal is a user is a finding. Query information_schema for them on a schedule.',
+        },
+      ],
+      examples: [
+        {
+          label: 'Read access for one group, and a check for person-level grants',
+          language: 'sql',
+          code: `GRANT USE CATALOG ON CATALOG prod TO \`analysts-sales\`;
+GRANT USE SCHEMA, SELECT ON SCHEMA prod.sales TO \`analysts-sales\`;
+
+SELECT grantee, table_schema, table_name, privilege_type
+FROM prod.information_schema.table_privileges
+WHERE grantee LIKE '%@%';`,
+          notes: ['Rows from the second query are direct grants to people. Move each one to a group.'],
+        },
+      ],
+      links: [
+        {
+          label: 'Manage privileges in Unity Catalog',
+          url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/manage-privileges/',
+        },
+        {
+          label: 'Unity Catalog best practices',
+          url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/best-practices',
+        },
+      ],
     },
     {
       id: 'environments',
-      examples: [
-        {
-          label: 'Inspect and revoke a grant by hand',
-          language: 'sql',
-          code: `SHOW GRANTS \`data-readers\` ON SCHEMA main.sales_prod;
-REVOKE SELECT ON SCHEMA main.sales_prod FROM \`data-readers\`;
-GRANT SELECT ON SCHEMA main.sales_prod TO \`data-readers\`;`,
-          notes: ['Use the same group name the job grants to, so a manual change shows up in the audit task.'],
-        },
-      ],
-      heading: 'Dev and prod, side by side',
+      heading: 'A catalog per environment, bound to its workspace',
       prose:
-        'Both schemas hold the same two tables from the spec. The difference is the privilege set. Grants on the prod-like schema are at object level: one table, read only.',
+        'Make the environment boundary a catalog, not a schema. Each environment gets its own catalog, the catalog is bound to the workspace where that environment runs, and the privileges differ by environment.',
       diagram: {
         type: 'matrix',
-        title: 'What the group can do',
+        title: 'Same group, different environments',
         description:
-          'On the dev-like schema the group can use the schema, select, modify, and create tables, and it inherits select and modify on customers and orders. On the prod-like schema the group can use the schema and select from orders only. It has no access to customers and cannot modify or create.',
-        corner: 'Environment ↓ · Object →',
-        columns: ['Schema', 'customers', 'orders', 'Create tables'],
+          'In the dev catalog, bound to the dev workspace, engineers can read, write, and create tables, and analysts can read. In the prod catalog, bound to the prod workspace, engineers have read access only, analysts can read, and a deploy service principal is the only writer.',
+        corner: 'Group ↓ · Catalog →',
+        columns: ['dev (dev workspace)', 'prod (prod workspace)'],
         rows: [
           {
-            label: 'Dev-like',
-            sub: 'access_dev',
+            label: 'Engineers',
             cells: [
-              { state: 'own', text: 'USE SCHEMA' },
-              { state: 'own', text: 'SELECT, MODIFY' },
-              { state: 'own', text: 'SELECT, MODIFY' },
-              { state: 'own', text: 'Yes' },
+              { state: 'own', text: 'Read, write, create' },
+              { state: 'optional', text: 'Read only' },
             ],
           },
           {
-            label: 'Prod-like',
-            sub: 'access_prod',
+            label: 'Analysts',
             cells: [
-              { state: 'own', text: 'USE SCHEMA' },
-              { state: 'none', text: 'No grant' },
-              { state: 'own', text: 'SELECT' },
-              { state: 'none', text: 'No' },
+              { state: 'optional', text: 'Read' },
+              { state: 'optional', text: 'Read' },
+            ],
+          },
+          {
+            label: 'Deploy service principal',
+            cells: [
+              { state: 'none', text: 'None needed' },
+              { state: 'own', text: 'Write, owner of objects' },
             ],
           },
         ],
         legend: [
-          { state: 'own', label: 'Granted' },
-          { state: 'none', label: 'Not granted' },
+          { state: 'own', label: 'Write or create' },
+          { state: 'optional', label: 'Read' },
+          { state: 'none', label: 'No access' },
         ],
-        caption:
-          'On dev, SELECT and MODIFY on the tables are inherited from the schema grant (inherited_from = SCHEMA). On prod, the SELECT on orders is an explicit table grant (inherited_from = NONE).',
       },
+      points: [
+        {
+          strong: 'Bindings add a second lock.',
+          text: 'A catalog bound to the prod workspace is denied from the dev workspace even for users who hold privileges on it. You can mark a binding read-only.',
+        },
+        {
+          strong: 'Promote with code.',
+          text: 'Code and pipelines move from dev to prod through CI running as a service principal. People do not edit prod data by hand.',
+        },
+      ],
+      links: [
+        {
+          label: 'Workspace-catalog binding',
+          url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/access-control/workspace-catalog-binding',
+        },
+      ],
     },
     {
-      id: 'audit',
-      heading: 'Who changed what',
+      id: 'abac',
+      heading: 'Use ABAC with governed tags for broad rules',
       prose:
-        'Unity Catalog permission changes are metastore-level audit events: the top-level workspace_id is 0 and the real workspace sits in request_params. The job scopes by catalog name. status_code separates applied changes from refused ones.',
-      steps: [
+        'When a rule applies to many tables, such as hide PII from everyone except the compliance team, do not grant or write a function table by table. Tag the data with a governed tag, then attach one attribute-based access control policy at the catalog or schema. The policy applies to every table or column that carries the tag, including tables added later.',
+      points: [
         {
-          title: 'Grant changes',
-          body: 'sql/permission_audit_task.sql writes access_audit_grant_changes. In the reference run, 12 rows were on this guide’s schemas: nine with status 200 and three with status 404.',
-          code: "SELECT event_time, user_identity.email AS actor,\n       request_params['securable_full_name'] AS securable,\n       request_params['changes'] AS changes,\n       response.status_code AS status_code\nFROM system.access.audit\nWHERE event_date >= current_date() - INTERVAL 30 DAYS\n  AND service_name = 'unityCatalog'\n  AND action_name = 'updatePermissions';",
+          strong: 'Governed tags.',
+          text: 'Defined at the account with fixed allowed values and controlled permissions on who can create and assign them. Treat tagging as a security boundary, because changing a tag changes which policies apply.',
         },
         {
-          title: 'What the 404s are',
-          body: 'The attempts to grant to the workspace-local group. The catalog refused them, and the audit log kept the attempts.',
+          strong: 'Policy types.',
+          text: 'Row filter and column mask policies are generally available, including cross-engine enforcement. GRANT policies give dynamic privileges based on tags. See the row and column security guide for the details.',
         },
         {
-          title: 'Current state',
-          body: 'information_schema.schema_privileges and table_privileges list who holds what now, with inherited_from to separate explicit grants from cascades.',
+          strong: 'Combine with direct grants carefully.',
+          text: "A principal's effective privileges are the union of direct grants and GRANT policies, so review both.",
+        },
+      ],
+      links: [
+        {
+          label: 'Attribute-based access control',
+          url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/abac/',
+        },
+        {
+          label: 'Best practices for ABAC policies',
+          url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/abac/best-practices',
+        },
+      ],
+    },
+    {
+      id: 'ownership',
+      heading: 'Ownership, MANAGE, BROWSE, and READ METADATA',
+      points: [
+        {
+          strong: 'Ownership.',
+          text: 'The creator of an object is its first owner, and owners can grant on it. Transfer production catalogs, schemas, and tables to a group or a service principal, so the object does not depend on one person.',
+        },
+        {
+          strong: 'MANAGE hygiene.',
+          text: 'MANAGE lets a principal grant and change policies on an object. Give it to a small steward group, never broadly, and list who holds it. Owners of a parent catalog or schema can grant on everything below, so keep those owners few.',
+        },
+        {
+          strong: 'BROWSE for discovery.',
+          text: 'BROWSE on a catalog lets people see object names and comments in search and Catalog Explorer without being able to read data. Grant it widely so people can find what to request.',
+        },
+        {
+          strong: 'READ METADATA for governance roles.',
+          text: 'READ METADATA lets auditors and stewards view metadata, such as policies on a securable, without reading rows.',
+        },
+        {
+          strong: 'Metastore admin is optional.',
+          text: 'Assign it only if you need it, and assign it to a group.',
         },
       ],
     },
     {
       id: 'principals',
-      heading: 'Service principals and rotation',
+      heading: 'Service principals and credentials',
       prose:
-        'The job lists the workspace’s service principals with their group memberships (roles), entitlements, and OAuth secret metadata. It reads no secret values.',
-      diagram: {
-        type: 'flow',
-        title: 'Rotating a service principal secret',
-        description:
-          'Create a second secret with a lifetime. Store it where the consumer reads it. Redeploy or restart the consumer and confirm it authenticates. Delete the old secret. Rerun the job and check the secret count and expiry in access_service_principals.',
-        nodes: [
-          { id: 'new', label: 'Create new secret', sub: 'with a lifetime', col: 0, row: 0 },
-          { id: 'store', label: 'Store the secret', sub: 'secret scope or resource', col: 1, row: 0 },
-          { id: 'switch', label: 'Restart the consumer', sub: 'confirm it authenticates', col: 2, row: 0, kind: 'gate' },
-          { id: 'old', label: 'Delete old secret', col: 3, row: 0 },
-          { id: 'check', label: 'Rerun the job', sub: 'count and expiry', col: 3, row: 1, kind: 'highlight' },
-          { id: 'table', label: 'service principals', mono: true, sub: 'access_ table', col: 2, row: 1, kind: 'store' },
-        ],
-        edges: [
-          { from: 'new', to: 'store' },
-          { from: 'store', to: 'switch' },
-          { from: 'switch', to: 'old', label: 'works' },
-          { from: 'old', to: 'check' },
-          { from: 'check', to: 'table' },
-        ],
-        legend: [
-          { kind: 'gate', label: 'Do not delete before this passes' },
-          { kind: 'highlight', label: 'Read-only check' },
-        ],
-      },
+        "Automation should not run as a person or hold a person's token. Give each pipeline or application its own service principal and grant it only what that workload needs.",
+      points: [
+        {
+          strong: 'Workload identity federation first.',
+          text: 'Let the CI system or cloud workload exchange its own identity token for a Databricks token. No secret is stored, so none can leak or expire unnoticed.',
+        },
+        {
+          strong: 'OAuth M2M if you must hold a secret.',
+          text: 'Keep the client secret in a secret manager, give it a short lifetime, and rotate it by creating the new secret before deleting the old one.',
+        },
+        {
+          strong: 'Avoid PATs.',
+          text: 'Personal access tokens are legacy and tied to a person. Restrict who can create them and review the ones that exist.',
+        },
+        {
+          strong: 'Review the list.',
+          text: 'List service principals through the SDK or the account console. Each should have an owner, a purpose, and a current secret or federation policy.',
+        },
+      ],
+      links: [
+        {
+          label: 'Service principals',
+          url: 'https://docs.databricks.com/aws/en/admin/users-groups/service-principals',
+        },
+        { label: 'OAuth token federation', url: 'https://docs.databricks.com/aws/en/dev-tools/auth/oauth-federation' },
+        { label: 'OAuth M2M', url: 'https://docs.databricks.com/aws/en/dev-tools/auth/oauth-m2m' },
+      ],
+    },
+    {
+      id: 'audit',
+      heading: 'Audit permission changes',
+      prose:
+        'Every grant, revoke, and ownership change is an event in system.access.audit. Permission changes on Unity Catalog objects are metastore-level events, so filter by the object name in request_params rather than by workspace_id.',
+      examples: [
+        {
+          label: 'Grant and revoke events on one catalog in the last 30 days',
+          language: 'sql',
+          code: `SELECT event_time, user_identity.email AS actor,
+       request_params['securable_full_name'] AS securable,
+       request_params['changes'] AS changes,
+       response.status_code AS status_code
+FROM system.access.audit
+WHERE event_date >= current_date() - INTERVAL 30 DAYS
+  AND service_name = 'unityCatalog'
+  AND action_name = 'updatePermissions'
+  AND request_params['securable_full_name'] LIKE 'prod.%'
+ORDER BY event_time DESC;`,
+          notes: [
+            'status_code separates applied changes from refused ones. Investigate repeated refusals.',
+            'Alert on grants to individual users, grants of ALL PRIVILEGES, and changes to ownership of production objects.',
+          ],
+        },
+      ],
+      links: [
+        { label: 'Audit log system table', url: 'https://docs.databricks.com/aws/en/admin/system-tables/audit-logs' },
+      ],
     },
   ],
   related: [
     { slug: 'row-column-security', title: 'Row and column security' },
-    { slug: 'cost-chargeback', title: 'Cost tracking and chargeback' },
+    { slug: 'platform-administration', title: 'Workspace and account administration' },
+    { slug: 'data-sharing', title: 'Governed data sharing' },
   ],
 };

@@ -203,13 +203,14 @@ export const guides: readonly Guide[] = [
     title: 'Automated data documentation',
     category: 'Governance/Monitoring',
     difficulty: 3,
-    summary: 'Generate governed technical and usage documentation from platform metadata.',
+    summary:
+      'Keep data documentation in Unity Catalog: comments, governed tags, lineage, and quality, drafted with AI and approved by owners.',
     acceptanceCriteria:
-      'A job writes one documentation page per table covering schema, lineage, quality, ownership, and usage, and applies AI-drafted comments in Unity Catalog.',
+      'Tables carry reviewed comments, governed and certification tags, and a group owner in Unity Catalog. AI drafts are proposed first and applied only after owner review, and never overwrite a human comment. Lineage and quality come from platform features.',
     evidence: [
-      'Generated schema and ownership documentation',
-      'Lineage and quality metadata',
-      'Refresh workflow and usage guidance',
+      'Table and column comments, governed tags, and certification status',
+      'Propose-then-approve flow for AI-drafted comments',
+      'Lineage and data quality monitoring linked from the documentation',
     ],
   },
   {
@@ -217,13 +218,14 @@ export const guides: readonly Guide[] = [
     title: 'Platform observability',
     category: 'Governance/Monitoring',
     difficulty: 3,
-    summary: 'Unify operational, usage, cost, and audit signals.',
+    summary:
+      'Answer operational, cost, and audit questions from system tables, and alert through Lakeflow Jobs notifications and Budgets.',
     acceptanceCriteria:
-      'System tables feed one dashboard for runs, failures, cost, compute, and audit events, and a SQL alert emails the owner.',
+      'Each question maps to a system table (audit, billing, lakeflow, compute, query history, Unity Gateway usage) that is exposed through views with the right scope. Job failures and slow runs notify the owner, Budgets alert on spend, and retention, lag, and masking are known.',
     evidence: [
-      'Consolidated monitoring view',
-      'Failure-to-owner alert route',
-      'Compute, capacity, usage, and audit evidence',
+      'Question-to-system-table map',
+      'Job notifications, health rules, and notification destinations',
+      'Scope, retention, lag, and masking rules for system tables',
     ],
   },
   {
@@ -372,10 +374,14 @@ export const guides: readonly Guide[] = [
     title: 'Support and recovery',
     category: 'Governance/Monitoring',
     difficulty: 3,
-    summary: 'Exercise support ownership and a representative recovery path.',
+    summary: 'Make workloads recoverable, and give every incident a severity, an owner, and an escalation path.',
     acceptanceCriteria:
-      'Triage an incident, restart or recover the workload, and follow the escalation path and ownership.',
-    evidence: ['Triage and recovery exercise', 'Resiliency approach', 'Escalation path and ownership matrix'],
+      'Tasks retry safely with idempotent writes, run_if handles cleanup, and repair runs finish failed work. Streams restart on their own, notifications reach the owner, disaster recovery has RPO and RTO targets, and runbooks define severity and escalation.',
+    evidence: [
+      'Retry, run_if, and repair settings for idempotent tasks',
+      'Notifications, health rules, and destinations by severity',
+      'Disaster recovery plan, runbooks, and escalation path',
+    ],
   },
   {
     slug: 'iceberg-support',
@@ -438,13 +444,14 @@ export const guides: readonly Guide[] = [
     title: 'Governed data sharing',
     category: 'Governance/Monitoring',
     difficulty: 3,
-    summary: 'Exercise governed sharing, entitlement, and revocation.',
+    summary:
+      'Share governed data and AI assets with OpenSharing, using the right recipient type, credential hardening, and audit.',
     acceptanceCriteria:
-      'Share a governed dataset, grant and revoke access, and decide whether the recipient needs a copy.',
+      'A share exposes only the intended assets, and a view carries any row or column restriction. Open recipients use OIDC federation or short-lived tokens with an IP access list, access can be revoked, cross-region egress is planned for, and sharing is audited through system tables.',
     evidence: [
-      'Governed share and recipient setup',
-      'Entitlement and revocation run',
-      'Replication requirement decision',
+      'Recipient type choice and required privileges',
+      'Open-recipient hardening and shareable asset types',
+      'Egress plan and audit query',
     ],
   },
   {
@@ -452,13 +459,14 @@ export const guides: readonly Guide[] = [
     title: 'Workspace and account administration',
     category: 'Governance/Monitoring',
     difficulty: 4,
-    summary: 'Walk through the core enterprise administration operating model.',
+    summary:
+      'Run the account and workspaces with one identity source, regional metastores, and administration kept in code.',
     acceptanceCriteria:
-      'Set up workspaces and roles, apply policies, manage capacity, read audit logs, and handle routine support.',
+      'Identity syncs to the account and grants go to account groups. Automation uses service principals with OAuth or federation, and PATs are restricted. Network, encryption, and serverless controls are set early, and the platform is managed in Terraform and bundles with system tables enabled.',
     evidence: [
-      'Workspace and account setup record',
-      'Roles, policies, and capacity controls',
-      'Audit access and routine support procedure',
+      'Account, metastore, and workspace-catalog binding model',
+      'Identity, credential, and PAT policy',
+      'Network, serverless, and compute controls managed as code',
     ],
   },
   {
@@ -719,23 +727,28 @@ export const guides: readonly Guide[] = [
     title: 'Access management',
     category: 'Governance/Monitoring',
     difficulty: 2,
-    summary: 'Groups, environments, object permissions, and service principals.',
+    summary: 'Grant access to groups, separate environments by catalog, and audit every permission change.',
     acceptanceCriteria:
-      'Users get access through groups, dev and prod catalogs grant different privileges, object-level grants are audited, and service principals hold credentials for automation.',
-    evidence: ['Group-based grants', 'Dev versus prod access difference', 'Permission audit query'],
+      'Privileges go to account-level groups, never to individuals. Each environment has its own catalog bound to its workspace, ABAC with governed tags covers broad rules, groups or service principals own production objects, and permission changes are audited in system.access.audit.',
+    evidence: [
+      'Group-based grants and a check for direct grants',
+      'Catalog-per-environment layout with workspace binding',
+      'Ownership, MANAGE review, and permission audit query',
+    ],
   },
   {
     slug: 'row-column-security',
     title: 'Row and column security',
     category: 'Governance/Monitoring',
     difficulty: 3,
-    summary: 'Mask columns and filter rows by user, then test the policies.',
+    summary:
+      'Protect rows and columns with ABAC policies on governed tags, and use per-table functions for targeted rules.',
     acceptanceCriteria:
-      'Column masks hide sensitive fields, row filters limit rows by attribute and identity, and a second identity confirms the policies apply before they are documented.',
+      'One ABAC policy per governed tag masks columns or filters rows across every matching table. Per-table filter and mask functions cover one-off rules, sensitive columns are found by data classification, and the policies in force are listed from information_schema.',
     evidence: [
-      'Column masks and row filters',
-      'Results as two different identities',
-      'Policy inventory from information_schema',
+      'ABAC policies on governed tags',
+      'Per-table row filter and column mask functions',
+      'Policy inventory and limits review',
     ],
   },
   {
@@ -743,13 +756,13 @@ export const guides: readonly Guide[] = [
     title: 'Compute and capacity management',
     category: 'Governance/Monitoring',
     difficulty: 3,
-    summary: 'Size, scale, isolate, pause, and monitor compute.',
+    summary: 'Default to serverless, then size, isolate, tag, and monitor compute.',
     acceptanceCriteria:
-      'Warehouses scale up and out, auto-stop when idle, isolate workloads, and a utilization dashboard shows queueing and peak concurrency.',
+      'Workloads run on serverless SQL warehouses, jobs, and notebooks by default. Warehouses are sized for the query and scaled out for concurrency, with one warehouse per workload. Queries carry tags, classic compute is limited by policies, auto-termination, and pools, and queueing is read from query history.',
     evidence: [
-      'Warehouse sizing and autoscale settings',
-      'Workload isolation layout',
-      'Capacity dashboard over query history',
+      'Serverless defaults and performance modes',
+      'Warehouse sizing and isolation layout',
+      'Query tags and a queueing query over query history',
     ],
   },
   {
@@ -757,10 +770,15 @@ export const guides: readonly Guide[] = [
     title: 'Cost tracking and chargeback',
     category: 'Governance/Monitoring',
     difficulty: 2,
-    summary: 'Spend by product, team, and workload, with budgets and forecasts.',
+    summary:
+      'Attribute spend with tags and serverless budget policies, alert with Budgets, and forecast once there is history.',
     acceptanceCriteria:
-      'Usage system tables break spend down by product, tag, user, and pipeline, budgets alert on thresholds, and a forecast projects the next 30 days.',
-    evidence: ['Spend by product and tag', 'Budget alert', 'Forecast and optimization queries'],
+      'Classic compute carries enforced custom tags and serverless usage carries a budget policy, so spend rolls up by team. Budgets alert on thresholds, usage_metadata and identity_metadata fill the gaps, and untagged spend is tracked down to zero.',
+    evidence: [
+      'Tag and budget policy coverage for classic and serverless spend',
+      'Budget thresholds and account usage dashboards',
+      'Untagged-spend and product-level usage queries',
+    ],
   },
 ];
 

@@ -68,6 +68,12 @@ flowchart LR
 - Tables and views: `warehouse_settings`, `capacity_test_warehouse`, `capacity_load_statements`, `capacity_load_queries`, `capacity_load_summary`, `capacity_load_events`, views `capacity_query_history` and `capacity_warehouse_events`
 - Dashboard `Capability guides capacity`
 
+## Reference run
+
+- The shared warehouse was Small, 1 to 1 clusters, 10-minute auto-stop. The test warehouse was 2X-Small, 1 to 1 clusters, 5-minute auto-stop. Both were PRO and serverless.
+- The load was 40 statements submitted at once. Thirty queued, at most 10 ran at once, the median wait at capacity was 61.1 seconds, and the 95th percentile and the longest wait were both 117.0 seconds.
+- `system.compute.warehouse_events` had not yet recorded events for the test warehouse when the job finished, so `capacity_load_events` is empty for that run.
+
 ## Limitations and next steps
 
 - `system.query.history` lags the statements by a few minutes. `analyze_load` polls until all 40 statements appear.

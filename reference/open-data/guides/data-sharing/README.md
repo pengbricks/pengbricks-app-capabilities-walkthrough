@@ -64,6 +64,11 @@ All code is in `reference/open-data/`.
 - Share `capability_guides_orders_share` and recipient `capability_guides_partner`, created by the job. The recipient is dropped at the end of every run, which invalidates the credential. The share stays so you can inspect its contents.
 - Job: `capability_guides_data_sharing` and its runs.
 
+## Reference run
+
+- The prepared data had `sharing_orders` with 5,000 rows, `orders_west_v` with 1,531 rows and no `customer_email`, and `sharing_products` with 3 rows.
+- The job identity in the reference workspace lacked `CREATE SHARE` and `CREATE RECIPIENT` on the shared metastore. The run stopped at share creation, recorded `BLOCKED` with the grants a metastore admin needs to run, and `sharing_audit_events` shows the denied `createShare` call (status 403). With both privileges granted, the job runs the full sequence. This is a property of the reference workspace, not of OpenSharing.
+
 ## Limitations and next steps
 
 - Creating a share needs `CREATE SHARE` and `CREATE RECIPIENT` on the metastore. In the run linked from this guide the job identity had neither, so only the `BLOCKED` path ran. The `sharing_audit_events` table shows the denied `createShare` call (status 403).

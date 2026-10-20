@@ -5,170 +5,303 @@ export const walkthrough: Walkthrough = {
   area: 'Governance/Monitoring',
   title: 'Governed data sharing',
   intro:
-    'A job shares a view and a table with a token recipient, reads them with the open-source delta-sharing client, revokes the grant, and checks that the next read fails. The data is shared in place, so the recipient gets no copy. The workspace used for the reference run did not allow the job identity to create shares, so the run records that and shows what needs granting.',
+    'OpenSharing (formerly Delta Sharing; the open protocol keeps the name Delta Sharing) lets you share live data and AI assets from Unity Catalog without copying them. The provider creates a share and a recipient, grants one to the other, and revokes when the relationship ends. This page covers which recipient type to pick, the privileges involved, how to share a subset safely, which assets you can share, how to harden credentials for recipients outside Databricks, what crossing a region or cloud costs, and how to audit it. It also names the cases where Clean Rooms or Marketplace fit better.',
   shortVersion: [
     {
-      title: 'The view is the governance.',
-      body: 'orders_west_v keeps one region (1,531 of 5,000 orders) and leaves out customer_email. The share exposes the view, not the sharing_orders table.',
+      title: 'Prefer Databricks-to-Databricks when the recipient has Unity Catalog.',
+      body: 'There is no token to manage, and the recipient adds its own governance. Use an open recipient only for people on other platforms.',
     },
     {
-      title: 'The recipient needs only a credential file.',
-      body: 'A token recipient exchanges a one-time link for a bearer token. The delta-sharing client reads with that file and nothing else.',
+      title: 'Share a view to share a subset.',
+      body: 'Tables with row filters or column masks are not shared. A view that fixes the rows and columns carries the restriction, and you add the view, not the base table.',
     },
     {
-      title: 'Revoking is one statement.',
-      body: 'REVOKE SELECT ON SHARE removes the entitlement. The job retries the read until it fails, then drops the recipient.',
+      title: 'Harden every open recipient.',
+      body: 'Prefer OIDC federation. If you must use a bearer token, set a short lifetime, add an IP access list, and rotate.',
     },
     {
-      title: 'No replication.',
-      body: 'The client gets pre-signed URLs to the provider’s own files. The job checks those URLs sit under the source table path.',
+      title: 'Know what shares and what does not.',
+      body: 'Tables, views, schemas, volumes, materialized views, streaming tables, and metric views are shareable, with the limits listed below.',
     },
     {
-      title: 'Audit events are copied to a table.',
-      body: 'sharing_audit_events holds the Unity Catalog audit events for the share and recipient names.',
+      title: 'Cross-region and cross-cloud sharing costs egress.',
+      body: 'Sharing in the same region is free of egress charges. Across regions or clouds the cloud provider bills transfer, so plan for it.',
     },
   ],
   sections: [
     {
-      id: 'lifecycle',
-      heading: 'The share lifecycle',
+      id: 'recipients',
+      heading: 'Pick the recipient type',
       prose:
-        'Three tasks run in order. The first builds the governed objects, the second runs the whole share, read, and revoke sequence, and the third collects audit events after they land in system.access.audit.',
-      diagram: {
-        type: 'flow',
-        title: 'From governed view to revoked access',
-        description:
-          'The prepare_data task creates the sharing_orders and sharing_products tables and the orders_west_v view. The share_and_read task creates a share and a token recipient, grants SELECT, exchanges the activation link for a credential file, reads the view and the table with the delta-sharing client, revokes the grant, confirms the read fails, and drops the recipient. Results go to sharing_audit. The collect_audit_events task copies audit events to sharing_audit_events.',
-        lanes: [
-          { label: 'Provider objects', fromRow: 0, toRow: 0 },
-          { label: 'Sharing lifecycle', fromRow: 1, toRow: 1 },
-          { label: 'Recorded evidence', fromRow: 2, toRow: 2 },
-        ],
-        nodes: [
-          { id: 'orders', label: 'sharing_orders', mono: true, sub: '5,000 rows, comments', col: 0, row: 0, kind: 'store' },
-          { id: 'view', label: 'orders_west_v', mono: true, sub: 'West only, no email', col: 1, row: 0, kind: 'highlight' },
-          { id: 'products', label: 'sharing_products', mono: true, sub: '3 rows', col: 2, row: 0, kind: 'store' },
-          { id: 'share', label: 'Share + recipient', sub: 'token, open sharing', col: 0, row: 1 },
-          { id: 'grant', label: 'GRANT SELECT', sub: 'on the share', col: 1, row: 1 },
-          { id: 'read', label: 'delta-sharing read', sub: 'credential file only', col: 2, row: 1 },
-          { id: 'revoke', label: 'REVOKE, read again', sub: 'must fail', col: 3, row: 1, kind: 'gate' },
-          { id: 'audit', label: 'sharing_audit', mono: true, sub: 'one row per check', col: 1, row: 2, kind: 'store' },
-          { id: 'events', label: 'sharing_audit_events', mono: true, sub: 'system.access.audit', col: 3, row: 2, kind: 'store' },
-        ],
-        edges: [
-          { from: 'orders', to: 'view' },
-          { from: 'view', to: 'share' },
-          { from: 'products', to: 'share' },
-          { from: 'share', to: 'grant' },
-          { from: 'grant', to: 'read' },
-          { from: 'read', to: 'revoke' },
-          { from: 'read', to: 'audit' },
-          { from: 'revoke', to: 'events', label: 'audit events' },
-        ],
-        legend: [
-          { kind: 'highlight', label: 'Restricts rows and columns' },
-          { kind: 'gate', label: 'Access check' },
-          { kind: 'store', label: 'Unity Catalog table' },
-        ],
-      },
-    },
-    {
-      id: 'visibility',
-      heading: 'What the recipient can see',
-      prose:
-        'The share lists the view and the sharing_products table under a neutral schema name, so the recipient never sees the provider schema. The sharing_orders table and the customer_email column are not in the share.',
+        'The recipient type decides how the consumer authenticates and what they can do with the data. The provider chooses it when creating the recipient.',
       diagram: {
         type: 'matrix',
-        title: 'Provider objects and what reaches the recipient',
+        title: 'Databricks-to-Databricks and open recipients',
         description:
-          'sharing_orders has 5,000 rows and is visible to the provider only. orders_west_v has 1,531 rows without customer_email and is visible to the recipient. sharing_products has 3 rows and is visible to both. Column customer_email is provider only.',
-        corner: 'Object ↓ · Who →',
-        columns: ['Provider', 'Recipient'],
+          'A Databricks-to-Databricks recipient has a Unity Catalog workspace, is identified by a sharing identifier, uses no token, and mounts the share as a catalog it governs itself. An open recipient is on any platform, authenticates with OIDC federation or a bearer token, and reads through an OpenSharing client or connector with a credential from the provider.',
+        corner: 'Aspect ↓ · Recipient →',
+        columns: ['Databricks-to-Databricks', 'Open (Databricks-to-Open)'],
         rows: [
           {
-            label: 'sharing_orders',
-            sub: 'all regions, all columns',
+            label: 'Who it is for',
             cells: [
-              { state: 'own', text: '5,000 rows' },
-              { state: 'none', text: 'not shared' },
+              { state: 'own', text: 'Has a Unity Catalog workspace' },
+              { state: 'optional', text: 'Any platform or client' },
             ],
           },
           {
-            label: 'orders_west_v',
-            sub: 'West, six columns',
+            label: 'Authentication',
             cells: [
-              { state: 'own', text: '1,531 rows' },
-              { state: 'own', text: '1,531 rows' },
+              { state: 'own', text: 'Sharing identifier, no token' },
+              { state: 'optional', text: 'OIDC federation or bearer token' },
             ],
           },
           {
-            label: 'customer_email',
-            sub: 'personal data column',
+            label: 'Recipient governance',
             cells: [
-              { state: 'own', text: 'in sharing_orders' },
-              { state: 'none', text: 'never shared' },
+              { state: 'own', text: 'Grants, lineage, and its own row filters and masks' },
+              { state: 'none', text: 'Whatever the client provides' },
             ],
           },
           {
-            label: 'sharing_products',
-            sub: 'list prices',
+            label: 'Assets',
             cells: [
-              { state: 'own', text: '3 rows' },
-              { state: 'own', text: '3 rows' },
+              { state: 'own', text: 'Widest set of asset types and features' },
+              { state: 'optional', text: 'Tables, views, and the types the open protocol supports' },
             ],
           },
         ],
         legend: [
-          { state: 'own', label: 'Visible' },
-          { state: 'none', label: 'Not visible' },
+          { state: 'own', label: 'Preferred when available' },
+          { state: 'optional', label: 'Use when needed' },
+          { state: 'none', label: 'Not provided' },
         ],
-        caption: 'Delta Sharing does not share tables that have row filters or column masks, so the view carries the restriction.',
       },
-    },
-    {
-      id: 'replication',
-      heading: 'Does the recipient need a copy?',
-      prose:
-        'No. Delta Sharing returns short-lived pre-signed URLs for the provider’s data files, and the client reads them directly. The job records the decision in sharing_audit as replication_required = false, after checking that every URL sits under the source table’s own storage path.',
-      steps: [
+      links: [
+        { label: 'What is OpenSharing?', url: 'https://docs.databricks.com/aws/en/delta-sharing/' },
         {
-          title: 'Ask for the files',
-          body: 'POST to the share endpoint’s query path for the sharing_products table with the bearer token.',
+          label: 'Databricks-to-Databricks protocol',
+          url: 'https://docs.databricks.com/aws/en/delta-sharing/share-data-databricks',
         },
         {
-          title: 'Compare paths',
-          body: 'served_from_source compares each URL path with the location from DESCRIBE DETAIL. One mismatch fails the check.',
-          code: 'in_place = served_from_source(location, file_urls(response.text))',
-        },
-        {
-          title: 'Store the result without secrets',
-          body: 'The job keeps the URL path and drops the signed query string before writing it to the table.',
+          label: 'Databricks-to-Open protocol',
+          url: 'https://docs.databricks.com/aws/en/delta-sharing/share-data-open',
         },
       ],
     },
     {
       id: 'privileges',
-      heading: 'What the metastore must allow',
-      prose:
-        'Creating a share and a recipient are metastore-level privileges. The workspace used for the reference run did not give them to the job identity, so the run records the gap instead of failing.',
+      heading: 'Privileges to set up and grant a share',
+      prose: 'Give these to a group, not to a person, and make a group the share owner.',
+      table: {
+        columns: ['Task', 'Needs'],
+        rows: [
+          ['Create a share', 'CREATE SHARE on the metastore, in a workspace attached to that metastore'],
+          [
+            'Add a table, view, or other asset',
+            'Share owner, USE CATALOG and USE SCHEMA on its parents, and SELECT on the asset. Keep the SELECT, or the asset stops being shared.',
+          ],
+          ['Create a recipient', 'Metastore admin or CREATE RECIPIENT on the metastore'],
+          [
+            'Grant a recipient access to a share',
+            'Metastore admin, or (USE SHARE and SET SHARE PERMISSION, or share owner) and (USE RECIPIENT, or recipient owner)',
+          ],
+          ['Assign an IP access list to an existing recipient', 'Recipient owner'],
+          ['Read audit events', 'SELECT on system.access.audit'],
+        ],
+      },
       points: [
         {
-          strong: 'Needed.',
-          text: 'GRANT CREATE SHARE, CREATE RECIPIENT ON METASTORE to the identity that runs the job, from a metastore admin.',
+          strong: 'Ownership matters.',
+          text: 'The share owner needs enough access to every asset in the share, including tables added to a shared schema later. Object creators have to grant it.',
         },
         {
-          strong: 'Recorded.',
-          text: 'share_and_read writes a BLOCKED row with that statement, and the denied createShare call (status 403) appears in sharing_audit_events.',
+          strong: 'Revoke to end access.',
+          text: 'REVOKE on the share cuts the recipient off for new reads. For an open recipient, also rotate or drop the recipient to retire the credential.',
+        },
+      ],
+    },
+    {
+      id: 'subsets',
+      heading: 'Share a subset with a view',
+      prose:
+        'Delta Sharing does not share a table that has row filters or column masks on it; the provider skips it. To give a recipient only some rows or columns, create a view over the table that selects them, and add the view to the share instead of the base table. The recipient never sees the base table or the columns you left out.',
+      examples: [
+        {
+          label: 'A view that fixes the region and drops a PII column',
+          language: 'sql',
+          code: `CREATE OR REPLACE VIEW sales.shared.orders_west AS
+SELECT order_id, order_date, region, product_id, amount
+FROM sales.core.orders
+WHERE region = 'WEST';
+
+CREATE SHARE IF NOT EXISTS partner_orders;
+ALTER SHARE partner_orders ADD VIEW sales.shared.orders_west AS shared.orders;
+GRANT SELECT ON SHARE partner_orders TO RECIPIENT partner_acme;`,
+          notes: [
+            'Use AS to give the recipient a neutral schema and table name.',
+            'A recipient on Databricks can apply its own row filters and column masks to shared tables in its metastore.',
+          ],
+        },
+      ],
+      points: [
+        {
+          strong: 'ABAC-secured tables.',
+          text: 'Sharing a table or schema secured by ABAC policies is in preview. Only the share owner, or a user excluded from the policies, can add it, and the policy does not govern what the recipient reads. Share a view when the recipient should see less.',
+        },
+      ],
+    },
+    {
+      id: 'assets',
+      heading: 'What you can share',
+      table: {
+        caption: 'Shareable assets and their status in the current documentation',
+        columns: ['Asset', 'Status and limits'],
+        rows: [
+          ['Delta tables', 'GA. Tables with row filters, column masks, collations, or SHALLOW CLONE are skipped.'],
+          ['Views, including dynamic views', 'GA. Defined with a supported subset of functions.'],
+          [
+            'Schemas',
+            'GA. New tables in the schema become visible automatically; aliases and partitions are not available.',
+          ],
+          ['Volumes', 'GA.'],
+          [
+            'Materialized views and streaming tables',
+            'GA. The object itself cannot have row filters; open recipients read the current snapshot only.',
+          ],
+          [
+            'Metric views',
+            'GA (September 2026). Query with MEASURE() on serverless compute. A metric view over tables with row filters, masks, or ABAC policies cannot be shared.',
+          ],
+          [
+            'Notebooks, AI models, Python UDFs, and other types',
+            'Listed as shareable in the documentation. Check the page for each type before you commit to it.',
+          ],
+        ],
+      },
+      links: [
+        { label: 'Create shares', url: 'https://docs.databricks.com/aws/en/delta-sharing/create-share' },
+        {
+          label: 'Access shared data as a recipient',
+          url: 'https://docs.databricks.com/aws/en/delta-sharing/recipient',
+        },
+      ],
+    },
+    {
+      id: 'hardening',
+      heading: 'Harden open recipients',
+      prose:
+        'An open recipient holds a credential that works from anywhere until it expires. Reduce what that credential can do.',
+      steps: [
+        {
+          title: 'Prefer OIDC federation',
+          body: "The recipient's identity provider issues short-lived JWTs, enforces MFA, and controls their lifetime. Databricks validates the token against a federation policy you create and never issues a long-lived secret. Email-based activation is not available in this flow.",
         },
         {
-          strong: 'Cleanup.',
-          text: 'With the privileges, the job drops the recipient at the end of each run, which invalidates the credential file. The share stays so its contents can be inspected.',
+          title: 'If you use bearer tokens, set a short lifetime',
+          body: 'The token lifetime defaults to the metastore setting; lower it there or per recipient. Tokens issued before December 8, 2025 with no expiry, or an expiry after December 8, 2026, expire on December 8, 2026. Renew them on a schedule you control.',
         },
+        {
+          title: 'Add an IP access list',
+          body: 'Allow lists only, up to 100 IPv4 addresses or CIDR ranges per recipient, independent of workspace IP access lists. It covers the REST API, the activation URL, and credential download. Without SecureConnect, storage URLs are reachable from any IP.',
+        },
+        {
+          title: 'Send credentials over a secure channel',
+          body: 'The activation link downloads the credential file once. Treat the file as a secret, and drop or rotate the recipient when the engagement ends.',
+        },
+      ],
+      links: [
+        {
+          label: 'OIDC federation for recipients',
+          url: 'https://docs.databricks.com/aws/en/delta-sharing/create-recipient-oidc-fed',
+        },
+        {
+          label: 'Bearer-token recipients and lifetime',
+          url: 'https://docs.databricks.com/aws/en/delta-sharing/create-recipient-token',
+        },
+        {
+          label: 'IP access lists for recipients',
+          url: 'https://docs.databricks.com/aws/en/delta-sharing/access-list',
+        },
+      ],
+    },
+    {
+      id: 'alternatives',
+      heading: 'When Clean Rooms or Marketplace fit better',
+      table: {
+        columns: ['Need', 'Use'],
+        rows: [
+          ['Give a known recipient read access to live data', 'A share and a recipient'],
+          [
+            "Let two or more parties compute on combined sensitive data without seeing each other's raw rows",
+            'Clean Rooms, which run approved code on serverless compute over OpenSharing',
+          ],
+          ['Publish a dataset or AI asset to many consumers, free or paid, with listings and terms', 'Marketplace'],
+          [
+            'The recipient needs its own writable copy or must be isolated from your storage',
+            'Replicate the data to their storage or account; a share is read-only access to yours',
+          ],
+        ],
+      },
+      links: [
+        { label: 'Clean Rooms', url: 'https://docs.databricks.com/aws/en/clean-rooms/' },
+        { label: 'Marketplace', url: 'https://docs.databricks.com/aws/en/marketplace/' },
+      ],
+    },
+    {
+      id: 'egress',
+      heading: 'Cross-region and cross-cloud egress',
+      prose:
+        'A share points at your data in place. The recipient reads it through pre-signed URLs or scoped credentials, so nothing is copied, and sharing within a region has no egress charge.',
+      points: [
+        {
+          strong: 'Across regions or clouds.',
+          text: 'Your cloud provider can bill data transfer when the recipient reads from another region or cloud. Large, frequently read tables multiply it.',
+        },
+        {
+          strong: 'Ways to contain it.',
+          text: "Share from Cloudflare R2, which has no egress fees. Replicate a table into the recipient's region once, and share the replica. Or have recipients read the data once and cache it.",
+        },
+        {
+          strong: 'SecureConnect.',
+          text: 'If the provider uses SecureConnect, Databricks bills the data transfer instead of the cloud vendor, and the recipient IP access list also applies to storage.',
+        },
+        {
+          strong: 'Views, materialized views, and streaming tables.',
+          text: 'Databricks materializes these for sharing. Events appear in system.sharing.materialization_history.',
+        },
+      ],
+    },
+    {
+      id: 'audit',
+      heading: 'Audit sharing with system tables',
+      prose:
+        'Provider audit logs record what you do and what recipients do with your shares. They live in system.access.audit once an account admin enables the audit system table.',
+      examples: [
+        {
+          label: 'Recent sharing activity for one share',
+          language: 'sql',
+          code: `SELECT event_time, action_name, user_identity.email AS actor,
+       request_params, response.status_code
+FROM system.access.audit
+WHERE event_date >= current_date() - INTERVAL 7 DAYS
+  AND service_name = 'unityCatalog'
+  AND (action_name LIKE 'deltaSharing%' OR action_name IN ('createShare', 'updateShare', 'createRecipient'))
+ORDER BY event_time DESC;`,
+          notes: [
+            'deltaSharingQueriedTable and deltaSharingQueriedTableChanges record recipient reads of tables shared by pre-signed URL.',
+            'Event names and request_params vary by asset type; check the OpenSharing events list and filter on the share or recipient in request_params. Audit rows arrive after the event.',
+          ],
+        },
+      ],
+      links: [
+        { label: 'Audit and monitor data sharing', url: 'https://docs.databricks.com/aws/en/delta-sharing/audit-logs' },
       ],
     },
   ],
   related: [
-    { slug: 'row-column-security', title: 'Row and column security' },
     { slug: 'access-management', title: 'Access management' },
+    { slug: 'row-column-security', title: 'Row and column security' },
+    { slug: 'platform-administration', title: 'Workspace and account administration' },
   ],
 };

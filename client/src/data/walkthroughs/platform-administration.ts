@@ -5,189 +5,273 @@ export const walkthrough: Walkthrough = {
   area: 'Governance/Monitoring',
   title: 'Workspace and account administration',
   intro:
-    'One job scripts the routine administrator tasks with the Databricks SDK: read workspace settings, ensure a group and a policy, review warehouse capacity and serverless usage, read the audit log, and list failed jobs. Every step is idempotent and writes a row to the admin_actions table.',
+    'Databricks administration splits into the account, which owns identity, metastores, workspaces, and billing, and the workspaces, which own compute, jobs, and day-to-day work. Getting that split right is most of the job. This page covers the operating model, how to manage identity and credentials, the network and encryption controls to decide on early, how to govern serverless and classic compute, and how to keep all of it in code.',
   shortVersion: [
     {
-      title: 'Seven tasks, one ledger.',
-      body: 'Each task runs the same script with a different --task value and records what it checked or changed in admin_actions.',
+      title: 'Manage identity at the account.',
+      body: 'Sync users and groups from your identity provider, grant to account groups, and run automation as service principals.',
     },
     {
-      title: 'Re-runs change nothing.',
-      body: 'The second run found the group and the cluster policy already in place and recorded both as unchanged.',
+      title: 'One metastore per region, many workspaces.',
+      body: 'Attach every workspace in a region to the same metastore. Use workspace-catalog bindings to keep production catalogs out of development workspaces.',
     },
     {
-      title: 'Only capability-guides- objects change.',
-      body: 'The script asserts the name prefix before it creates anything. It never deletes.',
+      title: 'Prefer OAuth to personal access tokens.',
+      body: 'Use OAuth M2M or workload identity federation for automation, OAuth sign-in for people, and restrict or scope any PAT you keep.',
     },
     {
-      title: 'Refusals are recorded, not hidden.',
-      body: 'The workspace rejected a budget policy and a Unity Catalog grant to a workspace group. Both show as not_allowed with the reason.',
+      title: 'Decide the network posture before the first workload.',
+      body: 'Serverless egress control, Private Link, IP access lists, customer-managed keys, and the compliance security profile are cheaper to start with than to retrofit.',
     },
     {
-      title: 'Audit and billing come from system tables.',
-      body: 'system.access.audit and system.billing.usage answer who changed what and how much serverless compute ran.',
+      title: 'Serverless first; policies for classic.',
+      body: 'Govern serverless with budget policies, base environments, and egress rules. Use cluster policies only where classic compute remains. Put it all in Terraform or bundles.',
     },
   ],
   sections: [
     {
-      id: 'flow',
-      heading: 'How the job runs',
+      id: 'model',
+      heading: 'The account and workspace operating model',
       prose:
-        'The tasks run one after another because they all write to one Delta table. Each task reads the admin section of the use-case spec, calls the SDK or a system table, and merges its rows into admin_actions keyed by run, category, action, and target.',
+        'Put each responsibility at the level that owns it. Most governance work belongs at the account and metastore, not in each workspace.',
       diagram: {
         type: 'flow',
-        title: 'From spec to admin_actions',
+        title: 'What lives at which level',
         description:
-          'The use-case spec feeds platform_admin.py. The job runs init_ledger, workspace_checks, roles, policies, capacity, audit_access, and routine_support in order. SDK calls and system table queries produce rows that merge into admin_actions.',
+          'The account holds identity, workspaces, network and encryption configuration, billing, and one Unity Catalog metastore per region. Workspaces in a region attach to that regional metastore. Catalogs sit in the metastore, and workspace-catalog bindings decide which workspaces can reach each catalog. Compute, jobs, and workspace settings live inside each workspace.',
         lanes: [
-          { label: 'Inputs', fromRow: 0, toRow: 0 },
-          { label: 'Lakeflow job', fromRow: 1, toRow: 2 },
-          { label: 'Outputs', fromRow: 3, toRow: 3 },
+          { label: 'Account', fromRow: 0, toRow: 0 },
+          { label: 'Regional metastore', fromRow: 1, toRow: 1 },
+          { label: 'Workspaces', fromRow: 2, toRow: 2 },
         ],
         nodes: [
-          { id: 'spec', label: 'Use-case spec', sub: 'use_cases/general.yml', col: 0, row: 0 },
-          { id: 'sdk', label: 'Databricks SDK', sub: 'groups, policies, jobs', col: 1, row: 0, kind: 'surface' },
-          { id: 'sys', label: 'System tables', sub: 'audit and billing', col: 2, row: 0, kind: 'surface' },
-          { id: 'init', label: 'init_ledger', mono: true, col: 0, row: 1 },
-          { id: 'ws', label: 'workspace_checks', mono: true, col: 1, row: 1 },
-          { id: 'roles', label: 'roles', mono: true, col: 2, row: 1 },
-          { id: 'pol', label: 'policies', mono: true, col: 3, row: 1 },
-          { id: 'cap', label: 'capacity', mono: true, col: 0, row: 2 },
-          { id: 'aud', label: 'audit_access', mono: true, col: 1, row: 2 },
-          { id: 'sup', label: 'routine_support', mono: true, col: 2, row: 2 },
-          { id: 'ledger', label: 'admin_actions', mono: true, sub: 'one row per action', col: 1, row: 3, kind: 'store' },
+          { id: 'id', label: 'Identity', sub: 'users, groups, SPs', col: 0, row: 0, kind: 'highlight' },
+          { id: 'net', label: 'Network and keys', sub: 'policies, CMK', col: 1, row: 0 },
+          { id: 'bill', label: 'Billing and budgets', sub: 'system.billing', col: 2, row: 0 },
+          { id: 'ms', label: 'Metastore', sub: 'one per region', col: 0, row: 1, kind: 'store' },
+          { id: 'cat', label: 'Catalogs', sub: 'dev, staging, prod', col: 1, row: 1, kind: 'store' },
+          { id: 'dev', label: 'Dev workspace', sub: 'binds dev catalog', col: 0, row: 2, kind: 'surface' },
+          { id: 'prod', label: 'Prod workspace', sub: 'binds prod catalog', col: 1, row: 2, kind: 'surface' },
         ],
         edges: [
-          { from: 'spec', to: 'init' },
-          { from: 'init', to: 'ws' },
-          { from: 'ws', to: 'roles' },
-          { from: 'roles', to: 'pol' },
-          { from: 'pol', to: 'cap' },
-          { from: 'cap', to: 'aud' },
-          { from: 'aud', to: 'sup' },
-          { from: 'sdk', to: 'roles', dashed: true },
-          { from: 'sys', to: 'aud', dashed: true },
-          { from: 'aud', to: 'ledger', label: 'MERGE' },
+          { from: 'id', to: 'ms' },
+          { from: 'ms', to: 'cat' },
+          { from: 'cat', to: 'dev', label: 'binding', dashed: true },
+          { from: 'cat', to: 'prod', label: 'binding', dashed: true },
         ],
         legend: [
-          { kind: 'surface', label: 'Platform API or system table' },
-          { kind: 'store', label: 'Delta table' },
-        ],
-        caption: 'The reference run wrote 53 rows. Re-running the job updates those rows by key and adds one set per run.',
-      },
-    },
-    {
-      id: 'coverage',
-      heading: 'Which task covers which duty',
-      prose: 'Each administration duty maps to one task, the API it uses, and what the ledger records.',
-      diagram: {
-        type: 'matrix',
-        title: 'Administration duties and their records',
-        description:
-          'Six duties across what the task does, how it stays idempotent, and what the reference run recorded. Workspace setup read five settings. Roles ensured a group and found a Unity Catalog grant refused. Policies applied a cluster policy after a budget policy was refused. Capacity listed one warehouse and ten serverless SKUs. Audit read sixteen service and action pairs. Support listed failed jobs.',
-        corner: 'Duty ↓ · Detail →',
-        columns: ['Task', 'Idempotence', 'Reference run'],
-        rows: [
-          {
-            label: 'Workspace setup',
-            sub: 'settings and identity',
-            cells: [
-              { state: 'own', text: 'workspace_checks', sub: 'workspace_conf, metastore' },
-              { state: 'own', text: 'Read only', sub: 'nothing to change' },
-              { state: 'own', text: '8 rows ok', sub: '5 settings checked' },
-            ],
-          },
-          {
-            label: 'Role administration',
-            sub: 'group and grants',
-            cells: [
-              { state: 'own', text: 'roles', sub: 'groups.list, create' },
-              { state: 'own', text: 'Find, then create', sub: 'grant only if missing' },
-              { state: 'optional', text: 'Grant refused', sub: 'group is not a UC principal' },
-            ],
-          },
-          {
-            label: 'Policy configuration',
-            sub: 'budget or cluster',
-            cells: [
-              { state: 'own', text: 'policies', sub: 'budget, then cluster' },
-              { state: 'own', text: 'Find by name', sub: 'edit only on drift' },
-              { state: 'optional', text: 'Cluster policy kept', sub: 'budget policy refused' },
-            ],
-          },
-          {
-            label: 'Capacity',
-            sub: 'warehouses and usage',
-            cells: [
-              { state: 'own', text: 'capacity', sub: 'warehouses, billing' },
-              { state: 'own', text: 'Read only', sub: 'flags, no changes' },
-              { state: 'own', text: '12 rows ok', sub: '1 warehouse, 10 SKUs' },
-            ],
-          },
-          {
-            label: 'Audit access',
-            sub: 'last 7 days',
-            cells: [
-              { state: 'own', text: 'audit_access', sub: 'system.access.audit' },
-              { state: 'own', text: 'Read only', sub: 'date-filtered query' },
-              { state: 'own', text: '16 rows ok', sub: '15 pairs plus summary' },
-            ],
-          },
-          {
-            label: 'Routine support',
-            sub: 'failures and tokens',
-            cells: [
-              { state: 'own', text: 'routine_support', sub: 'jobs, token_management' },
-              { state: 'own', text: 'Read only', sub: 'lists, no changes' },
-              { state: 'optional', text: '9 rows flagged', sub: '7 failed runs listed' },
-            ],
-          },
-        ],
-        legend: [
-          { state: 'own', label: 'Completed as designed' },
-          { state: 'optional', label: 'Flagged or refused by the workspace' },
+          { kind: 'highlight', label: 'Single source of identity' },
+          { kind: 'store', label: 'Governed data' },
+          { kind: 'surface', label: 'Where work runs' },
         ],
       },
-    },
-    {
-      id: 'refusals',
-      heading: 'What the workspace refused',
-      prose:
-        'Some administration needs privileges or APIs a workspace does not offer. The job records the refusal and the reason, then continues with the closest alternative.',
-      table: {
-        columns: ['Attempt', 'Result in the reference run'],
-        rows: [
-          ['Serverless budget policy', 'not_allowed: the budget-policies API returned Not Found at the workspace level. The job applied a cluster policy instead.'],
-          ['GRANT USE SCHEMA, SELECT to the group', 'not_allowed: PRINCIPAL_DOES_NOT_EXIST. Unity Catalog only sees account-level groups.'],
-          ['Workspace-level equivalent', 'ok: CAN_USE on capability-guides-policy for the group, through the permissions API.'],
-          ['Group create on a re-run', 'unchanged: the group already existed, so nothing was created.'],
-        ],
-      },
-    },
-    {
-      id: 'audit',
-      heading: 'Read it back',
-      prose: 'The ledger is a table, so the evidence is a query. The audit task itself reads system.access.audit with a date filter.',
-      steps: [
+      points: [
         {
-          title: 'What did the job do?',
-          body: 'Filter one run by category to see its checks and changes.',
-          code: "SELECT category, action, target, status, detail\nFROM <catalog>.<schema>.admin_actions\nWHERE run_id = '<run id>' AND status <> 'ok'\nORDER BY category;",
+          strong: 'Roles.',
+          text: 'Account admins manage the account. Metastore admins are optional; assign them only if you need them, and to a group. Workspace admins manage one workspace. Give the billing admin role to the people who manage budgets and usage policies.',
         },
         {
-          title: 'Who changed administration objects?',
-          body: 'The audit task groups the last 7 days by service and action. Create, update, grant, and permission actions are kept.',
-          code: "SELECT service_name, action_name, COUNT(*) AS events\nFROM system.access.audit\nWHERE event_date >= date_sub(current_date(), 7)\n  AND service_name IN ('groups', 'clusterPolicies', 'unityCatalog', 'jobs')\nGROUP BY 1, 2 ORDER BY events DESC;",
+          strong: 'Workspace-catalog binding.',
+          text: 'Binding a catalog to specific workspaces denies access from every other workspace, even for users who hold privileges on it. A binding can be read-only for a workspace. The catalog owner or someone with MANAGE sets it.',
         },
         {
-          title: 'How much serverless compute ran?',
-          body: 'The capacity task sums system.billing.usage by serverless SKU over 30 days.',
+          strong: 'Separate environments by workspace and catalog.',
+          text: "Use a catalog per environment and bind it to that environment's workspace, instead of two schemas in one catalog.",
+        },
+        {
+          strong: 'Own objects with groups.',
+          text: 'The creator of an object is its first owner. Reassign ownership of production objects to a group or service principal.',
+        },
+      ],
+      links: [
+        { label: 'Manage your Databricks account', url: 'https://docs.databricks.com/aws/en/admin/account-settings/' },
+        {
+          label: 'Workspace-catalog binding',
+          url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/access-control/workspace-catalog-binding',
+        },
+        {
+          label: 'Unity Catalog best practices',
+          url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/best-practices',
         },
       ],
     },
+    {
+      id: 'identity',
+      heading: 'Identity: groups, service principals, and credentials',
+      steps: [
+        {
+          title: 'Sync identities from your identity provider',
+          body: 'Turn on automatic identity management, or SCIM provisioning, at the account. Users and groups from your IdP appear in Databricks without manual creation, and removing someone in the IdP removes their access.',
+        },
+        {
+          title: 'Use account-level groups for every grant',
+          body: 'Unity Catalog grants take account principals. Workspace-local groups cannot be granted Unity Catalog privileges, so do not create them for access control.',
+        },
+        {
+          title: 'Run automation as service principals',
+          body: 'Jobs, pipelines, apps, and CI/CD run as a service principal, so a person leaving does not break them. Make a group the owner and manager of each service principal.',
+        },
+        {
+          title: 'Authenticate service principals with OAuth',
+          body: 'Use OAuth machine-to-machine (client ID and secret with a short token lifetime), or, better, workload identity federation, which exchanges a token from GitHub Actions, Azure DevOps, or another trusted issuer so no long-lived secret exists.',
+        },
+        {
+          title: 'Set a PAT stance',
+          body: 'Prefer OAuth for people and automation. Personal access tokens are legacy: disable them where you can, restrict who can create them, give them short lifetimes, and review and revoke tokens on a schedule.',
+        },
+      ],
+      links: [
+        {
+          label: 'Automatic identity management',
+          url: 'https://docs.databricks.com/aws/en/admin/users-groups/automatic-identity-management',
+        },
+        {
+          label: 'Service principals',
+          url: 'https://docs.databricks.com/aws/en/admin/users-groups/service-principals',
+        },
+        { label: 'OAuth M2M', url: 'https://docs.databricks.com/aws/en/dev-tools/auth/oauth-m2m' },
+        { label: 'OAuth token federation', url: 'https://docs.databricks.com/aws/en/dev-tools/auth/oauth-federation' },
+        {
+          label: 'Monitor and revoke personal access tokens',
+          url: 'https://docs.databricks.com/aws/en/admin/access-control/tokens',
+        },
+      ],
+    },
+    {
+      id: 'network',
+      heading: 'Network security and encryption',
+      prose: 'Choose these at design time. Each one touches how workspaces, storage, and clients connect.',
+      table: {
+        columns: ['Control', 'What it does'],
+        rows: [
+          [
+            'Serverless egress control',
+            'Network policies decide which internet destinations serverless compute can reach. Start with restricted access and add the DNS names your workloads need, including external model providers and MCP servers.',
+          ],
+          [
+            'Private Link',
+            'Private connectivity from your network to the workspace (front end) and from compute to the control plane and storage (back end). Add private connectivity from serverless compute to your storage as needed.',
+          ],
+          [
+            'IP access lists',
+            'Allow lists for workspace access, and a separate list for the account console. They apply to users and API clients coming from the internet.',
+          ],
+          [
+            'Customer-managed keys',
+            'Encrypt managed services, workspace storage, and Unity Catalog data with keys you hold in your KMS.',
+          ],
+          [
+            'Compliance security profile',
+            'A workspace-level setting that applies hardened images, encryption, and monitoring for standards such as HIPAA and PCI. Plan for it when you create the workspace, and confirm which features your region supports.',
+          ],
+        ],
+      },
+      links: [
+        {
+          label: 'Serverless egress control',
+          url: 'https://docs.databricks.com/aws/en/security/network/serverless-network-security/network-policies',
+        },
+        { label: 'Networking overview', url: 'https://docs.databricks.com/aws/en/security/network/' },
+        {
+          label: 'IP access lists',
+          url: 'https://docs.databricks.com/aws/en/security/network/front-end/ip-access-list',
+        },
+        {
+          label: 'Customer-managed keys',
+          url: 'https://docs.databricks.com/aws/en/security/keys/customer-managed-keys',
+        },
+        {
+          label: 'Compliance security profile',
+          url: 'https://docs.databricks.com/aws/en/security/privacy/security-profile',
+        },
+      ],
+    },
+    {
+      id: 'compute',
+      heading: 'Govern serverless first, and classic only where it remains',
+      points: [
+        {
+          strong: 'Serverless budget policies.',
+          text: 'A policy carries tags that Databricks writes to billing records for serverless notebooks, jobs, pipelines, apps, and serving endpoints. Assign policies to groups and service principals so spend is attributable without the user doing anything. The docs now call these serverless usage policies, and the billing column is usage_policy_id.',
+        },
+        {
+          strong: 'Base environments.',
+          text: 'A workspace admin defines a cached base environment from a YAML specification of approved libraries, and sets it as the default for serverless notebooks. Users start fast, with dependencies you have vetted.',
+        },
+        {
+          strong: 'Budgets.',
+          text: 'Account admins create budgets that alert by email when monthly spend crosses a threshold, scoped to workspaces or tags.',
+        },
+        {
+          strong: 'Cluster policies, for classic compute only.',
+          text: 'Policies limit node types, size, autotermination, and enforce tags on classic compute. They do not apply to serverless, so do not rely on them to control serverless spend.',
+        },
+      ],
+      links: [
+        {
+          label: 'Serverless usage policies',
+          url: 'https://docs.databricks.com/aws/en/admin/usage/budget-policies',
+        },
+        {
+          label: 'Workspace base environments',
+          url: 'https://docs.databricks.com/aws/en/admin/workspace-settings/base-environment',
+        },
+        { label: 'Compute policies', url: 'https://docs.databricks.com/aws/en/admin/clusters/policies' },
+      ],
+    },
+    {
+      id: 'as-code',
+      heading: 'Administer with code',
+      prose:
+        'Console clicks do not leave a history, and they differ between environments. Put administration in code so a pull request is the change record.',
+      points: [
+        {
+          strong: 'Terraform for the platform.',
+          text: 'Use the Databricks Terraform provider for the account (workspaces, metastores, network configuration, groups, service principals) and for workspace objects (catalogs, grants, cluster policies, warehouses, budgets). Keep account and workspace configurations in separate state.',
+        },
+        {
+          strong: 'Bundles for workloads.',
+          text: 'Declarative Automation Bundles (formerly Databricks Asset Bundles) deploy jobs, pipelines, dashboards, and apps per target. Platform teams own the platform in Terraform and application teams own their bundles.',
+        },
+        {
+          strong: 'Review and detect drift.',
+          text: 'Apply from CI as a service principal that uses workload identity federation. Run a plan on a schedule to catch changes made by hand.',
+        },
+        {
+          strong: 'Read the audit log.',
+          text: 'system.access.audit records who changed what. Alert on changes to admin roles, grants on production catalogs, and token creation.',
+        },
+      ],
+      links: [
+        { label: 'Databricks Terraform provider', url: 'https://docs.databricks.com/aws/en/dev-tools/terraform/' },
+        { label: 'Declarative Automation Bundles', url: 'https://docs.databricks.com/aws/en/dev-tools/bundles/' },
+      ],
+    },
+    {
+      id: 'system-tables',
+      heading: 'Enable system tables early',
+      prose:
+        'Billing, audit, lineage, and compute history only start accumulating when the tables are on, so enable them when you set up the account.',
+      points: [
+        {
+          strong: 'Requirement.',
+          text: 'The account needs at least one Unity Catalog workspace. System tables cover every workspace in the account (or region, for regional tables) but can be read only from a Unity Catalog workspace.',
+        },
+        {
+          strong: 'Access.',
+          text: 'Account admins who are also metastore admins can read them by default. Everyone else needs USE CATALOG on system plus USE SCHEMA and SELECT on the schema. Share through views for most users.',
+        },
+        {
+          strong: 'Use them for routine work.',
+          text: 'Failed runs, idle warehouses, expiring tokens, and spend by tag are queries over system tables and the account APIs, not custom collectors.',
+        },
+      ],
+      links: [{ label: 'System tables reference', url: 'https://docs.databricks.com/aws/en/admin/system-tables/' }],
+    },
   ],
   related: [
-    { slug: 'operational-support', title: 'Support and recovery' },
+    { slug: 'access-management', title: 'Access management' },
     { slug: 'monitoring', title: 'Platform observability' },
+    { slug: 'cost-chargeback', title: 'Cost tracking and chargeback' },
   ],
 };

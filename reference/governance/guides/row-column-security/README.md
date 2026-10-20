@@ -76,6 +76,10 @@ The job runs as the deploying user, an admin, so the real policies let every row
 - Job `capability-guides-row-column-security` (key `capability_guides_row_column_security`)
 - Tables `gov_customers`, `gov_orders`, `region_access`, `policy_test_results`, `policy_inventory`; functions `mask_email`, `mask_national_id`, `filter_orders_sensitivity`, `filter_customers_region`
 
+## Reference run
+
+The generated tables had 5,000 customers and 20,000 orders. Results for customer CUST-000001 are in the table under "What this shows". The job identity row is a real session. The `account users` and app service principal rows are twin evaluations, so they show the policy logic and not a session as that identity. See "Testing as a second identity" for the three test methods and why the job uses the third.
+
 ## Limitations and next steps
 
 - A table can have one row filter, so the attribute filter and the dynamic filter sit on different tables here. To combine them, put both rules in one function.

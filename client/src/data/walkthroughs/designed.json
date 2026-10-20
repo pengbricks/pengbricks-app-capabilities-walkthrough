@@ -1,5 +1,3 @@
 [
-  "documentation-generation",
-  "github-cicd",
-  "monitoring"
+  "github-cicd"
 ]

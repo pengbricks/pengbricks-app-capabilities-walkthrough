@@ -55,6 +55,10 @@ flowchart LR
 - Objects: workspace group `capability-guides-analysts`, cluster policy `capability-guides-policy`
 - Reference run: job `capability_guides_platform_admin`, run 306932051442801. Task results: 8 workspace rows ok, 12 capacity rows ok, 16 audit rows ok, 9 failed-run rows flagged, 1 budget policy `not_allowed`, 1 schema grant `not_allowed`.
 
+## Reference run
+
+The run wrote 53 `admin_actions` rows (111 across three runs): 8 workspace rows (5 settings checked), 12 capacity rows (1 warehouse and 10 serverless SKUs), 16 audit rows (15 service and action pairs plus a summary), and 9 failed-run rows flagged (7 failed runs listed). Two actions were recorded as `not_allowed`: the schema grant, because the job created a workspace-local group and Unity Catalog grants need an account-level group, and the serverless budget policy, because the budget-policies API returned Not Found at the workspace level in the reference workspace. Both are properties of that workspace and its setup; budget policies are managed from the account console or account API, and groups should be created at the account (SCIM, automatic identity management, or Terraform).
+
 ## Limitations and next steps
 
 - Unity Catalog grants need an account-level group. The job creates a workspace-local group, so the schema grant is refused and recorded. Create the group at the account level (SCIM or Terraform) to complete it.
