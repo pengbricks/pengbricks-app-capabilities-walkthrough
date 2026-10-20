@@ -841,6 +841,267 @@
         }
       ]
     },
+    "vscode-databricks": {
+      "bundle": "reference/vscode-starter",
+      "onePager": "reference/vscode-starter/guides/vscode-databricks/README.md",
+      "download": {
+        "path": "reference/vscode-starter",
+        "filename": "vscode-starter.zip",
+        "exclude": [
+          "resources/app_access.yml",
+          "guides/vscode-databricks/README.md"
+        ]
+      },
+      "code": [
+        {
+          "label": "Bundle definition: wheel build, variables, targets",
+          "path": "reference/vscode-starter/databricks.yml"
+        },
+        {
+          "label": "Job resource: notebook task and wheel task",
+          "path": "reference/vscode-starter/resources/orders.job.yml"
+        },
+        {
+          "label": "Schema resource",
+          "path": "reference/vscode-starter/resources/orders.schema.yml"
+        },
+        {
+          "label": "Package: clean and total orders",
+          "path": "reference/vscode-starter/src/orders_demo/orders.py"
+        },
+        {
+          "label": "Wheel entry point",
+          "path": "reference/vscode-starter/src/orders_demo/main.py"
+        },
+        {
+          "label": "Source-format notebook",
+          "path": "reference/vscode-starter/src/notebook.py"
+        },
+        {
+          "label": "Script to debug with Databricks Connect",
+          "path": "reference/vscode-starter/scratch/explore.py"
+        },
+        {
+          "label": "Unit tests",
+          "path": "reference/vscode-starter/tests/test_orders.py"
+        },
+        {
+          "label": "Databricks Connect test",
+          "path": "reference/vscode-starter/tests/test_connect.py"
+        },
+        {
+          "label": "Project file with the databricks-connect pin",
+          "path": "reference/vscode-starter/pyproject.toml"
+        },
+        {
+          "label": "Launch configurations",
+          "path": "reference/vscode-starter/.vscode/launch.json"
+        },
+        {
+          "label": "Editor settings",
+          "path": "reference/vscode-starter/.vscode/settings.json"
+        },
+        {
+          "label": "Recommended extensions",
+          "path": "reference/vscode-starter/.vscode/extensions.json"
+        },
+        {
+          "label": "README for the download",
+          "path": "reference/vscode-starter/README.md"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_vscode_starter",
+          "label": "Orders notebook and wheel job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "Orders job run (dev target): notebook task, then wheel task writing 3 daily revenue rows",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/352481510017207/runs/480773464413421",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-20T17:08:00Z"
+        }
+      ],
+      "docs": [
+        {
+          "label": "Databricks IDE extension",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/vscode-ext/"
+        },
+        {
+          "label": "Install the extension",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/vscode-ext/install"
+        },
+        {
+          "label": "Set up authorization",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/vscode-ext/authentication"
+        },
+        {
+          "label": "Configure your project",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/vscode-ext/configure"
+        },
+        {
+          "label": "Bundle and explorer features",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/vscode-ext/bundles"
+        },
+        {
+          "label": "Run a file or notebook",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/vscode-ext/run"
+        },
+        {
+          "label": "Debug code with Databricks Connect",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/vscode-ext/databricks-connect"
+        },
+        {
+          "label": "Run and debug notebook cells",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/vscode-ext/notebooks"
+        },
+        {
+          "label": "Run Python tests",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/vscode-ext/pytest"
+        },
+        {
+          "label": "Install Databricks Connect for Python",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/databricks-connect/python/install"
+        },
+        {
+          "label": "Serverless environment versions",
+          "url": "https://docs.databricks.com/aws/en/release-notes/serverless/environment-version/"
+        },
+        {
+          "label": "Declarative Automation Bundles",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/bundles"
+        },
+        {
+          "label": "Deployment modes",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/bundles/deployment-modes"
+        },
+        {
+          "label": "Bundle variables",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/bundles/variables"
+        },
+        {
+          "label": "Notebook formats",
+          "url": "https://docs.databricks.com/aws/en/notebooks/notebook-format"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Recommended extensions",
+          "path": "reference/vscode-starter/.vscode/extensions.json",
+          "section": "starter",
+          "notes": [
+            "The folder prompts you to install the Databricks extension, Python, and Ruff on first open."
+          ]
+        },
+        {
+          "label": "Interpreter and pytest discovery",
+          "path": "reference/vscode-starter/.vscode/settings.json",
+          "section": "setup",
+          "notes": [
+            "The interpreter path points at the .venv the extension builds. Windows uses .venv/Scripts/python.exe."
+          ]
+        },
+        {
+          "label": "Targets: dev is the default",
+          "path": "reference/vscode-starter/databricks.yml",
+          "lines": [
+            66,
+            86
+          ],
+          "section": "bundles",
+          "notes": [
+            "dev uses development mode: prefixed names and a schema of your own. prod needs a fixed root_path that names the target."
+          ]
+        },
+        {
+          "label": "Job: notebook task, then wheel task",
+          "path": "reference/vscode-starter/resources/orders.job.yml",
+          "lines": [
+            1,
+            45
+          ],
+          "section": "bundles",
+          "notes": [
+            "Serverless needs an environment_version and the wheel under environments.",
+            "The capability_guide_job tag is how the Capability Atlas app finds the job."
+          ]
+        },
+        {
+          "label": "Notebook that runs cell by cell",
+          "path": "reference/vscode-starter/src/notebook.py",
+          "lines": [
+            1,
+            24
+          ],
+          "section": "formats",
+          "notes": [
+            "The first line makes the file a notebook; each COMMAND line starts a cell.",
+            "It calls the package, so the notebook diff stays small."
+          ]
+        },
+        {
+          "label": "Pin databricks-connect to the compute",
+          "path": "reference/vscode-starter/pyproject.toml",
+          "lines": [
+            16,
+            29
+          ],
+          "section": "environment",
+          "notes": [
+            "Serverless environment version 5 pairs with Databricks Connect 18.0. The job's environment_version is 5 to match."
+          ]
+        },
+        {
+          "label": "Script with a breakpoint spot",
+          "path": "reference/vscode-starter/scratch/explore.py",
+          "lines": [
+            8,
+            24
+          ],
+          "section": "run",
+          "notes": [
+            "Debug current file with Databricks Connect runs this locally; the Spark work runs on serverless compute."
+          ]
+        },
+        {
+          "label": "A plain function to unit test",
+          "path": "reference/vscode-starter/src/orders_demo/orders.py",
+          "symbol": "clean_orders",
+          "section": "tests",
+          "notes": [
+            "Pandas in, pandas out, so a test needs no workspace."
+          ]
+        },
+        {
+          "label": "Launch configurations with databricks: true",
+          "path": "reference/vscode-starter/.vscode/launch.json",
+          "section": "tests",
+          "notes": [
+            "The debug-test purpose makes the Testing panel's debug icon use Databricks Connect. The plain Run icon does not."
+          ]
+        },
+        {
+          "label": "Optional Databricks Connect test",
+          "path": "reference/vscode-starter/tests/test_connect.py",
+          "symbol": "spark",
+          "section": "tests",
+          "notes": [
+            "The fixture skips the test when Databricks Connect cannot reach serverless compute."
+          ]
+        },
+        {
+          "label": "Same session code on and off Databricks",
+          "path": "reference/vscode-starter/src/orders_demo/main.py",
+          "symbol": "get_spark",
+          "section": "pitfalls",
+          "notes": [
+            "On Databricks the running session is reused. On your machine the builder needs serverless() or a cluster."
+          ]
+        }
+      ]
+    },
     "github-cicd": {
       "bundle": "reference/ingestion",
       "onePager": "docs/guides/github-cicd.md",

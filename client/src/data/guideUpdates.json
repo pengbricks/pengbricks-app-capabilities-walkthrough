@@ -50,5 +50,6 @@
   "transformation-patterns": "2026-10-20",
   "user-experience": "2026-10-20",
   "versioning": "2026-10-20",
+  "vscode-databricks": "2026-10-20",
   "*": "2026-10-20"
 }

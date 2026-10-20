@@ -39,7 +39,7 @@ def stored_path(name: str) -> Path:
     return DOWNLOADS_DIR / f"{name}{STORED_SUFFIX}"
 MAX_LINES = 40
 # Local state that never belongs in a download, whether or not the repository ignores it.
-LOCAL_STATE = {".databricks", "__pycache__", ".pytest_cache", ".venv", "node_modules", ".git", ".DS_Store", ".idea", ".vscode"}
+LOCAL_STATE = {".databricks", "__pycache__", ".pytest_cache", ".venv", "node_modules", ".git", ".DS_Store", ".idea"}
 ZIP_TIMESTAMP = (2020, 1, 1, 0, 0, 0)
 
 

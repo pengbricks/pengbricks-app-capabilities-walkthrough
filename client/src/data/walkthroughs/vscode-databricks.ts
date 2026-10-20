@@ -67,6 +67,33 @@ export const walkthrough: Walkthrough = {
       },
     },
     {
+      id: 'starter',
+      heading: 'Try it with the starter bundle',
+      prose:
+        'Download the starter bundle at the top of this page and open the folder in VS Code. It is a small bundle project set up the way the rest of this guide recommends: a Python package of order-cleaning functions, a source-format notebook that calls it, a script to debug with Databricks Connect, pytest tests, and a serverless Lakeflow job with a notebook task and a Python wheel task. The .vscode folder holds the pytest discovery settings, the launch configurations with "databricks": true, and the extension recommendations. The databricks-connect pin is 18.0.*, which matches serverless environment version 5.',
+      points: [
+        {
+          strong: 'The README holds the click path.',
+          text: 'Its numbered demo steps follow this page: open the folder, sign in with OAuth, pick serverless, set up the environment, run a notebook cell, debug the script, run the tests, deploy and run the job, change the code and redeploy, deploy to prod, and destroy.',
+        },
+        {
+          strong: 'It needs one value from you.',
+          text: 'Set the catalog variable in the Bundle Variables view, or pass --var catalog=<catalog>. The bundle creates its own schema there, prefixed with your user name in the dev target.',
+        },
+        {
+          strong: 'Unit tests need no workspace.',
+          text: 'The pandas tests run anywhere. One optional test uses Databricks Connect and skips itself when no sign-in works.',
+        },
+      ],
+      links: [
+        {
+          label: 'Databricks IDE extension overview',
+          url: 'https://docs.databricks.com/aws/en/dev-tools/vscode-ext/',
+          note: 'The extension features the starter exercises.',
+        },
+      ],
+    },
+    {
       id: 'setup',
       heading: 'Set up once: install, sign in, pick compute',
       prose:

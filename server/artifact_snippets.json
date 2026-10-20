@@ -3480,5 +3480,144 @@
       "code": "def register(spark, catalog, schema, *, dataset, version, change_type, object_name, release, delta_ver) -> None:\n    registry = ensure_registry(spark, catalog, schema)\n    spark.sql(f\"DELETE FROM {registry} WHERE dataset = '{dataset}' AND version = '{version}' AND object_name = '{object_name}'\")\n    ver = \"NULL\" if delta_ver is None else str(int(delta_ver))\n    spark.sql(\n        f\"INSERT INTO {registry} VALUES ('{dataset}', '{version}', '{change_type}', '{object_name}', \"\n        f\"'{release}', current_timestamp(), {ver})\"\n    )",
       "functions": {}
     }
+  ],
+  "vscode-databricks": [
+    {
+      "path": "reference/vscode-starter/.vscode/extensions.json",
+      "symbol": null,
+      "startLine": 1,
+      "endLine": 8,
+      "language": "json",
+      "code": "{\n  \"recommendations\": [\n    \"databricks.databricks\",\n    \"ms-python.python\",\n    \"ms-python.debugpy\",\n    \"charliermarsh.ruff\"\n  ]\n}",
+      "functions": {}
+    },
+    {
+      "path": "reference/vscode-starter/.vscode/settings.json",
+      "symbol": null,
+      "startLine": 1,
+      "endLine": 10,
+      "language": "json",
+      "code": "{\n  \"python.defaultInterpreterPath\": \"${workspaceFolder}/.venv/bin/python\",\n  \"python.testing.pytestEnabled\": true,\n  \"python.testing.unittestEnabled\": false,\n  \"python.testing.pytestArgs\": [\"tests\"],\n  \"python.analysis.extraPaths\": [\"src\"],\n  \"[python]\": {\n    \"editor.defaultFormatter\": \"charliermarsh.ruff\"\n  }\n}",
+      "functions": {}
+    },
+    {
+      "path": "reference/vscode-starter/databricks.yml",
+      "symbol": null,
+      "startLine": 66,
+      "endLine": 86,
+      "language": "yml",
+      "code": "targets:\n  # Development mode is the default target. Resource names get a \"[dev <you>]\" prefix and the schema\n  # is yours alone, so two people can deploy the same bundle. Folder sync and the cluster override in\n  # the extension work only in development mode.\n  dev:\n    default: true\n    mode: development\n\n  # Production mode deploys one shared copy. Names are unprefixed. Keep real prod deploys in CI.\n  prod:\n    mode: production\n    workspace:\n      # Production mode requires a fixed path that names the target, so only one copy is deployed.\n      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}\n    # For a real production deployment, deploy as a service principal and add run_as here:\n    #   run_as:\n    #     service_principal_name: <application-id>\n    # https://docs.databricks.com/aws/en/dev-tools/bundles/run-as\n    presets:\n      tags:\n        environment: prod",
+      "functions": {}
+    },
+    {
+      "path": "reference/vscode-starter/resources/orders.job.yml",
+      "symbol": null,
+      "startLine": 1,
+      "endLine": 40,
+      "language": "yml",
+      "code": "# A Lakeflow job with two tasks on serverless compute: the notebook in src/, then the package's\n# Python wheel entry point, which writes a table. Click the play icon beside the job in the extension's\n# Bundle Resource Explorer to deploy and run it, or use `databricks bundle run`.\n#\n# Learn more:\n#   Job settings you can set here   https://docs.databricks.com/aws/en/dev-tools/bundles/resources#job\n#   Task types and their settings   https://docs.databricks.com/aws/en/dev-tools/bundles/job-task-types\n#   Serverless environment versions https://docs.databricks.com/aws/en/release-notes/serverless/environment-version/\nresources:\n  jobs:\n    capability_guides_vscode_starter:\n      name: vscode-starter-orders\n      description: Runs the daily orders notebook, then writes the daily_revenue table from the orders_demo wheel.\n      tags:\n        capability_guide_job: capability_guides_vscode_starter\n      max_concurrent_runs: 1\n      timeout_seconds: 1800\n      # Serverless compute needs an environment: a version, plus the wheel this bundle builds (see\n      # `artifacts` in databricks.yml). Version 5 matches the databricks-connect pin in pyproject.toml.\n      environments:\n        - environment_key: default\n          spec:\n            environment_version: \"5\"\n            dependencies:\n              - ../dist/*.whl\n      tasks:\n        - task_key: daily_orders_notebook\n          environment_key: default\n          notebook_task:\n            # Relative to this YAML file. The notebook deploys with the bundle's other files.\n            notebook_path: ../src/notebook.py\n\n        - task_key: write_daily_revenue\n          depends_on:\n            - task_key: daily_orders_notebook\n          environment_key: default\n          python_wheel_task:\n            package_name: orders_demo\n            # The console script named in [project.scripts] in pyproject.toml.\n            entry_point: orders-demo",
+      "functions": {}
+    },
+    {
+      "path": "reference/vscode-starter/src/notebook.py",
+      "symbol": null,
+      "startLine": 1,
+      "endLine": 24,
+      "language": "py",
+      "code": "# Databricks notebook source\n# MAGIC %md\n# MAGIC # Daily orders\n# MAGIC\n# MAGIC The same file runs two ways. In VS Code, each cell shows Run Cell, Run Above, and Debug Cell: your Python runs\n# MAGIC locally and Spark work runs on serverless compute through Databricks Connect. In the workspace (and as the job's\n# MAGIC first task) it is an ordinary notebook. The logic lives in the `orders_demo` package, not here.\n\n# COMMAND ----------\n\nfrom orders_demo import clean_orders, daily_revenue, sample_orders, spark_daily_revenue\n\nraw = sample_orders()\nprint(f\"{len(raw)} raw orders\")\n\n# COMMAND ----------\n\n# Plain pandas: runs on your machine in VS Code, so a breakpoint here steps through the real code.\ncleaned = clean_orders(raw)\nprint(f\"{len(raw) - len(cleaned)} orders dropped\")\ndisplay(cleaned)\n\n# COMMAND ----------\n",
+      "functions": {
+        "clean_orders": "Drop orders with no customer, a quantity of zero or less, or an unknown status; add `revenue`.",
+        "display": "Call saferepr on the expression.",
+        "len": "Return the length of each list in the Series.",
+        "print": "Print the simple string representation of the current :class:`LogicalPlan`.",
+        "sample_orders": "Eight orders with a few bad rows: a missing customer, a zero quantity, and an unknown status.",
+        "workspace": "The Workspace API allows you to list, import, export, and delete workspace objects such as notebooks, files, folders, and dashboards."
+      }
+    },
+    {
+      "path": "reference/vscode-starter/pyproject.toml",
+      "symbol": null,
+      "startLine": 16,
+      "endLine": 29,
+      "language": "toml",
+      "code": "# `uv sync` installs the dev group too.\n[dependency-groups]\ndev = [\n    # Match databricks-connect to the compute you run on. Serverless environment version 5 pairs with\n    # Databricks Connect 18.0 (`databricks environments setup-local --serverless-version 5` resolves to\n    # the same line), so the job's environment_version in resources/orders.job.yml is \"5\" too. For another\n    # version, look up its Databricks Connect line in the serverless environment version release notes\n    # and change both. X.Y.* takes the newest patch release.\n    # https://docs.databricks.com/aws/en/release-notes/serverless/environment-version/\n    # https://docs.databricks.com/aws/en/dev-tools/databricks-connect/python/install\n    \"databricks-connect==18.0.*\",\n    \"pytest>=8\",\n    \"ruff>=0.6\",\n]",
+      "functions": {}
+    },
+    {
+      "path": "reference/vscode-starter/scratch/explore.py",
+      "symbol": null,
+      "startLine": 8,
+      "endLine": 24,
+      "language": "py",
+      "code": "from databricks.connect import DatabricksSession\n\nfrom orders_demo import clean_orders, sample_orders, spark_daily_revenue\n\n# Uses the profile the extension selected. Outside VS Code, set DATABRICKS_CONFIG_PROFILE=<profile>.\nspark = DatabricksSession.builder.serverless().getOrCreate()\n\nraw = sample_orders()\ncleaned = clean_orders(raw)\n\n# Set a breakpoint on the next line. In the Variables pane compare `raw` with `cleaned`, then\n# step into spark_daily_revenue (F11) and watch the DataFrame being built.\ntotals = spark_daily_revenue(spark.createDataFrame(cleaned))\n\ndropped = raw[~raw[\"order_id\"].isin(cleaned[\"order_id\"])]\nprint(f\"Dropped {len(dropped)} of {len(raw)} orders:\")\nprint(dropped[[\"order_id\", \"customer_id\", \"quantity\", \"status\"]].to_string(index=False))",
+      "functions": {
+        "clean_orders": "Drop orders with no customer, a quantity of zero or less, or an unknown status; add `revenue`.",
+        "createDataFrame": "Creates a :class:`DataFrame` from an :class:`RDD`, a list, a :class:`pandas.DataFrame`, or a :class:`pyarrow.Table`.",
+        "getOrCreate": "Get an existing :class:SparkSession for the provided configuration or, if there is no  existing one, create a new one.",
+        "isin": "Calculates ``element in test_elements``, broadcasting over `element` only. Returns a boolean array of the same shape as `element` that is True where an element of `element` is in `test_elements` and False otherwise.",
+        "len": "Return the length of each list in the Series.",
+        "print": "Print the simple string representation of the current :class:`LogicalPlan`.",
+        "sample_orders": "Eight orders with a few bad rows: a missing customer, a zero quantity, and an unknown status.",
+        "serverless": "Connect to the serverless endpoint of the workspace. Can't be used with clusterId at the same time.",
+        "spark_daily_revenue": "The same total as `daily_revenue`, for a Spark DataFrame of cleaned orders.",
+        "to_string": "Compute the full User-Agent header."
+      }
+    },
+    {
+      "path": "reference/vscode-starter/src/orders_demo/orders.py",
+      "symbol": "clean_orders",
+      "startLine": 31,
+      "endLine": 39,
+      "language": "py",
+      "code": "def clean_orders(orders: pd.DataFrame) -> pd.DataFrame:\n    \"\"\"Drop orders with no customer, a quantity of zero or less, or an unknown status; add `revenue`.\n\n    Status is trimmed and lower-cased first, so \"Shipped \" counts as \"shipped\".\n    \"\"\"\n    cleaned = orders.assign(status=orders[\"status\"].str.strip().str.lower())\n    keep = cleaned[\"customer_id\"].notna() & (cleaned[\"quantity\"] > 0) & cleaned[\"status\"].isin(KNOWN_STATUSES)\n    cleaned = cleaned[keep]\n    return cleaned.assign(revenue=cleaned[\"quantity\"] * cleaned[\"unit_price\"]).reset_index(drop=True)",
+      "functions": {
+        "assign": "Give *expr* a name.",
+        "clean_orders": "Drop orders with no customer, a quantity of zero or less, or an unknown status; add `revenue`.",
+        "isin": "Calculates ``element in test_elements``, broadcasting over `element` only. Returns a boolean array of the same shape as `element` that is True where an element of `element` is in `test_elements` and False otherwise.",
+        "lower": "Return an array with the elements of `self` converted to lowercase.",
+        "notna": "Inverse of isna",
+        "reset_index": "Reset the index, or a level of it.",
+        "strip": "Return new Source object with trailing and leading blank lines removed."
+      }
+    },
+    {
+      "path": "reference/vscode-starter/.vscode/launch.json",
+      "symbol": null,
+      "startLine": 1,
+      "endLine": 26,
+      "language": "json",
+      "code": "{\n  \"version\": \"0.2.0\",\n  \"configurations\": [\n    {\n      // Python debugger with Databricks Connect switched on by \"databricks\": true. Python runs locally,\n      // Spark work runs on the compute selected in the extension.\n      \"name\": \"Debug file with Databricks Connect\",\n      \"type\": \"debugpy\",\n      \"databricks\": true,\n      \"request\": \"launch\",\n      \"program\": \"${file}\",\n      \"console\": \"integratedTerminal\"\n    },\n    {\n      // \"purpose\": [\"debug-test\"] makes the debug icon in the Testing panel use this configuration, so\n      // tests that call Spark get Databricks Connect. The plain Run icon does not.\n      \"name\": \"Unit tests with Databricks Connect\",\n      \"type\": \"debugpy\",\n      \"databricks\": true,\n      \"request\": \"launch\",\n      \"purpose\": [\"debug-test\"],\n      \"console\": \"integratedTerminal\",\n      \"justMyCode\": false\n    }\n  ]\n}",
+      "functions": {}
+    },
+    {
+      "path": "reference/vscode-starter/tests/test_connect.py",
+      "symbol": "spark",
+      "startLine": 16,
+      "endLine": 24,
+      "language": "py",
+      "code": "@pytest.fixture(scope=\"module\")\ndef spark():\n    connect = pytest.importorskip(\"databricks.connect\")\n    try:\n        session = connect.DatabricksSession.builder.serverless().getOrCreate()\n        session.range(1).collect()  # fails here, not in the test, when sign-in has expired\n    except Exception as error:  # noqa: BLE001 - any connection problem means skip, not fail\n        pytest.skip(f\"Databricks Connect is not available: {type(error).__name__}\")\n    return session",
+      "functions": {
+        "collect": "Collect children (items and collectors) for this collector.",
+        "fixture": "Decorator to mark a fixture factory function.",
+        "getOrCreate": "Get an existing :class:SparkSession for the provided configuration or, if there is no  existing one, create a new one.",
+        "importorskip": "Import and return the requested module ``modname``, or skip the current test if the module cannot be imported.",
+        "range": "Create a new RDD of int containing elements from `start` to `end` (exclusive), increased by `step` every element. Can be called the same way as python's built-in range() function. If called with a single argument, the argument is interpreted as `end`, and `start` is set to 0.",
+        "serverless": "Connect to the serverless endpoint of the workspace. Can't be used with clusterId at the same time.",
+        "type": "The exception class."
+      }
+    },
+    {
+      "path": "reference/vscode-starter/src/orders_demo/main.py",
+      "symbol": "get_spark",
+      "startLine": 17,
+      "endLine": 24,
+      "language": "py",
+      "code": "def get_spark():\n    \"\"\"The running Spark session on Databricks, a serverless Databricks Connect session elsewhere.\"\"\"\n    from databricks.connect import DatabricksSession\n\n    builder = DatabricksSession.builder\n    if \"DATABRICKS_RUNTIME_VERSION\" not in os.environ:  # set on Databricks compute, not on your machine\n        builder = builder.serverless()\n    return builder.getOrCreate()",
+      "functions": {
+        "getOrCreate": "Get an existing :class:SparkSession for the provided configuration or, if there is no  existing one, create a new one.",
+        "get_spark": "The running Spark session on Databricks, a serverless Databricks Connect session elsewhere.",
+        "serverless": "Connect to the serverless endpoint of the workspace. Can't be used with clusterId at the same time."
+      }
+    }
   ]
 }
