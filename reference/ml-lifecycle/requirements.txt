@@ -2,3 +2,4 @@ mlflow>=3.1
 scikit-learn>=1.4
 pyyaml>=6
 databricks-sdk>=0.100
+openpyxl>=3.1

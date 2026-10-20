@@ -1,0 +1,180 @@
+import type { Walkthrough } from './types.ts';
+
+export const walkthrough: Walkthrough = {
+  slug: 'how-databricks-works',
+  area: 'Foundations',
+  title: 'How Databricks works',
+  intro:
+    'Databricks keeps data and compute apart. Tables are open-format files in cloud object storage, compute is started when work arrives and stopped when it ends, and Unity Catalog sits over both so every engine sees the same tables and the same permissions. This page covers those three pieces and how they fit.',
+  shortVersion: [
+    {
+      title: 'Data lives in object storage.',
+      body: 'Tables are Delta or Iceberg: Parquet data files plus a transaction log, stored in ADLS, S3, or GCS. Nothing about the table is locked inside a running cluster.',
+    },
+    {
+      title: 'Compute is separate and disposable.',
+      body: 'Notebooks, jobs, pipelines, and SQL warehouses each start compute, read the tables, and shut down. Stopping compute deletes no data.',
+    },
+    {
+      title: 'Many engines, one copy.',
+      body: 'A SQL warehouse, a Python notebook, and a pipeline can read the same table at once. There is no export step between them.',
+    },
+    {
+      title: 'The control plane runs the service.',
+      body: 'Databricks hosts the web UI, job scheduler, and Unity Catalog. Your data is processed on the compute plane, serverless or in your own cloud account.',
+    },
+    {
+      title: 'You pay for each separately.',
+      body: 'Compute is billed in DBUs only while it runs. Storage is billed by the cloud provider for the bytes kept.',
+    },
+  ],
+  sections: [
+    {
+      id: 'planes',
+      heading: 'Control plane, compute plane, storage',
+      prose:
+        'A request starts in the control plane, runs on compute in the compute plane, and reads or writes files in storage. Unity Catalog checks every read and write, whichever compute makes it.',
+      diagram: {
+        type: 'flow',
+        title: 'Where each part runs',
+        description:
+          'Users reach the workspace UI, APIs, and job scheduler in the Databricks control plane, where Unity Catalog also runs. The control plane starts compute in the compute plane: serverless compute managed by Databricks, or classic clusters in your cloud account. Both kinds of compute read and write Delta and Iceberg tables in cloud object storage, and Unity Catalog governs every read and write.',
+        lanes: [
+          { label: 'Control plane', fromRow: 0, toRow: 0 },
+          { label: 'Compute plane', fromRow: 1, toRow: 1 },
+          { label: 'Storage', fromRow: 2, toRow: 2 },
+        ],
+        nodes: [
+          { id: 'user', label: 'Users and tools', sub: 'UI, API, BI, IDE', col: 0, row: 0, kind: 'surface' },
+          { id: 'workspace', label: 'Workspace', sub: 'UI, jobs, notebooks', col: 1, row: 0 },
+          { id: 'uc', label: 'Unity Catalog', sub: 'names, grants, lineage', col: 2, row: 0, kind: 'highlight' },
+          { id: 'classic', label: 'Classic compute', sub: 'in your cloud account', col: 0, row: 1 },
+          { id: 'serverless', label: 'Serverless compute', sub: 'managed by Databricks', col: 1, row: 1 },
+          { id: 'tables', label: 'Delta and Iceberg', sub: 'Parquet in ADLS, S3, GCS', col: 1, row: 2, kind: 'store' },
+        ],
+        edges: [
+          { from: 'user', to: 'workspace' },
+          { from: 'workspace', to: 'serverless', label: 'starts' },
+          { from: 'serverless', to: 'tables' },
+          { from: 'classic', to: 'tables', dashed: true },
+          { from: 'uc', to: 'tables', label: 'governs' },
+        ],
+        legend: [
+          { kind: 'highlight', label: 'Governance for every engine' },
+          { kind: 'store', label: 'Data at rest' },
+          { kind: 'dashed', label: 'Optional classic path' },
+        ],
+      },
+    },
+    {
+      id: 'separation',
+      heading: 'Why compute and storage are separate',
+      prose:
+        'In a traditional warehouse the database owns its disks, so more data means a bigger server. Here the files stay put and you size compute for the work in front of you.',
+      table: {
+        caption: 'Coupled versus separated',
+        columns: ['Coupled database', 'Databricks lakehouse'],
+        rows: [
+          ['Data sits on the server’s disks', 'Data sits in object storage you own'],
+          ['Scale the server to store more', 'Storage grows on its own; compute is sized per job'],
+          ['One engine reads the data', 'SQL, Python, Scala, R, and pipelines read the same tables'],
+          ['Idle server still costs money', 'Compute stops when idle; only storage is billed'],
+          ['Proprietary file format', 'Open Delta and Iceberg formats any engine can read'],
+        ],
+      },
+    },
+    {
+      id: 'lakehouse',
+      heading: 'What “lakehouse” means',
+      points: [
+        {
+          strong: 'Lake storage.',
+          text: 'Cheap object storage that holds structured tables and unstructured files, such as PDFs and images, in volumes.',
+        },
+        {
+          strong: 'Warehouse guarantees.',
+          text: 'ACID transactions, schemas, time travel, and fast SQL come from the table format’s transaction log, not from a separate database.',
+        },
+        {
+          strong: 'One governance layer.',
+          text: 'Unity Catalog grants, lineage, and audit cover tables, files, models, and functions alike.',
+        },
+      ],
+    },
+    {
+      id: 'compute',
+      heading: 'Which compute to pick',
+      prose:
+        'Every option reads the same tables. Choose by workload, and start with serverless: it starts in seconds, scales on its own, and has no clusters to manage.',
+      diagram: {
+        type: 'matrix',
+        title: 'Compute by workload',
+        description:
+          'SQL warehouses serve SQL queries, dashboards, and BI tools. Serverless notebooks and jobs run Python and SQL code and scheduled work. Lakeflow Declarative Pipelines run batch and streaming ETL. Classic clusters are optional for workloads that need custom machines or libraries serverless does not support.',
+        corner: 'Compute ↓ · Use →',
+        columns: ['SQL and BI', 'Notebooks and jobs', 'Pipelines'],
+        rows: [
+          {
+            label: 'SQL warehouse',
+            sub: 'serverless',
+            cells: [
+              { state: 'own', text: 'Primary' },
+              { state: 'optional', text: 'SQL tasks' },
+              { state: 'none', text: 'No' },
+            ],
+          },
+          {
+            label: 'Serverless compute',
+            sub: 'notebooks, jobs',
+            cells: [
+              { state: 'optional', text: 'Ad hoc SQL' },
+              { state: 'own', text: 'Primary' },
+              { state: 'none', text: 'No' },
+            ],
+          },
+          {
+            label: 'Lakeflow pipeline',
+            sub: 'serverless',
+            cells: [
+              { state: 'none', text: 'No' },
+              { state: 'optional', text: 'As a job task' },
+              { state: 'own', text: 'Primary' },
+            ],
+          },
+        ],
+        legend: [
+          { state: 'own', label: 'Built for this' },
+          { state: 'optional', label: 'Supported' },
+          { state: 'none', label: 'Not used' },
+        ],
+      },
+    },
+    {
+      id: 'try-it',
+      heading: 'See it for yourself',
+      steps: [
+        {
+          title: 'Query a table from SQL',
+          body: 'Open the SQL editor on a serverless warehouse and query a sample table.',
+          code: 'SELECT * FROM samples.nyctaxi.trips LIMIT 10;',
+        },
+        {
+          title: 'Read the same table from Python',
+          body: 'In a notebook on serverless compute, read it again. Same table, different engine, no copy.',
+          code: "spark.table('samples.nyctaxi.trips').groupBy('pickup_zip').count().display()",
+        },
+        {
+          title: 'Look at the files',
+          body: 'DESCRIBE DETAIL shows the table’s storage location, format, and file count. Stop the warehouse and run it again later: the files are unchanged.',
+          code: 'DESCRIBE DETAIL samples.nyctaxi.trips;',
+        },
+      ],
+    },
+  ],
+  related: [
+    { slug: 'unity-catalog-basics', title: 'Unity Catalog basics' },
+    { slug: 'medallion-architecture', title: 'Medallion architecture' },
+    { slug: 'file-formats-delta-iceberg', title: 'JSON, CSV, Parquet, Delta, and Iceberg' },
+    { slug: 'compute-capacity-management', title: 'Compute and capacity management' },
+  ],
+};

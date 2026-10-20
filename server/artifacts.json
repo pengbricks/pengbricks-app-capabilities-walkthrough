@@ -1352,6 +1352,10 @@
         {
           "label": "GitHub Actions workflow",
           "path": ".github/workflows/model-deployment-cicd.yml"
+        },
+        {
+          "label": "Public dataset download, checksum, and churn snapshot",
+          "path": "reference/model-deployment/src/public_data.py"
         }
       ],
       "jobs": [
@@ -1363,9 +1367,9 @@
       "recordedRuns": [
         {
           "label": "Model release run (train, test, approve, deploy)",
-          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/429746369694842/runs/1079189209867456",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/429746369694842/runs/7290545574125",
           "workspace": "Reference workspace",
-          "recordedAt": "2026-10-16T17:06:54Z"
+          "recordedAt": "2026-10-19T21:40:00Z"
         }
       ],
       "docs": [
@@ -4138,6 +4142,10 @@
         {
           "label": "Notebooks, one per job task",
           "path": "reference/ml-lifecycle/guides/data-ingestion-feature-preparation"
+        },
+        {
+          "label": "Public dataset download, checksum, and churn snapshot",
+          "path": "reference/ml-lifecycle/src/public_data.py"
         }
       ],
       "jobs": [
@@ -4149,9 +4157,9 @@
       "recordedRuns": [
         {
           "label": "Feature preparation run",
-          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/815959990725098/runs/326921012293403",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/815959990725098/runs/864715088805417",
           "workspace": "Reference workspace",
-          "recordedAt": "2026-10-16T17:06:54Z"
+          "recordedAt": "2026-10-19T21:40:00Z"
         }
       ],
       "docs": [
@@ -4174,6 +4182,16 @@
       ],
       "highlights": [
         {
+          "label": "Customer snapshot from real invoices",
+          "path": "reference/ml-lifecycle/src/public_data.py",
+          "notes": [
+            "Features use only invoices before the snapshot date; churned means no order in the next 6 months.",
+            "Credit notes count as returns. Lines with no customer ID never reach the snapshot."
+          ],
+          "symbol": "customer_snapshot_sql",
+          "section": "flow"
+        },
+        {
           "label": "Create the feature table",
           "path": "reference/ml-lifecycle/guides/data-ingestion-feature-preparation/02_build_features.py",
           "notes": [
@@ -4190,7 +4208,7 @@
           "label": "Quality checks from the spec",
           "path": "reference/ml-lifecycle/src/ml_common.py",
           "notes": [
-            "16 checks built from the use-case spec.",
+            "18 checks built from the use-case spec; all passed with 0 violations.",
             "Any failure fails the task."
           ],
           "symbol": "quality_queries",
@@ -4216,8 +4234,8 @@
             "Each task is a notebook. The use-case parameter selects the spec."
           ],
           "lines": [
-            22,
-            43
+            24,
+            45
           ],
           "section": "flow"
         },
@@ -4237,7 +4255,7 @@
           "label": "Read upstream tables from the lineage API",
           "path": "reference/ml-lifecycle/guides/data-ingestion-feature-preparation/04_record_lineage.py",
           "notes": [
-            "Checks that Unity Catalog recorded the source to feature to training-set chain."
+            "Checks that Unity Catalog recorded transactions to snapshot to feature table to training set."
           ],
           "lines": [
             43,
@@ -4258,6 +4276,10 @@
         {
           "label": "Legacy model wrapper",
           "path": "reference/ml-lifecycle/src/legacy_pyfunc.py"
+        },
+        {
+          "label": "Public dataset download, checksum, and churn snapshot",
+          "path": "reference/ml-lifecycle/src/public_data.py"
         }
       ],
       "jobs": [
@@ -4269,9 +4291,9 @@
       "recordedRuns": [
         {
           "label": "Train and import run",
-          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/860581854791201/runs/729610550953015",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/860581854791201/runs/1027634611908422",
           "workspace": "Reference workspace",
-          "recordedAt": "2026-10-16T17:06:54Z"
+          "recordedAt": "2026-10-19T21:40:00Z"
         }
       ],
       "docs": [
@@ -4308,7 +4330,7 @@
           "path": "reference/ml-lifecycle/guides/model-training-compatibility/03_import_legacy_model.py",
           "notes": [
             "Scores the same holdout through the registered model.",
-            "AUC 0.947689 reproduced within 0.001."
+            "AUC 0.716529 reproduced exactly, within the 0.001 tolerance."
           ],
           "lines": [
             65,
@@ -4332,8 +4354,8 @@
             "The pickle and a JSON record (baseline AUC, table version, package versions) go to a volume."
           ],
           "lines": [
-            44,
-            56
+            46,
+            58
           ],
           "section": "paths"
         },
@@ -4377,11 +4399,11 @@
           "label": "The training job",
           "path": "reference/ml-lifecycle/resources/model_training.job.yml",
           "notes": [
-            "The volume name is a job parameter, so the notebooks never hard-code a path."
+            "The source and model volumes are job parameters, so the notebooks never hard-code a path."
           ],
           "lines": [
             15,
-            43
+            45
           ],
           "section": "setup"
         }
@@ -4394,6 +4416,10 @@
         {
           "label": "Notebooks, one per job task",
           "path": "reference/ml-lifecycle/guides/experiment-tracking"
+        },
+        {
+          "label": "Public dataset download, checksum, and churn snapshot",
+          "path": "reference/ml-lifecycle/src/public_data.py"
         }
       ],
       "jobs": [
@@ -4405,9 +4431,9 @@
       "recordedRuns": [
         {
           "label": "Experiment rerun",
-          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/964391141118736/runs/264903770684887",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/964391141118736/runs/795779301566589",
           "workspace": "Reference workspace",
-          "recordedAt": "2026-10-16T17:06:54Z"
+          "recordedAt": "2026-10-19T21:40:00Z"
         }
       ],
       "docs": [
@@ -4437,8 +4463,8 @@
             "Everything needed to rerun is on the run."
           ],
           "lines": [
-            45,
-            54
+            47,
+            56
           ],
           "section": "refs"
         },
@@ -4446,12 +4472,12 @@
           "label": "Move the data on",
           "path": "reference/ml-lifecycle/guides/experiment-tracking/02_append_new_data.py",
           "notes": [
-            "New rows land after the recorded version.",
+            "Customers who are new by the next snapshot land after the recorded version.",
             "Only a rerun that reads the recorded version can match."
           ],
           "lines": [
             29,
-            36
+            40
           ],
           "section": "job"
         },
@@ -4474,8 +4500,8 @@
             "The rerun task gets the first run's ID from a task value."
           ],
           "lines": [
-            26,
-            43
+            28,
+            45
           ],
           "section": "job"
         },
@@ -4487,7 +4513,7 @@
           ],
           "lines": [
             31,
-            35
+            37
           ],
           "section": "job"
         },
@@ -4533,6 +4559,10 @@
         {
           "label": "Alert",
           "path": "reference/ml-lifecycle/resources/drift.alert.yml"
+        },
+        {
+          "label": "Public dataset download, checksum, and churn snapshot",
+          "path": "reference/ml-lifecycle/src/public_data.py"
         }
       ],
       "jobs": [
@@ -4544,9 +4574,9 @@
       "recordedRuns": [
         {
           "label": "Drift detection run",
-          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/651729285360127/runs/1103281108054416",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/651729285360127/runs/202944165887018",
           "workspace": "Reference workspace",
-          "recordedAt": "2026-10-16T17:06:54Z"
+          "recordedAt": "2026-10-19T21:40:00Z"
         }
       ],
       "docs": [
@@ -4573,7 +4603,7 @@
           "path": "reference/ml-lifecycle/src/ml_common.py",
           "notes": [
             "Baseline quantile bins; a breach is PSI or mean shift over the threshold.",
-            "days_since_login reached PSI 3.86 in the shifted batches."
+            "tenure_months reached PSI 1.919 by the June 2011 snapshot as the customer base aged."
           ],
           "symbol": "psi",
           "section": "metrics"
@@ -4585,8 +4615,8 @@
             "breach_check gates retrain_candidate on the task value from detect_drift."
           ],
           "lines": [
-            41,
-            54
+            43,
+            56
           ],
           "section": "retrain"
         },
@@ -4603,13 +4633,14 @@
           "section": "retrain"
         },
         {
-          "label": "Drift thresholds and the simulated shift",
+          "label": "Drift batches and thresholds",
           "path": "reference/ml-lifecycle/use_cases/general.yml",
           "notes": [
-            "Batches 4 and 5 add 30 days to days_since_login. Both thresholds live in the spec."
+            "Each batch is the customer base at a later snapshot date. Nothing is shifted by hand.",
+            "Both thresholds live in the spec."
           ],
           "lines": [
-            53,
+            54,
             59
           ],
           "section": "flow"
@@ -4647,6 +4678,10 @@
         {
           "label": "Notebooks, one per job task",
           "path": "reference/realtime-scoring/guides/real-time-scoring"
+        },
+        {
+          "label": "Public dataset download and checksum",
+          "path": "reference/realtime-scoring/src/public_data.py"
         }
       ],
       "jobs": [
@@ -4662,15 +4697,15 @@
       "recordedRuns": [
         {
           "label": "Scoring run",
-          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/920082277506172/runs/246872142543320",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/920082277506172/runs/314224254582623",
           "workspace": "Reference workspace",
-          "recordedAt": "2026-10-16T17:06:54Z"
+          "recordedAt": "2026-10-19T21:40:00Z"
         },
         {
           "label": "Endpoint teardown run",
-          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/760693706470600/runs/1064843313277782",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/760693706470600/runs/469747118192440",
           "workspace": "Reference workspace",
-          "recordedAt": "2026-10-16T17:06:54Z"
+          "recordedAt": "2026-10-19T21:40:00Z"
         }
       ],
       "docs": [
@@ -4697,7 +4732,7 @@
           "path": "reference/realtime-scoring/guides/real-time-scoring/03_score_and_measure.py",
           "notes": [
             "OAuth from the SDK; no PAT or secret.",
-            "p50 43.6 ms, p95 99.7 ms over 50 warm requests."
+            "p50 74.2 ms, p95 141.7 ms over 50 warm requests."
           ],
           "lines": [
             62,
@@ -4709,11 +4744,11 @@
           "label": "Optional features are filled",
           "path": "reference/realtime-scoring/guides/real-time-scoring/01_train_register.py",
           "notes": [
-            "A request that omits the optional feature is scored with the training median."
+            "A request that omits last_payment is scored with the training median."
           ],
           "lines": [
-            72,
-            83
+            71,
+            82
           ],
           "section": "failures"
         },
@@ -4733,11 +4768,11 @@
           "label": "The scoring job",
           "path": "reference/realtime-scoring/resources/realtime_scoring.job.yml",
           "notes": [
-            "The endpoint name is a job parameter shared by deploy and score."
+            "The endpoint name and source volume are job parameters shared by the tasks."
           ],
           "lines": [
             13,
-            39
+            41
           ],
           "section": "flow"
         },
@@ -4757,8 +4792,8 @@
             "workload_size, scale_to_zero, and route_optimized are read from the spec."
           ],
           "lines": [
-            22,
-            28
+            24,
+            30
           ],
           "section": "scaling"
         },
@@ -6064,6 +6099,164 @@
             58
           ],
           "section": "setup"
+        }
+      ]
+    },
+    "ai-functions": {
+      "bundle": "reference/ai-functions",
+      "onePager": "reference/ai-functions/guides/ai-functions/README.md",
+      "code": [
+        {
+          "label": "Notebooks, one per job task",
+          "path": "reference/ai-functions/guides/ai-functions"
+        },
+        {
+          "label": "Use-case spec: samples, labels, schema, endpoint",
+          "path": "reference/ai-functions/use_cases/general.yml"
+        },
+        {
+          "label": "Scoring and results helpers",
+          "path": "reference/ai-functions/src/aif_lib.py"
+        },
+        {
+          "label": "AI Functions job",
+          "path": "reference/ai-functions/resources/ai_functions.job.yml"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_ai_functions",
+          "label": "AI Functions job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "AI Functions run (triage, extract, mask, match, translate, forecast)",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/574547457715842/runs/830898905768337",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-20T17:05:00Z"
+        }
+      ],
+      "docs": [
+        {
+          "label": "AI Functions",
+          "url": "https://docs.databricks.com/aws/en/large-language-models/ai-functions"
+        },
+        {
+          "label": "ai_query",
+          "url": "https://docs.databricks.com/aws/en/large-language-models/ai-query"
+        },
+        {
+          "label": "AI Functions permissions",
+          "url": "https://docs.databricks.com/aws/en/large-language-models/ai-functions-uc-permissions"
+        },
+        {
+          "label": "Supported foundation models",
+          "url": "https://docs.databricks.com/aws/en/machine-learning/foundation-model-apis/supported-models"
+        },
+        {
+          "label": "Designated Services and cross-Geo processing",
+          "url": "https://docs.databricks.com/aws/en/resources/designated-services"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Triage in one query",
+          "path": "reference/ai-functions/guides/ai-functions/02_triage_tickets.py",
+          "lines": [
+            34,
+            42
+          ],
+          "section": "use-cases",
+          "notes": [
+            "Classify, sentiment, and summary in one pass, saved to a table.",
+            "Category 24 of 24 correct; sentiment 20 of 24."
+          ]
+        },
+        {
+          "label": "ai_decide: probability and score per ticket",
+          "path": "reference/ai-functions/guides/ai-functions/02_triage_tickets.py",
+          "lines": [
+            70,
+            77
+          ],
+          "section": "use-cases",
+          "notes": [
+            "noul returns a probability; score returns a weighted score.",
+            "Needs the AI Decide preview; the reference workspace has it off, so the step records that and moves on."
+          ]
+        },
+        {
+          "label": "Parse PDFs, then extract fields",
+          "path": "reference/ai-functions/guides/ai-functions/03_extract_invoices.py",
+          "lines": [
+            35,
+            51
+          ],
+          "section": "use-cases",
+          "notes": [
+            "Count error_status entries instead of testing doc:error_status IS NULL; a VARIANT null is a value, not SQL NULL.",
+            "24 of 24 invoice fields correct."
+          ]
+        },
+        {
+          "label": "Score name pairs once, within country",
+          "path": "reference/ai-functions/guides/ai-functions/04_mask_and_match.py",
+          "lines": [
+            56,
+            61
+          ],
+          "section": "use-cases",
+          "notes": [
+            "30 pairs scored. At 0.85: 5 of 6 true matches, no false ones."
+          ]
+        },
+        {
+          "label": "ai_query with failOnError => false",
+          "path": "reference/ai-functions/guides/ai-functions/05_translate.py",
+          "lines": [
+            35,
+            40
+          ],
+          "section": "models",
+          "notes": [
+            "The struct fields are result and errorMessage.",
+            "Llama 3.3 70B accepted batch calls; Claude Haiku 5.5 did not."
+          ]
+        },
+        {
+          "label": "ai_forecast on a SQL warehouse",
+          "path": "reference/ai-functions/guides/ai-functions/06_forecast.sql",
+          "lines": [
+            13,
+            26
+          ],
+          "section": "flow",
+          "notes": [
+            "Backtest error 0.72% (east) and 0.78% (west) on September 2026.",
+            "Serverless notebook compute rejected ai_forecast as a disabled preview."
+          ]
+        },
+        {
+          "label": "Leak check for masked text",
+          "path": "reference/ai-functions/src/aif_lib.py",
+          "symbol": "leaked",
+          "section": "governance",
+          "notes": [
+            "Every planted value is searched for in the masked output; 0 of 15 survived."
+          ]
+        },
+        {
+          "label": "Read who can call the functions",
+          "path": "reference/ai-functions/guides/ai-functions/07_usage_and_access.py",
+          "lines": [
+            32,
+            40
+          ],
+          "section": "governance",
+          "notes": [
+            "Reads SHOW GRANTS ON SCHEMA system.ai and changes nothing."
+          ]
         }
       ]
     }

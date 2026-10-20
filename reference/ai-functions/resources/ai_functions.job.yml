@@ -1,0 +1,77 @@
+# AI Functions: triage, extraction, masking, matching, translation, and forecasting on sample data,
+# each scored against the answers in the use-case spec.
+resources:
+  jobs:
+    capability_guides_ai_functions:
+      name: capability-guides-ai-functions
+      description: Lands sample tickets, call notes, company names, reviews, invoice PDFs, and daily orders, runs AI Functions over each, scores the output against known answers, and reads AI Functions grants and usage.
+      tags:
+        capability_guide_job: capability_guides_ai_functions
+        capability_guide_use_case: ${var.use_case}
+      max_concurrent_runs: 1
+      timeout_seconds: 3600
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${var.schema}
+        - name: use_case
+          default: ${var.use_case}
+      tasks:
+        - task_key: land_samples
+          notebook_task:
+            notebook_path: ../guides/ai-functions/01_land_samples.py
+
+        - task_key: triage_tickets
+          depends_on:
+            - task_key: land_samples
+          notebook_task:
+            notebook_path: ../guides/ai-functions/02_triage_tickets.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
+
+        - task_key: extract_invoices
+          depends_on:
+            - task_key: land_samples
+          notebook_task:
+            notebook_path: ../guides/ai-functions/03_extract_invoices.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
+
+        - task_key: mask_and_match
+          depends_on:
+            - task_key: land_samples
+          notebook_task:
+            notebook_path: ../guides/ai-functions/04_mask_and_match.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
+
+        - task_key: translate
+          depends_on:
+            - task_key: land_samples
+          notebook_task:
+            notebook_path: ../guides/ai-functions/05_translate.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
+
+        # ai_forecast runs on a SQL warehouse; serverless notebook compute rejected it in the reference workspace.
+        - task_key: forecast
+          depends_on:
+            - task_key: land_samples
+          notebook_task:
+            notebook_path: ../guides/ai-functions/06_forecast.sql
+            warehouse_id: ${var.warehouse_id}
+            base_parameters:
+              run_id: "{{job.run_id}}"
+
+        - task_key: usage_and_access
+          depends_on:
+            - task_key: triage_tickets
+            - task_key: extract_invoices
+            - task_key: mask_and_match
+            - task_key: translate
+            - task_key: forecast
+          notebook_task:
+            notebook_path: ../guides/ai-functions/07_usage_and_access.py
+            base_parameters:
+              run_id: "{{job.run_id}}"

@@ -3,11 +3,13 @@ import { ArrowRight } from 'lucide-react';
 import { Link } from 'react-router';
 import type { Guide } from '../data/guides.ts';
 import guideUpdates from '../data/guideUpdates.json';
+import { DifficultyStars } from './DifficultyStars.tsx';
 
 export function GuideCard({ guide }: { guide: Guide }) {
   return (
     <Card className="group relative flex h-full flex-col rounded-lg shadow-none transition-colors hover:border-foreground">
-      <CardHeader className="p-5">
+      <CardHeader className="gap-2 p-5">
+        <DifficultyStars value={guide.difficulty} />
         <h3 className="text-xl font-semibold leading-snug tracking-tight">{guide.title}</h3>
       </CardHeader>
       <CardContent className="flex-1 px-5 pb-5">

@@ -1,0 +1,7 @@
+resources:
+  volumes:
+    aif_documents:
+      catalog_name: ${var.catalog}
+      schema_name: ${var.schema}
+      name: aif_documents
+      comment: Holds the invoice PDFs the AI Functions guide parses

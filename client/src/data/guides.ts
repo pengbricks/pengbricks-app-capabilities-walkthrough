@@ -1,4 +1,5 @@
 export const categories = [
+  'Foundations',
   'CI/CD & Version Control Guides',
   'Governance/Monitoring',
   'AI Guides',
@@ -11,10 +12,16 @@ export const categories = [
 
 export type GuideCategory = (typeof categories)[number];
 
+/** How much Databricks experience a guide assumes, from 1 (none) to 5 (deep platform and engineering background). */
+export const difficulties = [1, 2, 3, 4, 5] as const;
+
+export type Difficulty = (typeof difficulties)[number];
+
 export type Guide = {
   slug: string;
   title: string;
   category: GuideCategory;
+  difficulty: Difficulty;
   summary: string;
   acceptanceCriteria: string;
   evidence: readonly string[];
@@ -24,9 +31,52 @@ export type Guide = {
 
 export const guides: readonly Guide[] = [
   {
+    slug: 'how-databricks-works',
+    title: 'How Databricks works',
+    category: 'Foundations',
+    difficulty: 1,
+    summary: 'The lakehouse: open tables in your storage, compute that comes and goes, one catalog over both.',
+    acceptanceCriteria:
+      'Explain where data lives, where compute runs, and what the control plane does. Show that two kinds of compute read the same table and that stopping compute leaves the data in place.',
+    evidence: [
+      'Control plane, compute plane, and storage diagram',
+      'Same table queried from a notebook and a SQL warehouse',
+      'Compute and storage billed and scaled separately',
+    ],
+  },
+  {
+    slug: 'unity-catalog-basics',
+    title: 'Unity Catalog basics',
+    category: 'Foundations',
+    difficulty: 1,
+    summary: 'Catalogs, schemas, and tables: how every object is named, found, and granted.',
+    acceptanceCriteria:
+      'Create a catalog, a schema, a table, and a volume, query the table by its three-level name, grant a group read access, and find the table and its lineage in Catalog Explorer.',
+    evidence: [
+      'Metastore, catalog, schema, and object hierarchy',
+      'Three-level names and a group grant',
+      'Lineage and ownership in Catalog Explorer',
+    ],
+  },
+  {
+    slug: 'medallion-architecture',
+    title: 'Medallion architecture',
+    category: 'Foundations',
+    difficulty: 1,
+    summary: 'Bronze, silver, and gold: raw data in, cleaned data in the middle, business tables out.',
+    acceptanceCriteria:
+      'Land raw records in bronze, clean and deduplicate them into silver, and build a gold aggregate a dashboard can read, each layer a set of tables with a clear owner and contract.',
+    evidence: [
+      'What each layer holds and who reads it',
+      'Bronze to silver to gold pipeline',
+      'Quality rules applied between layers',
+    ],
+  },
+  {
     slug: 'configuration-vs-code',
     title: 'Configuration-driven ingestion',
     category: 'Ingestion',
+    difficulty: 4,
     summary: 'Separate provider-specific adapters from reusable control-plane services.',
     acceptanceCriteria:
       'Two providers land through one shared framework. Only a feed config and a 20-line adapter differ between them; validation, quarantine, audit, and error handling are shared.',
@@ -40,6 +90,7 @@ export const guides: readonly Guide[] = [
     slug: 'reusability-templatization',
     title: 'Reusable ingestion templates',
     category: 'Ingestion',
+    difficulty: 4,
     summary: 'Prove that a second source can be onboarded without rebuilding the framework.',
     acceptanceCriteria:
       'A second provider is added with a spec entry and a rendered feed config. The same job, rules, and tables handle both feeds.',
@@ -53,6 +104,7 @@ export const guides: readonly Guide[] = [
     slug: 'batch-real-time-ingestion',
     title: 'Batch and streaming ingestion',
     category: 'Ingestion',
+    difficulty: 3,
     summary: 'Demonstrate priority batch and supported streaming ingestion patterns.',
     acceptanceCriteria:
       'A batch framework run and a streaming Lakeflow pipeline share one job. Auto Loader picks up new files, expectations drop bad rows, and latency is measured per row.',
@@ -66,6 +118,7 @@ export const guides: readonly Guide[] = [
     slug: 'ide-developer-experience',
     title: 'Developer workflow in the IDE',
     category: 'CI/CD & Version Control Guides',
+    difficulty: 3,
     summary: 'Capture a representative author, debug, and test workflow.',
     acceptanceCriteria:
       'Write a transform in VS Code, debug its edge case with Databricks Connect, and run the same tests locally and on serverless before deploying with a bundle.',
@@ -79,6 +132,7 @@ export const guides: readonly Guide[] = [
     slug: 'github-cicd',
     title: 'GitHub-based CI/CD',
     category: 'CI/CD & Version Control Guides',
+    difficulty: 4,
     summary: 'Promote one traceable release across development and test.',
     acceptanceCriteria:
       'A pull request runs tests, a merge deploys the commit to dev, and an approval promotes the same commit to test. Every resource carries the release SHA.',
@@ -92,6 +146,7 @@ export const guides: readonly Guide[] = [
     slug: 'versioning',
     title: 'Data contract versioning',
     category: 'CI/CD & Version Control Guides',
+    difficulty: 4,
     summary: 'Show compatible evolution and governed breaking-change handling.',
     acceptanceCriteria:
       'A data contract moves from v1 to v2. Nonbreaking changes evolve the table in place; the breaking change ships as a new version with a deprecated compatibility view, and consumers are notified.',
@@ -105,6 +160,7 @@ export const guides: readonly Guide[] = [
     slug: 'model-deployment-cicd',
     title: 'Model release pipeline',
     category: 'ML Guides',
+    difficulty: 5,
     summary: 'Release an approved model through an auditable automated path.',
     acceptanceCriteria:
       'A model is trained, tested against the current champion, approved, and served from a Model Serving endpoint. Every release is recorded.',
@@ -118,6 +174,7 @@ export const guides: readonly Guide[] = [
     slug: 'dataops',
     title: 'Pipeline operations',
     category: 'CI/CD & Version Control Guides',
+    difficulty: 3,
     summary: 'Exercise day-two controls across isolated environments.',
     acceptanceCriteria:
       'One job shows retries, failure and duration alerts, run history, an audit trail, and a rollback to an earlier table version.',
@@ -131,6 +188,7 @@ export const guides: readonly Guide[] = [
     slug: 'documentation-generation',
     title: 'Automated data documentation',
     category: 'Governance/Monitoring',
+    difficulty: 3,
     summary: 'Generate governed technical and usage documentation from platform metadata.',
     acceptanceCriteria:
       'A job writes one documentation page per table covering schema, lineage, quality, ownership, and usage, and applies AI-drafted comments in Unity Catalog.',
@@ -144,6 +202,7 @@ export const guides: readonly Guide[] = [
     slug: 'monitoring',
     title: 'Platform observability',
     category: 'Governance/Monitoring',
+    difficulty: 3,
     summary: 'Unify operational, usage, cost, and audit signals.',
     acceptanceCriteria:
       'System tables feed one dashboard for runs, failures, cost, compute, and audit events, and a SQL alert emails the owner.',
@@ -154,9 +213,25 @@ export const guides: readonly Guide[] = [
     ],
   },
   {
+    slug: 'ai-functions',
+    title: 'AI Functions in SQL',
+    category: 'AI Guides',
+    difficulty: 2,
+    summary:
+      'Classify, extract, mask, translate, and parse documents from SQL, and know when to build your own instead.',
+    acceptanceCriteria:
+      'Pick the right AI Function for a task, run it once over a table and keep the result, and check the models, permissions, data residency, and compliance settings that apply before it touches regulated data.',
+    evidence: [
+      'Use cases with the function and SQL for each',
+      'Decision table: task function, ai_query, or hand-built',
+      'Model, permission, residency, and compliance checklist',
+    ],
+  },
+  {
     slug: 'user-experience',
     title: 'Assistant user experience',
     category: 'AI Guides',
+    difficulty: 2,
     summary: 'Observe representative users completing core discovery tasks.',
     acceptanceCriteria:
       'People find data, ask a question, refine the answer, and leave feedback in an assistant; issues and training needs are logged.',
@@ -170,6 +245,7 @@ export const guides: readonly Guide[] = [
     slug: 'ontology',
     title: 'Business terms and synonyms',
     category: 'AI Guides',
+    difficulty: 2,
     summary: 'Improve discovery through governed concepts and synonyms.',
     acceptanceCriteria:
       'Business terms and synonyms are defined once and used to improve search and question answering.',
@@ -183,6 +259,7 @@ export const guides: readonly Guide[] = [
     slug: 'agent-framework-support',
     title: 'Agents, MCP, and model gateway',
     category: 'AI Guides',
+    difficulty: 5,
     summary: 'Evaluate governed MCP, A2A, and model-gateway operations end to end.',
     acceptanceCriteria:
       'One governed MCP tool call, one agent-to-agent handoff, and the same prompt routed to two models through a gateway with limits, safety checks, tracing, and fallback.',
@@ -196,6 +273,7 @@ export const guides: readonly Guide[] = [
     slug: 'agent-build-deployment',
     title: 'Building and shipping agents',
     category: 'AI Guides',
+    difficulty: 5,
     summary: 'Document the full assistant build-to-operations lifecycle.',
     acceptanceCriteria:
       'An assistant is built, deployed, versioned, secured, and monitored, with its code, dependencies, and owners documented.',
@@ -209,6 +287,7 @@ export const guides: readonly Guide[] = [
     slug: 'data-ingestion-feature-preparation',
     title: 'Feature preparation from source data',
     category: 'Ingestion',
+    difficulty: 3,
     summary: 'Create reproducible, governed model inputs from source data.',
     acceptanceCriteria:
       'Source data becomes versioned, quality-checked model features with lineage back to the source.',
@@ -222,6 +301,7 @@ export const guides: readonly Guide[] = [
     slug: 'model-training-compatibility',
     title: 'Training and bringing existing models',
     category: 'ML Guides',
+    difficulty: 3,
     summary: 'Reproduce baseline model behavior in the target runtime.',
     acceptanceCriteria:
       'Train a model or bring an existing one, reproduce its baseline, and record what changed in code, libraries, and runtime.',
@@ -235,6 +315,7 @@ export const guides: readonly Guide[] = [
     slug: 'experiment-tracking',
     title: 'Reproducible experiments',
     category: 'ML Guides',
+    difficulty: 3,
     summary: 'Replay a recorded experiment from tracked inputs.',
     acceptanceCriteria:
       'Rerun a tracked experiment from its recorded data, code, and environment and get the same result within tolerance.',
@@ -248,6 +329,7 @@ export const guides: readonly Guide[] = [
     slug: 'real-time-scoring',
     title: 'Online model scoring',
     category: 'ML Guides',
+    difficulty: 4,
     summary: 'Measure a secured online inference path under normal and failure conditions.',
     acceptanceCriteria:
       'Send a secured scoring request, measure latency, and see how the endpoint scales and handles failures.',
@@ -261,6 +343,7 @@ export const guides: readonly Guide[] = [
     slug: 'model-performance-drift',
     title: 'Model quality and drift',
     category: 'ML Guides',
+    difficulty: 4,
     summary: 'Detect a simulated breach and route action to the owner.',
     acceptanceCriteria:
       'Track operational and model metrics, simulate drift, alert the owner, and follow the retraining workflow.',
@@ -274,6 +357,7 @@ export const guides: readonly Guide[] = [
     slug: 'operational-support',
     title: 'Support and recovery',
     category: 'Governance/Monitoring',
+    difficulty: 3,
     summary: 'Exercise support ownership and a representative recovery path.',
     acceptanceCriteria:
       'Triage an incident, restart or recover the workload, and follow the escalation path and ownership.',
@@ -283,6 +367,7 @@ export const guides: readonly Guide[] = [
     slug: 'iceberg-support',
     title: 'Apache Iceberg interoperability',
     category: 'General Guides',
+    difficulty: 4,
     summary: 'Validate governed Iceberg interoperability and table evolution.',
     acceptanceCriteria:
       'Read and write an Iceberg table, evolve its schema, use time travel, and query it from an external engine.',
@@ -296,6 +381,7 @@ export const guides: readonly Guide[] = [
     slug: 'file-formats-delta-iceberg',
     title: 'JSON, CSV, Parquet, Delta, and Iceberg',
     category: 'General Guides',
+    difficulty: 2,
     summary: 'Compare file and table formats on one dataset: size, types, query cost, and table-only features.',
     acceptanceCriteria:
       'Write one dataset as JSON, CSV, Parquet, Delta, and Iceberg, measure each, and show what only the table formats provide.',
@@ -309,6 +395,7 @@ export const guides: readonly Guide[] = [
     slug: 'external-integrations',
     title: 'Partner tool integrations',
     category: 'General Guides',
+    difficulty: 3,
     summary: 'Connect two priority tools through supported integration patterns.',
     acceptanceCriteria: 'Connect two common tools to Databricks using supported connectors and patterns.',
     evidence: [
@@ -321,6 +408,7 @@ export const guides: readonly Guide[] = [
     slug: 'legacy-conversion',
     title: 'Legacy workload migration',
     category: 'General Guides',
+    difficulty: 5,
     summary: 'Assess conversion coverage and the remaining human effort.',
     acceptanceCriteria:
       'Assess one legacy workload, convert it automatically where possible, reconcile the results, and estimate the remaining effort by role.',
@@ -334,6 +422,7 @@ export const guides: readonly Guide[] = [
     slug: 'data-sharing',
     title: 'Governed data sharing',
     category: 'Governance/Monitoring',
+    difficulty: 3,
     summary: 'Exercise governed sharing, entitlement, and revocation.',
     acceptanceCriteria:
       'Share a governed dataset, grant and revoke access, and decide whether the recipient needs a copy.',
@@ -347,6 +436,7 @@ export const guides: readonly Guide[] = [
     slug: 'platform-administration',
     title: 'Workspace and account administration',
     category: 'Governance/Monitoring',
+    difficulty: 4,
     summary: 'Walk through the core enterprise administration operating model.',
     acceptanceCriteria:
       'Set up workspaces and roles, apply policies, manage capacity, read audit logs, and handle routine support.',
@@ -360,6 +450,7 @@ export const guides: readonly Guide[] = [
     slug: 'file-format-ingestion',
     title: 'File format ingestion',
     category: 'Ingestion',
+    difficulty: 2,
     summary: 'Land CSV, delimited text, Excel, JSON, and XML through one pipeline.',
     acceptanceCriteria:
       'CSV, pipe-delimited text with quoted delimiters, a named Excel sheet, nested JSON, and XML with repeating and optional nodes all land in Delta tables with types preserved and nothing dropped.',
@@ -373,6 +464,7 @@ export const guides: readonly Guide[] = [
     slug: 'rest-api-ingestion',
     title: 'Authenticated REST API ingestion',
     category: 'Ingestion',
+    difficulty: 3,
     summary: 'Pull a paginated, authenticated API into Delta.',
     acceptanceCriteria:
       'A job calls a paginated REST endpoint with OAuth or an API key, follows pages until the end, refreshes tokens, and lands every record with the request log.',
@@ -382,6 +474,7 @@ export const guides: readonly Guide[] = [
     slug: 'sftp-ingestion',
     title: 'SFTP file retrieval',
     category: 'Ingestion',
+    difficulty: 3,
     summary: 'Fetch files from an SFTP server and ingest them.',
     acceptanceCriteria:
       'A job connects to an SFTP server with stored credentials, copies new files to a volume, and Auto Loader ingests them without reprocessing old files.',
@@ -391,6 +484,7 @@ export const guides: readonly Guide[] = [
     slug: 'multi-source-pipeline',
     title: 'Multi-source pipeline',
     category: 'Ingestion',
+    difficulty: 3,
     summary: 'Combine database, file, and API sources in one pipeline.',
     acceptanceCriteria:
       'One Lakeflow Declarative Pipeline reads a database extract, landed files, and API output, tags each row with its source, and builds one conformed table.',
@@ -404,6 +498,7 @@ export const guides: readonly Guide[] = [
     slug: 'relational-db-ingestion',
     title: 'Relational database extracts',
     category: 'Ingestion',
+    difficulty: 2,
     summary: 'Full extracts and custom SQL from a relational database.',
     acceptanceCriteria:
       'A full table extract and a custom query with joins, aggregates, window functions, and a database function land in Delta and match the same query run at the source.',
@@ -413,6 +508,7 @@ export const guides: readonly Guide[] = [
     slug: 'transformation-patterns',
     title: 'Transformation patterns',
     category: 'Data Engineering Guides',
+    difficulty: 2,
     summary: 'Ten common ETL patterns as declarative SQL.',
     acceptanceCriteria:
       'Lookups, joins, string functions, null handling, date and time zones, casting with a reject path, running totals, pivots, last record per group, and per-group iteration, each as a materialized view.',
@@ -426,6 +522,7 @@ export const guides: readonly Guide[] = [
     slug: 'scd-change-capture',
     title: 'SCD and change capture',
     category: 'Data Engineering Guides',
+    difficulty: 3,
     summary: 'SCD type 1, type 2, and change detection with Auto CDC.',
     acceptanceCriteria:
       'New, changed, and deleted source records flow into an SCD type 1 table that overwrites and an SCD type 2 table that keeps history, without full reloads.',
@@ -439,6 +536,7 @@ export const guides: readonly Guide[] = [
     slug: 'cdc-incremental-refresh',
     title: 'CDC and incremental refresh in pipelines',
     category: 'Data Engineering Guides',
+    difficulty: 4,
     summary: 'CDC from change files, a Delta change feed, and snapshots, and incremental versus full refresh.',
     acceptanceCriteria:
       'One serverless Lakeflow pipeline applies change data from Debezium-style files, the Delta change data feed, and a snapshot table with AUTO CDC. The job measures an incremental update, a full refresh, and a selective full refresh from the pipeline event log, including how the materialized view refreshes.',
@@ -452,6 +550,7 @@ export const guides: readonly Guide[] = [
     slug: 'target-loading-outputs',
     title: 'Target loading and file outputs',
     category: 'Data Engineering Guides',
+    difficulty: 2,
     summary: 'Upsert to a target table and write CSV, Excel, and JSON files.',
     acceptanceCriteria:
       'A job merges inserts, updates, and deletes into a target table, then writes the result as CSV, pipe-delimited text, an Excel workbook, and JSON to a volume.',
@@ -465,6 +564,7 @@ export const guides: readonly Guide[] = [
     slug: 'orchestration-patterns',
     title: 'Orchestration patterns',
     category: 'Data Engineering Guides',
+    difficulty: 3,
     summary: 'Chain, parallelize, schedule, retry, alert, and pause jobs.',
     acceptanceCriteria:
       'One Lakeflow Job shows sequential tasks with passed values, parallel branches, a schedule, retries, success and failure alerts, a call to an external process, and a bulk pause of scheduled jobs.',
@@ -478,6 +578,7 @@ export const guides: readonly Guide[] = [
     slug: 'data-observability',
     title: 'Lineage and drift detection',
     category: 'Data Engineering Guides',
+    difficulty: 3,
     summary: 'Trace lineage, catch schema drift, and flag data drift.',
     acceptanceCriteria:
       'Lineage from source to report comes from system tables, schema changes are detected from Delta history, and a monitor flags a shift in a column distribution.',
@@ -491,6 +592,7 @@ export const guides: readonly Guide[] = [
     slug: 'sql-notebook-analysis',
     title: 'SQL and notebooks at scale',
     category: 'Analyst Guides',
+    difficulty: 2,
     summary: 'Explore with SQL, Python, and R notebooks, including large data.',
     acceptanceCriteria:
       'Analysts query with SQL, round-trip to pandas in a Python notebook, use R, and aggregate millions of rows on serverless compute in seconds.',
@@ -500,6 +602,7 @@ export const guides: readonly Guide[] = [
     slug: 'bring-your-own-data',
     title: 'Bring your own data',
     category: 'Analyst Guides',
+    difficulty: 1,
     summary: 'Upload a spreadsheet and join it to governed tables.',
     acceptanceCriteria:
       'A user uploads a file to a personal volume path, joins it to governed tables, and keeps unmatched keys visible.',
@@ -509,6 +612,7 @@ export const guides: readonly Guide[] = [
     slug: 'local-tool-connectivity',
     title: 'Connecting local tools',
     category: 'Analyst Guides',
+    difficulty: 2,
     summary: 'Reach Databricks from Python, R, and statistics tools on a laptop.',
     acceptanceCriteria:
       'Python, R, and ODBC/JDBC clients on a workstation connect with OAuth, query governed tables, and respect the same permissions as the workspace.',
@@ -518,6 +622,7 @@ export const guides: readonly Guide[] = [
     slug: 'no-code-data-prep',
     title: 'No-code data preparation',
     category: 'Analyst Guides',
+    difficulty: 1,
     summary: 'Browse, filter, transform, and save flows without code.',
     acceptanceCriteria:
       'A business user browses tables, filters and joins with Lakeflow Designer, renames and derives columns, and saves the flow to rerun later.',
@@ -527,6 +632,7 @@ export const guides: readonly Guide[] = [
     slug: 'self-service-extracts',
     title: 'Self-service extracts and subscriptions',
     category: 'Analyst Guides',
+    difficulty: 2,
     summary: 'Subscribe to reports and export data to Excel or flat files.',
     acceptanceCriteria:
       'Users subscribe to a scheduled dashboard, export filtered data to Excel or CSV, and write a formatted workbook or delimited file for external partners.',
@@ -536,6 +642,7 @@ export const guides: readonly Guide[] = [
     slug: 'in-platform-visualization',
     title: 'Charts and dashboards in the platform',
     category: 'Analyst Guides',
+    difficulty: 2,
     summary: 'Chart in notebooks and publish an AI/BI dashboard.',
     acceptanceCriteria:
       'Notebook charts and an AI/BI dashboard read the same governed views, so a chart and its dashboard tile show the same numbers.',
@@ -545,6 +652,7 @@ export const guides: readonly Guide[] = [
     slug: 'access-management',
     title: 'Access management',
     category: 'Governance/Monitoring',
+    difficulty: 2,
     summary: 'Groups, environments, object permissions, and service principals.',
     acceptanceCriteria:
       'Users get access through groups, dev and prod catalogs grant different privileges, object-level grants are audited, and service principals hold credentials for automation.',
@@ -554,6 +662,7 @@ export const guides: readonly Guide[] = [
     slug: 'row-column-security',
     title: 'Row and column security',
     category: 'Governance/Monitoring',
+    difficulty: 3,
     summary: 'Mask columns and filter rows by user, then test the policies.',
     acceptanceCriteria:
       'Column masks hide sensitive fields, row filters limit rows by attribute and identity, and a second identity confirms the policies apply before they are documented.',
@@ -567,6 +676,7 @@ export const guides: readonly Guide[] = [
     slug: 'compute-capacity-management',
     title: 'Compute and capacity management',
     category: 'Governance/Monitoring',
+    difficulty: 3,
     summary: 'Size, scale, isolate, pause, and monitor compute.',
     acceptanceCriteria:
       'Warehouses scale up and out, auto-stop when idle, isolate workloads, and a utilization dashboard shows queueing and peak concurrency.',
@@ -580,6 +690,7 @@ export const guides: readonly Guide[] = [
     slug: 'cost-chargeback',
     title: 'Cost tracking and chargeback',
     category: 'Governance/Monitoring',
+    difficulty: 2,
     summary: 'Spend by product, team, and workload, with budgets and forecasts.',
     acceptanceCriteria:
       'Usage system tables break spend down by product, tag, user, and pipeline, budgets alert on thresholds, and a forecast projects the next 30 days.',

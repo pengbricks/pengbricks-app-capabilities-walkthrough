@@ -18,6 +18,12 @@ describe.each(walkthroughs.map((walkthrough) => [walkthrough.slug, walkthrough] 
     expect(walkthrough.shortVersion.length).toBeGreaterThanOrEqual(3);
   });
 
+  it('links only to https pages', () => {
+    for (const section of walkthrough.sections) {
+      for (const link of section.links ?? []) expect(link.url, `${section.id}: ${link.label}`).toMatch(/^https:\/\//);
+    }
+  });
+
   it('draws diagrams whose edges, grid cells, and labels are valid', () => {
     for (const section of walkthrough.sections) {
       const diagram = section.diagram;

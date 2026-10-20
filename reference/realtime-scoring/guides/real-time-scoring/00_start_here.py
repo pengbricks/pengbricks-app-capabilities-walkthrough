@@ -2,13 +2,13 @@
 # MAGIC %md
 # MAGIC # Online model scoring
 # MAGIC
-# MAGIC This guide trains a small model, registers it in Unity Catalog, deploys it to a Model Serving endpoint, and scores the endpoint over HTTPS with an OAuth token from the Databricks SDK. It times every request and records how the endpoint answers bad requests. A second job deletes the endpoint, so nothing keeps running afterwards.
+# MAGIC This guide trains a credit default model on UCI Default of Credit Card Clients (CC BY 4.0), registers it in Unity Catalog, deploys it to a Model Serving endpoint, and scores the endpoint over HTTPS with an OAuth token from the Databricks SDK. It times every request and records how the endpoint answers bad requests. A second job deletes the endpoint, so nothing keeps running afterwards.
 # MAGIC
 # MAGIC ## Notebooks, in run order
 # MAGIC
 # MAGIC | Notebook | What it does |
 # MAGIC |---|---|
-# MAGIC | `01_train_register` | Generates training data from the use-case spec (sample-data generator, fixed seed), trains a scikit-learn pipeline, registers it in Unity Catalog with the `champion` alias. |
+# MAGIC | `01_train_register` | Lands the public card-holder data, reads the spec's four features from its columns, trains a scikit-learn pipeline, registers it in Unity Catalog with the `champion` alias. |
 # MAGIC | `02_deploy_endpoint` | Creates the Small, scale-to-zero endpoint, or updates it in place if it exists, and waits until it is ready. |
 # MAGIC | `03_score_and_measure` | Scores the endpoint with OAuth: first request, 50 warm requests, a concurrent burst, and four failure scenarios. Writes `scoring_latency` and `scoring_errors`. |
 # MAGIC | `04_teardown_endpoint` | Deletes the endpoint and confirms it is no longer listed. Run by the teardown job. |

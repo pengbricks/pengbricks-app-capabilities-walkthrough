@@ -1,9 +1,9 @@
 {
   "id": "capability-guides",
   "title": "Databricks Capability Guides",
-  "description": "Evidence-first walkthroughs for CI/CD, governance, AI, ML, ingestion, integration, and platform operations.",
+  "description": "51 guides rated by difficulty, from Unity Catalog and medallion basics to AI Functions, ML on public data, CI/CD, governance, ingestion, and platform operations, most with reference notebooks and a recorded run.",
   "category": "Shared services",
-  "tags": ["Guides", "Reference", "Databricks"],
+  "tags": ["Guides", "Reference", "Databricks", "AI Functions"],
   "status": "preview",
   "icon": "book-open",
   "appUrl": "/capability-guides/",

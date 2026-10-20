@@ -1,0 +1,7 @@
+resources:
+  volumes:
+    ml_source_files:
+      catalog_name: ${var.catalog}
+      schema_name: ${var.schema}
+      name: ml_source_files
+      comment: Holds the downloaded UCI Online Retail II file (CC BY 4.0) that the ML guides train on

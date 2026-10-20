@@ -1,0 +1,7 @@
+resources:
+  volumes:
+    scoring_source_files:
+      catalog_name: ${var.catalog}
+      schema_name: ${var.schema}
+      name: scoring_source_files
+      comment: Holds the downloaded UCI Default of Credit Card Clients file (CC BY 4.0) that the scoring model trains on

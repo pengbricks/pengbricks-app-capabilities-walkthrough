@@ -19,6 +19,8 @@ resources:
           default: ${var.schema}
         - name: use_case
           default: ${var.use_case}
+        - name: source_volume
+          default: ${resources.volumes.ml_source_files.name}
         - name: release
           default: ${var.release}
         - name: experiment

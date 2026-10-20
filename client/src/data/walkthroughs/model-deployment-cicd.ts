@@ -5,7 +5,7 @@ export const walkthrough: Walkthrough = {
   area: 'ML Guides',
   title: 'Model release pipeline',
   intro:
-    'One serverless job takes a churn model from training to a live endpoint. It registers the model in Unity Catalog, tests it, promotes it only when someone has approved, serves it, and appends a row to a release history table. GitHub Actions runs the same job in dev and test, and the GitHub test environment approval supplies the approver.',
+    'One serverless job takes a churn model from training to a live endpoint. It trains on real invoice lines from UCI Online Retail II (CC BY 4.0). The job registers the model in Unity Catalog, tests it, promotes it only when someone has approved, serves it, and appends a row to a release history table. GitHub Actions runs the same job in dev and test, and the GitHub test environment approval supplies the approver.',
   shortVersion: [
     {
       title: 'Five tasks, one job.',
@@ -44,13 +44,45 @@ export const walkthrough: Walkthrough = {
           { label: 'Promote and serve', fromRow: 1, toRow: 1 },
         ],
         nodes: [
-          { id: 'train', label: 'train_and_register', sub: 'MLflow 3, sample data', mono: true, col: 0, row: 0 },
-          { id: 'uc', label: 'release_churn_classifier', sub: 'UC model version', mono: true, col: 1, row: 0, kind: 'store' },
-          { id: 'tests', label: 'run_tests', sub: 'AUC, signature, champion', mono: true, col: 2, row: 0, kind: 'highlight' },
-          { id: 'chal', label: '@challenger', sub: 'alias on tested version', mono: true, col: 3, row: 0, kind: 'store' },
+          { id: 'train', label: 'train_and_register', sub: 'MLflow 3, Online Retail II', mono: true, col: 0, row: 0 },
+          {
+            id: 'uc',
+            label: 'retail_churn_classifier',
+            sub: 'UC model version',
+            mono: true,
+            col: 1,
+            row: 0,
+            kind: 'store',
+          },
+          {
+            id: 'tests',
+            label: 'run_tests',
+            sub: 'AUC, signature, champion',
+            mono: true,
+            col: 2,
+            row: 0,
+            kind: 'highlight',
+          },
+          {
+            id: 'chal',
+            label: '@challenger',
+            sub: 'alias on tested version',
+            mono: true,
+            col: 3,
+            row: 0,
+            kind: 'store',
+          },
           { id: 'gate', label: 'approval_gate', sub: 'approved_by set?', mono: true, col: 4, row: 0, kind: 'gate' },
           { id: 'champ', label: '@champion', sub: 'approved version', mono: true, col: 4, row: 1, kind: 'store' },
-          { id: 'ep', label: 'deploy_endpoint', sub: 'Model Serving, waits READY', mono: true, col: 3, row: 1, kind: 'surface' },
+          {
+            id: 'ep',
+            label: 'deploy_endpoint',
+            sub: 'Model Serving, waits READY',
+            mono: true,
+            col: 3,
+            row: 1,
+            kind: 'surface',
+          },
           { id: 'rec', label: 'record_release', sub: 'append one row', mono: true, col: 2, row: 1 },
           { id: 'hist', label: 'model_release_history', mono: true, col: 1, row: 1, kind: 'store' },
         ],
@@ -88,7 +120,15 @@ export const walkthrough: Walkthrough = {
           { id: 'main', label: 'Merge to main', col: 0, row: 0 },
           { id: 'dev', label: 'deploy-dev', sub: 'approved_by empty', mono: true, col: 1, row: 0, kind: 'highlight' },
           { id: 'rev', label: 'Reviewer approves', sub: 'test environment', col: 2, row: 0, kind: 'gate' },
-          { id: 'tst', label: 'deploy-test', sub: 'approved_by = actor', mono: true, col: 3, row: 0, kind: 'highlight' },
+          {
+            id: 'tst',
+            label: 'deploy-test',
+            sub: 'approved_by = actor',
+            mono: true,
+            col: 3,
+            row: 0,
+            kind: 'highlight',
+          },
           { id: 'devout', label: '@challenger only', sub: 'no endpoint change', col: 1, row: 1, kind: 'store' },
           { id: 'tstout', label: '@champion and endpoint', sub: 'history row written', col: 3, row: 1, kind: 'store' },
         ],
@@ -112,17 +152,17 @@ export const walkthrough: Walkthrough = {
         {
           label: 'Approve by hand, or change a threshold for one deploy',
           language: 'sh',
-          code: '# Approve a release without CI: pass the approver as a job parameter.\ndatabricks bundle run capability_guides_model_release -t dev \\\n  --params approved_by=<your-name>\n\n# Raise the AUC floor for one deploy without editing databricks.yml.\ndatabricks bundle deploy -t dev --var min_auc=0.9',
+          code: '# Approve a release without CI: pass the approver as a job parameter.\ndatabricks bundle run capability_guides_model_release -t dev \\\n  --params approved_by=<your-name>\n\n# Raise the AUC floor for one deploy without editing databricks.yml.\ndatabricks bundle deploy -t dev --var min_auc=0.8',
           notes: ['The reference run takes the approver from GitHub Actions instead.'],
         },
       ],
       prose:
-        'The bundle sets thresholds per target in databricks.yml. test is stricter than dev: a higher AUC floor and no allowed regression against the champion. Approval also comes from a different place.',
+        'The bundle sets thresholds per target in databricks.yml. test is stricter than dev: a higher AUC floor and no allowed regression against the champion. Both floors sit low because real churn is hard to predict: the model scores about 0.72 on Online Retail II, where the earlier synthetic data scored about 0.98. Approval also comes from a different place.',
       diagram: {
         type: 'matrix',
         title: 'dev vs test',
         description:
-          'dev requires a minimum AUC of 0.75 and allows an AUC regression of 0.02 against the champion. test requires 0.85 and allows 0.0. The dev endpoint is capability-guides-model-dev and the test endpoint is capability-guides-model-test. In dev, approval is the approved_by job parameter, empty in CI. In test, approval is the GitHub test environment reviewers.',
+          'dev requires a minimum AUC of 0.65 and allows an AUC regression of 0.02 against the champion. test requires 0.70 and allows 0.0. The dev endpoint is capability-guides-model-dev and the test endpoint is capability-guides-model-test. In dev, approval is the approved_by job parameter, empty in CI. In test, approval is the GitHub test environment reviewers.',
         corner: 'Setting ↓ · Target →',
         columns: ['dev', 'test'],
         rows: [
@@ -130,8 +170,8 @@ export const walkthrough: Walkthrough = {
             label: 'min_auc',
             sub: 'floor to become @challenger',
             cells: [
-              { state: 'optional', text: '0.75' },
-              { state: 'own', text: '0.85' },
+              { state: 'optional', text: '0.65' },
+              { state: 'own', text: '0.70' },
             ],
           },
           {
@@ -176,22 +216,31 @@ export const walkthrough: Walkthrough = {
       id: 'run',
       heading: 'The reference run',
       prose:
-        'The reference run promoted release_churn_classifier version 4. The endpoint served version 4, and scoring took about 87 ms per request. The release row records approved_by.',
+        'The recorded run is the second release of retail_churn_classifier. It trained version 2 on the 2010-09-01 snapshot (3,321 customers, 35.5% churned) and scored a holdout AUC of 0.7167. The champion, version 1, scores the same 0.7167 on that holdout, so the comparison passes with a regression of 0.0000 (dev allows 0.02). All four tests passed, approval moved @champion to version 2, and the job redeployed the endpoint. Scoring took 106.3 ms.',
       table: {
         caption: 'Reference run results',
         columns: ['Item', 'Value'],
         rows: [
-          ['Model', 'release_churn_classifier, version 4'],
-          ['Holdout AUC', '0.95'],
-          ['Version served by the endpoint', '4'],
-          ['Scoring latency', 'About 87 ms'],
+          ['Model', 'retail_churn_classifier, version 2'],
+          ['Holdout AUC', '0.7167 (champion version 1: 0.7167)'],
+          ['Champion comparison', 'Regression 0.0000, allowed 0.02 in dev'],
+          [
+            'Tests',
+            'schema_and_signature, prediction_smoke_test, quality_threshold (0.7167 >= 0.65), champion_comparison',
+          ],
+          ['Endpoint', 'capability-guides-model-dev'],
+          ['Scoring latency', '106.3 ms'],
           ['Approval', 'approved_by recorded in model_release_history and on the version tags'],
         ],
       },
       points: [
         {
-          strong: 'The endpoint no longer exists.',
-          text: 'The reference endpoint was deleted after the run to save cost. The job creates it, not the bundle, so nothing owns it afterward. A rerun with approved_by set recreates it.',
+          strong: 'A tie passes.',
+          text: 'The first release had no champion, so champion_comparison passed with no current champion. The second release retrained the same commit on the same pinned data, so it got the identical AUC and tied. Retraining on changed data would move the number.',
+        },
+        {
+          strong: 'The bundle does not own the endpoint.',
+          text: 'The job creates the endpoint, not the bundle, so deleting the bundle leaves it running. Delete it when you are done. A rerun with approved_by set recreates it.',
         },
         {
           strong: 'First request is slower.',

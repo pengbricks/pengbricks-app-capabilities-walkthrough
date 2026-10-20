@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 4. Train a challenger
 # MAGIC
-# MAGIC Runs when drift is found. Trains a candidate on the training data plus the drifted batches (all but the last), then compares it with the current `prod` model on the last batch. It registers the candidate with the `challenger` alias and adds a row to `retraining_log`, which is a log. A person decides whether to promote it. In the job, the first breached batch comes from `03_detect_drift`. Run by hand, the notebook reads it from `drift_metrics`.
+# MAGIC Runs when drift is found. Trains a candidate on the training data plus every batch but the last, then compares it with the current `prod` model on the last batch. It registers the candidate with the `challenger` alias and adds a row to `retraining_log`, which is a log. A person decides whether to promote it. In the job, the first breached batch comes from `03_detect_drift`. Run by hand, the notebook reads it from `drift_metrics`.
 
 # COMMAND ----------
 

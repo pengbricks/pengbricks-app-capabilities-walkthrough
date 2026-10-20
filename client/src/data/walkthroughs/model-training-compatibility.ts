@@ -5,7 +5,7 @@ export const walkthrough: Walkthrough = {
   area: 'ML Guides',
   title: 'Training and bringing existing models',
   intro:
-    'One job trains a scikit-learn model with MLflow and also brings in a model pickled outside MLflow. The imported model is logged as a pyfunc, registered in Unity Catalog, and scored against its recorded baseline. Library and runtime versions are written down for both.',
+    'One job trains a scikit-learn model with MLflow on a real retail churn snapshot and also brings in a model pickled outside MLflow. The imported model is logged as a pyfunc, registered in Unity Catalog, and scored against its recorded baseline. Library and runtime versions are written down for both.',
   shortVersion: [
     {
       title: 'Training logs everything MLflow needs.',
@@ -21,11 +21,11 @@ export const walkthrough: Walkthrough = {
     },
     {
       title: 'The baseline reproduces.',
-      body: 'Recorded AUC 0.947689 and reproduced AUC 0.947689 on the same holdout, against a tolerance of 0.001.',
+      body: 'Recorded AUC 0.716529 and reproduced AUC 0.716529 on the same holdout, against a tolerance of 0.001. No published churn AUC exists for this dataset, so the recorded one is the baseline.',
     },
     {
       title: 'Versions are recorded.',
-      body: 'model_compatibility_log lists each library as recorded versus current. This run showed no package changes.',
+      body: 'model_compatibility_log lists each library as recorded versus current. This run showed no package changes across python, scikit-learn, numpy, pandas, mlflow, and scipy.',
     },
   ],
   sections: [
@@ -33,12 +33,12 @@ export const walkthrough: Walkthrough = {
       id: 'paths',
       heading: 'Two ways in, one registry',
       prose:
-        'Both models end up as Unity Catalog model versions with aliases. They share one training table and one holdout split.',
+        'Both models end up as Unity Catalog model versions with aliases. They share one training table and one holdout split. The training table is the 2010-09-01 snapshot of UCI Online Retail II (CC BY 4.0): 3,321 customers, labeled churned when they place no order in the next 6 months. export_legacy_model downloads the file, checks its pinned SHA-256, and builds the table.',
       diagram: {
         type: 'flow',
         title: 'Native training and model import',
         description:
-          'export_legacy_model writes model_training_data and a pickle plus sidecar to the legacy_models volume. train_native trains from the table and registers churn_classifier with alias trained. import_legacy_model reads the pickle and sidecar, logs a pyfunc, registers churn_classifier_imported with alias imported, and writes model_compatibility_log.',
+          'export_legacy_model downloads and verifies the public dataset, writes model_training_data, and writes a pickle plus sidecar to the legacy_models volume. train_native trains from the table and registers churn_classifier with alias trained. import_legacy_model reads the pickle and sidecar, logs a pyfunc, registers churn_classifier_imported with alias imported, and writes model_compatibility_log.',
         lanes: [
           { label: 'Inputs', fromRow: 0, toRow: 0 },
           { label: 'Lakeflow job tasks', fromRow: 1, toRow: 1 },
@@ -46,10 +46,26 @@ export const walkthrough: Walkthrough = {
         ],
         nodes: [
           { id: 'tbl', label: 'model_training_data', mono: true, col: 0, row: 0, kind: 'store' },
-          { id: 'vol', label: 'legacy_model.pkl', mono: true, sub: 'volume + JSON sidecar', col: 2, row: 0, kind: 'store' },
-          { id: 'exp', label: 'export_legacy_model', mono: true, sub: 'plain pickle', col: 1, row: 1 },
+          {
+            id: 'vol',
+            label: 'legacy_model.pkl',
+            mono: true,
+            sub: 'volume + JSON sidecar',
+            col: 2,
+            row: 0,
+            kind: 'store',
+          },
+          { id: 'exp', label: 'export_legacy_model', mono: true, sub: 'download, plain pickle', col: 1, row: 1 },
           { id: 'nat', label: 'train_native', mono: true, sub: 'mlflow.sklearn', col: 0, row: 1, kind: 'highlight' },
-          { id: 'imp', label: 'import_legacy_model', mono: true, sub: 'mlflow.pyfunc', col: 2, row: 1, kind: 'highlight' },
+          {
+            id: 'imp',
+            label: 'import_legacy_model',
+            mono: true,
+            sub: 'mlflow.pyfunc',
+            col: 2,
+            row: 1,
+            kind: 'highlight',
+          },
           { id: 'm1', label: 'Trained model', sub: 'churn_classifier', col: 0, row: 2, kind: 'store' },
           { id: 'm2', label: 'Imported model', sub: 'churn_classifier_imported', col: 2, row: 2, kind: 'store' },
           { id: 'log', label: 'model_compatibility_log', mono: true, col: 3, row: 2, kind: 'store' },
@@ -97,19 +113,20 @@ export const walkthrough: Walkthrough = {
         type: 'matrix',
         title: 'Baseline versus reproduced metric',
         description:
-          'The recorded baseline holdout AUC was 0.947689. The registered pyfunc scored 0.947689 on the same holdout. The difference was 0 against a tolerance of 0.001.',
+          'The recorded baseline holdout AUC was 0.716529. The registered pyfunc scored 0.716529 on the same holdout. The difference was 0 against a tolerance of 0.001.',
         corner: 'Measure ↓',
         columns: ['Value'],
         rows: [
-          { label: 'Recorded baseline', sub: 'sidecar JSON', cells: [{ state: 'own', text: '0.947689' }] },
-          { label: 'Reproduced', sub: 'registered pyfunc', cells: [{ state: 'own', text: '0.947689' }] },
+          { label: 'Recorded baseline', sub: 'sidecar JSON', cells: [{ state: 'own', text: '0.716529' }] },
+          { label: 'Reproduced', sub: 'registered pyfunc', cells: [{ state: 'own', text: '0.716529' }] },
           { label: 'Difference', sub: 'tolerance 0.001', cells: [{ state: 'none', text: '0' }] },
         ],
         legend: [
           { state: 'own', label: 'Holdout AUC' },
           { state: 'none', label: 'Within tolerance' },
         ],
-        caption: 'The natively trained model has the same AUC because both use the same seed, data, and library versions.',
+        caption:
+          'The baseline is the AUC this job recorded, because no published churn AUC exists for the dataset. The model trains on the same rows with the same library versions, so it reproduces exactly.',
       },
     },
     {
@@ -121,7 +138,7 @@ export const walkthrough: Walkthrough = {
         caption: 'model_compatibility_log columns',
         columns: ['Column', 'Content'],
         rows: [
-          ['item', 'python, scikit-learn, numpy, pandas, scipy, or holdout_auc'],
+          ['item', 'python, scikit-learn, numpy, pandas, mlflow, scipy, or holdout_auc'],
           ['recorded / current', 'the value in the sidecar and the value in the importing runtime'],
           ['changed', 'true when the two differ (for AUC, when the gap exceeds the tolerance)'],
           ['model, model_version', 'the registered imported model and version'],

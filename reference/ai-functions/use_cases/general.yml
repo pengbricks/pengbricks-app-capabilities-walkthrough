@@ -1,0 +1,117 @@
+# Use-case spec for the AI Functions guide. The notebooks read every table name, label set, schema,
+# and model endpoint from here. Each sample carries the answer a person would give, so every step is
+# scored against it. All names, emails, and phone numbers are made up (555-01xx numbers, example.com).
+name: general
+
+tables:
+  tickets: aif_tickets
+  call_notes: aif_call_notes
+  accounts: aif_accounts
+  vendors: aif_vendors
+  reviews: aif_reviews
+  invoices_truth: aif_invoice_truth
+  daily_orders: aif_daily_orders
+  results: aif_results
+volume: aif_documents   # invoice PDFs land here
+
+# Step 2: ticket triage
+triage:
+  labels: [billing, outage, how-to, feature request]
+  summary_words: 25
+  # ai_decide (Beta; needs the AI Decide preview). The yes/no question has an objective answer:
+  # tickets 7 to 11 report something failing now; 12 reports it fixed.
+  decide:
+    service_down_ids: [7, 8, 9, 10, 11]
+    questions: >-
+      {"service_down": {"type": "noul", "instructions": "Is the customer reporting that the service is down or failing right now?"},
+       "urgency": {"type": "score", "instructions": "How urgent is a reply to this ticket?",
+                   "criteria": ["Can wait a week", "Needs a reply this week", "Needs a reply today"]}}
+tickets:
+  - {id: 1, category: billing, sentiment: negative, body: "I was charged twice for my October subscription. Please refund the duplicate charge."}
+  - {id: 2, category: billing, sentiment: neutral, body: "Can you send a copy of last month's invoice to our accounts payable address?"}
+  - {id: 3, category: billing, sentiment: negative, body: "Our plan renewed at a higher price without any notice. That is not what we agreed to."}
+  - {id: 4, category: billing, sentiment: neutral, body: "How do I change the credit card on file for our team account?"}
+  - {id: 5, category: billing, sentiment: positive, body: "Thanks for applying the nonprofit discount so quickly. The new invoice looks right."}
+  - {id: 6, category: billing, sentiment: negative, body: "The tax on my invoice is wrong for my state and I need a corrected invoice before we can pay."}
+  - {id: 7, category: outage, sentiment: negative, body: "The dashboard has been returning 503 errors for the last hour. Nobody on my team can log in."}
+  - {id: 8, category: outage, sentiment: negative, body: "Scheduled exports failed overnight and the morning report is empty. This is the second time this week."}
+  - {id: 9, category: outage, sentiment: negative, body: "The mobile app crashes as soon as it opens after the latest update."}
+  - {id: 10, category: outage, sentiment: neutral, body: "Is there an incident right now? API calls are timing out from our servers in Frankfurt."}
+  - {id: 11, category: outage, sentiment: negative, body: "Sync stopped working and we are missing three days of data in the warehouse."}
+  - {id: 12, category: outage, sentiment: positive, body: "Service is back for us after this morning's outage. Thanks for the quick updates on the status page."}
+  - {id: 13, category: how-to, sentiment: neutral, body: "How do I add a new user and give them read-only access?"}
+  - {id: 14, category: how-to, sentiment: neutral, body: "Where can I find the setting to change the default time zone for reports?"}
+  - {id: 15, category: how-to, sentiment: positive, body: "Love the product so far. What is the best way to connect it to our Postgres database?"}
+  - {id: 16, category: how-to, sentiment: neutral, body: "Can you explain how to schedule a report to email every Monday morning?"}
+  - {id: 17, category: how-to, sentiment: negative, body: "I have read the docs three times and still cannot figure out how to set up single sign-on."}
+  - {id: 18, category: how-to, sentiment: neutral, body: "What file formats does the import tool accept?"}
+  - {id: 19, category: feature request, sentiment: neutral, body: "It would help if dashboards could be exported to PowerPoint."}
+  - {id: 20, category: feature request, sentiment: positive, body: "The new charts are great. Could you add a dark mode next?"}
+  - {id: 21, category: feature request, sentiment: negative, body: "Not having an audit log of who changed a report is a deal breaker for our compliance team. Please add one."}
+  - {id: 22, category: feature request, sentiment: neutral, body: "Please support two-factor authentication with hardware keys."}
+  - {id: 23, category: feature request, sentiment: positive, body: "We would happily pay more for a Spanish version of the interface."}
+  - {id: 24, category: feature request, sentiment: neutral, body: "Could the API return results in pages of more than 100 rows?"}
+
+# Step 4: masking. `planted` lists every personal value in the note; none may survive ai_mask.
+mask:
+  labels: [person, email, phone]
+call_notes:
+  - {id: 1, planted: ["Jordan Avery", "jordan.avery@example.com", "555-0142"], note: "Spoke with Jordan Avery about the renewal. Send the quote to jordan.avery@example.com or call 555-0142 after 3pm."}
+  - {id: 2, planted: ["Priya Raman", "555-0187"], note: "Priya Raman reported the login issue again. Her direct line is 555-0187."}
+  - {id: 3, planted: ["Marcus Lee", "m.lee@example.com"], note: "Marcus Lee wants a demo for his team next week. Confirm by email at m.lee@example.com."}
+  - {id: 4, planted: ["Sofia Delgado", "Tomas Brandt", "555-0119"], note: "Sofia Delgado introduced us to Tomas Brandt, who handles procurement. Tomas can be reached at 555-0119."}
+  - {id: 5, planted: ["Aiko Tanaka", "aiko.tanaka@example.com"], note: "Follow-up from Aiko Tanaka: she needs the security questionnaire back by Friday, aiko.tanaka@example.com."}
+  - {id: 6, planted: ["Daniel Okafor", "555-0163", "daniel.okafor@example.com"], note: "Daniel Okafor asked us to stop calling 555-0163 and to use daniel.okafor@example.com instead."}
+
+# Step 4: entity matching. `matches` pairs an account with the vendor that is the same company.
+match:
+  threshold: 0.85
+accounts:
+  - {id: A01, country: US, name: "Northwind Supplies Inc."}
+  - {id: A02, country: US, name: "Contoso Pharmaceuticals"}
+  - {id: A03, country: DE, name: "Fabrikam GmbH"}
+  - {id: A04, country: US, name: "Tailspin Toys"}
+  - {id: A05, country: UK, name: "Wide World Importers Ltd"}
+  - {id: A06, country: US, name: "Adventure Works Cycles"}
+  - {id: A07, country: DE, name: "Litware Software"}
+  - {id: A08, country: US, name: "Proseware Health"}
+vendors:
+  - {id: V01, country: US, name: "Northwind Supplies"}
+  - {id: V02, country: US, name: "Contoso Pharma"}
+  - {id: V03, country: DE, name: "Fabrikam"}
+  - {id: V04, country: US, name: "Tailspin Toys LLC"}
+  - {id: V05, country: UK, name: "Wide World Importers"}
+  - {id: V06, country: US, name: "Adventure Works"}
+  - {id: V07, country: DE, name: "Lucerne Publishing"}
+  - {id: V08, country: US, name: "Proseware Logistics"}
+matches: [[A01, V01], [A02, V02], [A03, V03], [A04, V04], [A05, V05], [A06, V06]]
+
+# Step 5: translation through ai_query, to a language ai_translate does not cover.
+translate:
+  endpoint: databricks-meta-llama-3-3-70b-instruct
+  language: Japanese
+reviews:
+  - {id: 1, text: "The delivery was fast and the packaging was perfect."}
+  - {id: 2, text: "The jacket runs small, so order one size up."}
+  - {id: 3, text: "Customer service replaced the broken lamp within two days."}
+  - {id: 4, text: "Battery life is shorter than advertised."}
+  - {id: 5, text: "Great value for the price. I would buy it again."}
+
+# Step 3: invoices. Each becomes a one-page PDF in the volume; the fields are the answer key.
+invoices:
+  - {number: INV-1001, vendor: Northwind Supplies, date: "2026-09-02", lines: [["Paper, A4, 10 reams", 2, 45.00], ["Toner cartridge", 3, 89.50]]}
+  - {number: INV-1002, vendor: Contoso Pharma, date: "2026-09-05", lines: [["Nitrile gloves, case", 10, 32.00]]}
+  - {number: INV-1003, vendor: Fabrikam, date: "2026-09-11", lines: [["Sensor module", 4, 120.00], ["Mounting kit", 4, 15.25], ["Installation", 1, 300.00]]}
+  - {number: INV-1004, vendor: Tailspin Toys LLC, date: "2026-09-18", lines: [["Wooden puzzle set", 25, 12.40]]}
+  - {number: INV-1005, vendor: Wide World Importers, date: "2026-09-23", lines: [["Shipping container lease", 1, 1850.00], ["Customs handling", 1, 240.00]]}
+  - {number: INV-1006, vendor: Adventure Works, date: "2026-09-29", lines: [["Bike helmet", 12, 54.99], ["Tire tube", 30, 7.50]]}
+extract:
+  schema: '{"invoice_number": {"type": "string"}, "vendor": {"type": "string"}, "invoice_date": {"type": "string", "description": "ISO date, YYYY-MM-DD"}, "total": {"type": "number"}}'
+  total_tolerance: 0.01
+
+# Step 5: forecasting. Daily orders per region: a weekly cycle on a slow trend, no randomness.
+forecast:
+  regions: {east: 120, west: 80}       # base orders per day
+  start: "2025-01-01"
+  end: "2026-09-30"
+  horizon: "2026-10-31"

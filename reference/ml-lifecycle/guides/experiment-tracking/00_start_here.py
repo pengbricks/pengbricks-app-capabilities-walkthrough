@@ -2,14 +2,14 @@
 # MAGIC %md
 # MAGIC # Experiment tracking and rerun
 # MAGIC
-# MAGIC This guide shows that a tracked run can be reproduced. A first run records its data version, code hash and environment as MLflow tags. The job then appends new rows to the table. A second run reads only those records, trains again on the recorded Delta version, and checks that the metric matches. Only the recorded version reproduces the result: the AUC on the latest data is recorded as a control.
+# MAGIC This guide shows that a tracked run can be reproduced. A first run trains on a customer snapshot of the UCI Online Retail II data (CC BY 4.0) and records its data version, code hash and environment as MLflow tags. The job then appends the customers who are new by a later snapshot. A second run reads only those records, trains again on the recorded Delta version, and checks that the metric matches. Only the recorded version reproduces the result: the AUC on the latest data is recorded as a control.
 # MAGIC
 # MAGIC ## Notebooks, in run order
 # MAGIC
 # MAGIC | Notebook | What it does |
 # MAGIC |---|---|
-# MAGIC | `01_tracked_run` | Writes `experiment_data`, trains, and logs the metric with tags for data version, release, code hash and package versions. |
-# MAGIC | `02_append_new_data` | Appends new rows, only for keys the table does not have yet, so the table moves past the recorded version. |
+# MAGIC | `01_tracked_run` | Writes `experiment_data` (the 2010-09-01 snapshot), trains, and logs the metric with tags for data version, release, code hash and package versions. |
+# MAGIC | `02_append_new_data` | Appends the customers who are new by the 2010-12-01 snapshot, only for keys the table does not have yet, so the table moves past the recorded version. |
 # MAGIC | `03_rerun_and_compare` | Reads the tracked run's tags, trains on `VERSION AS OF` the recorded version, and fails if the AUC differs by more than the tolerance or the code hash changed. |
 # MAGIC
 # MAGIC ## How to run

@@ -42,9 +42,15 @@ def test_gate_allows_regression_within_tolerance():
     assert all(ok for _, ok, _ in common.evaluate_gates(0.88, 0.8, 0.9, 0.05))
 
 
-def test_training_columns_use_options_the_sample_data_generator_supports(spec):
-    import sample_data  # noqa: F401
+def test_snapshot_must_leave_room_for_the_label_window(spec):
+    spec["data"]["snapshot_date"] = "2011-09-01"
+    with pytest.raises(ValueError, match="data ends"):
+        common.validate_spec(spec)
 
-    for column in spec["data"]["columns"]:
-        assert column["type"].startswith("decimal") or column["type"] in {"int", "double", "string", "date", "timestamp", "bigint"}
-        assert column["min"] <= column["max"]
+
+def test_split_holds_out_every_fifth_customer(spec):
+    import pandas as pd
+
+    pdf = pd.DataFrame({"customer_id": range(12346, 12446)})
+    train, holdout = common.split_frame(pdf, spec)
+    assert len(holdout) == 20 and set(train["customer_id"]).isdisjoint(holdout["customer_id"])

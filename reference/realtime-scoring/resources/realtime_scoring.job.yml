@@ -17,6 +17,8 @@ resources:
           default: ${var.schema}
         - name: use_case
           default: ${var.use_case}
+        - name: source_volume
+          default: ${resources.volumes.scoring_source_files.name}
         - name: endpoint_name
           default: capability-guides-realtime-scoring
       tasks:

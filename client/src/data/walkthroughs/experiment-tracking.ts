@@ -5,7 +5,7 @@ export const walkthrough: Walkthrough = {
   area: 'ML Guides',
   title: 'Reproducible experiments',
   intro:
-    'A tracked run records its data version, code reference, and environment. A second run reads only those records and trains again. In the reference run both runs scored the same AUC, 0.947689, even though the data table had grown by then.',
+    'A tracked run records its data version, code reference, and environment. A second run reads only those records and trains again. The data is UCI Online Retail II (CC BY 4.0): a customer snapshot at 2010-09-01. In the reference run both runs scored the same AUC, 0.716529, even though the table had grown by then.',
   shortVersion: [
     {
       title: 'The run carries its inputs.',
@@ -13,7 +13,7 @@ export const walkthrough: Walkthrough = {
     },
     {
       title: 'The data moves on.',
-      body: 'A task appends 2,000 rows after the tracked run, so the latest table no longer matches what the run used.',
+      body: 'A task appends the 945 customers who are new by the 2010-12-01 snapshot, so the latest table no longer matches what the run used.',
     },
     {
       title: 'The rerun reads the record.',
@@ -25,7 +25,7 @@ export const walkthrough: Walkthrough = {
     },
     {
       title: 'A control shows why it matters.',
-      body: 'Training on the latest data scored 0.946307, so skipping the version would have given a different number.',
+      body: 'Training on the latest data scored 0.720565, so skipping the version would have given a different number.',
     },
   ],
   sections: [
@@ -38,15 +38,23 @@ export const walkthrough: Walkthrough = {
         type: 'flow',
         title: 'The reproduction job',
         description:
-          'tracked_run writes experiment_data at version 2 and logs an MLflow run with data_version, git_sha, code_hash, and environment tags. append_new_data adds 2,000 rows and moves the table to version 3. rerun_and_compare reads the tags, reads experiment_data VERSION AS OF 2, trains again, logs a rerun, and writes experiment_reproductions.',
+          'tracked_run writes experiment_data at version 12 (the 2010-09-01 snapshot, 3,321 customers) and logs an MLflow run with data_version, git_sha, code_hash, and environment tags. append_new_data adds 945 customers and moves the table to version 13 (4,266 rows). rerun_and_compare reads the tags, reads experiment_data VERSION AS OF 12, trains again, logs a rerun, and writes experiment_reproductions.',
         lanes: [
           { label: 'Lakeflow job', fromRow: 0, toRow: 0 },
           { label: 'Records', fromRow: 1, toRow: 2 },
         ],
         nodes: [
           { id: 'track', label: 'tracked_run', mono: true, sub: 'train and log', col: 0, row: 0, kind: 'highlight' },
-          { id: 'app', label: 'append_new_data', mono: true, sub: '+2,000 rows', col: 1, row: 0 },
-          { id: 'rerun', label: 'rerun_and_compare', mono: true, sub: 'assert within 0.001', col: 2, row: 0, kind: 'highlight' },
+          { id: 'app', label: 'append_new_data', mono: true, sub: '+945 new customers', col: 1, row: 0 },
+          {
+            id: 'rerun',
+            label: 'rerun_and_compare',
+            mono: true,
+            sub: 'assert within 0.001',
+            col: 2,
+            row: 0,
+            kind: 'highlight',
+          },
           { id: 'run1', label: 'MLflow run', sub: 'tags: data, code, env', col: 0, row: 1, kind: 'surface' },
           { id: 'tbl', label: 'experiment_data', mono: true, sub: 'two Delta versions', col: 1, row: 1, kind: 'store' },
           { id: 'run2', label: 'MLflow rerun', sub: 'reproduces_run_id', col: 2, row: 1, kind: 'surface' },
@@ -77,8 +85,10 @@ export const walkthrough: Walkthrough = {
         {
           label: 'Log the table version as a run input',
           language: 'py',
-          code: 'import mlflow\n\n# Pin the Delta version, then attach it to the run as a dataset input.\ndataset = mlflow.data.load_delta(\n    table_name="<catalog>.<schema>.experiment_data",\n    version="3",\n)\nwith mlflow.start_run():\n    mlflow.log_input(dataset, context="training")\n    train_df = dataset.df  # Spark DataFrame at that version',
-          notes: ['The reference code stores the version as a tag instead. log_input shows the same version under the run\'s dataset inputs.'],
+          code: 'import mlflow\n\n# Pin the Delta version, then attach it to the run as a dataset input.\ndataset = mlflow.data.load_delta(\n    table_name="<catalog>.<schema>.experiment_data",\n    version="12",\n)\nwith mlflow.start_run():\n    mlflow.log_input(dataset, context="training")\n    train_df = dataset.df  # Spark DataFrame at that version',
+          notes: [
+            "The reference code stores the version as a tag instead. log_input shows the same version under the run's dataset inputs.",
+          ],
         },
       ],
       prose: 'Each reference answers one question about where the result came from.',
@@ -119,7 +129,8 @@ export const walkthrough: Walkthrough = {
           { state: 'own', label: 'Enforced' },
           { state: 'optional', label: 'Reported only' },
         ],
-        caption: 'The git SHA is the release job parameter; this run used the default, local. CI sets it to the commit SHA.',
+        caption:
+          'The git SHA is the release job parameter; this run used the default, local. CI sets it to the commit SHA.',
       },
     },
     {
@@ -128,15 +139,15 @@ export const walkthrough: Walkthrough = {
       prose:
         'experiment_reproductions holds one row per rerun. The latest-data AUC is a control, not a pass condition.',
       table: {
-        caption: 'Reference run',
+        caption: 'Reference run: 3,321 customers at version 12, 4,266 at version 13',
         columns: ['Field', 'Value'],
         rows: [
-          ['Original AUC', '0.947689'],
-          ['Rerun AUC', '0.947689'],
-          ['Tolerance', '0.001'],
-          ['Data version used', '2 (table was at 3)'],
+          ['Original AUC', '0.716529'],
+          ['Rerun AUC', '0.716529'],
+          ['Difference, tolerance', '0.0, 0.001'],
+          ['Data version used', '12 (table was at 13)'],
           ['Code hash match, environment changes', 'true, none'],
-          ['AUC on latest data (control)', '0.946307'],
+          ['AUC on latest data (control)', '0.720565'],
         ],
       },
     },

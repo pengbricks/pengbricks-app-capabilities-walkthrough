@@ -13,6 +13,7 @@ import ml_common as c  # noqa: E402
 def test_spec_validates():
     spec = c.load_spec(str(ROOT / "use_cases" / "general.yml"))
     assert c.feature_columns(spec)[0] == "tenure_months"
+    assert spec["source"]["dataset"] == "online_retail_ii"
 
 
 def test_spec_rejects_bad_identifier():
@@ -61,11 +62,15 @@ def test_split_is_deterministic_and_disjoint():
     assert len(holdout) == 20 and set(train["id"]).isdisjoint(holdout["id"])
 
 
-def test_source_columns_use_options_the_sample_data_generator_supports():
-    import sample_data  # noqa: F401
-
+def test_every_snapshot_window_ends_inside_the_data():
     spec = c.load_spec(str(ROOT / "use_cases" / "general.yml"))
-    for column in spec["source"]["columns"]:
-        assert column["type"].startswith("decimal") or column["type"] in {"int", "double", "string", "date", "timestamp", "bigint"}
-        assert column["min"] <= column["max"]
-        assert 0 <= column.get("null_pct", 0) < 1
+    spec["drift"]["batch_dates"] = [*spec["drift"]["batch_dates"], "2011-07-01"]
+    with pytest.raises(ValueError, match="data ends"):
+        c.validate_spec(spec)
+
+
+def test_model_features_come_from_the_snapshot_or_model_derived_columns():
+    spec = c.load_spec(str(ROOT / "use_cases" / "general.yml"))
+    spec["model"]["features"] = [*spec["model"]["features"], "usage_score"]
+    with pytest.raises(ValueError, match="not available"):
+        c.validate_spec(spec)

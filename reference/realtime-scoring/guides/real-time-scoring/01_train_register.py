@@ -10,14 +10,14 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 1. Train and register the model
 # MAGIC
-# MAGIC Generates training rows from the use-case spec with a fixed seed, so reruns train on identical data. The table is overwritten, and the registered model gets a new version each run with the `champion` alias moved to it.
+# MAGIC Trains on UCI Default of Credit Card Clients (CC BY 4.0): whether a card holder defaults on next month's payment. The file is downloaded once into a volume and checked against a pinned SHA-256, so reruns train on identical data. The table is overwritten, and the registered model gets a new version each run with the `champion` alias moved to it.
 
 # COMMAND ----------
 
 import sys, os
 sys.path.insert(0, os.path.abspath("../../src"))
 from guide_params import bundle_root, load_params
-params = load_params(dbutils, "capability_guides_realtime_scoring", ['catalog', 'schema', 'use_case'])
+params = load_params(dbutils, "capability_guides_realtime_scoring", ['catalog', 'schema', 'use_case', 'source_volume'])
 catalog, schema = params["catalog"], params["schema"]
 
 import yaml
@@ -27,26 +27,25 @@ model_spec = spec["model"]
 features = model_spec["features"]
 names = [f["name"] for f in features]
 label = model_spec["label"]
-rows = int(model_spec["training"]["rows"])
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Generate and save the training data
+# MAGIC ## Land and save the training data
 
 # COMMAND ----------
 
-from pyspark.sql import functions as F
+import public_data
 
-import sample_data
-
-columns = [{"name": f["name"], "type": "double", "min": f["min"], "max": f["max"]} for f in features]
-frame = sample_data.generate(spark, columns, rows, int(spec["seed"]), "training", partitions=2, keep_id=True)
-frame = frame.withColumn(label, F.expr(model_spec["training"]["label_expr"]))
+training = model_spec["training"]
+path = public_data.fetch(training["dataset"], f"/Volumes/{catalog}/{schema}/{params['source_volume']}")
+columns = {"ID": "id", **{f["source"]: f["name"] for f in features}, training["label_source"]: label}
+frame = public_data.read_credit_default(path, columns).astype({f["name"]: "float64" for f in features})
 
 table = f"{catalog}.{schema}.scoring_training_data"
-frame.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(table)
-print(f"Wrote {rows} training rows to {table}")
+spark.createDataFrame(frame).write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(table)
+print(f"Wrote {len(frame)} card holders to {table}; default rate {frame[label].mean():.3f}")
+print(public_data.SOURCES[training["dataset"]]["citation"])
 
 # COMMAND ----------
 

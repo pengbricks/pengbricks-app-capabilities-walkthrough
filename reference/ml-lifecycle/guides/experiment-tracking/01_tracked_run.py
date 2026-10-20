@@ -10,14 +10,14 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 1. Tracked run
 # MAGIC
-# MAGIC Writes `experiment_data` (overwritten on each run), trains on that exact Delta version, and logs the metric with the references needed to reproduce it: data table and version, release, a hash of the training code, and the package versions.
+# MAGIC Writes `experiment_data` (the 2010-09-01 customer snapshot, overwritten on each run), trains on that exact Delta version, and logs the metric with the references needed to reproduce it: data table and version, release, a hash of the training code, and the package versions.
 
 # COMMAND ----------
 
 import sys, os
 sys.path.insert(0, os.path.abspath("../../src"))
 from guide_params import bundle_root, load_params
-params = load_params(dbutils, "capability_guides_experiment_rerun", ['catalog', 'schema', 'use_case', 'release', 'experiment'])
+params = load_params(dbutils, "capability_guides_experiment_rerun", ['catalog', 'schema', 'use_case', 'release', 'experiment', 'source_volume'])
 catalog, schema = params["catalog"], params["schema"]
 
 import ml_common as c
@@ -29,7 +29,9 @@ import mlflow
 # COMMAND ----------
 
 table = c.fq(catalog, schema, "experiment_data")
-c.build_frame(spark, spec, spec["source"]["rows"], spec["seed"]).write.mode("overwrite") \
+transactions = c.fq(catalog, schema, spec["source"]["transactions_table"])
+c.ensure_transactions(spark, spec, transactions, f"/Volumes/{catalog}/{schema}/{params['source_volume']}")
+c.snapshot_frame(spark, spec, transactions).write.mode("overwrite") \
     .option("overwriteSchema", "true").saveAsTable(table)
 version = c.delta_version(spark, table)
 pdf = spark.sql(f"SELECT * FROM {table} VERSION AS OF {version}").toPandas()

@@ -53,7 +53,7 @@ targets:
         release: ${var.release}
     variables:
       schema: dev_${workspace.current_user.short_name}_capability_guides
-      min_auc: 0.75
+      min_auc: 0.65
       max_auc_regression: 0.02
       serving_workload_size: Small
 
@@ -64,6 +64,6 @@ targets:
         environment: test
         release: ${var.release}
     variables:
-      min_auc: 0.85
+      min_auc: 0.70
       max_auc_regression: 0.0
       serving_workload_size: Small

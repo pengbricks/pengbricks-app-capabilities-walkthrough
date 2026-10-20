@@ -23,6 +23,7 @@ Each folder under `reference/` is a self-contained Declarative Automation Bundle
 | `open-data/` | Governed data sharing, Apache Iceberg interoperability, Partner tool integrations |
 | `platform-ops/` | Workspace and account administration, Support and recovery |
 | `agents/` | Agents, MCP, and model gateway; Building and shipping agents |
+| `ai-functions/` | AI Functions in SQL |
 
 The GitHub integration and CI/CD guide deploys the `ingestion/` bundle through `.github/workflows/reference-cicd.yml`.
 
@@ -49,4 +50,7 @@ Each workspace deploys its own copy. Runs, tables, and run history stay in that 
 - **Compute:** serverless jobs, serverless Lakeflow Declarative Pipelines, and serverless SQL warehouses only.
 - **App access:** top-level bundle `permissions` give the app service principal `CAN_RUN`, which maps to `CAN_MANAGE_RUN` on jobs. The app's quick run button triggers jobs with that identity.
 - **Discovery:** every job carries the tag `capability_guide_job: <job-key>`. The app maps guides to job keys in `server/artifacts.json` and finds the deployed job by tag, so no job IDs are configured.
+- **Public data:** the ML bundles (`ml-lifecycle/`, `model-deployment/`, `realtime-scoring/`) train on two UCI datasets, both CC BY 4.0. Each job downloads the zip into a volume and checks it against a pinned SHA-256 (`_shared/public_data.py`, copied into each bundle's `src/`, with a test that fails if a copy drifts). Other bundles generate sample data from a use-case spec.
+  - Chen, D. (2012). Online Retail II [Dataset]. UCI Machine Learning Repository. https://doi.org/10.24432/C5CG6D
+  - Yeh, I. (2009). Default of Credit Card Clients [Dataset]. UCI Machine Learning Repository. https://doi.org/10.24432/C55S3H
 - **Public-safe content:** no workspace hosts, IDs, credentials, customer names, or user-home paths in code or config.

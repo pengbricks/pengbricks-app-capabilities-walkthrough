@@ -64,6 +64,8 @@ export type WalkthroughSection = {
   table?: { caption?: string; columns: [string, string]; rows: [string, string][] };
   steps?: { title: string; body: string; code?: string }[];
   points?: { strong: string; text: string }[];
+  /** Outside reading, such as the official docs page for each topic. Opens in a new tab. */
+  links?: { label: string; url: string; note?: string }[];
   /**
    * Short setup examples for options the reference code does not use, such as other Auto Loader
    * schema modes. Real code from the bundle comes from artifacts.json highlights with a matching section.

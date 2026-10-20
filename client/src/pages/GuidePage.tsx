@@ -30,6 +30,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router';
 import { AutoLoaderDrop } from '../components/AutoLoaderDrop.tsx';
 import { CodeExcerpt } from '../components/CodeExcerpt.tsx';
+import { DifficultyStars } from '../components/DifficultyStars.tsx';
 import { getGuide } from '../data/guides.ts';
 import designedWalkthroughs from '../data/walkthroughs/designed.json';
 import { getWalkthrough } from '../data/walkthroughs/index.ts';
@@ -80,7 +81,10 @@ export function GuidePage() {
 
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
-          <Badge variant="secondary">{guide.category}</Badge>
+          <div className="flex items-center gap-3">
+            <Badge variant="secondary">{guide.category}</Badge>
+            <DifficultyStars value={guide.difficulty} />
+          </div>
           <h1 className="mt-3 text-3xl font-semibold tracking-[-0.03em] sm:text-4xl">{guide.title}</h1>
           <p className="mt-2 max-w-3xl text-base leading-7 text-muted-foreground">{guide.summary}</p>
         </div>

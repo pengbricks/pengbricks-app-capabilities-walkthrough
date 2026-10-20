@@ -10,14 +10,14 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 1. Train and register
 # MAGIC
-# MAGIC Generates the training data from the spec (same spec and seed give the same rows), trains a scikit-learn pipeline, logs it with MLflow 3, and registers a new version in Unity Catalog with release tags.
+# MAGIC Builds the training snapshot from UCI Online Retail II (CC BY 4.0): one row per customer as of the snapshot date, labeled churned when no order follows in the next 6 months. It trains a scikit-learn pipeline, logs it with MLflow 3, and registers a new version in Unity Catalog with release tags.
 
 # COMMAND ----------
 
 import sys, os
 sys.path.insert(0, os.path.abspath("../../src"))
 from guide_params import bundle_root, load_params
-params = load_params(dbutils, "capability_guides_model_release", ['catalog', 'schema', 'use_case', 'release', 'experiment'])
+params = load_params(dbutils, "capability_guides_model_release", ['catalog', 'schema', 'use_case', 'release', 'experiment', 'source_volume'])
 dbutils.widgets.text("job_run_id", "")
 job_run_id = dbutils.widgets.get("job_run_id").strip()
 
@@ -40,13 +40,13 @@ features, label = spec["features"], spec["label"]["name"]
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Generate and persist the training data
+# MAGIC ## Land the source and persist the training snapshot
 # MAGIC
-# MAGIC The table is overwritten on each run, so the tests read the identical rows.
+# MAGIC The source file is pinned by SHA-256 and the snapshot table is overwritten on each run, so the tests read the identical rows.
 
 # COMMAND ----------
 
-df = common.build_training_frame(spark, spec)
+df = common.build_training_frame(spark, spec, f"/Volumes/{catalog}/{schema}/{params['source_volume']}")
 df.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(table)
 pdf = spark.table(table).toPandas()
 train, holdout = common.split_frame(pdf, spec)

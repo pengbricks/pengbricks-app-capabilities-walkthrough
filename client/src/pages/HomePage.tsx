@@ -1,12 +1,15 @@
 import { Button, Card, CardContent, Input } from '@databricks/appkit-ui/react';
 import { Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { DifficultyStars } from '../components/DifficultyStars.tsx';
 import { GuideCard } from '../components/GuideCard.tsx';
-import { categories, guides } from '../data/guides.ts';
+import { categories, difficulties, guides, type Difficulty } from '../data/guides.ts';
 
 const allCategories = 'All guides';
 
 const categoryBlurbs = {
+  Foundations:
+    'Start here: how the lakehouse separates storage and compute, how Unity Catalog names and governs data, and the medallion layers.',
   'CI/CD & Version Control Guides': 'Author, test, version, and promote the same release with automation and approval.',
   'Governance/Monitoring': 'Make runs, lineage, quality, cost, access, and operational ownership observable.',
   'AI Guides': 'Build governed user and agent experiences with transparent tools, identity, and model routing.',
@@ -20,18 +23,20 @@ const categoryBlurbs = {
 export function HomePage() {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState(allCategories);
+  const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
 
   const filteredGuides = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
     return guides.filter((guide) => {
       const categoryMatches = category === allCategories || guide.category === category;
+      const difficultyMatches = difficulty === null || guide.difficulty === difficulty;
       const queryMatches =
         normalizedQuery.length === 0 ||
         `${guide.title} ${guide.summary} ${guide.acceptanceCriteria}`.toLowerCase().includes(normalizedQuery);
-      return categoryMatches && queryMatches;
+      return categoryMatches && difficultyMatches && queryMatches;
     });
-  }, [category, query]);
+  }, [category, difficulty, query]);
 
   return (
     <div className="mx-auto max-w-[1440px] px-5 py-10 lg:px-8 lg:py-14">
@@ -84,6 +89,30 @@ export function HomePage() {
               })}
             </ul>
           </nav>
+
+          <nav className="mt-6" aria-label="Filter guides by difficulty">
+            <p className="px-3 text-sm font-semibold">Difficulty</p>
+            <ul className="mt-1.5 flex flex-col gap-0.5">
+              {difficulties.map((level) => {
+                const active = difficulty === level;
+                return (
+                  <li key={level}>
+                    <button
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => setDifficulty(active ? null : level)}
+                      className={`flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-left text-sm transition-colors ${active ? 'bg-muted font-medium ring-1 ring-foreground/20' : 'hover:bg-muted'}`}
+                    >
+                      <DifficultyStars value={level} />
+                      <span className="tabular-nums opacity-70">
+                        {guides.filter((guide) => guide.difficulty === level).length}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
         </aside>
 
         <div className="mt-6 lg:mt-0">
@@ -93,7 +122,10 @@ export function HomePage() {
 
           {filteredGuides.length > 0 ? (
             categories.map((area) => {
-              const areaGuides = filteredGuides.filter((guide) => guide.category === area);
+              // Easiest first within each area; sort is stable, so equal ratings keep catalog order.
+              const areaGuides = filteredGuides
+                .filter((guide) => guide.category === area)
+                .sort((a, b) => a.difficulty - b.difficulty);
               if (areaGuides.length === 0) return null;
               const sectionId = `area-${area.replaceAll(' ', '-').replaceAll('/', '-').toLowerCase()}`;
 
@@ -125,6 +157,7 @@ export function HomePage() {
                   onClick={() => {
                     setQuery('');
                     setCategory(allCategories);
+                    setDifficulty(null);
                   }}
                 >
                   Clear filters

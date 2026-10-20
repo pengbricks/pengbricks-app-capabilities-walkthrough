@@ -1,9 +1,9 @@
-# Scores batches, records operational and model metrics, detects a simulated feature shift, and trains a challenger on a breach.
+# Scores batches, records operational and model metrics, detects drift across later customer snapshots, and trains a challenger on a breach.
 resources:
   jobs:
     capability_guides_model_drift:
       name: capability-guides-model-drift
-      description: Scores batches, records operational and model metrics, detects a simulated feature shift, and trains a challenger on a breach.
+      description: Scores batches, records operational and model metrics, detects drift across later customer snapshots, and trains a challenger on a breach.
       tags:
         capability_guide_job: capability_guides_model_drift
         capability_guide_use_case: ${var.use_case}
@@ -19,6 +19,8 @@ resources:
           default: ${var.schema}
         - name: use_case
           default: ${var.use_case}
+        - name: source_volume
+          default: ${resources.volumes.ml_source_files.name}
         - name: experiment
           default: ${resources.experiments.ml_lifecycle_experiment.name}
       tasks:

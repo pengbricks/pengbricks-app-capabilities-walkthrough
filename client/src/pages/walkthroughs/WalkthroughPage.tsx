@@ -154,6 +154,23 @@ function Section({ section, excerpts }: { section: WalkthroughSection; excerpts:
           ))}
         </ul>
       )}
+      {section.links && (
+        <ul className="practice-list">
+          {section.links.map((link) => (
+            <li key={link.url}>
+              <a
+                href={link.url}
+                target="_blank"
+                rel="noreferrer"
+                className="font-semibold underline underline-offset-4"
+              >
+                {link.label}
+              </a>
+              {link.note && ` ${link.note}`}
+            </li>
+          ))}
+        </ul>
+      )}
       {(excerpts.length > 0 || section.examples) && (
         <div className="section-code">
           {excerpts.map((highlight) => (

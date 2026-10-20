@@ -2,7 +2,17 @@
 
 ## Overview
 
-One job covers both paths. It trains a scikit-learn model with MLflow and registers it in Unity Catalog. It also takes a model pickled outside MLflow, wraps it as a pyfunc, registers it, and checks that its recorded baseline metric reproduces. Job key: `capability_guides_model_training`.
+One job covers both paths. It trains a scikit-learn model with MLflow and registers it in Unity Catalog. It also takes a model pickled outside MLflow, wraps it as a pyfunc, registers it, and checks that its recorded baseline metric reproduces. Both train on churn labels built from a public retail dataset. Job key: `capability_guides_model_training`.
+
+## Data source
+
+UCI Online Retail II: invoice lines from a UK online retailer, 2009-12-01 to 2011-12-09. License CC BY 4.0.
+
+Chen, D. (2012). Online Retail II [Dataset]. UCI Machine Learning Repository. https://doi.org/10.24432/C5CG6D
+
+`export_legacy_model` downloads the zip into a Unity Catalog volume, checks it against a pinned SHA-256, and builds `model_training_data`: the 2010-09-01 snapshot of 3,321 customers. `churned` means no order in the following 6 months. The job downloads nothing on a second run.
+
+There is no published churn AUC for this dataset, so the baseline is the one the job records. The legacy pickle's holdout AUC is 0.716529, and the registered pyfunc reproduces 0.716529 (difference 0, tolerance 0.001).
 
 ## What this shows
 
@@ -11,7 +21,7 @@ One job covers both paths. It trains a scikit-learn model with MLflow and regist
 | Train a model | `train_native` logs params, metrics, signature, and library versions, and registers `churn_classifier` with alias `trained` |
 | Bring an existing model | `export_legacy_model` pickles a pipeline to a Unity Catalog volume with plain `pickle`. `import_legacy_model` logs it as a pyfunc (Models from Code) and registers `churn_classifier_imported` with alias `imported` |
 | Reproduce a baseline | The pickle's sidecar JSON records holdout AUC. The import notebook reloads the registered model, scores the same holdout, and fails if the difference exceeds 0.001 |
-| Record versions | `model_compatibility_log` lists python, scikit-learn, numpy, pandas, and scipy as recorded versus current, plus the metric. The same values are tags on the MLflow run |
+| Record versions | `model_compatibility_log` lists python, scikit-learn, numpy, pandas, mlflow, and scipy as recorded versus current, plus the metric. None changed in the reference run. The same values are tags on the MLflow run |
 
 ## Architecture
 
@@ -31,7 +41,7 @@ flowchart LR
 
 - `resources/model_training.job.yml`: three tasks and the volume parameter
 - `guides/model-training-compatibility/00_start_here`: what the guide shows, the variables, links to the job
-- `guides/model-training-compatibility/01_export_legacy_model`: pickle plus sidecar JSON in the `legacy_models` volume
+- `guides/model-training-compatibility/01_export_legacy_model`: dataset download, training table, pickle, and sidecar JSON in the `legacy_models` volume
 - `guides/model-training-compatibility/02_train_native`: `mlflow.sklearn.log_model` with signature and UC registration
 - `src/legacy_pyfunc.py` (`PickledModel`): pyfunc wrapper loaded from the pickle artifact
 - `guides/model-training-compatibility/03_import_legacy_model`: log, register, baseline comparison, change log
@@ -59,4 +69,5 @@ flowchart LR
 - The pickle is created in the same runtime that imports it, so the change log shows no package differences. Move the pickle to a runtime with different library versions to see rows flagged `changed`.
 - Unpickling runs arbitrary code. Only import pickles from a source you trust.
 - Matching AUC to six decimals needs the same scikit-learn version. A version change can shift it, so the tolerance is a setting in the spec.
+- The baseline is a recorded number, not a published benchmark. It confirms the import reproduces the old model, not that 0.72 is a good churn score.
 - Next: register a model from another framework (ONNX, PyTorch) the same way, with its own flavor or a pyfunc wrapper.

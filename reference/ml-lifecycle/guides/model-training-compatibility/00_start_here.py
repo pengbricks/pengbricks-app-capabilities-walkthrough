@@ -2,13 +2,13 @@
 # MAGIC %md
 # MAGIC # Model training and compatibility
 # MAGIC
-# MAGIC This guide trains a scikit-learn model with MLflow and registers it in Unity Catalog. It also brings a pickled model, saved by an older runtime, into Unity Catalog as a pyfunc, and checks that the imported model reproduces its recorded baseline metric. A change log lists the package versions that differ between the old runtime and this one.
+# MAGIC This guide trains a scikit-learn model with MLflow and registers it in Unity Catalog. The training data is a customer churn snapshot built from UCI Online Retail II (CC BY 4.0), which the first notebook downloads and checks against a pinned SHA-256. It also brings a pickled model, saved by an older runtime, into Unity Catalog as a pyfunc, and checks that the imported model reproduces its recorded baseline metric. A change log lists the package versions that differ between the old runtime and this one.
 # MAGIC
 # MAGIC ## Notebooks, in run order
 # MAGIC
 # MAGIC | Notebook | What it does |
 # MAGIC |---|---|
-# MAGIC | `01_export_legacy_model` | Trains a model, pickles it to the `legacy_models` volume, and writes a sidecar JSON with the baseline AUC, training table version and package versions. |
+# MAGIC | `01_export_legacy_model` | Downloads the dataset, builds the churn training table (3,321 customers at 2010-09-01), trains a model, pickles it to the `legacy_models` volume, and writes a sidecar JSON with the baseline AUC, training table version and package versions. |
 # MAGIC | `02_train_native` | Trains the same model with MLflow tracking and registers it as `churn_classifier` with the `trained` alias. |
 # MAGIC | `03_import_legacy_model` | Wraps the pickle as a pyfunc, registers it as `churn_classifier_imported` with the `imported` alias, reproduces the baseline AUC within tolerance, and records the change log. |
 # MAGIC

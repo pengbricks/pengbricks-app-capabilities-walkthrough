@@ -1,0 +1,44 @@
+bundle:
+  name: capability-guides-ai-functions
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Unity Catalog catalog that holds the guide schema
+  warehouse_id:
+    description: SQL warehouse that runs the ai_forecast step
+  app_service_principal:
+    description: Application ID of the Databricks App service principal that triggers quick runs
+  schema:
+    description: Schema for this bundle's sample tables, results, and document volume
+    default: capability_guides
+  use_case:
+    description: Use-case spec under use_cases/ with the samples, labels, schema, and model endpoint
+    default: general
+  release:
+    description: Release identifier recorded in resource tags
+    default: local
+
+permissions:
+  - level: CAN_MANAGE
+    user_name: ${workspace.current_user.userName}
+  - level: CAN_RUN
+    service_principal_name: ${var.app_service_principal}
+
+targets:
+  dev:
+    default: true
+    mode: development
+    presets:
+      tags:
+        release: ${var.release}
+    variables:
+      schema: dev_${workspace.current_user.short_name}_capability_guides
+  test:
+    presets:
+      name_prefix: "[test] "
+      tags:
+        environment: test
+        release: ${var.release}

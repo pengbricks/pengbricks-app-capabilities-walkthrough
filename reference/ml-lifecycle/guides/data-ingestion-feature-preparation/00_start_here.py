@@ -2,13 +2,13 @@
 # MAGIC %md
 # MAGIC # Data ingestion and feature preparation
 # MAGIC
-# MAGIC This guide generates a source table from the use-case spec, builds a Unity Catalog feature table from it with quality checks, freezes a versioned training set by time travel, and records the lineage Unity Catalog captured for both tables.
+# MAGIC This guide downloads UCI Online Retail II (CC BY 4.0, 1,067,371 invoice lines from a UK online retailer), builds a customer snapshot with a churn label, builds a Unity Catalog feature table from it with quality checks, freezes a versioned training set by time travel, and records the lineage Unity Catalog captured for the three tables downstream of the invoice lines.
 # MAGIC
 # MAGIC ## Notebooks, in run order
 # MAGIC
 # MAGIC | Notebook | What it does |
 # MAGIC |---|---|
-# MAGIC | `01_generate_source` | Writes the source table from generated sample data with a fixed seed, and passes its Delta version on. |
+# MAGIC | `01_land_source` | Downloads the dataset into a volume, checks its pinned SHA-256, writes the invoice lines to `ml_retail_transactions` and the customer snapshot to the source table, and passes the Delta version on. |
 # MAGIC | `02_build_features` | Builds the feature table (Feature Engineering client, or a primary-key Delta table if unavailable) and runs the range, null and key checks. |
 # MAGIC | `03_snapshot_training_set` | Joins the feature table to the labels at recorded Delta versions and saves `training_set_v<version>`. |
 # MAGIC | `04_record_lineage` | Reads table lineage for the feature table and training set from Unity Catalog and records it. |
@@ -22,8 +22,8 @@
 # MAGIC | Variable | Meaning |
 # MAGIC |---|---|
 # MAGIC | `catalog` | Unity Catalog catalog that holds the guide schema. |
-# MAGIC | `schema` | Schema for the source, feature and training-set tables. |
-# MAGIC | `use_case` | Spec under `use_cases/` with the columns, features and quality ranges. |
+# MAGIC | `schema` | Schema for the transactions, source, feature and training-set tables. |
+# MAGIC | `use_case` | Spec under `use_cases/` with the dataset, snapshot date, features and quality ranges. |
 # MAGIC
 # MAGIC Every variable is a widget. Leave one blank and it takes the default of the deployed job's parameter with the same name. Type a value to override it for one run.
 

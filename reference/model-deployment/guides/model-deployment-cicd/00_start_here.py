@@ -2,13 +2,13 @@
 # MAGIC %md
 # MAGIC # Model release pipeline
 # MAGIC
-# MAGIC This guide takes a model from training to a live endpoint in one job. It trains a small scikit-learn model with MLflow 3, registers it in Unity Catalog, runs automated tests, promotes it to `@champion` only when someone approved it, deploys it to Model Serving, and appends a row to a release history table.
+# MAGIC This guide takes a model from training to a live endpoint in one job. It trains a small scikit-learn churn model with MLflow 3 on UCI Online Retail II (CC BY 4.0), registers it in Unity Catalog, runs automated tests, promotes it to `@champion` only when someone approved it, deploys it to Model Serving, and appends a row to a release history table.
 # MAGIC
 # MAGIC ## Notebooks, in run order
 # MAGIC
 # MAGIC | Notebook | What it does |
 # MAGIC |---|---|
-# MAGIC | `01_train_and_register` | Generates the seeded training data, trains, and registers a new model version with release tags. |
+# MAGIC | `01_train_and_register` | Lands the public data, builds the 2010-09-01 snapshot, trains, and registers a new model version with release tags. |
 # MAGIC | `02_run_tests` | Checks the signature, scores a smoke test, and applies the AUC threshold and the `@champion` comparison. Sets `@challenger` when all pass, fails the run otherwise. |
 # MAGIC | `03_approval_gate` | Promotes `@challenger` to `@champion` when `approved_by` or a `model_approvals` row supplies an approver. Otherwise it stops and leaves the model unpromoted. |
 # MAGIC | `04_deploy_endpoint` | Serves `@champion` on a small scale-to-zero endpoint, waits for READY, and scores twice to measure latency. |
@@ -24,7 +24,7 @@
 # MAGIC |---|---|
 # MAGIC | `catalog` | Unity Catalog catalog that holds the schema and the registered model. |
 # MAGIC | `schema` | Schema for the model, training data and release history. |
-# MAGIC | `use_case` | Spec under `use_cases/` with the data, label, model name and features. |
+# MAGIC | `use_case` | Spec under `use_cases/` with the dataset, label, model name and features. |
 # MAGIC | `release` | Release identifier (a Git commit SHA in CI) recorded on the model version. |
 # MAGIC | `experiment` | Workspace path of the MLflow experiment. |
 # MAGIC | `min_auc` | Minimum holdout AUC for `@challenger`. |

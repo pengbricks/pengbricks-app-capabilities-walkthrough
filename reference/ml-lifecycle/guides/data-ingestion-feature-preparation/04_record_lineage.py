@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # 4. Record the lineage
 # MAGIC
-# MAGIC Reads the table lineage Unity Catalog captured for the feature table and the training set, checks that each shows the expected upstream table, and records the result in `feature_lineage`. Lineage can take a few minutes to appear, so the notebook polls for up to five minutes. This table is a log: each run adds two rows.
+# MAGIC Reads the table lineage Unity Catalog captured for the source table, the feature table and the training set, checks that each shows the expected upstream table, and records the result in `feature_lineage`. Lineage can take a few minutes to appear, so the notebook polls for up to five minutes. This table is a log: each run adds three rows.
 
 # COMMAND ----------
 
@@ -51,6 +51,7 @@ def upstreams(w: WorkspaceClient, table: str) -> list[str]:
 
 plain = lambda name: f"{catalog}.{schema}.{name}"  # noqa: E731
 targets = {
+    plain(spec["source"]["table"]): plain(spec["source"]["transactions_table"]),
     plain(spec["features"]["table"]): plain(spec["source"]["table"]),
     plain(training_set): plain(spec["features"]["table"]),
 }

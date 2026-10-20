@@ -1,34 +1,32 @@
 # Use-case spec: training data, label, model name, features, and seed.
 # src/common.py reads it; every task in the release job uses the same file.
+# Data: UCI Online Retail II (CC BY 4.0), invoice lines from a UK online retailer, Dec 2009 to Dec 2011.
+# Chen, D. (2012). Online Retail II [Dataset]. UCI Machine Learning Repository. https://doi.org/10.24432/C5CG6D
 name: general
 seed: 20261014
 
 model:
-  name: release_churn_classifier
-  description: Predicts whether a customer churns within 90 days
+  name: retail_churn_classifier
+  description: Predicts whether a customer places no order in the 6 months after the snapshot date
 
 data:
-  table: churn_training_data
-  rows: 20000
-  holdout_mod: 5          # rows with id % 5 = 0 form the holdout used by the tests
-  columns:                # generated sample data (uniform random, fixed seed)
-    - {name: tenure_months, type: int, min: 1, max: 72}
-    - {name: monthly_spend, type: double, min: 10, max: 300}
-    - {name: support_tickets, type: int, min: 0, max: 12}
-    - {name: usage_score, type: double, min: 0, max: 100}
-    - {name: days_since_login, type: int, min: 0, max: 90}
-    - {name: noise, type: double, min: 0, max: 1}   # hidden driver, never a feature
+  dataset: online_retail_ii                    # a key of public_data.SOURCES
+  transactions_table: release_retail_transactions
+  table: churn_training_data                   # one row per customer at snapshot_date
+  key: customer_id
+  snapshot_date: "2010-09-01"
+  holdout_mod: 5          # customers with customer_id % 5 = 0 form the holdout used by the tests
+  # Model-only columns computed on the snapshot. Single-order customers have no order gap yet.
+  derived: {order_gap_days: "coalesce(days_between_orders, days_since_purchase)"}
 
 label:
   name: churned
-  # 1 when the weighted risk score passes the cut-off. `noise` keeps the task from being separable.
-  expr: >-
-    CAST((0.04 * support_tickets + 0.012 * days_since_login - 0.01 * tenure_months
-          - 0.006 * usage_score + 0.002 * monthly_spend + 0.4 * noise) > 0.63 AS INT)
+  window_months: 6
 
 features:
   - tenure_months
   - monthly_spend
-  - support_tickets
-  - usage_score
-  - days_since_login
+  - returns
+  - products_per_order
+  - days_since_purchase
+  - order_gap_days

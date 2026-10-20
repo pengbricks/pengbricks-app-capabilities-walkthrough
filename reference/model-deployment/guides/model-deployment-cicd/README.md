@@ -2,7 +2,7 @@
 
 ## Overview
 
-One serverless job takes a model from training to a live endpoint. It trains a small scikit-learn model with MLflow 3, registers it in Unity Catalog, runs automated tests, promotes it only when someone has approved it, deploys it to Model Serving, and appends a row to a release history table. A GitHub Actions workflow runs the same job in `dev` and `test`, and the GitHub `test` environment approval supplies the approver.
+One serverless job takes a churn model from training to a live endpoint. It trains a small scikit-learn model with MLflow 3 on real invoice lines from UCI Online Retail II, registers it in Unity Catalog, runs automated tests, promotes it only when someone has approved it, deploys it to Model Serving, and appends a row to a release history table. A GitHub Actions workflow runs the same job in `dev` and `test`, and the GitHub `test` environment approval supplies the approver.
 
 ## What this shows
 
@@ -10,9 +10,19 @@ One serverless job takes a model from training to a live endpoint. It trains a s
 |---|---|
 | Automated tests | `run_tests` task: signature check, prediction smoke test, AUC threshold (`min_auc`), comparison against the current `@champion`. Results are tags on the model version (`test_*`, `tests_passed`). The workflow also runs `pytest` on every pull request. |
 | Approval | `approval_gate` task promotes `@challenger` to `@champion` only with an approver. CI passes `approved_by=<github actor>` after the `test` environment reviewers approve. |
-| Environment-specific configuration | `dev` and `test` targets in `databricks.yml`: `min_auc` 0.75 vs 0.85, `max_auc_regression` 0.02 vs 0.0, `[test]` name prefix and separate schema, separate endpoint per target, tags per target. Alias names and serving size are bundle variables. |
+| Environment-specific configuration | `dev` and `test` targets in `databricks.yml`: `min_auc` 0.65 vs 0.70, `max_auc_regression` 0.02 vs 0.0, `[test]` name prefix and separate schema, separate endpoint per target, tags per target. Alias names and serving size are bundle variables. |
 | Deploy an approved model version | `deploy_endpoint` task serves the `@champion` version on `capability-guides-model-<target>` (small, scale-to-zero) and waits for READY. |
 | Auditable release history | `model_release_history` table, version tags (`release`, `git_sha`, `approved_by`, `job_run_id`, `training_run_url`), and the MLflow run. |
+
+## Data
+
+UCI Online Retail II: invoice lines from a UK online retailer, 2009-12-01 to 2011-12-09, licensed CC BY 4.0. The zip lands in the `release_source_files` volume and is checked against a pinned SHA-256, so a second run downloads nothing. The snapshot date is 2010-09-01. A customer is labeled `churned` when no order follows in the next 6 months. That gives 3,321 customers with a 35.5% churn rate; invoice lines without a customer ID never reach the snapshot. Customers with `customer_id % 5 = 0` form the holdout.
+
+Chen, D. (2012). Online Retail II [Dataset]. UCI Machine Learning Repository. https://doi.org/10.24432/C5CG6D
+
+## Reference run
+
+The recorded run is the second release. Version 2 scores holdout AUC 0.7167, the same as the champion (version 1), so `champion_comparison` passes with a regression of 0.0000 (dev allows 0.02). All four tests pass, approval moves `@champion` to version 2, and the job redeploys `capability-guides-model-dev`. Scoring latency is 106.3 ms. Retraining the same commit on the same pinned data gives an identical AUC, which is why the comparison is a tie.
 
 ## Architecture
 
@@ -39,10 +49,10 @@ flowchart LR
 ## Reference code
 
 - `databricks.yml`: variables, `dev` and `test` targets, permissions
-- `use_cases/general.yml`: training data columns, label, model name, features, seed
+- `use_cases/general.yml`: the dataset, snapshot date, label, model name, and features
 - `resources/model_release.job.yml`: the five-task serverless job. Every notebook variable is a job parameter, including `approved_by`
 - `guides/model-deployment-cicd/`: one notebook per job task, in run order, plus `00_start_here` (what it shows, the variables, links to the job). Each notebook also runs on its own with Run all.
-- `01_train_and_register`: generated sample data, MLflow 3 `log_model`, UC registration and version tags
+- `01_train_and_register`: lands the pinned public data, builds the snapshot, MLflow 3 `log_model`, UC registration and version tags
 - `02_run_tests` (`check_signature`) and `src/common.py` (`evaluate_gates`)
 - `03_approval_gate` (`table_approver`)
 - `04_deploy_endpoint` (`wait_ready`)
@@ -51,7 +61,7 @@ flowchart LR
 
 ## Demo steps
 
-1. Open `use_cases/general.yml`: the data columns, label, features and seed live there.
+1. Open `use_cases/general.yml`: the dataset, snapshot date, label and features live there.
 2. Open `databricks.yml` and compare the `dev` and `test` targets (thresholds, prefix, tags).
 3. Run the job with no approval: `databricks bundle run capability_guides_model_release --target dev`.
 4. Show the run: tests pass, `@challenger` is set, `approval_gate` prints that it stopped, the run is green, and no endpoint was touched.
@@ -60,7 +70,7 @@ flowchart LR
 7. Open the `deploy_endpoint` output: endpoint READY and the measured request latency.
 8. Query the history: `SELECT * FROM <catalog>.<schema>.model_release_history ORDER BY deployed_at DESC`.
 9. Open `.github/workflows/model-deployment-cicd.yml` and show where the `test` environment approval becomes `approved_by`.
-10. Raise `min_auc` above the achieved AUC, redeploy, and run again: `run_tests` fails the run before any alias moves.
+10. Raise `min_auc` above the achieved AUC (about 0.72), redeploy, and run again: `run_tests` fails the run before any alias moves.
 
 ## Approval options
 
@@ -69,8 +79,8 @@ flowchart LR
 
 ## Artifacts produced
 
-- Model `<catalog>.<schema>.release_churn_classifier` with versions, `@challenger` and `@champion` aliases, and tags
-- Table `churn_training_data` (seeded) and `model_release_history`
+- Model `<catalog>.<schema>.retail_churn_classifier` with versions, `@challenger` and `@champion` aliases, and tags
+- Table `churn_training_data` (the 2010-09-01 snapshot, 3,321 customers) and `model_release_history`
 - MLflow experiment with a training run per release
 - Endpoint `capability-guides-model-<target>` (small, scale-to-zero)
 - A successful run of `capability-guides-model-release`
@@ -80,6 +90,6 @@ flowchart LR
 - Approval is a name string, not an identity check. Restrict who can trigger the job and who reviews the `test` environment.
 - The endpoint is created by the job, not declared in the bundle, so the bundle does not own or destroy it. Delete it manually when done.
 - The first request after scale-to-zero includes a cold start; the output records both a first and a second request.
-- Training data is synthetic. A real pipeline would read a governed feature table and add fairness and drift checks to `run_tests`.
+- The data is public and the thresholds are low. Real churn scores about 0.72 holdout AUC here, so dev uses `min_auc` 0.65 and test 0.70 (the earlier synthetic data scored about 0.98). A production pipeline would read a governed feature table and add fairness and drift checks to `run_tests`.
 - Rollback is a re-run with the previous version's alias; there is no automatic rollback on a failed smoke test.
 - Add canary traffic splitting or an AI Gateway rate limit for production use.

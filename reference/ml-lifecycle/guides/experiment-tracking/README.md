@@ -2,7 +2,9 @@
 
 ## Overview
 
-A tracked run records which data version, code, and environment produced its metric. A second run reads only those records, trains again, and asserts the metric matches. Between the two runs the job appends new rows to the table, so only the recorded Delta version reproduces the result. Job key: `capability_guides_experiment_rerun`.
+A tracked run records which data version, code, and environment produced its metric. A second run reads only those records, trains again, and asserts the metric matches. Between the two runs the job appends the 945 customers who are new by the 2010-12-01 snapshot, so only the recorded Delta version reproduces the result. Job key: `capability_guides_experiment_rerun`.
+
+Data: UCI Online Retail II (CC BY 4.0), invoice lines from a UK online retailer, 2009-12-01 to 2011-12-09. Chen, D. (2012). Online Retail II [Dataset]. UCI Machine Learning Repository. https://doi.org/10.24432/C5CG6D. The job downloads the zip into a Unity Catalog volume, checks its SHA-256, and builds one row per customer at the 2010-09-01 snapshot (3,321 customers).
 
 ## What this shows
 
@@ -19,9 +21,9 @@ A tracked run records which data version, code, and environment produced its met
 ```mermaid
 flowchart LR
   T[tracked_run] --> R1[MLflow run: AUC + data_version + git_sha + code_hash + environment]
-  T --> D[(experiment_data v0)]
+  T --> D[(experiment_data v13: 4,266 customers2: 3,321 customers)]
   D --> A[append_new_data]
-  A --> D2[(experiment_data v1)]
+  A --> D2[(experiment_data v13: 4,266 customers)]
   R1 --> RR[rerun_and_compare]
   D2 -->|VERSION AS OF recorded version| RR
   RR --> R2[MLflow run: reproduces_run_id]
@@ -33,7 +35,7 @@ flowchart LR
 - `resources/experiment_rerun.job.yml`: three tasks; the run ID passes through a task value
 - `guides/experiment-tracking/00_start_here`: what the guide shows, the variables, links to the job
 - `guides/experiment-tracking/01_tracked_run`: records data version, code hash, environment
-- `guides/experiment-tracking/02_append_new_data`: moves the table past the recorded version
+- `guides/experiment-tracking/02_append_new_data`: appends the customers new by 2010-12-01, which moves the table past the recorded version
 - `guides/experiment-tracking/03_rerun_and_compare`: reads references, reruns, asserts
 - `src/ml_common.py` (`code_hash`, `environment_versions`, `diff_environment`, `within_tolerance`)
 
@@ -41,14 +43,14 @@ flowchart LR
 
 1. Run `databricks bundle run capability_guides_experiment_rerun --target dev --params release=$(git rev-parse HEAD)`.
 2. Open the `tracked-run` run in the experiment: metric `holdout_auc` and the tags.
-3. Open the `append_new_data` output: the table moved to a later version.
-4. Open the `rerun` run: `reproduces_run_id` points at the original, `auc_difference` is the gap.
-5. Query `experiment_reproductions`: `reproduced = true`, and `latest_data_auc` differs from the original, which shows why the version matters.
+3. Open the `append_new_data` output: 945 customers appended, table moved from version 12 to 13.
+4. Open the `rerun` run: `reproduces_run_id` points at the original, `auc_difference` is the gap (0.0 in the reference run; both AUCs are 0.716529).
+5. Query `experiment_reproductions`: `reproduced = true`, and `latest_data_auc` is 0.720565 against the original 0.716529, which shows why the version matters.
 6. Edit `make_pipeline` in `src/ml_common.py`, redeploy, and run `03_rerun_and_compare` on its own (leave `run_id` blank to use the latest tracked run): it fails on the code hash.
 
 ## Artifacts produced
 
-- Table `experiment_data` (Delta history shows both versions) and `experiment_reproductions`
+- Table `experiment_data` (Delta history shows versions 12 and 13) and `experiment_reproductions`
 - MLflow runs `tracked-run` and `rerun`
 - A successful run of `capability-guides-experiment-rerun`
 

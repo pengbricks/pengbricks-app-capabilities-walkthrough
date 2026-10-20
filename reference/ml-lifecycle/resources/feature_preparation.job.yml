@@ -1,9 +1,9 @@
-# Generates source data, builds a Unity Catalog feature table with quality checks, freezes a versioned training set, and records lineage.
+# Lands the UCI Online Retail II file, builds a customer snapshot, builds a Unity Catalog feature table with quality checks, freezes a versioned training set, and records lineage.
 resources:
   jobs:
     capability_guides_feature_preparation:
       name: capability-guides-feature-preparation
-      description: Generates source data, builds a Unity Catalog feature table with quality checks, freezes a versioned training set, and records lineage.
+      description: Lands the UCI Online Retail II file, builds a customer snapshot, builds a Unity Catalog feature table with quality checks, freezes a versioned training set, and records lineage.
       tags:
         capability_guide_job: capability_guides_feature_preparation
         capability_guide_use_case: ${var.use_case}
@@ -19,14 +19,16 @@ resources:
           default: ${var.schema}
         - name: use_case
           default: ${var.use_case}
+        - name: source_volume
+          default: ${resources.volumes.ml_source_files.name}
       tasks:
-        - task_key: generate_source
+        - task_key: land_source
           notebook_task:
-            notebook_path: ../guides/data-ingestion-feature-preparation/01_generate_source.py
+            notebook_path: ../guides/data-ingestion-feature-preparation/01_land_source.py
 
         - task_key: build_features
           depends_on:
-            - task_key: generate_source
+            - task_key: land_source
           notebook_task:
             notebook_path: ../guides/data-ingestion-feature-preparation/02_build_features.py
 

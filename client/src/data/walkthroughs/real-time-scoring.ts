@@ -5,11 +5,11 @@ export const walkthrough: Walkthrough = {
   area: 'ML Guides',
   title: 'Online model scoring',
   intro:
-    'A job trains a small model, deploys it to a Model Serving endpoint that scales to zero, and scores it with an OAuth token from the SDK. It times 71 requests and sends four bad ones. A second job deletes the endpoint.',
+    'A job trains a credit default model on real card-holder data, deploys it to a Model Serving endpoint that scales to zero, and scores it with an OAuth token from the SDK. The question the endpoint answers is: will this card holder default next month? The job times 71 requests and sends four bad ones. A second job deletes the endpoint.',
   shortVersion: [
     {
-      title: 'The model comes from a spec.',
-      body: 'Generated sample data gives 5,000 training rows from the use-case file, and the trained model is registered in Unity Catalog.',
+      title: 'The model comes from a spec and public data.',
+      body: 'The use-case file names four features, each read from a column of UCI Default of Credit Card Clients (30,000 card holders, CC BY 4.0). The trained model scores a holdout AUC of 0.752 and is registered in Unity Catalog.',
     },
     {
       title: 'The endpoint is small and idle-free.',
@@ -21,11 +21,11 @@ export const walkthrough: Walkthrough = {
     },
     {
       title: 'Latency is recorded per request.',
-      body: 'In the reference run, 50 sequential requests had p50 43.6 ms and p95 99.7 ms.',
+      body: 'In the reference run, 50 sequential requests had p50 74.2 ms and p95 141.7 ms.',
     },
     {
       title: 'Bad requests fail cleanly.',
-      body: 'Malformed JSON and a missing required feature return 400. A missing optional feature is scored.',
+      body: 'Malformed JSON and a missing credit_limit return 400. A missing last_payment is scored with the training median.',
     },
   ],
   sections: [
@@ -44,10 +44,26 @@ export const walkthrough: Walkthrough = {
           { label: 'Serving and tables', fromRow: 1, toRow: 2 },
         ],
         nodes: [
-          { id: 'train', label: 'train_register', mono: true, sub: 'sample data + sklearn', col: 0, row: 0 },
+          { id: 'train', label: 'train_register', mono: true, sub: 'card data + sklearn', col: 0, row: 0 },
           { id: 'deploy', label: 'deploy_endpoint', mono: true, sub: 'Small, scale to zero', col: 1, row: 0 },
-          { id: 'score', label: 'score_and_measure', mono: true, sub: 'OAuth bearer header', col: 2, row: 0, kind: 'highlight' },
-          { id: 'model', label: 'account_risk_model', mono: true, sub: 'Unity Catalog model', col: 0, row: 1, kind: 'store' },
+          {
+            id: 'score',
+            label: 'score_and_measure',
+            mono: true,
+            sub: 'OAuth bearer header',
+            col: 2,
+            row: 0,
+            kind: 'highlight',
+          },
+          {
+            id: 'model',
+            label: 'account_risk_model',
+            mono: true,
+            sub: 'Unity Catalog model',
+            col: 0,
+            row: 1,
+            kind: 'store',
+          },
           { id: 'endpoint', label: 'Serving endpoint', sub: 'capability-guides-...', col: 1, row: 1, kind: 'surface' },
           { id: 'latency', label: 'scoring_latency', mono: true, sub: '71 rows', col: 2, row: 1, kind: 'store' },
           { id: 'teardown', label: 'Teardown job', sub: 'deletes the endpoint', col: 1, row: 2 },
@@ -77,17 +93,17 @@ export const walkthrough: Walkthrough = {
         {
           label: 'Query the endpoint from the CLI',
           language: 'sh',
-          code: 'databricks serving-endpoints query capability-guides-realtime-scoring \\\n  --json \'{"dataframe_records": [{"tenure_months": 24, "monthly_spend": 120, "support_tickets": 2}]}\'',
-          notes: ['usage_score is left out on purpose. The endpoint fills it with the training median.'],
+          code: 'databricks serving-endpoints query capability-guides-realtime-scoring \\\n  --json \'{"dataframe_records": [{"credit_limit": 50000, "repayment_status": 0, "bill_amount": 12000}]}\'',
+          notes: ['last_payment is left out on purpose. The endpoint fills it with the training median.'],
         },
       ],
       prose:
-        'The job sends one request, then 50 one at a time, then 20 through five workers. The first request in this run found a running replica, because the job updated an endpoint that was already serving. It is not a cold start. A cold start appears when a request reaches an endpoint that scaled to zero after sitting idle.',
+        'The job sends one request, then 50 one at a time, then 20 through five workers. A cold start appears when a request reaches an endpoint that scaled to zero after sitting idle, so the first request is the one to watch. Rerun score_and_measure after an idle period to see it in the first_request row.',
       diagram: {
         type: 'matrix',
         title: 'Latency by phase, reference run',
         description:
-          'First request: 1 request, 120.7 ms. Warm sequential: 50 requests, p50 43.6 ms, p95 99.7 ms, max 117.5 ms. Concurrent with five workers: 20 requests, p50 40.6 ms, p95 74.6 ms, max 83.7 ms.',
+          'First request: 1 request, 150.4 ms. Warm sequential: 50 requests, p50 74.2 ms, p95 141.7 ms, max 250.7 ms. Concurrent with five workers: 20 requests, p50 201.1 ms, p95 272.8 ms.',
         corner: 'Phase ↓ · Measure →',
         columns: ['Requests', 'p50', 'p95'],
         rows: [
@@ -96,7 +112,7 @@ export const walkthrough: Walkthrough = {
             sub: 'after deploy',
             cells: [
               { state: 'optional', text: '1' },
-              { state: 'optional', text: '120.7 ms' },
+              { state: 'optional', text: '150.4 ms' },
               { state: 'none', text: 'n/a' },
             ],
           },
@@ -105,8 +121,8 @@ export const walkthrough: Walkthrough = {
             sub: 'sequential',
             cells: [
               { state: 'own', text: '50' },
-              { state: 'own', text: '43.6 ms' },
-              { state: 'own', text: '99.7 ms' },
+              { state: 'own', text: '74.2 ms' },
+              { state: 'own', text: '141.7 ms' },
             ],
           },
           {
@@ -114,8 +130,8 @@ export const walkthrough: Walkthrough = {
             sub: '5 workers',
             cells: [
               { state: 'own', text: '20' },
-              { state: 'own', text: '40.6 ms' },
-              { state: 'own', text: '74.6 ms' },
+              { state: 'own', text: '201.1 ms' },
+              { state: 'own', text: '272.8 ms' },
             ],
           },
         ],
@@ -124,7 +140,8 @@ export const walkthrough: Walkthrough = {
           { state: 'optional', label: 'Single request' },
           { state: 'none', label: 'Not defined for one request' },
         ],
-        caption: 'All 71 requests returned 200. Rows are in scoring_latency, one per request.',
+        caption:
+          'All 71 requests returned 200. Rows are in scoring_latency, one per request. Concurrent requests queue behind each other, which is why their latency is higher than the warm sequential run.',
       },
     },
     {
@@ -136,17 +153,25 @@ export const walkthrough: Walkthrough = {
         type: 'flow',
         title: 'Four failure scenarios',
         description:
-          'A malformed JSON body and a body with an unknown top-level key both return 400. A request that omits a required feature returns 400 with a message naming the missing input. A request that omits the optional feature is scored, because the model fills the training median. All four outcomes are written to scoring_errors.',
+          'A malformed JSON body and a body with an unknown top-level key both return 400. A request that omits credit_limit returns 400 with a message naming the missing input. A request that omits last_payment is scored, because the model fills the training median. All four outcomes are written to scoring_errors.',
         nodes: [
           { id: 'bad', label: 'Malformed JSON', sub: 'truncated body', col: 0, row: 0 },
           { id: 'shape', label: 'Unknown top-level key', sub: 'rows instead of records', col: 0, row: 1 },
-          { id: 'req', label: 'Required feature gone', sub: 'tenure_months omitted', col: 0, row: 2 },
-          { id: 'opt', label: 'Optional feature gone', sub: 'usage_score omitted', col: 0, row: 3 },
+          { id: 'req', label: 'Required feature gone', sub: 'credit_limit omitted', col: 0, row: 2 },
+          { id: 'opt', label: 'Optional feature gone', sub: 'last_payment omitted', col: 0, row: 3 },
           { id: 'gate', label: 'Schema check', sub: 'MLflow signature', col: 1, row: 1, kind: 'gate' },
           { id: 'reject', label: '400 and error text', sub: 'request rejected', col: 2, row: 1 },
           { id: 'impute', label: 'Median imputed', sub: 'model still scores', col: 2, row: 3, kind: 'highlight' },
           { id: 'ok', label: '200 and prediction', col: 3, row: 3 },
-          { id: 'table', label: 'scoring_errors', mono: true, sub: 'status, message, outcome', col: 3, row: 1, kind: 'store' },
+          {
+            id: 'table',
+            label: 'scoring_errors',
+            mono: true,
+            sub: 'status, message, outcome',
+            col: 3,
+            row: 1,
+            kind: 'store',
+          },
         ],
         edges: [
           { from: 'bad', to: 'gate' },
@@ -163,21 +188,33 @@ export const walkthrough: Walkthrough = {
           { kind: 'highlight', label: 'Handled in the model' },
           { kind: 'store', label: 'Unity Catalog table' },
         ],
-        caption: 'The signature marks usage_score optional, and the first pipeline step adds it as NaN for the imputer.',
+        caption:
+          'The signature marks last_payment optional, and the first pipeline step adds it as NaN for the imputer.',
       },
     },
     {
       id: 'scaling',
       heading: 'How it scales',
-      prose:
-        'The endpoint is Small with scale-to-zero on. These are the levers that change its cost and latency.',
+      prose: 'The endpoint is Small with scale-to-zero on. These are the levers that change its cost and latency.',
       table: {
         columns: ['Lever', 'What it does'],
         rows: [
-          ['Scale-to-zero', 'Releases compute after idle time. The next request waits for a replica to start. Turn it off when a latency target rules out a cold start.'],
-          ['Workload size', 'Sets the range of provisioned concurrency: how many requests run at once. Requests above it queue, so raise the size when p95 climbs.'],
-          ['Route optimization', 'A faster request path that needs a JWT OAuth token scoped to the endpoint. The job code does the token exchange; the serverless job token is not a JWT, so the reference run leaves it off.'],
-          ['Provisioned throughput', 'Reserves tokens per second for foundation models. It does not apply to this scikit-learn model.'],
+          [
+            'Scale-to-zero',
+            'Releases compute after idle time. The next request waits for a replica to start. Turn it off when a latency target rules out a cold start.',
+          ],
+          [
+            'Workload size',
+            'Sets the range of provisioned concurrency: how many requests run at once. Requests above it queue, so raise the size when p95 climbs.',
+          ],
+          [
+            'Route optimization',
+            'A faster request path that needs a JWT OAuth token scoped to the endpoint. The job code does the token exchange; the serverless job token is not a JWT, so the reference run leaves it off.',
+          ],
+          [
+            'Provisioned throughput',
+            'Reserves tokens per second for foundation models. It does not apply to this scikit-learn model.',
+          ],
         ],
       },
     },

@@ -10,14 +10,14 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 1. Export the legacy model
 # MAGIC
-# MAGIC Plays the part of the old runtime. Trains a model, pickles it into the `legacy_models` volume, and writes a sidecar JSON with the baseline AUC, the training table version and the package versions in use. Both files are overwritten on each run.
+# MAGIC Plays the part of the old runtime. Downloads UCI Online Retail II (CC BY 4.0) if the volume does not have it yet, builds the churn training table, trains a model, pickles it into the `legacy_models` volume, and writes a sidecar JSON with the baseline AUC, the training table version and the package versions in use. Both files are overwritten on each run.
 
 # COMMAND ----------
 
 import sys, os
 sys.path.insert(0, os.path.abspath("../../src"))
 from guide_params import bundle_root, load_params
-params = load_params(dbutils, "capability_guides_model_training", ['catalog', 'schema', 'use_case', 'volume'])
+params = load_params(dbutils, "capability_guides_model_training", ['catalog', 'schema', 'use_case', 'volume', 'source_volume'])
 catalog, schema = params["catalog"], params["schema"]
 
 import ml_common as c
@@ -29,7 +29,9 @@ import pickle
 # COMMAND ----------
 
 table = c.fq(catalog, schema, "model_training_data")
-df = c.build_frame(spark, spec, spec["source"]["rows"], spec["seed"])
+transactions = c.fq(catalog, schema, spec["source"]["transactions_table"])
+c.ensure_transactions(spark, spec, transactions, f"/Volumes/{catalog}/{schema}/{params['source_volume']}")
+df = c.snapshot_frame(spark, spec, transactions)
 df.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(table)
 pdf = spark.table(table).toPandas()
 pipeline, auc, _ = c.train_and_score(pdf, spec)

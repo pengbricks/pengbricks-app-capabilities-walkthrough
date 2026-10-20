@@ -212,6 +212,84 @@
       "functions": {}
     }
   ],
+  "ai-functions": [
+    {
+      "path": "reference/ai-functions/guides/ai-functions/02_triage_tickets.py",
+      "symbol": null,
+      "startLine": 34,
+      "endLine": 42,
+      "language": "py",
+      "code": "spark.sql(f\"\"\"\nCREATE OR REPLACE TABLE {triaged} AS\nSELECT ticket_id, body, expected_category, expected_sentiment,\n       ai_classify(body, {labels}, map('version', '2.0')):response[0]::STRING AS category,\n       ai_analyze_sentiment(body) AS sentiment,\n       ai_summarize(body, {int(spec['triage']['summary_words'])}) AS summary\nFROM {T['tickets']}\nWHERE body IS NOT NULL\n\"\"\")",
+      "functions": {}
+    },
+    {
+      "path": "reference/ai-functions/guides/ai-functions/02_triage_tickets.py",
+      "symbol": null,
+      "startLine": 70,
+      "endLine": 77,
+      "language": "py",
+      "code": "    spark.sql(f\"\"\"\n    CREATE OR REPLACE TABLE {decided} AS\n    SELECT ticket_id, body,\n           r:response:answers:service_down:probability::DOUBLE AS service_down_probability,\n           r:response:answers:urgency:score::DOUBLE AS urgency_score,\n           r:error_message::STRING AS decide_error\n    FROM (SELECT ticket_id, body, ai_decide(body, {questions}, map('version', '1.0')) AS r FROM {T['tickets']})\n    \"\"\")",
+      "functions": {}
+    },
+    {
+      "path": "reference/ai-functions/guides/ai-functions/03_extract_invoices.py",
+      "symbol": null,
+      "startLine": 35,
+      "endLine": 51,
+      "language": "py",
+      "code": "spark.sql(f\"\"\"\nCREATE OR REPLACE TABLE {extracted} AS\nWITH parsed AS (\n  SELECT path, coalesce(array_size(try_variant_get(doc, '$.error_status', 'ARRAY<VARIANT>')), 0) AS parse_errors,  -- doc:error_status IS NULL never matches: a VARIANT null is a value\n         concat_ws('\\\\n', transform(cast(doc:document:elements AS ARRAY<VARIANT>), e -> e:content::STRING)) AS text\n  FROM (SELECT path, ai_parse_document(content, map('version', '2.0')) AS doc\n        FROM read_files('{folder}', format => 'binaryFile'))\n)\nSELECT path, parse_errors,\n       r:response:invoice_number::STRING AS invoice_number,\n       r:response:vendor::STRING AS vendor,\n       r:response:invoice_date::STRING AS invoice_date,\n       r:response:total::DOUBLE AS total,\n       r:error_message::STRING AS extract_error\nFROM (SELECT path, parse_errors, ai_extract(text, {schema_json}, map('version', '2.0')) AS r\n      FROM parsed WHERE parse_errors = 0)\n\"\"\")",
+      "functions": {}
+    },
+    {
+      "path": "reference/ai-functions/guides/ai-functions/04_mask_and_match.py",
+      "symbol": null,
+      "startLine": 56,
+      "endLine": 61,
+      "language": "py",
+      "code": "spark.sql(f\"\"\"\nCREATE OR REPLACE TABLE {scores_table} AS\nSELECT a.account_id, a.name AS account_name, v.vendor_id, v.name AS vendor_name,\n       ai_similarity(a.name, v.name) AS score\nFROM {T['accounts']} a JOIN {T['vendors']} v ON a.country = v.country\n\"\"\")",
+      "functions": {}
+    },
+    {
+      "path": "reference/ai-functions/guides/ai-functions/05_translate.py",
+      "symbol": null,
+      "startLine": 35,
+      "endLine": 40,
+      "language": "py",
+      "code": "spark.sql(f\"\"\"\nCREATE OR REPLACE TABLE {translated} AS\nSELECT review_id, text, r.result AS translation, r.errorMessage AS error\nFROM (SELECT review_id, text, ai_query({a.sql_string(t['endpoint'])}, concat({prompt}, text), failOnError => false) AS r\n      FROM {T['reviews']})\n\"\"\")",
+      "functions": {
+        "sql_string": "A single-quoted SQL string literal."
+      }
+    },
+    {
+      "path": "reference/ai-functions/guides/ai-functions/06_forecast.sql",
+      "symbol": null,
+      "startLine": 13,
+      "endLine": 26,
+      "language": "sql",
+      "code": "CREATE OR REPLACE TABLE IDENTIFIER(:catalog || '.' || :schema || '.aif_forecast_backtest') AS\nSELECT fc.order_date, fc.region, fc.orders_forecast, fc.orders_lower, fc.orders_upper, o.orders\nFROM ai_forecast(\n  observed => TABLE(\n    SELECT order_date, region, orders\n    FROM IDENTIFIER(:catalog || '.' || :schema || '.aif_daily_orders')\n    WHERE order_date < DATE'2026-09-01'),\n  horizon => DATE'2026-09-30',\n  time_col => 'order_date',\n  value_col => 'orders',\n  group_col => 'region'\n) fc\nJOIN IDENTIFIER(:catalog || '.' || :schema || '.aif_daily_orders') o\n  ON o.order_date = fc.order_date AND o.region = fc.region;",
+      "functions": {}
+    },
+    {
+      "path": "reference/ai-functions/src/aif_lib.py",
+      "symbol": "leaked",
+      "startLine": 97,
+      "endLine": 100,
+      "language": "py",
+      "code": "def leaked(masked: str | None, planted: list[str]) -> list[str]:\n    \"\"\"Planted personal values that are still in the masked text.\"\"\"\n    text = masked or \"\"\n    return [value for value in planted if value.lower() in text.lower()]",
+      "functions": {
+        "leaked": "Planted personal values that are still in the masked text."
+      }
+    },
+    {
+      "path": "reference/ai-functions/guides/ai-functions/07_usage_and_access.py",
+      "symbol": null,
+      "startLine": 32,
+      "endLine": 40,
+      "language": "py",
+      "code": "rows = []\ntry:\n    grants = spark.sql(\"SHOW GRANTS ON SCHEMA system.ai\")\n    grants.write.mode(\"overwrite\").option(\"overwriteSchema\", \"true\").saveAsTable(grants_table)\n    display(grants)\n    execute = [r for r in grants.collect() if r.ActionType == \"EXECUTE\"]\n    rows.append((\"execute_grants\", len(execute), \", \".join(sorted(r.Principal for r in execute))))\nexcept Exception as exc:  # noqa: BLE001 - record what the identity could not read\n    rows.append((\"execute_grants\", -1, f\"could not read grants: {type(exc).__name__}\"))",
+      "functions": {}
+    }
+  ],
   "batch-real-time-ingestion": [
     {
       "path": "reference/ingestion/guides/batch-real-time-ingestion/pipeline/events_bronze.sql",
@@ -712,6 +790,17 @@
   ],
   "data-ingestion-feature-preparation": [
     {
+      "path": "reference/ml-lifecycle/src/public_data.py",
+      "symbol": "customer_snapshot_sql",
+      "startLine": 128,
+      "endLine": 167,
+      "language": "py",
+      "code": "def customer_snapshot_sql(transactions: str, cut: str, window_months: int) -> str:\n    \"\"\"One row per customer who bought before `cut`, with features as of `cut` and the churn label.\n\n    Features use only invoices before `cut`. `churned` is 1 when the customer places no order in\n    the `window_months` after `cut`. Credit notes (invoice starting with C) count as returns.\n    `days_between_orders` is null for customers with a single order. Every feature is DOUBLE: a\n    decimal literal would make Spark return DECIMAL, which MLflow cannot serialize in an input example.\n    \"\"\"\n    _dt.date.fromisoformat(cut)\n    if not _TABLE.match(transactions):\n        raise ValueError(f\"Not a table name: {transactions}\")\n    window = int(window_months)\n    cut_date = f\"DATE'{cut}'\"\n    return f\"\"\"\nWITH known AS (\n  SELECT * FROM {transactions} WHERE customer_id IS NOT NULL\n),\npast AS (\n  SELECT * FROM known WHERE invoice_date < {cut_date}\n),\norders AS (\n  SELECT customer_id, min(invoice_date) AS first_order, max(invoice_date) AS last_order,\n         count(DISTINCT invoice) AS order_count, sum(quantity * price) AS revenue,\n         count(DISTINCT stock_code) AS product_count\n  FROM past\n  WHERE invoice NOT LIKE 'C%' AND quantity > 0 AND price > 0\n  GROUP BY customer_id\n),\ncredit_notes AS (\n  SELECT customer_id, count(DISTINCT invoice) AS return_count\n  FROM past WHERE invoice LIKE 'C%' GROUP BY customer_id\n),\ncame_back AS (\n  SELECT DISTINCT customer_id FROM known\n  WHERE invoice_date >= {cut_date} AND invoice_date < add_months({cut_date}, {window})\n    AND invoice NOT LIKE 'C%'\n)\nSELECT\n  CAST(o.customer_id AS BIGINT) AS customer_id,\n  {cut_date} AS snapshot_date,",
+      "functions": {
+        "customer_snapshot_sql": "One row per customer who bought before `cut`, with features as of `cut` and the churn label."
+      }
+    },
+    {
       "path": "reference/ml-lifecycle/guides/data-ingestion-feature-preparation/02_build_features.py",
       "symbol": null,
       "startLine": 34,
@@ -725,8 +814,8 @@
     {
       "path": "reference/ml-lifecycle/src/ml_common.py",
       "symbol": "quality_queries",
-      "startLine": 147,
-      "endLine": 157,
+      "startLine": 149,
+      "endLine": 159,
       "language": "py",
       "code": "def quality_queries(table: str, key: str, columns: list[str], ranges: dict[str, list[float]]) -> list[tuple[str, str]]:\n    \"\"\"Each query returns the number of violating rows (0 means the check passes).\"\"\"\n    queries = [\n        (\"key_not_null\", f\"SELECT count(*) FROM {table} WHERE `{key}` IS NULL\"),\n        (\"key_unique\", f\"SELECT count(*) - count(DISTINCT `{key}`) FROM {table}\"),\n    ]\n    for col in columns:\n        queries.append((f\"not_null:{col}\", f\"SELECT count(*) FROM {table} WHERE `{col}` IS NULL\"))\n    for col, (lo, hi) in ranges.items():\n        queries.append((f\"range:{col}\", f\"SELECT count(*) FROM {table} WHERE `{col}` < {lo} OR `{col}` > {hi}\"))\n    return queries",
       "functions": {
@@ -745,10 +834,10 @@
     {
       "path": "reference/ml-lifecycle/resources/feature_preparation.job.yml",
       "symbol": null,
-      "startLine": 22,
-      "endLine": 43,
+      "startLine": 24,
+      "endLine": 45,
       "language": "yml",
-      "code": "      tasks:\n        - task_key: generate_source\n          notebook_task:\n            notebook_path: ../guides/data-ingestion-feature-preparation/01_generate_source.py\n\n        - task_key: build_features\n          depends_on:\n            - task_key: generate_source\n          notebook_task:\n            notebook_path: ../guides/data-ingestion-feature-preparation/02_build_features.py\n\n        - task_key: snapshot_training_set\n          depends_on:\n            - task_key: build_features\n          notebook_task:\n            notebook_path: ../guides/data-ingestion-feature-preparation/03_snapshot_training_set.py\n\n        - task_key: record_lineage\n          depends_on:\n            - task_key: snapshot_training_set\n          notebook_task:\n            notebook_path: ../guides/data-ingestion-feature-preparation/04_record_lineage.py",
+      "code": "      tasks:\n        - task_key: land_source\n          notebook_task:\n            notebook_path: ../guides/data-ingestion-feature-preparation/01_land_source.py\n\n        - task_key: build_features\n          depends_on:\n            - task_key: land_source\n          notebook_task:\n            notebook_path: ../guides/data-ingestion-feature-preparation/02_build_features.py\n\n        - task_key: snapshot_training_set\n          depends_on:\n            - task_key: build_features\n          notebook_task:\n            notebook_path: ../guides/data-ingestion-feature-preparation/03_snapshot_training_set.py\n\n        - task_key: record_lineage\n          depends_on:\n            - task_key: snapshot_training_set\n          notebook_task:\n            notebook_path: ../guides/data-ingestion-feature-preparation/04_record_lineage.py",
       "functions": {}
     },
     {
@@ -858,9 +947,10 @@
       "startLine": 197,
       "endLine": 221,
       "language": "py",
-      "code": "\n# COMMAND ----------\n\n# MAGIC %md\n# MAGIC ## 6. Revoke, then show access fails\n\n# COMMAND ----------\n\nif not blocked:\n    spark.sql(f\"REVOKE SELECT ON SHARE {share} FROM RECIPIENT {recipient}\")\n    record(\"revoke\", \"PASS\", \"0\", f\"SELECT on share {share} revoked from {recipient}\")\n    deadline = time.time() + REVOKE_WAIT_SECONDS\n    failure = None\n    while time.time() < deadline:\n        try:\n            delta_sharing.load_as_pandas(f\"{profile_path}#{share}.{share_schema}.{view}\")\n        except Exception as error:  # the client raises HTTP or runtime errors; any failure proves the point\n            failure = scrub(f\"{type(error).__name__}: {str(error)[:300]}\", secrets)\n            break\n        time.sleep(5)\n    record(\n        \"read_after_revoke\", \"PASS\" if failure else \"FAIL\",\n        \"denied\" if failure else \"still readable\",\n        failure or f\"The recipient could still read after {REVOKE_WAIT_SECONDS}s\",\n    )",
+      "code": "    record(\n        \"replication_required\", \"PASS\" if in_place else \"FAIL\", \"false\" if in_place else \"true\",\n        f\"No. {len(urls)} shared file URL(s) sit under the source table path {location}; \"\n        f\"the provider created no copy. Example: {strip_query(urls[0]) if urls else 'none'}\",\n    )\n\n# COMMAND ----------\n\n# MAGIC %md\n# MAGIC ## 6. Revoke, then show access fails\n\n# COMMAND ----------\n\nif not blocked:\n    spark.sql(f\"REVOKE SELECT ON SHARE {share} FROM RECIPIENT {recipient}\")\n    record(\"revoke\", \"PASS\", \"0\", f\"SELECT on share {share} revoked from {recipient}\")\n    deadline = time.time() + REVOKE_WAIT_SECONDS\n    failure = None\n    while time.time() < deadline:\n        try:\n            delta_sharing.load_as_pandas(f\"{profile_path}#{share}.{share_schema}.{view}\")\n        except Exception as error:  # the client raises HTTP or runtime errors; any failure proves the point\n            failure = scrub(f\"{type(error).__name__}: {str(error)[:300]}\", secrets)\n            break\n        time.sleep(5)",
       "functions": {
-        "scrub": "Remove secret values from text before it is stored or printed."
+        "scrub": "Remove secret values from text before it is stored or printed.",
+        "strip_query": "Drop the pre-signed query string so no signature lands in a table."
       }
     },
     {
@@ -1007,8 +1097,8 @@
     {
       "path": "reference/ml-lifecycle/guides/experiment-tracking/01_tracked_run.py",
       "symbol": null,
-      "startLine": 45,
-      "endLine": 54,
+      "startLine": 47,
+      "endLine": 56,
       "language": "py",
       "code": "with mlflow.start_run(run_name=\"tracked-run\") as run:\n    _, auc, _ = c.train_and_score(pdf, spec)\n    mlflow.log_params({\"seed\": spec[\"seed\"], \"rows\": len(pdf), \"features\": \",\".join(spec[\"model\"][\"features\"])})\n    mlflow.log_metric(\"holdout_auc\", auc)\n    mlflow.set_tags({\n        \"data_table\": table.replace(\"`\", \"\"), \"data_version\": str(version),\n        \"git_sha\": params[\"release\"], \"code_hash\": c.code_hash(),\n        \"environment\": json.dumps(c.environment_versions()),\n    })\n    run_id = run.info.run_id",
       "functions": {
@@ -1020,11 +1110,12 @@
       "path": "reference/ml-lifecycle/guides/experiment-tracking/02_append_new_data.py",
       "symbol": null,
       "startLine": 29,
-      "endLine": 36,
+      "endLine": 40,
       "language": "py",
-      "code": "table = c.fq(catalog, schema, \"experiment_data\")\nbefore = c.delta_version(spark, table)\nrows = spec[\"source\"][\"rows\"] // 10\nnew = c.build_frame(spark, spec, rows, spec[\"seed\"] + 1, id_offset=spec[\"source\"][\"rows\"])\n# Only add keys that are not in the table yet, so running this task again adds nothing.\nkey = spec[\"source\"][\"key\"]\nnew = new.join(spark.table(table).select(key), key, \"left_anti\")\nnew.write.mode(\"append\").saveAsTable(table)",
+      "code": "table = c.fq(catalog, schema, \"experiment_data\")\nbefore = c.delta_version(spark, table)\ntransactions = c.fq(catalog, schema, spec[\"source\"][\"transactions_table\"])\nc.ensure_transactions(spark, spec, transactions, f\"/Volumes/{catalog}/{schema}/{params['source_volume']}\")\nlater = spec[\"experiment\"][\"append_snapshot_date\"]\n# Customers who placed a first order after the tracked snapshot. Only keys not in the table yet are\n# added, so running this task again adds nothing.\nkey = spec[\"source\"][\"key\"]\nnew = c.snapshot_frame(spark, spec, transactions, later).join(spark.table(table).select(key), key, \"left_anti\")\nrows = new.count()\nnew.write.mode(\"append\").saveAsTable(table)\nprint(f\"Appended {rows} customers new by {later}: table moved from version {before} to {c.delta_version(spark, table)}\")",
       "functions": {
-        "build_frame": "Generate source rows with the sample-data generator. The same spec and seed give the same rows."
+        "ensure_transactions": "Land the transactions unless an earlier task or job already did.",
+        "snapshot_frame": "Customers as of `cut` (default: the spec's snapshot date) with the label and model-only columns."
       }
     },
     {
@@ -1041,8 +1132,8 @@
     {
       "path": "reference/ml-lifecycle/resources/experiment_rerun.job.yml",
       "symbol": null,
-      "startLine": 26,
-      "endLine": 43,
+      "startLine": 28,
+      "endLine": 45,
       "language": "yml",
       "code": "      tasks:\n        - task_key: tracked_run\n          notebook_task:\n            notebook_path: ../guides/experiment-tracking/01_tracked_run.py\n\n        - task_key: append_new_data\n          depends_on:\n            - task_key: tracked_run\n          notebook_task:\n            notebook_path: ../guides/experiment-tracking/02_append_new_data.py\n\n        - task_key: rerun_and_compare\n          depends_on:\n            - task_key: append_new_data\n          notebook_task:\n            notebook_path: ../guides/experiment-tracking/03_rerun_and_compare.py\n            base_parameters:\n              run_id: \"{{tasks.tracked_run.values.run_id}}\"",
       "functions": {}
@@ -1051,18 +1142,19 @@
       "path": "reference/ml-lifecycle/guides/experiment-tracking/01_tracked_run.py",
       "symbol": null,
       "startLine": 31,
-      "endLine": 35,
+      "endLine": 37,
       "language": "py",
-      "code": "table = c.fq(catalog, schema, \"experiment_data\")\nc.build_frame(spark, spec, spec[\"source\"][\"rows\"], spec[\"seed\"]).write.mode(\"overwrite\") \\\n    .option(\"overwriteSchema\", \"true\").saveAsTable(table)\nversion = c.delta_version(spark, table)\npdf = spark.sql(f\"SELECT * FROM {table} VERSION AS OF {version}\").toPandas()",
+      "code": "table = c.fq(catalog, schema, \"experiment_data\")\ntransactions = c.fq(catalog, schema, spec[\"source\"][\"transactions_table\"])\nc.ensure_transactions(spark, spec, transactions, f\"/Volumes/{catalog}/{schema}/{params['source_volume']}\")\nc.snapshot_frame(spark, spec, transactions).write.mode(\"overwrite\") \\\n    .option(\"overwriteSchema\", \"true\").saveAsTable(table)\nversion = c.delta_version(spark, table)\npdf = spark.sql(f\"SELECT * FROM {table} VERSION AS OF {version}\").toPandas()",
       "functions": {
-        "build_frame": "Generate source rows with the sample-data generator. The same spec and seed give the same rows."
+        "ensure_transactions": "Land the transactions unless an earlier task or job already did.",
+        "snapshot_frame": "Customers as of `cut` (default: the spec's snapshot date) with the label and model-only columns."
       }
     },
     {
       "path": "reference/ml-lifecycle/src/ml_common.py",
       "symbol": "code_hash",
-      "startLine": 131,
-      "endLine": 134,
+      "startLine": 133,
+      "endLine": 136,
       "language": "py",
       "code": "def code_hash() -> str:\n    \"\"\"Hash the training code the tracked run used (pipeline definition, split, and scoring).\"\"\"\n    source = \"\".join(inspect.getsource(fn) for fn in (make_pipeline, split_frame, train_and_score))\n    return hashlib.sha256(source.encode()).hexdigest()[:16]",
       "functions": {
@@ -1650,8 +1742,8 @@
     {
       "path": "reference/model-deployment/src/common.py",
       "symbol": "evaluate_gates",
-      "startLine": 60,
-      "endLine": 81,
+      "startLine": 75,
+      "endLine": 96,
       "language": "py",
       "code": "def evaluate_gates(\n    candidate_auc: float,\n    min_auc: float,\n    champion_auc: float | None,\n    max_regression: float,\n) -> list[tuple[str, bool, str]]:\n    \"\"\"Quality threshold and champion comparison. Returns (name, passed, detail) rows.\"\"\"\n    gates = [\n        (\"quality_threshold\", candidate_auc >= min_auc, f\"auc={candidate_auc:.4f} min={min_auc:.4f}\")\n    ]\n    if champion_auc is None:\n        gates.append((\"champion_comparison\", True, \"no current champion\"))\n    else:\n        floor = champion_auc - max_regression\n        gates.append(\n            (\n                \"champion_comparison\",\n                candidate_auc >= floor,\n                f\"candidate={candidate_auc:.4f} champion={champion_auc:.4f} allowed_regression={max_regression:.4f}\",\n            )\n        )\n    return gates",
       "functions": {
@@ -1700,7 +1792,7 @@
       "startLine": 47,
       "endLine": 69,
       "language": "yml",
-      "code": "targets:\n  dev:\n    default: true\n    mode: development\n    presets:\n      tags:\n        release: ${var.release}\n    variables:\n      schema: dev_${workspace.current_user.short_name}_capability_guides\n      min_auc: 0.75\n      max_auc_regression: 0.02\n      serving_workload_size: Small\n\n  test:\n    presets:\n      name_prefix: \"[test] \"\n      tags:\n        environment: test\n        release: ${var.release}\n    variables:\n      min_auc: 0.85\n      max_auc_regression: 0.0\n      serving_workload_size: Small",
+      "code": "targets:\n  dev:\n    default: true\n    mode: development\n    presets:\n      tags:\n        release: ${var.release}\n    variables:\n      schema: dev_${workspace.current_user.short_name}_capability_guides\n      min_auc: 0.65\n      max_auc_regression: 0.02\n      serving_workload_size: Small\n\n  test:\n    presets:\n      name_prefix: \"[test] \"\n      tags:\n        environment: test\n        release: ${var.release}\n    variables:\n      min_auc: 0.70\n      max_auc_regression: 0.0\n      serving_workload_size: Small",
       "functions": {}
     },
     {
@@ -1717,8 +1809,8 @@
     {
       "path": "reference/ml-lifecycle/src/ml_common.py",
       "symbol": "psi",
-      "startLine": 161,
-      "endLine": 173,
+      "startLine": 163,
+      "endLine": 175,
       "language": "py",
       "code": "def psi(expected, actual, bins: int = 10) -> float:\n    \"\"\"Population Stability Index of `actual` against `expected`, using baseline quantile bins.\"\"\"\n    import numpy as np\n\n    expected, actual = np.asarray(expected, dtype=float), np.asarray(actual, dtype=float)\n    edges = np.unique(np.quantile(expected, np.linspace(0, 1, bins + 1)))\n    if len(edges) < 3:\n        return 0.0\n    edges[0], edges[-1] = -np.inf, np.inf\n    e = np.histogram(expected, edges)[0] / len(expected)\n    a = np.histogram(actual, edges)[0] / len(actual)\n    e, a = np.clip(e, 1e-6, None), np.clip(a, 1e-6, None)\n    return float(np.sum((a - e) * np.log(a / e)))",
       "functions": {
@@ -1728,8 +1820,8 @@
     {
       "path": "reference/ml-lifecycle/resources/model_drift.job.yml",
       "symbol": null,
-      "startLine": 41,
-      "endLine": 54,
+      "startLine": 43,
+      "endLine": 56,
       "language": "yml",
       "code": "        - task_key: breach_check\n          depends_on:\n            - task_key: detect_drift\n          condition_task:\n            op: EQUAL_TO\n            left: \"{{tasks.detect_drift.values.breach}}\"\n            right: \"true\"\n\n        - task_key: retrain_candidate\n          depends_on:\n            - task_key: breach_check\n              outcome: \"true\"\n          notebook_task:\n            notebook_path: ../guides/model-performance-drift/04_retrain_candidate.py",
       "functions": {}
@@ -1746,10 +1838,10 @@
     {
       "path": "reference/ml-lifecycle/use_cases/general.yml",
       "symbol": null,
-      "startLine": 53,
+      "startLine": 54,
       "endLine": 59,
       "language": "yml",
-      "code": "drift:\n  batches: 5\n  batch_rows: 4000\n  drift_from_batch: 4         # batches 4 and 5 carry the shifted distribution\n  shift: {feature: days_since_login, add: 30}\n  psi_threshold: 0.2\n  mean_shift_threshold: 0.5   # in baseline standard deviations",
+      "code": "# Guide 4: drift. Each batch is the customer base at a later snapshot date, scored by the baseline model.\ndrift:\n  batch_dates: [\"2010-10-01\", \"2010-11-01\", \"2010-12-01\", \"2011-01-01\", \"2011-02-01\",\n                \"2011-03-01\", \"2011-04-01\", \"2011-05-01\", \"2011-06-01\"]\n  psi_threshold: 0.2\n  mean_shift_threshold: 0.5   # in baseline standard deviations",
       "functions": {}
     },
     {
@@ -1796,8 +1888,8 @@
     {
       "path": "reference/ml-lifecycle/src/ml_common.py",
       "symbol": "environment_versions",
-      "startLine": 119,
-      "endLine": 128,
+      "startLine": 121,
+      "endLine": 130,
       "language": "py",
       "code": "def environment_versions() -> dict[str, str]:\n    from importlib import metadata\n\n    versions = {\"python\": platform.python_version()}\n    for package in TRACKED_PACKAGES:\n        try:\n            versions[package] = metadata.version(package)\n        except metadata.PackageNotFoundError:\n            versions[package] = \"not installed\"\n    return versions",
       "functions": {}
@@ -1805,8 +1897,8 @@
     {
       "path": "reference/ml-lifecycle/guides/model-training-compatibility/01_export_legacy_model.py",
       "symbol": null,
-      "startLine": 44,
-      "endLine": 56,
+      "startLine": 46,
+      "endLine": 58,
       "language": "py",
       "code": "base = f\"/Volumes/{catalog}/{schema}/{params['volume']}\"\nwith open(f\"{base}/legacy_model.pkl\", \"wb\") as handle:\n    pickle.dump(pipeline, handle)\nrecord = {\n    \"baseline_holdout_auc\": auc,\n    \"features\": spec[\"model\"][\"features\"],\n    \"training_table\": table.replace(\"`\", \"\"),\n    \"training_table_version\": c.delta_version(spark, table),\n    \"environment\": c.environment_versions(),\n}\nwith open(f\"{base}/legacy_model.json\", \"w\") as handle:\n    json.dump(record, handle, indent=2)\nprint(f\"Pickled legacy model to {base}/legacy_model.pkl; recorded baseline AUC {auc:.6f}\")",
       "functions": {}
@@ -1846,9 +1938,9 @@
       "path": "reference/ml-lifecycle/resources/model_training.job.yml",
       "symbol": null,
       "startLine": 15,
-      "endLine": 43,
+      "endLine": 45,
       "language": "yml",
-      "code": "      parameters:\n        - name: catalog\n          default: ${var.catalog}\n        - name: schema\n          default: ${var.schema}\n        - name: use_case\n          default: ${var.use_case}\n        - name: release\n          default: ${var.release}\n        - name: experiment\n          default: ${resources.experiments.ml_lifecycle_experiment.name}\n        - name: volume\n          default: ${resources.volumes.legacy_models.name}\n      tasks:\n        - task_key: export_legacy_model\n          notebook_task:\n            notebook_path: ../guides/model-training-compatibility/01_export_legacy_model.py\n\n        - task_key: train_native\n          depends_on:\n            - task_key: export_legacy_model\n          notebook_task:\n            notebook_path: ../guides/model-training-compatibility/02_train_native.py\n\n        - task_key: import_legacy_model\n          depends_on:\n            - task_key: export_legacy_model\n          notebook_task:\n            notebook_path: ../guides/model-training-compatibility/03_import_legacy_model.py",
+      "code": "      parameters:\n        - name: catalog\n          default: ${var.catalog}\n        - name: schema\n          default: ${var.schema}\n        - name: use_case\n          default: ${var.use_case}\n        - name: source_volume\n          default: ${resources.volumes.ml_source_files.name}\n        - name: release\n          default: ${var.release}\n        - name: experiment\n          default: ${resources.experiments.ml_lifecycle_experiment.name}\n        - name: volume\n          default: ${resources.volumes.legacy_models.name}\n      tasks:\n        - task_key: export_legacy_model\n          notebook_task:\n            notebook_path: ../guides/model-training-compatibility/01_export_legacy_model.py\n\n        - task_key: train_native\n          depends_on:\n            - task_key: export_legacy_model\n          notebook_task:\n            notebook_path: ../guides/model-training-compatibility/02_train_native.py\n\n        - task_key: import_legacy_model\n          depends_on:\n            - task_key: export_legacy_model\n          notebook_task:\n            notebook_path: ../guides/model-training-compatibility/03_import_legacy_model.py",
       "functions": {}
     }
   ],
@@ -2273,8 +2365,8 @@
     {
       "path": "reference/realtime-scoring/guides/real-time-scoring/01_train_register.py",
       "symbol": null,
-      "startLine": 72,
-      "endLine": 83,
+      "startLine": 71,
+      "endLine": 82,
       "language": "py",
       "code": "def align_columns(frame, columns=tuple(names)):\n    # Adds any omitted optional feature as NaN so the imputer can fill it.\n    return frame.reindex(columns=list(columns))\n\nmodel = Pipeline(\n    [\n        (\"align\", FunctionTransformer(align_columns, validate=False)),\n        (\"impute\", SimpleImputer(strategy=\"median\")),\n        (\"model\", GradientBoostingClassifier(n_estimators=60, max_depth=3, random_state=7)),\n    ]\n)\nmodel.fit(x_train, y_train)",
       "functions": {}
@@ -2292,9 +2384,9 @@
       "path": "reference/realtime-scoring/resources/realtime_scoring.job.yml",
       "symbol": null,
       "startLine": 13,
-      "endLine": 39,
+      "endLine": 41,
       "language": "yml",
-      "code": "      parameters:\n        - name: catalog\n          default: ${var.catalog}\n        - name: schema\n          default: ${var.schema}\n        - name: use_case\n          default: ${var.use_case}\n        - name: endpoint_name\n          default: capability-guides-realtime-scoring\n      tasks:\n        - task_key: train_register\n          notebook_task:\n            notebook_path: ../guides/real-time-scoring/01_train_register.py\n\n        - task_key: deploy_endpoint\n          depends_on:\n            - task_key: train_register\n          notebook_task:\n            notebook_path: ../guides/real-time-scoring/02_deploy_endpoint.py\n\n        - task_key: score_and_measure\n          depends_on:\n            - task_key: deploy_endpoint\n          notebook_task:\n            notebook_path: ../guides/real-time-scoring/03_score_and_measure.py\n            base_parameters:\n              run_id: \"{{job.run_id}}\"",
+      "code": "      parameters:\n        - name: catalog\n          default: ${var.catalog}\n        - name: schema\n          default: ${var.schema}\n        - name: use_case\n          default: ${var.use_case}\n        - name: source_volume\n          default: ${resources.volumes.scoring_source_files.name}\n        - name: endpoint_name\n          default: capability-guides-realtime-scoring\n      tasks:\n        - task_key: train_register\n          notebook_task:\n            notebook_path: ../guides/real-time-scoring/01_train_register.py\n\n        - task_key: deploy_endpoint\n          depends_on:\n            - task_key: train_register\n          notebook_task:\n            notebook_path: ../guides/real-time-scoring/02_deploy_endpoint.py\n\n        - task_key: score_and_measure\n          depends_on:\n            - task_key: deploy_endpoint\n          notebook_task:\n            notebook_path: ../guides/real-time-scoring/03_score_and_measure.py\n            base_parameters:\n              run_id: \"{{job.run_id}}\"",
       "functions": {}
     },
     {
@@ -2312,8 +2404,8 @@
     {
       "path": "reference/realtime-scoring/use_cases/general.yml",
       "symbol": null,
-      "startLine": 22,
-      "endLine": 28,
+      "startLine": 24,
+      "endLine": 30,
       "language": "yml",
       "code": "endpoint:\n  workload_size: Small\n  scale_to_zero: true\n  # Route optimization needs a JWT OAuth token. The serverless job token is opaque, so the\n  # reference run keeps this off; set true when the scoring identity can mint a JWT (user or service principal OAuth).\n  route_optimized: false\n  ready_timeout_seconds: 1500",
       "functions": {}
