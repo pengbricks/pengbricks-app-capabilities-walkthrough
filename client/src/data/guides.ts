@@ -538,13 +538,13 @@ export const guides: readonly Guide[] = [
     title: 'Transformation patterns',
     category: 'Data Engineering Guides',
     difficulty: 2,
-    summary: 'Ten common ETL patterns as declarative SQL.',
+    summary: 'Declarative SQL transformations that update incrementally.',
     acceptanceCriteria:
-      'Lookups, joins, string functions, null handling, date and time zones, casting with a reject path, running totals, pivots, last record per group, and per-group iteration, each as a materialized view.',
+      'Transformations are Lakeflow Spark Declarative Pipelines with the right dataset type for each step. Production runs update incrementally, not by full refresh. Expectations enforce quality, try_cast pairs with a reject path, and the ten common patterns use built-in SQL.',
     evidence: [
-      'One materialized view per pattern',
-      'Reject table for failed casts',
-      'Pipeline update covering all patterns',
+      'Streaming tables for ingest, materialized views for transforms',
+      'Incremental updates on serverless; full refresh only for logic changes',
+      'Expectations and a reject path for bad values',
     ],
   },
   {
@@ -552,13 +552,13 @@ export const guides: readonly Guide[] = [
     title: 'SCD and change capture',
     category: 'Data Engineering Guides',
     difficulty: 3,
-    summary: 'SCD type 1, type 2, and change detection with Auto CDC.',
+    summary: 'SCD type 1 and type 2 with AUTO CDC.',
     acceptanceCriteria:
-      'New, changed, and deleted source records flow into an SCD type 1 table that overwrites and an SCD type 2 table that keeps history, without full reloads.',
+      'Change feeds apply with AUTO CDC. Type 1 holds current state and type 2 holds history, chosen by the question asked. SEQUENCE BY orders late events, deletes are declared in the flow, and TRACK HISTORY limits versions to columns that matter. Updates are incremental, not full reloads.',
     evidence: [
-      'SCD type 1 and type 2 tables',
-      'Deletes propagated or flagged',
-      'Pipeline updates before and after changes',
+      'Type 1 versus type 2 chosen by use',
+      'SEQUENCE BY ordering and APPLY AS DELETE',
+      'TRACK HISTORY on meaningful columns, and a point-in-time query',
     ],
   },
   {
@@ -566,13 +566,13 @@ export const guides: readonly Guide[] = [
     title: 'CDC and incremental refresh in pipelines',
     category: 'Data Engineering Guides',
     difficulty: 4,
-    summary: 'CDC from change files, a Delta change feed, and snapshots, and incremental versus full refresh.',
+    summary: 'CDC from files, a change feed, and snapshots, with incremental refresh as the default.',
     acceptanceCriteria:
-      'One serverless Lakeflow pipeline applies change data from Debezium-style files, the Delta change data feed, and a snapshot table with AUTO CDC. The job measures an incremental update, a full refresh, and a selective full refresh from the pipeline event log, including how the materialized view refreshes.',
+      'AUTO CDC applies change data from files, the Delta change data feed, and snapshots in a serverless Lakeflow Spark Declarative Pipeline. Normal updates are incremental. A full refresh is deliberate, protects raw tables with pipelines.reset.allowed = false, and prefers a selective refresh. Expectations validate the feed.',
     evidence: [
-      'Three AUTO CDC targets from three source shapes',
-      'Rows written per dataset for each refresh mode',
-      'Materialized view maintenance type and stream offsets from the event log',
+      'AUTO CDC for each source shape',
+      'Incremental update by default, selective full refresh when needed',
+      'Pipeline event log used to confirm what each update read',
     ],
   },
   {
@@ -580,13 +580,13 @@ export const guides: readonly Guide[] = [
     title: 'Target loading and file outputs',
     category: 'Data Engineering Guides',
     difficulty: 2,
-    summary: 'Upsert to a target table and write CSV, Excel, and JSON files.',
+    summary: 'Pick the right write pattern and deliver files from volumes.',
     acceptanceCriteria:
-      'A job merges inserts, updates, and deletes into a target table, then writes the result as CSV, pipe-delimited text, an Excel workbook, and JSON to a volume.',
+      'Batch upserts use MERGE on a deduplicated source and a clustered key. Ordered change feeds use AUTO CDC, and slice replacement uses REPLACE WHERE. Large file outputs are written with Spark to a Unity Catalog volume and shared by grant or OpenSharing.',
     evidence: [
-      'MERGE with insert, update, and delete counts',
-      'Four output files in a volume',
-      'Job run with file sizes',
+      'MERGE, AUTO CDC, or REPLACE WHERE chosen by the load',
+      'Deduplicated source, clustered key, and checked MERGE metrics',
+      'Spark-written files in a volume with a READ VOLUME grant',
     ],
   },
   {
@@ -594,13 +594,13 @@ export const guides: readonly Guide[] = [
     title: 'Orchestration patterns',
     category: 'Data Engineering Guides',
     difficulty: 3,
-    summary: 'Chain, parallelize, schedule, retry, alert, and pause jobs.',
+    summary: 'Compose, trigger, retry, and operate Lakeflow Jobs.',
     acceptanceCriteria:
-      'One Lakeflow Job shows sequential tasks with passed values, parallel branches, a schedule, retries, success and failure alerts, a call to an external process, and a bulk pause of scheduled jobs.',
+      'Lakeflow Jobs pass task values, run independent tasks in parallel, branch with run_if and condition tasks, and loop with For each. Jobs start on table-update or file-arrival triggers when data drives them. Retries, timeouts, and notifications handle failure, repair runs rerun only what failed, and production jobs run as a service principal defined in a bundle.',
     evidence: [
-      'Job graph with sequential and parallel tasks',
-      'Retry and alert settings',
-      'Bulk pause and resume record',
+      'Task values, parallel branches, run_if, and For each',
+      'Data-driven triggers instead of polling schedules',
+      'Retries, notifications, repair runs, and service principal ownership',
     ],
   },
   {
@@ -608,13 +608,13 @@ export const guides: readonly Guide[] = [
     title: 'Lineage and drift detection',
     category: 'Data Engineering Guides',
     difficulty: 3,
-    summary: 'Trace lineage, catch schema drift, and flag data drift.',
+    summary: 'Lineage, schema drift, and data quality monitoring.',
     acceptanceCriteria:
-      'Lineage from source to report comes from system tables, schema changes are detected from Delta history, and a monitor flags a shift in a column distribution.',
+      'Lineage comes from Unity Catalog system tables. Schema changes are read from Delta table history, with information_schema snapshots to watch many tables. Data quality monitoring covers freshness and completeness with anomaly detection and drift with data profiling on a schedule, with alerts. Pipeline expectations stop bad data at the source.',
     evidence: [
-      'End-to-end lineage query',
-      'Schema drift report from table history',
-      'Data drift result from a monitor',
+      'Lineage queries for impact analysis',
+      'Schema changes from DESCRIBE HISTORY and scheduled snapshots',
+      'Scheduled data profiling monitor with alerts',
     ],
   },
   {
@@ -622,60 +622,84 @@ export const guides: readonly Guide[] = [
     title: 'SQL and notebooks at scale',
     category: 'Analyst Guides',
     difficulty: 2,
-    summary: 'Explore with SQL, Python, and R notebooks, including large data.',
+    summary: 'Choose the right analysis surface and keep it fast at scale.',
     acceptanceCriteria:
-      'Analysts query with SQL, round-trip to pandas in a Python notebook, use R, and aggregate millions of rows on serverless compute in seconds.',
-    evidence: ['SQL exploration queries', 'Python and R notebooks', 'Large aggregation with timing'],
+      'Analysts explore in the SQL editor on a serverless SQL warehouse and use serverless notebooks for Python. They aggregate in Spark before collecting to pandas, use the pandas API on Spark for large data, and get help from Genie Code. R runs from the analyst\'s own IDE through sparklyr or ODBC, or in a classic-compute notebook, because serverless has no R and hosted RStudio is end-of-life.',
+    evidence: [
+      'SQL editor and notebook usage by job',
+      'Aggregate-then-collect and pandas API on Spark',
+      'A current R path',
+    ],
   },
   {
     slug: 'bring-your-own-data',
     title: 'Bring your own data',
     category: 'Analyst Guides',
     difficulty: 1,
-    summary: 'Upload a spreadsheet and join it to governed tables.',
+    summary: 'Let users upload files into a governed space and join them safely.',
     acceptanceCriteria:
-      'A user uploads a file to a personal volume path, joins it to governed tables, and keeps unmatched keys visible.',
-    evidence: ['Uploaded file in a volume', 'Join result with match counts', 'Per-user upload location'],
+      'Users upload files to a governed volume or sandbox schema, with grants on a group. They read files with read_files and an explicit schema and join to governed tables with a full outer join, so unmatched keys stay visible. Shared uploads are promoted to governed tables.',
+    evidence: [
+      'Upload options: Catalog Explorer, Lakeflow Designer, Excel Add-in',
+      'Volume grants and retention for uploads',
+      'Join with match status and a promotion path',
+    ],
   },
   {
     slug: 'local-tool-connectivity',
     title: 'Connecting local tools',
     category: 'Analyst Guides',
     difficulty: 2,
-    summary: 'Reach Databricks from Python, R, and statistics tools on a laptop.',
+    summary: 'Connect Excel, Power BI, Tableau, Python, R, and SAS to one SQL warehouse.',
     acceptanceCriteria:
-      'Python, R, and ODBC/JDBC clients on a workstation connect with OAuth, query governed tables, and respect the same permissions as the workspace.',
-    evidence: ['Connection examples per tool', 'OAuth sign-in steps', 'Query result from a local client'],
+      'Analysts reach Unity Catalog data from Excel (Add-in, GA), Power BI, Tableau, Python, R, SAS, and SPSS through a serverless SQL warehouse. Every client signs in with OAuth, with a service principal for unattended use and no personal access tokens in shared tools. Permissions follow the signed-in identity.',
+    evidence: [
+      'Client choice per tool',
+      'OAuth U2M and M2M sign-in',
+      'Warehouse sizing and network controls for BI',
+    ],
   },
   {
     slug: 'no-code-data-prep',
     title: 'No-code data preparation',
     category: 'Analyst Guides',
     difficulty: 1,
-    summary: 'Browse, filter, transform, and save flows without code.',
+    summary: 'Prepare data visually with Lakeflow Designer, governed by Unity Catalog.',
     acceptanceCriteria:
-      'A business user browses tables, filters and joins with Lakeflow Designer, renames and derives columns, and saves the flow to rerun later.',
-    evidence: ['Saved visual flow', 'Output table from the flow', 'Steps a non-coder can follow'],
+      'A business user builds a visual data prep in Lakeflow Designer (GA) from governed sources, including metric views. Outputs go to a sandbox schema, the flow is stored in Git and promoted as a job or bundle, and complex or high-volume logic moves to SQL or a declarative pipeline.',
+    evidence: [
+      'Visual data prep built from governed sources',
+      'Git, job, and bundle promotion path',
+      'Guidance on when to hand off to code',
+    ],
   },
   {
     slug: 'self-service-extracts',
     title: 'Self-service extracts and subscriptions',
     category: 'Analyst Guides',
     difficulty: 2,
-    summary: 'Subscribe to reports and export data to Excel or flat files.',
+    summary: 'Deliver reports and data to business users without custom extracts.',
     acceptanceCriteria:
-      'Users subscribe to a scheduled dashboard, export filtered data to Excel or CSV, and write a formatted workbook or delimited file for external partners.',
-    evidence: ['Dashboard subscription', 'Excel and CSV exports', 'Delimited file in a volume'],
+      'Users subscribe to scheduled AI/BI dashboards, pull governed tables into Excel with the Excel Add-in, and ask Genie for ad hoc answers. Credential mode (shared or individual data permissions) is chosen on purpose. Files for partners come from a verified job into a volume, shared by grant or OpenSharing.',
+    evidence: [
+      'Dashboard schedule and subscription with attachments',
+      'Excel Add-in and Genie as self-service paths',
+      'Verified files delivered from a volume',
+    ],
   },
   {
     slug: 'in-platform-visualization',
     title: 'Charts and dashboards in the platform',
     category: 'Analyst Guides',
     difficulty: 2,
-    summary: 'Chart in notebooks and publish an AI/BI dashboard.',
+    summary: 'Define metrics once and consume them in dashboards, notebooks, and Genie.',
     acceptanceCriteria:
-      'Notebook charts and an AI/BI dashboard read the same governed views, so a chart and its dashboard tile show the same numbers.',
-    evidence: ['Notebook charts', 'Published AI/BI dashboard', 'Shared governed views'],
+      'Business metrics are defined once in Unity Catalog metric views. AI/BI dashboards, notebook charts, Genie, and BI tools consume them, so every surface shows the same number. Dashboards are deployed as code, and the datasets they use are certified.',
+    evidence: [
+      'Metric view with shared measures',
+      'AI/BI dashboard on governed datasets',
+      'Notebook charts and Genie on the same definitions',
+    ],
   },
   {
     slug: 'access-management',
