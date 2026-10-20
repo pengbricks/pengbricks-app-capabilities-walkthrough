@@ -1,0 +1,102 @@
+# The demo, end to end: check the source, ingest, change rows in SQL Server and watch them land,
+# add a column, full-refresh one table, build silver, then read lineage and ask Genie.
+resources:
+  jobs:
+    capability_guides_lakeflow_connect:
+      name: capability-guides-lakeflow-connect
+      description: Checks the SQL Server source and the gateway, ingests three tables, makes inserts, updates, and deletes on the source and checks each one in bronze, adds a column, full-refreshes one table, builds silver, then reads lineage and asks a Genie space about the silver table.
+      tags:
+        capability_guide_job: capability_guides_lakeflow_connect
+      max_concurrent_runs: 1
+      timeout_seconds: 7200
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${var.schema}
+        - name: sqlserver_connection
+          default: ${var.sqlserver_connection_name}
+        - name: sqlserver_database
+          default: ${var.sqlserver_database}
+        - name: sqlserver_schema
+          default: ${var.sqlserver_schema}
+        - name: secret_scope
+          default: ${var.source_secret_scope}
+        - name: gateway_pipeline_id
+          default: ${resources.pipelines.lfc_gateway.id}
+        - name: ingestion_pipeline_id
+          default: ${resources.pipelines.lfc_ingestion.id}
+        - name: warehouse_id
+          default: ${var.warehouse_id}
+        - name: max_wait_minutes
+          default: "20"
+      tasks:
+        - task_key: check_source
+          notebook_task:
+            notebook_path: ../guides/sqlserver-lakeflow-connect/01_check_source.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
+
+        - task_key: ingest
+          depends_on:
+            - task_key: check_source
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.lfc_ingestion.id}
+
+        - task_key: make_changes
+          depends_on:
+            - task_key: ingest
+          notebook_task:
+            notebook_path: ../guides/sqlserver-lakeflow-connect/02_make_changes.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
+
+        # A notebook, not a pipeline_task: the gateway stages changes a little after they commit,
+        # so this step reruns the ingestion pipeline until every expected change is in bronze.
+        - task_key: land_changes
+          depends_on:
+            - task_key: make_changes
+          notebook_task:
+            notebook_path: ../guides/sqlserver-lakeflow-connect/03_land_changes.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
+
+        - task_key: schema_change
+          depends_on:
+            - task_key: land_changes
+          notebook_task:
+            notebook_path: ../guides/sqlserver-lakeflow-connect/04_schema_change.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
+
+        # Full refresh of the SCD type 1 table only. Refreshing lfc_customers would erase its history.
+        - task_key: full_refresh_orders
+          depends_on:
+            - task_key: schema_change
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.lfc_ingestion.id}
+            full_refresh_selection:
+              - lfc_orders
+
+        - task_key: check_full_refresh
+          depends_on:
+            - task_key: full_refresh_orders
+          notebook_task:
+            notebook_path: ../guides/sqlserver-lakeflow-connect/05_check_full_refresh.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
+
+        - task_key: silver
+          depends_on:
+            - task_key: check_full_refresh
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.lfc_silver.id}
+
+        - task_key: lineage_and_genie
+          depends_on:
+            - task_key: silver
+          notebook_task:
+            notebook_path: ../guides/sqlserver-lakeflow-connect/06_lineage_and_genie.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
+

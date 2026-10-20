@@ -1,0 +1,59 @@
+# Lakeflow Connect for SQL Server: a Unity Catalog connection, an ingestion gateway on classic compute,
+# a serverless ingestion pipeline, a silver pipeline, and the job that changes the source and checks
+# every change landed. Needs a reachable SQL Server prepared with source/01_setup_source.sql and a
+# workspace that allows classic compute for the gateway. The reference workspace allows only
+# serverless compute, so this bundle validates there but its gateway cannot start.
+bundle:
+  name: capability-guides-lakeflow-connect
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Unity Catalog catalog that holds the guide schema
+  warehouse_id:
+    description: SQL warehouse the Genie space runs queries on
+  app_service_principal:
+    description: Application ID of the Databricks App service principal that triggers quick runs
+  schema:
+    description: Schema for the bronze and silver tables, the gateway staging volume, and the run log
+    default: capability_guides
+  sqlserver_connection_name:
+    description: Unity Catalog SQL Server connection the gateway reads with (login lakeflow_ingest)
+  sqlserver_database:
+    description: Source database, case-sensitive
+    default: LakeflowDemo
+  sqlserver_schema:
+    description: Source schema, case-sensitive
+    default: dbo
+  source_secret_scope:
+    description: Secret scope with sqlserver_app_user and sqlserver_app_password, the login the job uses to change source rows
+    default: lakeflow_connect_demo
+  release:
+    description: Release identifier recorded in resource tags
+    default: local
+
+permissions:
+  - level: CAN_MANAGE
+    user_name: ${workspace.current_user.userName}
+  - level: CAN_RUN
+    service_principal_name: ${var.app_service_principal}
+
+targets:
+  dev:
+    default: true
+    mode: development
+    presets:
+      tags:
+        release: ${var.release}
+    variables:
+      schema: dev_${workspace.current_user.short_name}_capability_guides
+  test:
+    presets:
+      name_prefix: "[test] "
+      tags:
+        environment: test
+        release: ${var.release}
+    variables:
+      schema: test_capability_guides

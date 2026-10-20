@@ -2924,6 +2924,87 @@
       "functions": {}
     }
   ],
+  "sqlserver-lakeflow-connect": [
+    {
+      "path": "reference/lakeflow-connect/source/01_setup_source.sql",
+      "symbol": null,
+      "startLine": 113,
+      "endLine": 126,
+      "language": "sql",
+      "code": "-- 4 \u00b7 Change capture, per table. CDC for the history table, Change Tracking for the rest.\n--     Never enable both on one table: with both on, the connector uses Change Tracking and history is lost.\nEXEC dbo.lakeflowSetupChangeDataCapture @Tables = 'dbo.customers', @User = 'lakeflow_ingest';\nEXEC dbo.lakeflowSetupChangeTracking\n     @Tables = 'dbo.orders,dbo.products',\n     @User = 'lakeflow_ingest',\n     @Retention = '3 DAYS',\n     @CreateDdlSupportingObjects = 1;  -- captures DDL so new columns flow through\nEXEC dbo.lakeflowFixPermissions @User = 'lakeflow_ingest', @Tables = 'SCHEMAS:dbo';\nGO\n\n-- CDC cleanup retention, in minutes (20160 = 14 days). Size it to the longest gateway outage you can absorb.\nIF SERVERPROPERTY('EngineEdition') <> 5\n    EXEC sys.sp_cdc_change_job @job_type = N'cleanup', @retention = 20160;",
+      "functions": {}
+    },
+    {
+      "path": "reference/lakeflow-connect/resources/sqlserver.pipelines.yml",
+      "symbol": null,
+      "startLine": 9,
+      "endLine": 26,
+      "language": "yml",
+      "code": "    lfc_gateway:\n      name: capability-guides-lfc-sqlserver-gateway\n      catalog: ${var.catalog}\n      schema: ${var.schema}\n      channel: CURRENT\n      tags:\n        capability_guide_job: capability_guides_lakeflow_connect\n      # The gateway driver needs at least 8 cores. With a cluster policy enforced, pin it here:\n      # clusters:\n      #   - label: default\n      #     policy_id: <job-compute-policy-with-cluster_type-dlt>\n      #     driver_node_type_id: m5d.2xlarge\n      #     num_workers: 1\n      gateway_definition:\n        connection_name: ${var.sqlserver_connection_name}\n        gateway_storage_catalog: ${var.catalog}\n        gateway_storage_schema: ${var.schema}\n        gateway_storage_name: lfc_sqlserver_staging",
+      "functions": {}
+    },
+    {
+      "path": "reference/lakeflow-connect/resources/sqlserver.pipelines.yml",
+      "symbol": null,
+      "startLine": 28,
+      "endLine": 67,
+      "language": "yml",
+      "code": "    lfc_ingestion:\n      name: capability-guides-lfc-sqlserver-ingestion\n      catalog: ${var.catalog}\n      schema: ${var.schema}\n      serverless: true\n      continuous: false\n      channel: CURRENT\n      tags:\n        capability_guide_job: capability_guides_lakeflow_connect\n      ingestion_definition:\n        ingestion_gateway_id: ${resources.pipelines.lfc_gateway.id}\n        # Planned full refreshes run only in this window (a schema change that needs one waits for it).\n        full_refresh_window:\n          start_hour: 2\n          days_of_week: [SATURDAY, SUNDAY]\n          time_zone_id: UTC\n        table_configuration:\n          scd_type: SCD_TYPE_1\n          # Off for every table: an automatic full refresh would erase customers history.\n          auto_full_refresh_policy:\n            enabled: false\n        objects:\n          - table:\n              source_catalog: ${var.sqlserver_database}\n              source_schema: ${var.sqlserver_schema}\n              source_table: customers\n              destination_catalog: ${var.catalog}\n              destination_schema: ${var.schema}\n              destination_table: lfc_customers\n              table_configuration:\n                scd_type: SCD_TYPE_2 # CDC on the source; adds __START_AT and __END_AT\n                primary_keys: [customer_id]\n          - table:\n              source_catalog: ${var.sqlserver_database}\n              source_schema: ${var.sqlserver_schema}\n              source_table: orders\n              destination_catalog: ${var.catalog}\n              destination_schema: ${var.schema}\n              destination_table: lfc_orders\n          - table:",
+      "functions": {}
+    },
+    {
+      "path": "reference/lakeflow-connect/src/lfc_lib.py",
+      "symbol": "make_changes",
+      "startLine": 121,
+      "endLine": 142,
+      "language": "py",
+      "code": "def make_changes(connection: Any, plan_changes: int = 3, inserts: int = 10, ships: int = 5, deletes: int = 2) -> list[dict[str, Any]]:\n    \"\"\"Insert, update, and delete on the source. Returns what bronze should show afterwards.\"\"\"\n    expected = []\n    for row in query(connection, PICK_CUSTOMERS_SQL, [plan_changes]):\n        new = next_plan(row[\"plan_name\"])\n        query(connection, UPDATE_PLAN_SQL, [new, row[\"customer_id\"]])\n        expected.append(expectation(\"update_history\", \"customers\", row[\"customer_id\"], \"plan_name\", new))\n    customers = [row[\"customer_id\"] for row in query(connection, PICK_CUSTOMERS_SQL, [inserts])]\n    for i, customer_id in enumerate(customers):\n        product_id, quantity = i % 12 + 1, i % 3 + 1\n        inserted = query(connection, INSERT_ORDER_SQL, [customer_id, quantity, quantity, product_id])\n        expected.append(expectation(\"insert\", \"orders\", inserted[0][\"order_id\"], \"status\", \"NEW\"))\n    for row in query(connection, PICK_SHIP_SQL, [ships]):\n        query(connection, SHIP_SQL, [row[\"order_id\"]])\n        expected.append(expectation(\"update\", \"orders\", row[\"order_id\"], \"status\", \"SHIPPED\"))\n    for row in query(connection, PICK_DELETE_SQL, [deletes]):\n        query(connection, DELETE_SQL, [row[\"order_id\"]])\n        expected.append(expectation(\"delete\", \"orders\", row[\"order_id\"]))\n    for row in query(connection, PICK_CANCEL_SQL, [deletes]):\n        query(connection, CANCEL_SQL, [row[\"order_id\"]])\n        expected.append(expectation(\"update\", \"orders\", row[\"order_id\"], \"status\", \"CANCELLED\"))\n    return expected",
+      "functions": {
+        "make_changes": "Insert, update, and delete on the source. Returns what bronze should show afterwards."
+      }
+    },
+    {
+      "path": "reference/lakeflow-connect/src/lfc_lib.py",
+      "symbol": "landing_sql",
+      "startLine": 160,
+      "endLine": 174,
+      "language": "py",
+      "code": "def landing_sql(catalog: str, schema: str, expected: dict[str, Any]) -> str:\n    \"\"\"One query per expectation; it returns 1 when bronze shows the change.\"\"\"\n    table = fq(catalog, schema, TABLES[expected[\"source_table\"]])\n    key = \"customer_id\" if expected[\"source_table\"] == \"customers\" else \"order_id\"\n    k, col, val = expected[\"key\"], expected[\"column\"], expected[\"value\"]\n    if expected[\"kind\"] == \"delete\":\n        return f\"SELECT CAST(count(*) = 0 AS INT) FROM {table} WHERE {key} = {k}\"\n    if expected[\"kind\"] == \"update_history\":\n        # The current version has the new value, and an earlier, closed version exists.\n        return (\n            f\"SELECT CAST(count_if(__END_AT IS NULL AND CAST({col} AS STRING) = '{val}') = 1 \"\n            f\"AND count_if(__END_AT IS NOT NULL) >= 1 AS INT) FROM {table} WHERE {key} = {k}\"\n        )\n    current = \" AND __END_AT IS NULL\" if expected[\"source_table\"] == \"customers\" else \"\"\n    return f\"SELECT CAST(count_if(CAST({col} AS STRING) = '{val}') = 1 AS INT) FROM {table} WHERE {key} = {k}{current}\"",
+      "functions": {
+        "landing_sql": "One query per expectation; it returns 1 when bronze shows the change."
+      }
+    },
+    {
+      "path": "reference/lakeflow-connect/src/lfc_lib.py",
+      "symbol": "ingest_until",
+      "startLine": 218,
+      "endLine": 233,
+      "language": "py",
+      "code": "def ingest_until(w: Any, pipeline_id: str, check, max_wait_s: int, pause_s: int = 60) -> dict[str, Any]:\n    \"\"\"Rerun the ingestion pipeline until check() returns True or max_wait_s passes.\n\n    The gateway stages changes shortly after they commit, so the first update can miss the newest ones.\n    \"\"\"\n    started, updates = time.time(), []\n    while True:\n        update_id, state = run_update(w, pipeline_id)\n        updates.append({\"update_id\": update_id, \"state\": state})\n        if state != \"COMPLETED\":\n            raise RuntimeError(f\"Ingestion update {update_id} ended {state}\")\n        if check():\n            return {\"ok\": True, \"updates\": updates, \"seconds\": round(time.time() - started)}\n        if time.time() - started + pause_s > max_wait_s:\n            return {\"ok\": False, \"updates\": updates, \"seconds\": round(time.time() - started)}\n        time.sleep(pause_s)",
+      "functions": {
+        "ingest_until": "Rerun the ingestion pipeline until check() returns True or max_wait_s passes.",
+        "run_update": "Start one update of a triggered pipeline and wait for it. Returns (update_id, final state)."
+      }
+    },
+    {
+      "path": "reference/lakeflow-connect/resources/lakeflow_connect.job.yml",
+      "symbol": null,
+      "startLine": 72,
+      "endLine": 79,
+      "language": "yml",
+      "code": "        # Full refresh of the SCD type 1 table only. Refreshing lfc_customers would erase its history.\n        - task_key: full_refresh_orders\n          depends_on:\n            - task_key: schema_change\n          pipeline_task:\n            pipeline_id: ${resources.pipelines.lfc_ingestion.id}\n            full_refresh_selection:\n              - lfc_orders",
+      "functions": {}
+    },
+    {
+      "path": "reference/lakeflow-connect/guides/sqlserver-lakeflow-connect/silver/silver.sql",
+      "symbol": null,
+      "startLine": 1,
+      "endLine": 30,
+      "language": "sql",
+      "code": "-- Silver over the Lakeflow Connect bronze tables (lfc_customers, lfc_orders, lfc_products).\n-- Unqualified names resolve to the pipeline's catalog and schema.\n\n-- Current customers. SELECT * keeps new source columns, such as loyalty_tier, without a code change.\nCREATE OR REFRESH MATERIALIZED VIEW lfc_silver_customers\nCOMMENT 'Current version of each SQL Server customer.'\nAS SELECT * EXCEPT (__START_AT, __END_AT)\nFROM lfc_customers\nWHERE __END_AT IS NULL;\n\n-- Every plan each customer has had, and when it was true. Only possible because customers is SCD type 2.\nCREATE OR REFRESH MATERIALIZED VIEW lfc_silver_plan_history\nCOMMENT 'Customer plan and status over time, from SCD type 2 bronze.'\nAS SELECT customer_id, plan_name, status,\n          __START_AT AS valid_from, __END_AT AS valid_to, __END_AT IS NULL AS is_current\nFROM lfc_customers;\n\n-- Orders with the customer's current plan and the product. MONEY lands as DECIMAL(19,4); silver uses cents.\nCREATE OR REFRESH MATERIALIZED VIEW lfc_silver_orders (\n  CONSTRAINT known_product EXPECT (product_name IS NOT NULL),\n  CONSTRAINT non_negative_amount EXPECT (amount >= 0) ON VIOLATION DROP ROW\n)\nCOMMENT 'SQL Server orders joined to current customer and product.'\nAS SELECT o.order_id, o.order_ts, o.status, o.quantity,\n          CAST(o.amount AS DECIMAL(19, 2)) AS amount,\n          o.customer_id, c.name AS customer_name, c.city, c.plan_name,\n          o.product_id, p.name AS product_name, p.category\nFROM lfc_orders o\nLEFT JOIN lfc_silver_customers c ON c.customer_id = o.customer_id\nLEFT JOIN lfc_products p ON p.product_id = o.product_id;",
+      "functions": {}
+    }
+  ],
   "target-loading-outputs": [
     {
       "path": "reference/data-engineering/resources/target_loading.job.yml",

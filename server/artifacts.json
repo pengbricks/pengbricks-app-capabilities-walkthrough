@@ -6259,6 +6259,181 @@
           ]
         }
       ]
+    },
+    "sqlserver-lakeflow-connect": {
+      "bundle": "reference/lakeflow-connect",
+      "onePager": "reference/lakeflow-connect/guides/sqlserver-lakeflow-connect/README.md",
+      "code": [
+        {
+          "label": "Notebooks, one per job step",
+          "path": "reference/lakeflow-connect/guides/sqlserver-lakeflow-connect"
+        },
+        {
+          "label": "Gateway and ingestion pipeline",
+          "path": "reference/lakeflow-connect/resources/sqlserver.pipelines.yml"
+        },
+        {
+          "label": "Demo job",
+          "path": "reference/lakeflow-connect/resources/lakeflow_connect.job.yml"
+        },
+        {
+          "label": "Silver pipeline source",
+          "path": "reference/lakeflow-connect/guides/sqlserver-lakeflow-connect/silver/silver.sql"
+        },
+        {
+          "label": "Source setup for the DBA",
+          "path": "reference/lakeflow-connect/source/01_setup_source.sql"
+        },
+        {
+          "label": "Source connection, change batch, and landing checks",
+          "path": "reference/lakeflow-connect/src/lfc_lib.py"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_lakeflow_connect",
+          "label": "Lakeflow Connect SQL Server job"
+        },
+        {
+          "key": "capability_guides_lakeflow_connect_schedule",
+          "label": "Ingest and silver schedule (paused)"
+        }
+      ],
+      "recordedRuns": [],
+      "docs": [
+        {
+          "label": "SQL Server connector overview",
+          "url": "https://docs.databricks.com/aws/en/ingestion/lakeflow-connect/sql-server-overview"
+        },
+        {
+          "label": "Prepare SQL Server for ingestion",
+          "url": "https://docs.databricks.com/aws/en/ingestion/lakeflow-connect/sql-server-source-setup"
+        },
+        {
+          "label": "Utility objects script",
+          "url": "https://docs.databricks.com/aws/en/ingestion/lakeflow-connect/sql-server-utility"
+        },
+        {
+          "label": "Database user privileges",
+          "url": "https://docs.databricks.com/aws/en/ingestion/lakeflow-connect/sql-server-privileges"
+        },
+        {
+          "label": "SQL Server connection",
+          "url": "https://docs.databricks.com/aws/en/ingestion/lakeflow-connect/sql-server-connection"
+        },
+        {
+          "label": "Create a SQL Server ingestion pipeline",
+          "url": "https://docs.databricks.com/aws/en/ingestion/lakeflow-connect/sql-server-pipeline"
+        },
+        {
+          "label": "History tracking (SCD type 2)",
+          "url": "https://docs.databricks.com/aws/en/ingestion/lakeflow-connect/scd"
+        },
+        {
+          "label": "Full refresh",
+          "url": "https://docs.databricks.com/aws/en/ingestion/lakeflow-connect/full-refresh"
+        },
+        {
+          "label": "TLS certificate validation",
+          "url": "https://docs.databricks.com/aws/en/ingestion/lakeflow-connect/tls-server-certificate-validation"
+        },
+        {
+          "label": "Limitations",
+          "url": "https://docs.databricks.com/aws/en/ingestion/lakeflow-connect/sql-server-limits"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Change capture per table, on the source",
+          "path": "reference/lakeflow-connect/source/01_setup_source.sql",
+          "lines": [
+            113,
+            126
+          ],
+          "section": "dba-setup",
+          "notes": [
+            "CDC on the history table, Change Tracking on the others, then the connector's grants.",
+            "CDC retention is sized to the longest gateway outage the source can absorb."
+          ]
+        },
+        {
+          "label": "Ingestion gateway",
+          "path": "reference/lakeflow-connect/resources/sqlserver.pipelines.yml",
+          "lines": [
+            9,
+            26
+          ],
+          "section": "wizard",
+          "notes": [
+            "Classic compute in the workspace network; names the Unity Catalog connection and the staging volume."
+          ]
+        },
+        {
+          "label": "Ingestion pipeline: SCD type per table",
+          "path": "reference/lakeflow-connect/resources/sqlserver.pipelines.yml",
+          "lines": [
+            28,
+            73
+          ],
+          "section": "bundle",
+          "notes": [
+            "Serverless and triggered. customers keeps history (SCD type 2); orders and products keep the latest row.",
+            "Auto full refresh is off, and planned full refreshes wait for the weekend window."
+          ]
+        },
+        {
+          "label": "Change batch on the source",
+          "path": "reference/lakeflow-connect/src/lfc_lib.py",
+          "symbol": "make_changes",
+          "section": "live-changes",
+          "notes": [
+            "Picks the rows touched least recently, so each run changes different rows.",
+            "Returns what bronze should show, one expectation per change."
+          ]
+        },
+        {
+          "label": "Landing check per change",
+          "path": "reference/lakeflow-connect/src/lfc_lib.py",
+          "symbol": "landing_sql",
+          "section": "live-changes",
+          "notes": [
+            "A history change must show a new current version and a closed earlier one."
+          ]
+        },
+        {
+          "label": "Rerun ingestion until the changes land",
+          "path": "reference/lakeflow-connect/src/lfc_lib.py",
+          "symbol": "ingest_until",
+          "section": "live-changes",
+          "notes": [
+            "The gateway stages changes shortly after they commit, so one update can miss the newest ones."
+          ]
+        },
+        {
+          "label": "Full refresh of one table",
+          "path": "reference/lakeflow-connect/resources/lakeflow_connect.job.yml",
+          "lines": [
+            72,
+            79
+          ],
+          "section": "day-two",
+          "notes": [
+            "full_refresh_selection names only the SCD type 1 table; refreshing lfc_customers would erase its history."
+          ]
+        },
+        {
+          "label": "Silver over bronze",
+          "path": "reference/lakeflow-connect/guides/sqlserver-lakeflow-connect/silver/silver.sql",
+          "lines": [
+            1,
+            30
+          ],
+          "section": "lineage-genie",
+          "notes": [
+            "SELECT * EXCEPT keeps new source columns, such as loyalty_tier, without a code change."
+          ]
+        }
+      ]
     }
   }
 }

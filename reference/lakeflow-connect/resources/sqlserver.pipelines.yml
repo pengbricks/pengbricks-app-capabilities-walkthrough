@@ -1,0 +1,80 @@
+# The two halves of Lakeflow Connect for SQL Server.
+#   Gateway: classic compute in the workspace network, always running. Reads CDC and Change Tracking
+#            from SQL Server and stages the changes in a Unity Catalog volume in var.schema.
+#   Ingestion pipeline: serverless, triggered. Applies the staged changes to the bronze tables.
+# Per table: customers keeps history (SCD type 2, needs CDC on the source); orders and products keep
+# the latest row (SCD type 1, Change Tracking is enough). See source/01_setup_source.sql.
+resources:
+  pipelines:
+    lfc_gateway:
+      name: capability-guides-lfc-sqlserver-gateway
+      catalog: ${var.catalog}
+      schema: ${var.schema}
+      channel: CURRENT
+      tags:
+        capability_guide_job: capability_guides_lakeflow_connect
+      # The gateway driver needs at least 8 cores. With a cluster policy enforced, pin it here:
+      # clusters:
+      #   - label: default
+      #     policy_id: <job-compute-policy-with-cluster_type-dlt>
+      #     driver_node_type_id: m5d.2xlarge
+      #     num_workers: 1
+      gateway_definition:
+        connection_name: ${var.sqlserver_connection_name}
+        gateway_storage_catalog: ${var.catalog}
+        gateway_storage_schema: ${var.schema}
+        gateway_storage_name: lfc_sqlserver_staging
+
+    lfc_ingestion:
+      name: capability-guides-lfc-sqlserver-ingestion
+      catalog: ${var.catalog}
+      schema: ${var.schema}
+      serverless: true
+      continuous: false
+      channel: CURRENT
+      tags:
+        capability_guide_job: capability_guides_lakeflow_connect
+      ingestion_definition:
+        ingestion_gateway_id: ${resources.pipelines.lfc_gateway.id}
+        # Planned full refreshes run only in this window (a schema change that needs one waits for it).
+        full_refresh_window:
+          start_hour: 2
+          days_of_week: [SATURDAY, SUNDAY]
+          time_zone_id: UTC
+        table_configuration:
+          scd_type: SCD_TYPE_1
+          # Off for every table: an automatic full refresh would erase customers history.
+          auto_full_refresh_policy:
+            enabled: false
+        objects:
+          - table:
+              source_catalog: ${var.sqlserver_database}
+              source_schema: ${var.sqlserver_schema}
+              source_table: customers
+              destination_catalog: ${var.catalog}
+              destination_schema: ${var.schema}
+              destination_table: lfc_customers
+              table_configuration:
+                scd_type: SCD_TYPE_2 # CDC on the source; adds __START_AT and __END_AT
+                primary_keys: [customer_id]
+          - table:
+              source_catalog: ${var.sqlserver_database}
+              source_schema: ${var.sqlserver_schema}
+              source_table: orders
+              destination_catalog: ${var.catalog}
+              destination_schema: ${var.schema}
+              destination_table: lfc_orders
+          - table:
+              source_catalog: ${var.sqlserver_database}
+              source_schema: ${var.sqlserver_schema}
+              source_table: products
+              destination_catalog: ${var.catalog}
+              destination_schema: ${var.schema}
+              destination_table: lfc_products
+          # "Ingest all" instead: one schema entry picks up every table in dbo, including tables
+          # added later. Every table then needs CDC or Change Tracking on the source.
+          # - schema:
+          #     source_catalog: ${var.sqlserver_database}
+          #     source_schema: ${var.sqlserver_schema}
+          #     destination_catalog: ${var.catalog}
+          #     destination_schema: ${var.schema}

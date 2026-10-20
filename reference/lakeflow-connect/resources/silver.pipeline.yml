@@ -1,0 +1,15 @@
+# Silver tables over the Lakeflow Connect bronze tables. Lineage runs SQL Server table -> bronze -> silver.
+resources:
+  pipelines:
+    lfc_silver:
+      name: capability-guides-lfc-silver
+      catalog: ${var.catalog}
+      schema: ${var.schema}
+      serverless: true
+      continuous: false
+      channel: CURRENT
+      tags:
+        capability_guide_job: capability_guides_lakeflow_connect
+      libraries:
+        - glob:
+            include: ../guides/sqlserver-lakeflow-connect/silver/**

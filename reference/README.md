@@ -24,6 +24,7 @@ Each folder under `reference/` is a self-contained Declarative Automation Bundle
 | `platform-ops/` | Workspace and account administration, Support and recovery |
 | `agents/` | Agents, MCP, and model gateway; Building and shipping agents |
 | `ai-functions/` | AI Functions in SQL |
+| `lakeflow-connect/` | SQL Server connections with Lakeflow Connect (needs a reachable SQL Server and classic compute for the gateway) |
 
 The GitHub integration and CI/CD guide deploys the `ingestion/` bundle through `.github/workflows/reference-cicd.yml`.
 

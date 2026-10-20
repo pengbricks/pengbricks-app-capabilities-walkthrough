@@ -505,6 +505,21 @@ export const guides: readonly Guide[] = [
     evidence: ['Full extract with types preserved', 'Custom SQL result matching the source', 'Run log with row counts'],
   },
   {
+    slug: 'sqlserver-lakeflow-connect',
+    title: 'SQL Server connections with Lakeflow Connect',
+    category: 'Ingestion',
+    difficulty: 3,
+    summary: 'A Unity Catalog connection, a gateway and a serverless pipeline, and CDC or Change Tracking per table. Needs classic compute for the gateway.',
+    acceptanceCriteria:
+      'A Lakeflow Connect gateway and ingestion pipeline land three SQL Server tables, one with SCD type 2 history. Inserts, updates, and deletes made on the source show up in bronze, a new source column flows through with no pipeline change, a full refresh of one table leaves the history table intact, and silver tables show lineage and answer a Genie question.',
+    evidence: [
+      'Change Tracking or CDC per table, checked on the source',
+      'Every source insert, update, and delete found in bronze',
+      'Schema change and single-table full refresh with history kept',
+      'Lineage to silver and a Genie answer matching SQL',
+    ],
+  },
+  {
     slug: 'transformation-patterns',
     title: 'Transformation patterns',
     category: 'Data Engineering Guides',

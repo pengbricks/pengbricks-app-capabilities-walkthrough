@@ -43,6 +43,7 @@
   "self-service-extracts": "2026-10-19",
   "sftp-ingestion": "2026-10-19",
   "sql-notebook-analysis": "2026-10-19",
+  "sqlserver-lakeflow-connect": "2026-10-20",
   "target-loading-outputs": "2026-10-19",
   "transformation-patterns": "2026-10-19",
   "user-experience": "2026-10-19",
