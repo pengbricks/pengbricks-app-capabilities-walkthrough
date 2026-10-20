@@ -1616,6 +1616,110 @@
       }
     }
   ],
+  "genie-agents": [
+    {
+      "path": "reference/genie/src/genie_lib.py",
+      "symbol": "build_agent_space",
+      "startLine": 172,
+      "endLine": 211,
+      "language": "py",
+      "code": "def build_agent_space(agent: dict[str, Any], catalog: str, schema: str) -> str:\n    \"\"\"Return the serialized_space JSON for the spec's `genie_agent` block (version 2).\n\n    Covers metric views and tables with per-column settings, one text instruction, example SQL with parameters and\n    usage guidance, sample questions, and benchmarks. IDs are derived from the content, so a rerun rebuilds an identical\n    definition. Every collection the API validates is sorted the way it requires.\n    \"\"\"\n\n    def source(kind: str) -> list[dict[str, Any]]:\n        out = []\n        for name in sorted(agent.get(kind, [])):\n            entry: dict[str, Any] = {\"identifier\": f\"{catalog}.{schema}.{name}\"}\n            configs = agent.get(\"column_configs\", {}).get(name)\n            if configs:\n                entry[\"column_configs\"] = sorted((dict(item) for item in configs), key=lambda item: item[\"column_name\"])\n            out.append(entry)\n        return out\n\n    space: dict[str, Any] = {\"version\": 2}\n    questions = [{\"id\": stable_id(\"sample\", text), \"question\": [text]} for text in agent.get(\"sample_questions\", [])]\n    if questions:\n        space[\"config\"] = {\"sample_questions\": sorted(questions, key=lambda item: item[\"id\"])}\n    data_sources: dict[str, Any] = {}\n    if agent.get(\"tables\"):\n        data_sources[\"tables\"] = source(\"tables\")\n    if agent.get(\"metric_views\"):\n        data_sources[\"metric_views\"] = source(\"metric_views\")\n    space[\"data_sources\"] = data_sources\n\n    instruction_block: dict[str, Any] = {}\n    if agent.get(\"instructions\"):\n        text = agent[\"instructions\"].strip()\n        instruction_block[\"text_instructions\"] = [{\"id\": stable_id(\"text\", text), \"content\": [text]}]\n    examples = []\n    for item in agent.get(\"example_sql\", []):\n        sql = fill(item[\"sql\"], catalog, schema)\n        example: dict[str, Any] = {\"id\": stable_id(\"example\", item[\"question\"]), \"question\": [item[\"question\"]], \"sql\": sql_lines(sql)}\n        if item.get(\"parameters\"):\n            example[\"parameters\"] = [\n                {",
+      "functions": {
+        "build_agent_space": "Return the serialized_space JSON for the spec's `genie_agent` block (version 2).",
+        "sql_lines": "The API stores SQL as a list of lines; every line but the last keeps its newline.",
+        "stable_id": "A 32-character hex ID derived from the parts, so rebuilding the same definition gives the same IDs."
+      }
+    },
+    {
+      "path": "reference/genie/guides/genie-agents/02_create_agent.py",
+      "symbol": null,
+      "startLine": 43,
+      "endLine": 48,
+      "language": "py",
+      "code": "serialized = build_agent_space(agent, catalog, schema)\ntitle = f\"{spec['space_prefix']} ({agent['title_suffix']}) [{schema}]\"\nspace_id = client.upsert_space(title, agent[\"description\"], params[\"warehouse_id\"], serialized)\nurl = client.space_url(space_id)\nprint(f\"Genie Agent {title}: {space_id}\\n{url}\")\nregister_space(spark, base, \"genie_spaces\", (run_id, GUIDE, \"agent\", space_id, url, title, datetime.now(timezone.utc).isoformat()))",
+      "functions": {
+        "build_agent_space": "Return the serialized_space JSON for the spec's `genie_agent` block (version 2).",
+        "register_space": "Keep one row per (guide, role) in the spaces table, so a rerun replaces its own entry.",
+        "upsert_space": "Update the space with this title in place, or create it. Extra spaces with the same title are deleted."
+      }
+    },
+    {
+      "path": "reference/genie/use_cases/general.yml",
+      "symbol": null,
+      "startLine": 212,
+      "endLine": 229,
+      "language": "yml",
+      "code": "  instructions: |\n    Orders in this data run from 2026-07-01 to 2026-09-30. When a question names a month or quarter without a year, use 2026.\n    When a question asks for revenue, orders, or customers without a period, ask: \"Which period do you want, for example Q3 2026 or August 2026?\"\n    Show business names, never codes. Round money to two decimals.\n  sample_questions:\n    - What is revenue by sales channel?\n    - Which customer segment has the highest average order value?\n    - How many active customers do we have in each region?\n  example_sql:\n    - question: What is revenue by sales channel?\n      sql: \"SELECT `Sales Channel`, MEASURE(`Revenue`) AS revenue FROM {catalog}.{schema}.sales_metrics GROUP BY ALL ORDER BY revenue DESC\"\n    - question: What is revenue for a region in a date range?\n      sql: \"SELECT `Region`, MEASURE(`Revenue`) AS revenue FROM {catalog}.{schema}.sales_metrics WHERE `Region` = :region AND `Order Date` >= :start_date AND `Order Date` < :end_date GROUP BY ALL\"\n      parameters:\n        - {name: region, type_hint: STRING, description: \"Sales region: North America, EMEA, or APAC\", default: EMEA}\n        - {name: start_date, type_hint: DATE, description: \"First day of the period, inclusive, as YYYY-MM-DD\", default: \"2026-07-01\"}\n        - {name: end_date, type_hint: DATE, description: \"Day after the last day of the period, as YYYY-MM-DD\", default: \"2026-10-01\"}\n      usage_guidance: Use when the user names one region and a period. If the question has no period, ask for one instead of using this example.",
+      "functions": {}
+    },
+    {
+      "path": "reference/genie/src/agent_results.py",
+      "symbol": "history_sql",
+      "startLine": 36,
+      "endLine": 44,
+      "language": "py",
+      "code": "def history_sql(space_id: str, since_iso: str) -> str:\n    \"\"\"Statements the Genie agent issued since the given time, with who ran them and on which warehouse.\"\"\"\n    return f\"\"\"\nSELECT statement_id, executed_by, executed_as, compute.type AS compute_type, compute.warehouse_id AS warehouse_id,\n       client_application, execution_status, total_duration_ms, CAST(start_time AS STRING) AS start_time\nFROM system.query.history\nWHERE query_source.genie_space_id = {sql_str(space_id)} AND start_time >= TIMESTAMP {sql_str(since_iso)}\nORDER BY start_time\n\"\"\".strip()",
+      "functions": {
+        "history_sql": "Statements the Genie agent issued since the given time, with who ran them and on which warehouse."
+      }
+    },
+    {
+      "path": "reference/genie/src/agent_results.py",
+      "symbol": "wait_for_rows",
+      "startLine": 47,
+      "endLine": 62,
+      "language": "py",
+      "code": "def wait_for_rows(\n    fetch: Callable[[], list[Any]],\n    minimum: int,\n    attempts: int,\n    pause_seconds: float,\n    sleep: Callable[[float], None] = time.sleep,\n) -> tuple[list[Any], int]:\n    \"\"\"Poll `fetch` until it returns at least `minimum` rows or the attempts run out. Returns (rows, polls used).\"\"\"\n    rows: list[Any] = []\n    for poll in range(1, attempts + 1):\n        rows = fetch()\n        if len(rows) >= minimum:\n            return rows, poll\n        if poll < attempts:\n            sleep(pause_seconds)\n    return rows, attempts",
+      "functions": {
+        "wait_for_rows": "Poll `fetch` until it returns at least `minimum` rows or the attempts run out. Returns (rows, polls used)."
+      }
+    },
+    {
+      "path": "reference/genie/src/genie_lib.py",
+      "symbol": "field_paths",
+      "startLine": 259,
+      "endLine": 272,
+      "language": "py",
+      "code": "def field_paths(value: Any, prefix: str = \"\") -> list[str]:\n    \"\"\"Dotted names of the fields in a JSON object. Lists are walked as `name[]`; values are never returned.\"\"\"\n    paths: list[str] = []\n    if isinstance(value, dict):\n        for key, item in value.items():\n            path = f\"{prefix}.{key}\" if prefix else key\n            if isinstance(item, (dict, list)) and item:\n                paths += field_paths(item, path)\n            else:\n                paths.append(path)\n    elif isinstance(value, list):\n        for item in value[:1]:  # one element shows the shape\n            paths += field_paths(item, f\"{prefix}[]\")\n    return sorted(set(paths))",
+      "functions": {
+        "field_paths": "Dotted names of the fields in a JSON object. Lists are walked as `name[]`; values are never returned."
+      }
+    },
+    {
+      "path": "reference/genie/guides/genie-agents/04_read_back.py",
+      "symbol": null,
+      "startLine": 41,
+      "endLine": 54,
+      "language": "py",
+      "code": "rows = []\nlisted = [c for c in client.list_conversations(space_id) if c.get(\"conversation_id\") in conversations]\nconversation_paths = [path for c in listed for path in field_paths(c)]\nmessage_paths = []\nfor conversation_id in conversations:\n    messages = client.list_messages(space_id, conversation_id)\n    rows.append(result_row(run_id, \"stored\", \"messages_in_conversation\", len(messages), \"GET .../conversations/{id}/messages\", conversation_id))\n    for listed_message in messages:\n        message_paths += field_paths(client.get_message(space_id, conversation_id, listed_message[\"message_id\"]))\n\nrows.append(result_row(run_id, \"stored\", \"conversation.fields\", \", \".join(sorted(set(conversation_paths))), \"GET .../conversations (the list call; there is no single-conversation read)\"))\nfor root, paths in group_paths(message_paths).items():\n    rows.append(result_row(run_id, \"stored\", f\"message.{root}\", \", \".join(paths), \"fields of a message returned by GET .../messages/{id}\"))\n    print(f\"message.{root}: {', '.join(paths)}\")",
+      "functions": {
+        "field_paths": "Dotted names of the fields in a JSON object. Lists are walked as `name[]`; values are never returned.",
+        "group_paths": "Group dotted field paths by their first name: {\"attachments\": [\"attachments[].query.query\", ...], \"status\": [\"status\"]}.",
+        "list_conversations": "Conversations the calling user started in the agent: ID, title, type, and creation time.",
+        "result_row": "One results row. Values are stored as text."
+      }
+    },
+    {
+      "path": "reference/genie/src/agent_results.py",
+      "symbol": "write_step",
+      "startLine": 24,
+      "endLine": 29,
+      "language": "py",
+      "code": "def write_step(spark: Any, base: str, step: str, rows: list[tuple[str, ...]]) -> None:\n    \"\"\"Replace the rows of one step. A rerun swaps its own rows and leaves other steps alone, so the table keeps its row count.\"\"\"\n    spark.sql(f\"CREATE TABLE IF NOT EXISTS {base}.{RESULTS_TABLE} ({RESULTS_SCHEMA})\")\n    spark.sql(f\"DELETE FROM {base}.{RESULTS_TABLE} WHERE step = {sql_str(step)}\")\n    if rows:\n        spark.createDataFrame(rows, RESULTS_SCHEMA).write.mode(\"append\").saveAsTable(f\"{base}.{RESULTS_TABLE}\")",
+      "functions": {
+        "write_step": "Replace the rows of one step. A rerun swaps its own rows and leaves other steps alone, so the table keeps its row count."
+      }
+    },
+    {
+      "path": "reference/genie/resources/genie_agents.job.yml",
+      "symbol": null,
+      "startLine": 13,
+      "endLine": 52,
+      "language": "yml",
+      "code": "        - name: catalog\n          default: ${var.catalog}\n        - name: schema\n          default: ${var.schema}\n        - name: use_case\n          default: ${var.use_case}\n        - name: warehouse_id\n          default: ${var.warehouse_id}\n      tasks:\n        - task_key: prepare_data\n          notebook_task:\n            notebook_path: ../guides/genie-agents/01_prepare_data.py\n\n        - task_key: create_agent\n          depends_on:\n            - task_key: prepare_data\n          notebook_task:\n            notebook_path: ../guides/genie-agents/02_create_agent.py\n            base_parameters:\n              run_id: \"{{job.run_id}}\"\n\n        - task_key: ask_questions\n          depends_on:\n            - task_key: create_agent\n          notebook_task:\n            notebook_path: ../guides/genie-agents/03_ask_questions.py\n            base_parameters:\n              run_id: \"{{job.run_id}}\"\n\n        - task_key: read_back\n          depends_on:\n            - task_key: ask_questions\n          notebook_task:\n            notebook_path: ../guides/genie-agents/04_read_back.py\n            base_parameters:\n              run_id: \"{{job.run_id}}\"\n\n        - task_key: find_queries\n          depends_on:\n            - task_key: read_back",
+      "functions": {}
+    }
+  ],
   "github-cicd": [
     {
       "path": ".github/workflows/reference-cicd.yml",
@@ -2310,8 +2414,8 @@
     {
       "path": "reference/genie/src/genie_lib.py",
       "symbol": "rows_match",
-      "startLine": 74,
-      "endLine": 93,
+      "startLine": 75,
+      "endLine": 94,
       "language": "py",
       "code": "def rows_match(expected: list[Any], got: list[Any]) -> bool:\n    \"\"\"True when both results have the same number of rows and every expected row's values appear in a distinct returned row.\n\n    Column names and order are ignored, and extra returned columns are allowed, so a correct answer is not marked wrong\n    for naming. A code such as \"NA\" instead of \"North America\" does not match.\n    \"\"\"\n    want = normalize_rows(expected)\n    have = normalize_rows(got)\n    if len(want) != len(have):\n        return False\n    remaining = list(have)\n    for row in sorted(want, key=repr):\n        needed = Counter(row)\n        for index, candidate in enumerate(remaining):\n            if not needed - Counter(candidate):\n                del remaining[index]\n                break\n        else:\n            return False\n    return True",
       "functions": {
@@ -3345,8 +3449,8 @@
     {
       "path": "reference/genie/src/genie_lib.py",
       "symbol": "ask",
-      "startLine": 214,
-      "endLine": 236,
+      "startLine": 336,
+      "endLine": 358,
       "language": "py",
       "code": "    def ask(self, space_id: str, text: str, conversation_id: str | None = None, timeout_s: int = 420) -> dict[str, Any]:\n        \"\"\"Send one message (new conversation, or a follow-up) and wait for the answer.\"\"\"\n        started = time.time()\n        if conversation_id:\n            sent = self._call(\"POST\", f\"/api/2.0/genie/spaces/{space_id}/conversations/{conversation_id}/messages\", {\"content\": text})\n            message_id = sent.get(\"message_id\") or sent.get(\"id\")\n        else:\n            sent = self._call(\"POST\", f\"/api/2.0/genie/spaces/{space_id}/start-conversation\", {\"content\": text})\n            conversation_id = sent[\"conversation_id\"]\n            message_id = sent[\"message_id\"]\n        while True:\n            message = self._call(\"GET\", f\"/api/2.0/genie/spaces/{space_id}/conversations/{conversation_id}/messages/{message_id}\")\n            if message.get(\"status\") in {\"COMPLETED\", \"FAILED\", \"CANCELLED\", \"QUERY_RESULT_EXPIRED\"}:\n                break\n            if time.time() - started > timeout_s:\n                message[\"status\"] = \"TIMEOUT\"\n                break\n            time.sleep(3)\n        message[\"conversation_id\"] = conversation_id\n        message[\"message_id\"] = message_id\n        message[\"latency_s\"] = round(time.time() - started, 1)\n        time.sleep(self.pause_seconds)\n        return message",
       "functions": {
@@ -3356,8 +3460,8 @@
     {
       "path": "reference/genie/src/genie_lib.py",
       "symbol": "feedback",
-      "startLine": 238,
-      "endLine": 248,
+      "startLine": 392,
+      "endLine": 402,
       "language": "py",
       "code": "    def feedback(self, space_id: str, conversation_id: str, message_id: str, rating: str) -> str:\n        \"\"\"Send thumbs up (POSITIVE) or thumbs down (NEGATIVE). Returns 'ok' or the error text.\"\"\"\n        try:\n            self._call(\n                \"POST\",\n                f\"/api/2.0/genie/spaces/{space_id}/conversations/{conversation_id}/messages/{message_id}/feedback\",\n                {\"rating\": rating},\n            )\n            return \"ok\"\n        except Exception as error:\n            return f\"error: {error}\"[:300]",
       "functions": {
@@ -3367,8 +3471,8 @@
     {
       "path": "reference/genie/src/genie_lib.py",
       "symbol": "find_issues",
-      "startLine": 99,
-      "endLine": 122,
+      "startLine": 100,
+      "endLine": 123,
       "language": "py",
       "code": "def find_issues(\n    status: str,\n    has_sql: bool,\n    matches: bool | None,\n    latency_s: float,\n    latency_warn_s: float,\n    ambiguous: bool = False,\n    expects_sql: bool = True,\n    response_text: str = \"\",\n) -> list[str]:\n    issues: list[str] = []\n    if status != \"COMPLETED\":\n        issues.append(f\"Message ended as {status}\")\n    elif expects_sql and not has_sql:\n        issues.append(\"Answered in text only, no SQL to check\")\n    if matches is False:\n        issues.append(\"Result differs from the expected answer\")\n    if ambiguous and has_sql:\n        issues.append(\"Ambiguous request answered with a guessed definition and no clarifying question\")\n    if ambiguous and not has_sql and status == \"COMPLETED\" and \"?\" in response_text:\n        issues.append(\"Genie asked a clarifying question instead of answering\")\n    if latency_s > latency_warn_s:\n        issues.append(f\"Slow response ({latency_s:.0f} s)\")\n    return issues",
       "functions": {}

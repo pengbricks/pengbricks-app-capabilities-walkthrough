@@ -236,6 +236,7 @@ export const walkthrough: Walkthrough = {
   ],
   related: [
     { slug: 'user-experience', title: 'Assistant user experience' },
+    { slug: 'genie-agents', title: 'Genie Agents: setup, instructions, and data handling' },
     { slug: 'documentation-generation', title: 'Automated data documentation' },
   ],
 };

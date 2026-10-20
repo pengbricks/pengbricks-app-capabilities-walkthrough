@@ -275,6 +275,7 @@ export const walkthrough: Walkthrough = {
   ],
   related: [
     { slug: 'ontology', title: 'Business terms and synonyms' },
+    { slug: 'genie-agents', title: 'Genie Agents: setup, instructions, and data handling' },
     { slug: 'agent-framework-support', title: 'Agents, MCP, and model gateway' },
   ],
 };
