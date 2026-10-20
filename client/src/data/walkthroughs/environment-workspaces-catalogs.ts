@@ -572,5 +572,6 @@ GROUP BY 1 ORDER BY 2 DESC`,
     { slug: 'dab-starter', title: 'Running a Declarative Automation Bundle' },
     { slug: 'dataops', title: 'Pipeline operations' },
     { slug: 'access-management', title: 'Access management' },
+    { slug: 'git-collaboration', title: 'Collaborating on Databricks projects with Git' },
   ],
 };

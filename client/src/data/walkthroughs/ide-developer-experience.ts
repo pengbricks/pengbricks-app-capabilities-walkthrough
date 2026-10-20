@@ -292,5 +292,7 @@ databricks bundle validate --target dev`,
   related: [
     { slug: 'dab-starter', title: 'Running a Declarative Automation Bundle' },
     { slug: 'github-cicd', title: 'GitHub-based CI/CD' },
+    { slug: 'vscode-databricks', title: 'Working with Databricks in VS Code' },
+    { slug: 'git-collaboration', title: 'Collaborating on Databricks projects with Git' },
   ],
 };

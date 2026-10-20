@@ -129,6 +129,34 @@ export const guides: readonly Guide[] = [
     ],
   },
   {
+    slug: 'vscode-databricks',
+    title: 'Working with Databricks in VS Code',
+    category: 'CI/CD & Version Control Guides',
+    difficulty: 2,
+    summary: 'Set up the Databricks extension with OAuth, work from a bundle, and run, debug, and test code against serverless or a cluster.',
+    acceptanceCriteria:
+      'The extension signs in with an OAuth profile, never a personal access token. The project is a bundle with a chosen target, and deploys and runs go through the Bundle Resource Explorer. Code is debugged with Databricks Connect in a virtual environment that matches the compute, with databricks-connect pinned to that version, and pytest runs from the test explorer. Code does not depend on local-only paths such as dbutils.',
+    evidence: [
+      'OAuth profile, bundle target, and compute selected in the Configuration view',
+      'Bundle deploy and run from the Resource Explorer, and a debugged file or notebook cell',
+      'Virtual environment built from the compute, a pinned databricks-connect, and a passing pytest run',
+    ],
+  },
+  {
+    slug: 'git-collaboration',
+    title: 'Collaborating on Databricks projects with Git',
+    category: 'CI/CD & Version Control Guides',
+    difficulty: 2,
+    summary: 'Work in personal Git folders on short-lived branches, review through pull requests, and deploy through CI.',
+    acceptanceCriteria:
+      'Each person works in their own Git folder or IDE clone on a short-lived branch. Git credentials use the Databricks GitHub app or OAuth where available, and automation uses service principal credentials. Main is protected with required review and checks, notebooks are committed without outputs, secrets, or data, and shared and production code deploys only through CI and bundles, never from a hand-edited folder.',
+    evidence: [
+      'Git credential setup with the GitHub app and a service principal credential for automation',
+      'Branch, pull request, required checks, and CODEOWNERS on main',
+      'Notebook format choice, .gitignore, and output-commit settings',
+    ],
+  },
+  {
     slug: 'dab-starter',
     title: 'Running a Declarative Automation Bundle',
     category: 'CI/CD & Version Control Guides',

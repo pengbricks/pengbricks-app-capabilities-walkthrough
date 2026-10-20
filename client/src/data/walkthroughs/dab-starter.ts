@@ -425,5 +425,7 @@ databricks bundle destroy -t prod --var catalog=<catalog>`,
     { slug: 'github-cicd', title: 'GitHub-based CI/CD' },
     { slug: 'ide-developer-experience', title: 'Developer workflow in the IDE' },
     { slug: 'medallion-architecture', title: 'Medallion architecture' },
+    { slug: 'vscode-databricks', title: 'Working with Databricks in VS Code' },
+    { slug: 'git-collaboration', title: 'Collaborating on Databricks projects with Git' },
   ],
 };
