@@ -196,3 +196,68 @@ ux_script:
     - id: feedback_refine
       task_type: feedback
       target: refine
+
+# Genie Agents guide: the agent definition, the benchmark questions, and the questions the job asks.
+# Business definitions (revenue, active customer) live in the metric view, not in the instruction text. The text carries
+# only what no SQL can: the default year, when to ask a clarifying question, and formatting.
+genie_agent:
+  title_suffix: agents
+  description: Sales questions over completed orders, by region, segment, and channel. Orders run from July to September 2026.
+  metric_views: [sales_metrics]
+  column_configs:
+    sales_metrics:
+      - {column_name: Region, enable_format_assistance: true, enable_entity_matching: true}
+      - {column_name: Customer Segment, enable_format_assistance: true, enable_entity_matching: true}
+      - {column_name: Sales Channel, enable_format_assistance: true, enable_entity_matching: true}
+  instructions: |
+    Orders in this data run from 2026-07-01 to 2026-09-30. When a question names a month or quarter without a year, use 2026.
+    When a question asks for revenue, orders, or customers without a period, ask: "Which period do you want, for example Q3 2026 or August 2026?"
+    Show business names, never codes. Round money to two decimals.
+  sample_questions:
+    - What is revenue by sales channel?
+    - Which customer segment has the highest average order value?
+    - How many active customers do we have in each region?
+  example_sql:
+    - question: What is revenue by sales channel?
+      sql: "SELECT `Sales Channel`, MEASURE(`Revenue`) AS revenue FROM {catalog}.{schema}.sales_metrics GROUP BY ALL ORDER BY revenue DESC"
+    - question: What is revenue for a region in a date range?
+      sql: "SELECT `Region`, MEASURE(`Revenue`) AS revenue FROM {catalog}.{schema}.sales_metrics WHERE `Region` = :region AND `Order Date` >= :start_date AND `Order Date` < :end_date GROUP BY ALL"
+      parameters:
+        - {name: region, type_hint: STRING, description: "Sales region: North America, EMEA, or APAC", default: EMEA}
+        - {name: start_date, type_hint: DATE, description: "First day of the period, inclusive, as YYYY-MM-DD", default: "2026-07-01"}
+        - {name: end_date, type_hint: DATE, description: "Day after the last day of the period, as YYYY-MM-DD", default: "2026-10-01"}
+      usage_guidance: Use when the user names one region and a period. If the question has no period, ask for one instead of using this example.
+  benchmarks:
+    - question: What is total revenue by customer segment?
+      sql: "SELECT `Customer Segment`, MEASURE(`Revenue`) AS revenue FROM {catalog}.{schema}.sales_metrics GROUP BY ALL"
+    - question: How many active customers do we have in each region?
+      sql: "SELECT `Region`, MEASURE(`Active Customers`) AS active_customers FROM {catalog}.{schema}.sales_metrics GROUP BY ALL"
+    - question: What is the average order value for enterprise accounts?
+      sql: "SELECT MEASURE(`Average Order Value`) AS average_order_value FROM {catalog}.{schema}.sales_metrics WHERE `Customer Segment` = 'Enterprise'"
+  # Asked in order through the Conversation API. A `follow_up` stays in the previous conversation.
+  ask:
+    - id: revenue_by_segment
+      text: What is total revenue by customer segment for Q3 2026?
+      expected_sql: |
+        SELECT CASE c.seg_cd WHEN 'E' THEN 'Enterprise' WHEN 'M' THEN 'Mid-Market' ELSE 'SMB' END AS segment,
+               SUM(o.net_amt) AS revenue
+        FROM {catalog}.{schema}.ord_fact o JOIN {catalog}.{schema}.cust c ON o.cust_id = c.cust_id
+        WHERE o.ord_st = 'C' AND o.ord_dt >= '2026-07-01' AND o.ord_dt < '2026-10-01' GROUP BY 1
+    - id: follow_up_august
+      text: Now only August.
+      follow_up: true
+      expected_sql: |
+        SELECT CASE c.seg_cd WHEN 'E' THEN 'Enterprise' WHEN 'M' THEN 'Mid-Market' ELSE 'SMB' END AS segment,
+               SUM(o.net_amt) AS revenue
+        FROM {catalog}.{schema}.ord_fact o JOIN {catalog}.{schema}.cust c ON o.cust_id = c.cust_id
+        WHERE o.ord_st = 'C' AND o.ord_dt >= '2026-08-01' AND o.ord_dt < '2026-09-01' GROUP BY 1
+    - id: active_by_region
+      text: How many active customers do we have in each region in Q3 2026?
+      expected_sql: |
+        SELECT CASE c.rgn_cd WHEN 'NA' THEN 'North America' WHEN 'EM' THEN 'EMEA' ELSE 'APAC' END AS region,
+               COUNT(DISTINCT o.cust_id) AS active_customers
+        FROM {catalog}.{schema}.ord_fact o JOIN {catalog}.{schema}.cust c ON o.cust_id = c.cust_id
+        WHERE o.ord_st = 'C' AND o.ord_dt >= '2026-07-01' AND o.ord_dt < '2026-10-01' GROUP BY 1
+    - id: vague_revenue
+      text: What is revenue for APAC?
+      expect_clarification: true

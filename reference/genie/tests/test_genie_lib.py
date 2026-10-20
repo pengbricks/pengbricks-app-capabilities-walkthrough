@@ -124,3 +124,77 @@ def test_spec_columns_use_options_the_sample_data_generator_supports():
             if "begin" in column:
                 sample_data.interval_seconds(column["interval"])
                 assert sample_data.grid_steps(column["begin"], column["end"], column["interval"]) > 1
+
+
+# ---------- Genie Agents guide ----------
+
+
+def test_agent_space_is_sorted_unique_and_stable() -> None:
+    from genie_lib import build_agent_space, definition_summary
+
+    agent = SPEC["genie_agent"]
+    raw = build_agent_space(agent, "cat", "sch")
+    assert raw == build_agent_space(agent, "cat", "sch")  # IDs come from content, so a rerun rebuilds the same definition
+    space = json.loads(raw)
+    assert space["version"] == 2
+    assert [m["identifier"] for m in space["data_sources"]["metric_views"]] == ["cat.sch.sales_metrics"]
+    columns = [c["column_name"] for c in space["data_sources"]["metric_views"][0]["column_configs"]]
+    assert columns == sorted(columns)
+    ids = [q["id"] for q in space["config"]["sample_questions"]]
+    ids += [i["id"] for i in space["instructions"]["text_instructions"]]
+    ids += [i["id"] for i in space["instructions"]["example_question_sqls"]]
+    ids += [b["id"] for b in space["benchmarks"]["questions"]]
+    assert len(ids) == len(set(ids)) and all(len(i) == 32 for i in ids)
+    for collection in (space["config"]["sample_questions"], space["instructions"]["example_question_sqls"], space["benchmarks"]["questions"]):
+        keys = [item["id"] for item in collection]
+        assert keys == sorted(keys)
+    assert len(space["instructions"]["text_instructions"]) == 1  # the API allows one text instruction
+    summary = definition_summary(raw)
+    assert summary["parameterized_example_sql"] == 1 and summary["benchmarks"] == 3 and summary["metric_views"] == 1
+
+
+def test_agent_example_parameters_match_the_sql() -> None:
+    from genie_lib import build_agent_space
+
+    space = json.loads(build_agent_space(SPEC["genie_agent"], "cat", "sch"))
+    for example in space["instructions"]["example_question_sqls"]:
+        sql = "".join(example["sql"])
+        names = {p["name"] for p in example.get("parameters", [])}
+        assert all(f":{name}" in sql for name in names)
+        assert "cat.sch.sales_metrics" in sql and "{catalog}" not in sql
+        for param in example.get("parameters", []):
+            assert param["type_hint"] in {"STRING", "DATE", "DECIMAL", "INTEGER", "TIMESTAMP"}
+            assert param["default_value"]["values"]
+
+
+def test_agent_ask_list_follows_a_conversation_and_has_a_baseline() -> None:
+    ask = SPEC["genie_agent"]["ask"]
+    assert not ask[0].get("follow_up")
+    assert any(q.get("follow_up") for q in ask) and any(q.get("expect_clarification") for q in ask)
+    assert all("expected_sql" in q or q.get("expect_clarification") for q in ask)
+
+
+def test_field_paths_return_names_not_values() -> None:
+    from genie_lib import field_paths
+
+    message = {"id": "m", "status": "COMPLETED", "attachments": [{"query": {"query": "SELECT 1", "statement_id": "s"}}, {"text": {"content": "x"}}]}
+    paths = field_paths(message)
+    assert paths == ["attachments[].query.query", "attachments[].query.statement_id", "id", "status"]
+    assert not any("SELECT" in p for p in paths)
+
+
+def test_sql_lines_keep_newlines_except_the_last() -> None:
+    from genie_lib import sql_lines
+
+    assert sql_lines("SELECT 1\nFROM t\n") == ["SELECT 1\n", "FROM t"]
+    assert sql_lines("SELECT 1") == ["SELECT 1"]
+
+
+def test_throttling_is_detected_by_phrase_not_by_digits_inside_ids() -> None:
+    from genie_lib import is_throttled
+
+    assert is_throttled(Exception("429 Too Many Requests"))
+    assert is_throttled(Exception("RESOURCE_EXHAUSTED: slow down"))
+    assert is_throttled(Exception("rate limit exceeded"))
+    assert not is_throttled(Exception("No API found for GET /genie/spaces/01f1ccdaa9/conversations/01f1ccdabb8429e595794f288a"))
+    assert not is_throttled(Exception("Could not generate a response"))

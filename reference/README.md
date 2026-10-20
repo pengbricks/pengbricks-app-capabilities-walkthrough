@@ -19,7 +19,7 @@ Each folder under `reference/` is a self-contained Declarative Automation Bundle
 | `governance/` | Access management, Row and column security, Compute and capacity management, Cost tracking and chargeback |
 | `ml-lifecycle/` | Feature preparation from source data, Training and bringing existing models, Reproducible experiments, Model quality and drift |
 | `realtime-scoring/` | Online model scoring |
-| `genie/` | Business terms and synonyms, Assistant user experience |
+| `genie/` | Business terms and synonyms, Assistant user experience, Genie Agents |
 | `open-data/` | Governed data sharing, Apache Iceberg interoperability, Partner tool integrations |
 | `platform-ops/` | Workspace and account administration, Support and recovery |
 | `agents/` | Agents, MCP, and model gateway; Building and shipping agents |
