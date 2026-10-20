@@ -382,13 +382,13 @@ export const guides: readonly Guide[] = [
     title: 'Apache Iceberg interoperability',
     category: 'General Guides',
     difficulty: 4,
-    summary: 'Validate governed Iceberg interoperability and table evolution.',
+    summary: 'Use managed Iceberg, the Unity Catalog Iceberg REST catalog, and credential vending for governed interoperability.',
     acceptanceCriteria:
-      'Read and write an Iceberg table, evolve its schema, use time travel, and query it from an external engine.',
+      'A managed Iceberg table, or a Delta table with Iceberg reads, is chosen for the use case and read by an external engine through the Iceberg REST catalog with vended credentials and a service principal on OAuth M2M.',
     evidence: [
-      'Representative read and write run',
-      'Evolution and time-travel evidence',
-      'Catalog and external access validation',
+      'Choice of managed Iceberg, Iceberg reads, or foreign Iceberg, with the reason',
+      'External read through the REST catalog with least-privilege grants',
+      'Schema evolution, time travel, and sharing approach',
     ],
   },
   {
@@ -396,13 +396,13 @@ export const guides: readonly Guide[] = [
     title: 'JSON, CSV, Parquet, Delta, and Iceberg',
     category: 'General Guides',
     difficulty: 2,
-    summary: 'Compare file and table formats on one dataset: size, types, query cost, and table-only features.',
+    summary: 'Choose a format by use: Delta by default, Iceberg reads for interop, managed Iceberg when Iceberg is the contract.',
     acceptanceCriteria:
-      'Write one dataset as JSON, CSV, Parquet, Delta, and Iceberg, measure each, and show what only the table formats provide.',
+      'Raw files are ingested into Delta, tables are Unity Catalog managed with liquid clustering and predictive optimization, retention is set deliberately, and the format choice for each consumer is explained.',
     evidence: [
-      'Size, inferred-type, and query-time table per format',
-      'Update, time-travel, and schema-evolution runs on tables versus files',
-      'Delta log and Iceberg metadata file listings',
+      'Format decision for each consumer: Delta, Iceberg reads, or managed Iceberg',
+      'Ingestion of raw files into Delta with Auto Loader or read_files',
+      'Clustering, maintenance, and VACUUM retention settings',
     ],
   },
   {

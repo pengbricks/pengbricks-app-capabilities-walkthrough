@@ -5,70 +5,58 @@ export const walkthrough: Walkthrough = {
   area: 'General Guides',
   title: 'Apache Iceberg interoperability',
   intro:
-    'One Unity Catalog table is written and evolved in Databricks, then read from PyIceberg through the Iceberg REST catalog. The external client uses an OAuth token and vended storage credentials, so it holds no storage keys. Every step writes a row to the iceberg_checks table.',
+    'The Databricks answer to Iceberg interoperability has three parts: managed Iceberg tables in Unity Catalog, the Unity Catalog Iceberg REST catalog for external engines, and credential vending so those engines never hold storage keys. You govern the table once in Unity Catalog, write it from Databricks or from an external Iceberg engine, and read it from Spark, Trino, Flink, PyIceberg, or Snowflake. This page covers which table type to use, how to expose it, and how to connect an outside client safely.',
   shortVersion: [
     {
-      title: 'A managed Iceberg table is one statement.',
-      body: 'CREATE TABLE ... USING ICEBERG creates orders_iceberg with 1,000 rows. A second write appends 500.',
+      title: 'Managed Iceberg + REST catalog + credential vending.',
+      body: 'Create a managed Iceberg table with USING ICEBERG. External engines connect to the Unity Catalog Iceberg REST catalog, and Unity Catalog vends short-lived storage credentials scoped to the principal.',
     },
     {
-      title: 'The schema evolves in place.',
-      body: 'ALTER TABLE ADD COLUMN channel adds an eighth column. Existing rows are backfilled with online.',
+      title: 'Pick the table type by who owns the format.',
+      body: 'Managed Iceberg when Iceberg is the contract. A Delta table with Iceberg reads when Databricks is the writer and Iceberg clients only read. A foreign Iceberg table when another catalog owns the table.',
     },
     {
-      title: 'Time travel reads the older shape.',
-      body: 'VERSION AS OF 1 returns 1,500 rows with seven columns, before channel existed.',
+      title: 'Iceberg v3 is generally available.',
+      body: 'Managed tables can use v3 features: deletion vectors, VARIANT, row lineage, geospatial types, and write defaults. Requires Databricks Runtime 18 LTS or above.',
     },
     {
-      title: 'The external read uses the REST catalog.',
-      body: 'PyIceberg sees all eight columns, reads 1,500 rows that match Spark, and filters region = West to 417 rows.',
+      title: 'Outside clients use a service principal with OAuth M2M.',
+      body: 'Create a service principal, give it an OAuth secret, and grant it SELECT and EXTERNAL USE SCHEMA. Use a personal access token only as a fallback.',
     },
     {
-      title: 'Two settings make it work.',
-      body: 'External data access is on for the metastore, and the reading identity has EXTERNAL USE SCHEMA on the schema.',
+      title: 'Share Iceberg through OpenSharing.',
+      body: 'Sharing managed Iceberg tables, and foreign Iceberg tables, is generally available, including to recipients that use Iceberg clients.',
     },
   ],
   sections: [
     {
       id: 'flow',
       heading: 'Write in Databricks, read anywhere',
-      examples: [
-        {
-          label: 'Keep a Delta table, expose it as Iceberg',
-          language: 'sql',
-          code: '-- The table stays Delta. External engines read it as Iceberg.\nALTER TABLE <catalog>.<schema>.orders SET TBLPROPERTIES (\n  \'delta.columnMapping.mode\' = \'name\',\n  \'delta.enableIcebergCompatV2\' = \'true\',\n  \'delta.universalFormat.enabledFormats\' = \'iceberg\'\n);',
-          notes: ['The reference code creates a managed Iceberg table with USING ICEBERG instead.'],
-        },
-      ],
       prose:
-        'The first task works through Spark SQL. The second task runs PyIceberg in the same job but talks only to the REST catalog and cloud storage, the way an external engine would.',
+        'Unity Catalog is the single catalog. Databricks compute and external engines reach the same managed table, and Unity Catalog keeps snapshot expiration, compaction, and metadata current. Predictive optimization maintains managed Iceberg tables, and liquid clustering is available for them as a Public Preview.',
       diagram: {
         type: 'flow',
-        title: 'From a managed Iceberg table to an external read',
+        title: 'One governed Iceberg table, many engines',
         description:
-          'Task managed_iceberg_table creates orders_iceberg with USING ICEBERG, appends rows, adds the channel column, reads VERSION AS OF 1, and grants EXTERNAL USE SCHEMA. Task read_through_irc asks the Unity Catalog Iceberg REST catalog for the table with an OAuth bearer token. The catalog returns table metadata and vended storage credentials. PyIceberg reads the data files from cloud storage. Both tasks write rows to iceberg_checks.',
+          'A managed Iceberg table lives in Unity Catalog and is written from Databricks SQL or Spark. External engines such as PyIceberg, Trino, Flink, and open-source Spark connect to the Unity Catalog Iceberg REST catalog with an OAuth token. The catalog returns table metadata and vended, short-lived storage credentials. The engines read the data files from cloud storage directly.',
         lanes: [
-          { label: 'Databricks, Spark SQL', fromRow: 0, toRow: 0 },
-          { label: 'External client, PyIceberg', fromRow: 1, toRow: 2 },
+          { label: 'Databricks', fromRow: 0, toRow: 0 },
+          { label: 'External Iceberg engines', fromRow: 1, toRow: 2 },
         ],
         nodes: [
           { id: 'create', label: 'CREATE ... ICEBERG', sub: 'managed table', col: 0, row: 0 },
-          { id: 'table', label: 'orders_iceberg', mono: true, sub: 'Unity Catalog', col: 1, row: 0, kind: 'store' },
-          { id: 'evolve', label: 'ADD COLUMN, UPDATE', sub: 'schema evolution', col: 2, row: 0 },
-          { id: 'travel', label: 'VERSION AS OF 1', sub: 'time travel', col: 3, row: 0 },
-          { id: 'client', label: 'PyIceberg', sub: 'OAuth bearer token', col: 0, row: 1, kind: 'highlight' },
+          { id: 'table', label: 'Managed Iceberg table', sub: 'Unity Catalog', col: 1, row: 0, kind: 'store' },
+          { id: 'opt', label: 'Predictive optimization', sub: 'compaction, expiry', col: 2, row: 0 },
+          { id: 'client', label: 'Iceberg client', sub: 'OAuth bearer token', col: 0, row: 1, kind: 'highlight' },
           { id: 'irc', label: 'Iceberg REST catalog', sub: 'metadata + credentials', col: 1, row: 1, kind: 'surface' },
           { id: 'storage', label: 'Cloud storage', sub: 'data files', col: 2, row: 1, kind: 'store' },
-          { id: 'checks', label: 'iceberg_checks', mono: true, sub: 'one row per check', col: 1, row: 2, kind: 'store' },
         ],
         edges: [
           { from: 'create', to: 'table' },
-          { from: 'table', to: 'evolve' },
-          { from: 'evolve', to: 'travel' },
+          { from: 'table', to: 'opt' },
           { from: 'table', to: 'irc', label: 'exposed through' },
           { from: 'client', to: 'irc', label: 'load_table' },
           { from: 'client', to: 'storage', label: 'vended credentials', dashed: true },
-          { from: 'client', to: 'checks' },
         ],
         legend: [
           { kind: 'highlight', label: 'External engine' },
@@ -76,109 +64,206 @@ export const walkthrough: Walkthrough = {
           { kind: 'dashed', label: 'Temporary storage credentials' },
         ],
       },
+      examples: [
+        {
+          label: 'Create a managed Iceberg table',
+          language: 'sql',
+          code: "CREATE TABLE <catalog>.<schema>.orders_iceberg (\n  order_id BIGINT, region STRING, amount DECIMAL(12,2), order_date DATE\n) USING ICEBERG;",
+          notes: [
+            'Add TBLPROPERTIES (\'format-version\' = 3) to use Iceberg v3 features. This needs Databricks Runtime 18 LTS or above.',
+            'Managed Iceberg tables need serverless compute with network access to the table storage, because Databricks uses it to maintain metadata.',
+          ],
+        },
+      ],
+      links: [
+        {
+          label: 'What is Apache Iceberg in Databricks?',
+          url: 'https://docs.databricks.com/aws/en/iceberg/',
+          note: 'Managed and foreign tables, requirements, and limits.',
+        },
+      ],
     },
     {
-      id: 'versions',
-      heading: 'Versions and what each one shows',
-      prose: 'DESCRIBE HISTORY lists four versions. Reading version 1 gives the table as it was before the column was added.',
+      id: 'choose',
+      heading: 'Which Iceberg option to use',
+      prose:
+        'There are three ways an Iceberg table shows up in Unity Catalog. Choose by who writes the table and who owns the format.',
       diagram: {
         type: 'matrix',
-        title: 'Table shape by version',
+        title: 'Managed Iceberg, Iceberg reads, or foreign Iceberg',
         description:
-          'Version 0 is CREATE TABLE AS SELECT with 1,000 rows and seven columns. Version 1 is a write that brings the table to 1,500 rows and seven columns. Version 2 adds the channel column, making eight columns. Version 3 updates rows to backfill channel.',
-        corner: 'Version ↓ · Shape →',
-        columns: ['Operation', 'Columns'],
+          'Managed Iceberg tables are the choice when Iceberg is the contract, with reads and writes from Databricks and external engines. A Delta table with Iceberg reads is the choice when Databricks is the writer and Iceberg clients only read. A foreign Iceberg table is read-only in Databricks and the table stays in another catalog such as AWS Glue, Hive metastore, or Snowflake Horizon Catalog.',
+        corner: 'Option ↓ · Property →',
+        columns: ['Use it when', 'Who writes', 'Catalog of record'],
         rows: [
           {
-            label: 'Version 0',
-            sub: '1,000 rows',
+            label: 'Managed Iceberg',
             cells: [
-              { state: 'own', text: 'CREATE TABLE AS SELECT' },
-              { state: 'own', text: '7' },
+              { state: 'own', text: 'Iceberg is the contract' },
+              { state: 'own', text: 'Databricks and external engines' },
+              { state: 'own', text: 'Unity Catalog' },
             ],
           },
           {
-            label: 'Version 1',
-            sub: '1,500 rows',
+            label: 'Delta + Iceberg reads',
+            sub: 'formerly UniForm',
             cells: [
-              { state: 'own', text: 'WRITE (append)' },
-              { state: 'own', text: '7' },
+              { state: 'own', text: 'Delta is the default; clients read Iceberg' },
+              { state: 'optional', text: 'Databricks only' },
+              { state: 'own', text: 'Unity Catalog' },
             ],
           },
           {
-            label: 'Version 2',
-            sub: '1,500 rows',
+            label: 'Foreign Iceberg',
+            sub: 'Lakehouse Federation',
             cells: [
-              { state: 'own', text: 'ADD COLUMNS' },
-              { state: 'optional', text: '8, channel is NULL' },
-            ],
-          },
-          {
-            label: 'Version 3',
-            sub: '1,500 rows',
-            cells: [
-              { state: 'own', text: 'UPDATE (backfill)' },
-              { state: 'optional', text: '8, channel = online' },
+              { state: 'optional', text: 'Another catalog owns the table' },
+              { state: 'none', text: 'Read-only in Databricks' },
+              { state: 'none', text: 'Glue, Hive, Snowflake Horizon' },
             ],
           },
         ],
         legend: [
-          { state: 'own', label: 'Original seven columns' },
-          { state: 'optional', label: 'Includes the added column' },
+          { state: 'own', label: 'Full platform support' },
+          { state: 'optional', label: 'Works, with a limit' },
+          { state: 'none', label: 'Read-only or external' },
         ],
-        caption: 'The time-travel check reads version 1 and confirms it has no channel column.',
+        caption: 'Foreign Iceberg tables have limited platform support. Copy or clone data into a managed table if you need the full feature set.',
       },
+      points: [
+        {
+          strong: 'Default to Delta, add Iceberg reads for interoperability.',
+          text: 'If only Databricks writes, keep the table Delta and turn on Iceberg reads so external Iceberg clients can query it.',
+        },
+        {
+          strong: 'Choose managed Iceberg when other engines write.',
+          text: 'If Flink, Spark, or another engine must write through the REST catalog, or the standard you commit to is Iceberg, create a managed Iceberg table.',
+        },
+        {
+          strong: 'Limits to know.',
+          text: 'External Iceberg engines cannot read Unity Catalog views. Iceberg reads require column mapping on the Delta table, and deletion vectors cannot be enabled together with Iceberg reads on v2 compatibility.',
+        },
+      ],
+      examples: [
+        {
+          label: 'Keep a Delta table, expose it as Iceberg',
+          language: 'sql',
+          code: "-- The table stays Delta. External engines read it as Iceberg.\nALTER TABLE <catalog>.<schema>.orders SET TBLPROPERTIES (\n  'delta.columnMapping.mode' = 'name',\n  'delta.enableIcebergCompatV2' = 'true',\n  'delta.universalFormat.enabledFormats' = 'iceberg'\n);",
+          notes: ['Use delta.enableIcebergCompatV3 instead to use Iceberg v3 features.'],
+        },
+      ],
+      links: [
+        {
+          label: 'Read Delta tables with Iceberg clients',
+          url: 'https://docs.databricks.com/aws/en/delta/uniform',
+          note: 'Iceberg reads: requirements, REORG, and limitations.',
+        },
+        {
+          label: 'Use Apache Iceberg v3 features',
+          url: 'https://docs.databricks.com/aws/en/iceberg/iceberg-v3',
+        },
+        {
+          label: 'Foreign catalogs (Lakehouse Federation)',
+          url: 'https://docs.databricks.com/aws/en/query-federation/foreign-catalogs',
+        },
+      ],
     },
     {
       id: 'external',
-      heading: 'Reading through the REST catalog',
+      heading: 'Connecting an outside client',
+      prose:
+        'External engines use the Iceberg REST catalog on the workspace host. Use the Iceberg client version the Databricks docs recommend (1.9.2 or above) and request vended credentials.',
+      steps: [
+        {
+          title: 'Create a service principal for the client',
+          body: 'Use a service principal with OAuth machine-to-machine credentials: a client ID and a secret that the client exchanges for a short-lived token. It has no human owner to leave the company, and you can scope and rotate it. Use a personal access token only as a fallback when OAuth M2M is not an option.',
+        },
+        {
+          title: 'Grant least privilege',
+          body: 'Grant the service principal USE CATALOG, USE SCHEMA, and SELECT on the tables it reads, plus EXTERNAL USE SCHEMA on each schema it reaches from outside. Add MODIFY for writers.',
+        },
+        {
+          title: 'Point the engine at the REST catalog',
+          body: 'The catalog URL is /api/2.1/unity-catalog/iceberg-rest on the workspace host. The warehouse property is the Unity Catalog catalog name. The client asks for vended credentials, so it needs no storage keys.',
+          code: 'load_catalog("unity", type="rest",\n  uri="https://<host>/api/2.1/unity-catalog/iceberg-rest",\n  warehouse="<catalog>", token=token,\n  **{"header.X-Iceberg-Access-Delegation": "vended-credentials"})',
+        },
+      ],
       examples: [
         {
           label: 'Read the same table from open-source Spark',
           language: 'py',
-          code: 'from pyspark.sql import SparkSession\n\nWS = "https://<workspace-url>"\nspark = (\n    SparkSession.builder\n    .config("spark.jars.packages",\n            "org.apache.iceberg:iceberg-spark-runtime-3.5_2.12:1.7.1,"\n            "org.apache.iceberg:iceberg-aws-bundle:1.7.1")\n    .config("spark.sql.extensions", "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")\n    .config("spark.sql.catalog.uc", "org.apache.iceberg.spark.SparkCatalog")\n    .config("spark.sql.catalog.uc.type", "rest")\n    .config("spark.sql.catalog.uc.rest.auth.type", "oauth2")\n    .config("spark.sql.catalog.uc.uri", f"{WS}/api/2.1/unity-catalog/iceberg-rest")\n    .config("spark.sql.catalog.uc.oauth2-server-uri", f"{WS}/oidc/v1/token")\n    .config("spark.sql.catalog.uc.credential", "<client-id>:<client-secret>")\n    .config("spark.sql.catalog.uc.scope", "all-apis")\n    .config("spark.sql.catalog.uc.warehouse", "<catalog>")\n    .getOrCreate()\n)\nspark.sql("SELECT * FROM uc.<schema>.orders_iceberg").show()',
-          notes: ['Use the Azure or GCP bundle in place of iceberg-aws-bundle on those clouds.'],
+          code: 'from pyspark.sql import SparkSession\n\nWS = "https://<workspace-url>"\nspark = (\n    SparkSession.builder\n    .config("spark.jars.packages",\n            "org.apache.iceberg:iceberg-spark-runtime-3.5_2.12:<iceberg-version>,"\n            "org.apache.iceberg:iceberg-aws-bundle:<iceberg-version>")\n    .config("spark.sql.extensions", "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")\n    .config("spark.sql.catalog.uc", "org.apache.iceberg.spark.SparkCatalog")\n    .config("spark.sql.catalog.uc.type", "rest")\n    .config("spark.sql.catalog.uc.rest.auth.type", "oauth2")\n    .config("spark.sql.catalog.uc.uri", f"{WS}/api/2.1/unity-catalog/iceberg-rest")\n    .config("spark.sql.catalog.uc.oauth2-server-uri", f"{WS}/oidc/v1/token")\n    .config("spark.sql.catalog.uc.credential", "<client-id>:<client-secret>")\n    .config("spark.sql.catalog.uc.scope", "all-apis")\n    .config("spark.sql.catalog.uc.warehouse", "<catalog>")\n    .getOrCreate()\n)\nspark.sql("SELECT * FROM uc.<schema>.orders_iceberg").show()',
+          notes: [
+            'Replace <iceberg-version> with the version the Databricks docs recommend (1.9.2 or above).',
+            'Use the Azure or GCP bundle in place of iceberg-aws-bundle on those clouds.',
+            'Read the client ID and secret from a secret store, not from source.',
+          ],
         },
       ],
-      prose:
-        'The REST catalog lives on the workspace host. PyIceberg needs four properties; the token is the OAuth token of the job identity.',
-      steps: [
+      links: [
         {
-          title: 'Configure the catalog',
-          body: 'The warehouse property is the Unity Catalog catalog name. The header asks for vended credentials so PyIceberg can read the data files.',
-          code: 'load_catalog("unity", type="rest",\n  uri="https://<host>/api/2.1/unity-catalog/iceberg-rest",\n  warehouse="<catalog>", token=token,\n  **{"header.X-Iceberg-Access-Delegation": "vended-credentials"})',
+          label: 'Access Databricks tables from Iceberg clients',
+          url: 'https://docs.databricks.com/aws/en/external-access/iceberg',
         },
         {
-          title: 'Load and scan',
-          body: 'load_table("<schema>.orders_iceberg") returns the current schema with channel. A full scan returns 1,500 rows, equal to the Spark count.',
-        },
-        {
-          title: 'Filter at the client',
-          body: 'EqualTo("region", "West") returns 417 rows. The filter is pushed into the Iceberg scan plan.',
+          label: 'Credential vending',
+          url: 'https://docs.databricks.com/aws/en/external-access/credential-vending',
+          note: 'Temporary, scoped storage credentials for external systems.',
         },
       ],
     },
     {
       id: 'access',
       heading: 'What external access depends on',
-      prose: 'Two Unity Catalog controls gate the external read. The job grants the second one itself.',
+      prose: 'Two Unity Catalog controls gate the external read.',
       points: [
         {
           strong: 'Metastore setting.',
-          text: 'External data access must be enabled on the metastore. An admin sets it; the workspace used here already had it on.',
+          text: 'A metastore admin enables external data access on the metastore. Until then, no external engine can get credentials.',
         },
         {
           strong: 'Schema privilege.',
-          text: 'The job runs GRANT EXTERNAL USE SCHEMA on the guide schema to the identity PyIceberg uses, along with ordinary SELECT.',
+          text: 'The reading principal needs EXTERNAL USE SCHEMA on the schema, plus ordinary SELECT on the table. A schema owner or admin grants it, so granting stays an explicit, auditable decision.',
         },
         {
-          strong: 'Other identities.',
-          text: 'A service principal with an OAuth secret, or a personal access token, gives an outside client the same bearer token.',
+          strong: 'Credential vending limits exposure.',
+          text: 'Unity Catalog issues temporary credentials scoped to the table and the privilege, so a leaked token expires and cannot reach other storage.',
+        },
+      ],
+    },
+    {
+      id: 'evolution',
+      heading: 'Evolution, time travel, and sharing',
+      prose:
+        'Managed Iceberg tables support the Iceberg features you expect, and external readers see them.',
+      points: [
+        {
+          strong: 'Schema evolution in place.',
+          text: 'ALTER TABLE ADD COLUMN adds a column without rewriting data. External readers load the new schema on their next table load.',
+        },
+        {
+          strong: 'Time travel.',
+          text: 'Read an earlier snapshot with VERSION AS OF or TIMESTAMP AS OF. Keep snapshot retention long enough for audit and rollback.',
+        },
+        {
+          strong: 'Sharing.',
+          text: 'Share managed Iceberg tables, and foreign Iceberg tables, with OpenSharing (formerly Delta Sharing). Recipients can read them with Iceberg clients. Sharing is generally available.',
+        },
+        {
+          strong: 'Let the platform maintain the table.',
+          text: 'Use predictive optimization on managed tables instead of hand-tuned compaction, and prefer liquid clustering to partitioning.',
+        },
+      ],
+      links: [
+        {
+          label: 'OpenSharing',
+          url: 'https://docs.databricks.com/aws/en/opensharing',
         },
       ],
     },
   ],
   related: [
+    { slug: 'file-formats-delta-iceberg', title: 'JSON, CSV, Parquet, Delta, and Iceberg' },
     { slug: 'external-integrations', title: 'Partner tool integrations' },
     { slug: 'data-sharing', title: 'Governed data sharing' },
   ],

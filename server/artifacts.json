@@ -5291,7 +5291,7 @@
           "path": "reference/open-data/src/open_data/iceberg.py",
           "notes": [
             "URI, warehouse, token, and the vended-credentials header.",
-            "Without the header the data read is denied."
+            "Without the header the data read is denied. For an outside client, use a service principal with OAuth M2M."
           ],
           "symbol": "catalog_properties",
           "section": "external"
@@ -5330,7 +5330,7 @@
             76,
             77
           ],
-          "section": "versions"
+          "section": "evolution"
         },
         {
           "label": "Time travel to before the change",
@@ -5342,7 +5342,7 @@
             90,
             94
           ],
-          "section": "versions"
+          "section": "evolution"
         },
         {
           "label": "Allow external access",
@@ -5392,7 +5392,7 @@
           "url": "https://docs.databricks.com/aws/en/iceberg/"
         },
         {
-          "label": "Read Delta tables as Iceberg (UniForm)",
+          "label": "Read Delta tables with Iceberg clients",
           "url": "https://docs.databricks.com/aws/en/delta/uniform"
         },
         {
@@ -5408,10 +5408,9 @@
         {
           "label": "Job parameters and task order",
           "path": "reference/open-data/resources/file_formats_compare.job.yml",
-          "section": "dataset",
+          "section": "compare",
           "notes": [
-            "Four job parameters feed every notebook as widgets.",
-            "Each task is one notebook, run in order."
+            "Job parameters feed every notebook as widgets; each task is one notebook."
           ],
           "lines": [
             16,
@@ -5421,9 +5420,9 @@
         {
           "label": "Write the same rows five ways",
           "path": "reference/open-data/guides/file-formats-delta-iceberg/01_write_formats.py",
-          "section": "dataset",
+          "section": "compare",
           "notes": [
-            "Rows are range-partitioned by order_date in every format.",
+            "Rows are range-partitioned by order_date here so every format has the same files. For new tables, prefer liquid clustering.",
             "Iceberg is created with USING ICEBERG and filled with SQL."
           ],
           "lines": [

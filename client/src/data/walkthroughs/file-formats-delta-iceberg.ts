@@ -5,55 +5,86 @@ export const walkthrough: Walkthrough = {
   area: 'General Guides',
   title: 'JSON, CSV, Parquet, Delta, and Iceberg',
   intro:
-    'One generated dataset of 1 million orders is written as JSON, CSV, and Parquet files, a Delta table, and a managed Iceberg table. The job measures size, inferred types, and what a selective query reads, then tries UPDATE, time travel, schema changes, and concurrent writes on each. Every number on this page comes from the job run.',
+    'Use Delta as the default table format. Add Iceberg reads when other engines need to query the same data, and choose managed Iceberg when Iceberg is the contract. Land raw JSON and CSV files into Delta with Auto Loader or read_files, keep them as Unity Catalog managed tables, and let liquid clustering and predictive optimization maintain them. This page covers when to use each format, why the table formats differ from files, and the settings that matter in practice.',
   shortVersion: [
     {
-      title: 'Size follows the encoding.',
-      body: 'The same rows take 293 MB as JSON, 188 MB as CSV, 35 MB as Parquet, and about 26 MB as Delta or Iceberg, which default to zstd.',
+      title: 'Delta is the default.',
+      body: 'It has the widest feature set in Databricks: ACID commits, updates and merges, time travel, change data feed, deletion vectors, and the most optimizations.',
     },
     {
-      title: 'Text formats lose types.',
-      body: 'CSV returns every decimal as double and cannot hold nested values. JSON turns dates and timestamps into strings, decimals into doubles, and int into bigint.',
+      title: 'Add Iceberg reads for interop.',
+      body: 'A Delta table with Iceberg reads enabled is readable by Iceberg clients through the Unity Catalog Iceberg REST catalog, without a second copy of the data.',
     },
     {
-      title: 'Only tables skip files.',
-      body: 'A one-day filter reads 1 of 8 files in Delta and Iceberg and prunes 7. The Parquet folder and CSV open all 8, and CSV reads about 199 MB.',
+      title: 'Choose managed Iceberg when Iceberg is the contract.',
+      body: 'When other engines write to the table, or your standard is Iceberg, create a managed Iceberg table in Unity Catalog.',
     },
     {
-      title: 'Only tables change rows safely.',
-      body: 'UPDATE, DELETE, and MERGE fail on a Parquet folder. Two writers overwriting one folder left 900,000 rows; Delta and Iceberg kept exactly one writer.',
+      title: 'Ingest files into Delta, do not query them in place.',
+      body: 'JSON and CSV lose types and cannot skip data. Land them with Auto Loader or read_files into a bronze Delta table.',
     },
     {
-      title: 'Both table formats are Parquet underneath.',
-      body: 'Delta keeps a _delta_log of JSON commits and checkpoints. Iceberg keeps metadata.json, a manifest list, and manifests. UniForm writes both over the same files.',
+      title: 'Cluster, do not partition.',
+      body: 'Use liquid clustering and predictive optimization on managed tables. They replace hand-tuned partitioning, compaction, and VACUUM.',
     },
   ],
   sections: [
     {
-      id: 'dataset',
-      heading: 'One dataset, written five ways',
-      prose:
-        'Orders have a date, a timestamp, decimals, two nullable columns, a struct, and an array of structs. They are range-partitioned by order_date, so every format gets the same eight files of about the same rows. Every write overwrites, so a rerun gives the same counts.',
-      steps: [
+      id: 'decide',
+      heading: 'Which format to use',
+      prose: 'Pick by who reads and writes the data, not by habit.',
+      table: {
+        columns: ['Format', 'Use it when'],
+        rows: [
+          ['Delta table', 'The default for tables that Databricks writes. Use it for bronze, silver, and gold layers, updates, and merges.'],
+          ['Delta + Iceberg reads', 'Databricks writes, but Snowflake, Trino, Flink, or another Iceberg client needs to read the same table'],
+          ['Managed Iceberg', 'Iceberg is the contract: external engines write to the table, or your platform standard is Iceberg'],
+          ['Parquet files', 'Exchange files with a system that expects Parquet, or land data before ingestion. Do not use as a table.'],
+          ['JSON and CSV files', 'Source formats from other systems. Ingest them into Delta rather than keeping them as the query layer.'],
+        ],
+      },
+      links: [
         {
-          title: 'Generate',
-          body: 'The sample-data generator builds the flat columns from the use-case spec. The notebook adds the nested ones.',
+          label: 'Read Delta tables with Iceberg clients',
+          url: 'https://docs.databricks.com/aws/en/delta/uniform',
+          note: 'Iceberg reads, formerly UniForm.',
         },
         {
-          title: 'Write',
-          body: 'JSON, CSV, and Parquet go to a Unity Catalog volume folder. Delta uses saveAsTable. Iceberg uses CREATE TABLE ... USING ICEBERG, because the DataFrame writer is rejected for managed Iceberg.',
-        },
-        {
-          title: 'Record',
-          body: 'Each run appends file counts, bytes, and timings to ff_results, a run log that grows.',
+          label: 'What is Apache Iceberg in Databricks?',
+          url: 'https://docs.databricks.com/aws/en/iceberg/',
         },
       ],
+    },
+    {
+      id: 'ingest',
+      heading: 'Ingest raw files into Delta',
+      prose:
+        'Text files are a source, not a destination. Use Auto Loader for continuous or scheduled loads of files that keep arriving, and read_files for ad hoc queries and one-time loads. Both infer a schema and can rescue columns that do not match.',
       examples: [
+        {
+          label: 'Incremental ingestion with a streaming table',
+          language: 'sql',
+          code: "CREATE OR REFRESH STREAMING TABLE bronze_orders AS\nSELECT * FROM STREAM read_files(\n  '/Volumes/<catalog>/<schema>/landing/orders/',\n  format => 'json'\n);",
+          notes: [
+            'Each run processes only new files. Use this in a Lakeflow Spark Declarative Pipeline or as a Databricks SQL streaming table.',
+            'Keep the raw columns in bronze and cast types in silver.',
+          ],
+        },
         {
           label: 'Query files in place with read_files',
           language: 'sql',
-          code: "SELECT region, sum(amount)\nFROM read_files(\n  '/Volumes/<catalog>/<schema>/format_compare/csv',\n  format => 'csv',\n  header => true,\n  inferSchema => true\n)\nGROUP BY region;",
+          code: "SELECT region, sum(amount)\nFROM read_files(\n  '/Volumes/<catalog>/<schema>/landing/csv',\n  format => 'csv',\n  header => true,\n  inferSchema => true\n)\nGROUP BY region;",
           notes: ["For JSON use format => 'json'. For Parquet the schema comes from the file footers."],
+        },
+      ],
+      links: [
+        {
+          label: 'Auto Loader',
+          url: 'https://docs.databricks.com/aws/en/ingestion/cloud-object-storage/auto-loader',
+        },
+        {
+          label: 'read_files',
+          url: 'https://docs.databricks.com/aws/en/sql/language-manual/functions/read_files',
         },
       ],
     },
@@ -61,7 +92,7 @@ export const walkthrough: Walkthrough = {
       id: 'compare',
       heading: 'What each format gives a reader',
       prose:
-        'The matrix summarizes the measured differences. The notebooks record the numbers in ff_results, and the one-pager repeats them with the full comparison.',
+        'Text formats carry no types and cannot skip files. Parquet adds columnar storage and types. Delta and Iceberg add a metadata layer on top of Parquet, which brings statistics-based skipping, transactions, updates, and time travel.',
       diagram: {
         type: 'matrix',
         title: 'Formats compared',
@@ -72,7 +103,7 @@ export const walkthrough: Walkthrough = {
         rows: [
           {
             label: 'JSON',
-            sub: '293 MB, 8 files',
+            sub: 'text, nested',
             cells: [
               { state: 'none', text: 'Inferred' },
               { state: 'none', text: 'Parse all' },
@@ -83,7 +114,7 @@ export const walkthrough: Walkthrough = {
           },
           {
             label: 'CSV',
-            sub: '188 MB, 8 files',
+            sub: 'text, flat',
             cells: [
               { state: 'none', text: 'Inferred' },
               { state: 'none', text: 'Parse all' },
@@ -94,7 +125,7 @@ export const walkthrough: Walkthrough = {
           },
           {
             label: 'Parquet folder',
-            sub: '35 MB, 8 files',
+            sub: 'columnar files',
             cells: [
               { state: 'own', text: 'In footer' },
               { state: 'own', text: 'Yes' },
@@ -105,7 +136,7 @@ export const walkthrough: Walkthrough = {
           },
           {
             label: 'Delta table',
-            sub: '26 MB, 8 files',
+            sub: 'Parquet + log',
             cells: [
               { state: 'own', text: 'Enforced' },
               { state: 'own', text: 'Yes' },
@@ -116,7 +147,7 @@ export const walkthrough: Walkthrough = {
           },
           {
             label: 'Iceberg table',
-            sub: '26 MB, 8 files',
+            sub: 'Parquet + metadata',
             cells: [
               { state: 'own', text: 'Enforced' },
               { state: 'own', text: 'Yes' },
@@ -131,44 +162,95 @@ export const walkthrough: Walkthrough = {
           { state: 'optional', label: 'Partly' },
           { state: 'none', label: 'Not available' },
         ],
-        caption: 'Sizes are the bytes the job measured for the same 1,000,000 rows.',
       },
       points: [
         {
-          strong: 'Schema inference.',
-          text: 'JSON and CSV carry no types, so Spark samples the files. CSV returns decimal(10,2), decimal(5,2), and decimal(12,2) as double. JSON returns int as bigint, date and timestamp as string, and decimals as double.',
+          strong: 'Schema inference is a guess.',
+          text: 'JSON and CSV carry no types, so Spark samples the files. CSV returns decimals as double, and JSON returns dates and timestamps as strings. Set the schema explicitly, or cast in silver.',
         },
         {
           strong: 'Nested data.',
-          text: 'The CSV writer refuses struct and array columns, so the guide stores them as JSON text. JSON keeps the nesting but orders struct fields alphabetically.',
+          text: 'The CSV writer refuses struct and array columns. JSON keeps nesting but loses the declared field order and types.',
         },
         {
-          strong: 'Query cost.',
-          text: 'At 1 million rows the median query takes 0.47 to 0.54 seconds on every format except CSV, at 1.0 second. Scan metrics from system.query.history show the difference: CSV reads 8 of 8 files and 199 MB; Parquet opens 8 files but reads about 3 MB; Delta and Iceberg read 1 file and prune 7. JSON reports no scan metrics.',
+          strong: 'Size and speed come from encoding and skipping.',
+          text: 'Columnar, compressed formats are many times smaller than text. Delta and Iceberg read only the files whose statistics match a filter. Benchmark on your data: small tables hide the difference.',
+        },
+        {
+          strong: 'Only tables change rows safely.',
+          text: 'UPDATE, DELETE, and MERGE are not supported on a plain Parquet folder, and concurrent writers to a folder can overwrite each other. Delta and Iceberg commit atomically.',
         },
       ],
     },
     {
       id: 'features',
       heading: 'What only the table formats do',
-      prose:
-        'The same operations run against a Parquet folder, a Delta table, and a managed Iceberg table built from the same 20,000 rows. The main tables are never touched.',
       points: [
         {
           strong: 'UPDATE, DELETE, MERGE.',
-          text: 'On a Parquet folder Unity Catalog returns UC_COMMAND_NOT_SUPPORTED for UPDATE and MERGE, and a permission error for DELETE. Delta and Iceberg run all three.',
+          text: 'Row-level changes with ACID commits. This is what makes change data capture and slowly changing dimensions possible.',
         },
         {
           strong: 'Time travel.',
-          text: 'DESCRIBE HISTORY lists four versions on each table. VERSION AS OF 0 returns the original 20,000 rows, including the one deleted later. A folder has no versions.',
+          text: 'Query an earlier version with VERSION AS OF or TIMESTAMP AS OF, and restore with RESTORE. Retention is bounded by VACUUM.',
         },
         {
           strong: 'Schema evolution and enforcement.',
-          text: 'ALTER TABLE ADD COLUMN works on both tables. An insert with an extra column is rejected. A Parquet folder accepts a file with a different schema, and readers then disagree about the columns.',
+          text: 'ALTER TABLE ADD COLUMN works in place, and a write with an unexpected column is rejected instead of silently changing the table.',
         },
         {
           strong: 'ACID.',
-          text: "A failed write leaves each table at 300,000 rows. Readers during an overwrite saw only 300,000 or 600,000. Two writers on one folder produced a mix of both; tables ended with exactly one writer's data.",
+          text: 'A failed write leaves the table unchanged, and readers see either the old or the new data, never a mix.',
+        },
+      ],
+    },
+    {
+      id: 'tables',
+      heading: 'Managed tables, layout, and retention',
+      prose:
+        'Default to Unity Catalog managed tables. They get automatic maintenance and the best performance, and Unity Catalog controls the storage.',
+      points: [
+        {
+          strong: 'Managed over external.',
+          text: 'Use managed tables unless another system must own the storage path. External tables keep your files where they are, but you maintain them yourself.',
+        },
+        {
+          strong: 'Liquid clustering, not partitioning.',
+          text: 'Databricks recommends liquid clustering for all new tables. Cluster by the columns you filter on, and change them later without rewriting the table. Partitioning fixes the layout at creation and invites small files. Liquid clustering is GA for Delta; for Iceberg tables it is in Public Preview.',
+        },
+        {
+          strong: 'Predictive optimization.',
+          text: 'It runs OPTIMIZE, VACUUM, and ANALYZE for you on managed Delta and Iceberg tables. Check that it is on for your account and catalogs.',
+        },
+        {
+          strong: 'VACUUM and retention.',
+          text: 'VACUUM removes data files older than the retention threshold, 7 days by default. Time travel cannot reach past it, so match retention to your recovery and audit needs, and keep it long enough for readers and streams.',
+        },
+        {
+          strong: 'Deletion vectors.',
+          text: 'Deletion vectors speed up row-level changes in Delta. They cannot be enabled on a table with Iceberg reads (v2 compatibility). Run REORG to purge them before you enable Iceberg reads. Iceberg v3 supports deletion vectors natively.',
+        },
+      ],
+      examples: [
+        {
+          label: 'Create a clustered Delta table',
+          language: 'sql',
+          code: 'CREATE TABLE main.sales.orders (\n  order_id BIGINT, order_date DATE, region STRING, amount DECIMAL(12,2)\n) CLUSTER BY (order_date, region);',
+          notes: ['Use CLUSTER BY AUTO to let Databricks choose and adjust the clustering keys.'],
+        },
+      ],
+      links: [
+        {
+          label: 'Liquid clustering',
+          url: 'https://docs.databricks.com/aws/en/delta/clustering',
+        },
+        {
+          label: 'Predictive optimization',
+          url: 'https://docs.databricks.com/aws/en/optimizations/predictive-optimization',
+        },
+        {
+          label: 'VACUUM',
+          url: 'https://docs.databricks.com/aws/en/delta/vacuum',
         },
       ],
     },
@@ -212,27 +294,25 @@ export const walkthrough: Walkthrough = {
           { kind: 'surface', label: 'Entry point' },
           { kind: 'store', label: 'Data files' },
         ],
-        caption:
-          'Managed table storage cannot be listed, so the job lists a Delta table at a volume path and reads Iceberg through its REST catalog.',
       },
     },
     {
       id: 'interop',
-      heading: 'Interoperability and choosing',
+      heading: 'Interoperability',
       prose:
-        'Both table formats store Parquet, so the choice is about metadata and the engines that read it. Managed Iceberg tables are generally available in Unity Catalog, and UniForm remains the way to expose a Delta table to Iceberg readers.',
+        'Both table formats store Parquet, so the choice is about metadata and the engines that read it. Iceberg reads write Iceberg metadata beside a Delta table, so one copy of the data serves both kinds of client.',
       points: [
         {
-          strong: 'UniForm.',
-          text: 'A Delta table with Iceberg reads enabled writes Iceberg metadata beside its _delta_log. The job confirms the Iceberg side lists the same Parquet files and PyIceberg reads the same 1,000,000 rows.',
+          strong: 'Iceberg reads (formerly UniForm).',
+          text: 'Iceberg clients get read-only access to the Delta table through the Unity Catalog Iceberg REST catalog. Requires column mapping and Unity Catalog.',
         },
         {
           strong: 'Pick Delta',
-          text: 'when Databricks is the main engine and you want the widest feature set, such as deletion vectors and change data feed.',
+          text: 'when Databricks is the main engine and you want the widest feature set.',
         },
         {
-          strong: 'Pick Iceberg',
-          text: 'when other engines must write or read through an Iceberg catalog as the primary contract. Managed Iceberg tables reject Delta-style DataFrame writes, so use SQL.',
+          strong: 'Pick managed Iceberg',
+          text: 'when other engines must write through the Iceberg catalog, or Iceberg is your standard. Create it with SQL: managed Iceberg tables reject Delta-style DataFrame writes.',
         },
       ],
       examples: [
@@ -240,7 +320,7 @@ export const walkthrough: Walkthrough = {
           label: 'Enable Iceberg reads on an existing Delta table',
           language: 'sql',
           code: "ALTER TABLE main.sales.orders SET TBLPROPERTIES (\n  'delta.columnMapping.mode' = 'name',\n  'delta.enableIcebergCompatV2' = 'true',\n  'delta.universalFormat.enabledFormats' = 'iceberg'\n);\n\n-- Tables with deletion vectors:\nREORG TABLE main.sales.orders\n  APPLY (UPGRADE UNIFORM (ICEBERG_COMPAT_VERSION = 2));",
-          notes: ['Iceberg clients get read-only access to a UniForm table.'],
+          notes: ['Iceberg clients get read-only access to the table.'],
         },
       ],
     },
