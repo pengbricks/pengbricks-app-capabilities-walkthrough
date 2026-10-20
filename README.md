@@ -51,6 +51,7 @@ Reference code for each guide lives in `reference/<bundle>/` as a deployable bun
 - **Actual runs:** the backend finds each workspace's deployed jobs by their `capability_guide_job` tag and lists recent runs. The **Quick run** button starts a job as the app service principal, which needs `CAN_MANAGE_RUN` (granted by each bundle's `app_service_principal` variable).
 - **Run history:** set `CAPABILITY_GUIDES_LAKEBASE_ENDPOINT`, `CAPABILITY_GUIDES_LAKEBASE_DATABASE`, and optionally `CAPABILITY_GUIDES_LAKEBASE_SCHEMA` to record runs in that workspace's Lakebase database. Without them, history comes from the Jobs API.
 - **Recorded runs:** `recordedRuns` in `server/artifacts.json` are the fallback links shown when the app cannot reach a workspace.
+- **Downloads:** a guide entry in `server/artifacts.json` can set `download: {"path": "reference/<bundle>", "filename": "<name>.zip", "exclude": [...]}`. `npm run build` zips that folder into `server/downloads/` (sorted entries, fixed timestamps, no compression, so rebuilds are byte-identical; local state such as `.databricks/` is left out), `GET /api/capability-guides/artifacts/<slug>/download` serves it, and the guide page shows a download button. `npm run test:python` fails when the zip is stale.
 - **Key functions and dates:** `npm run build` first runs `scripts/build_artifact_snippets.py`, which embeds highlighted code, function docstrings for hover text, Auto Loader samples, and each guide's last updated date from Git. `npm run test:python` fails when snippets are stale.
 
 ## Public repository rules

@@ -788,6 +788,100 @@
       }
     }
   ],
+  "dab-starter": [
+    {
+      "path": "reference/dab-starter/databricks.yml",
+      "symbol": null,
+      "startLine": 14,
+      "endLine": 25,
+      "language": "yml",
+      "code": "variables:\n  catalog:\n    description: Existing Unity Catalog catalog where the bundle creates its schema\n  schema:\n    description: Schema the bundle creates for its tables. Development mode prefixes it with dev_<you>_\n    default: dab_starter\n  row_count:\n    description: Orders the pipeline generates on each update\n    default: \"100000\"\n  release:\n    description: Release identifier recorded in resource tags\n    default: local",
+      "functions": {}
+    },
+    {
+      "path": "reference/dab-starter/resources/orders.pipeline.yml",
+      "symbol": null,
+      "startLine": 1,
+      "endLine": 19,
+      "language": "yml",
+      "code": "resources:\n  pipelines:\n    orders:\n      name: dab-starter-orders\n      catalog: ${var.catalog}\n      # Use the schema resource's name, not var.schema: development mode adds the dev_<you>_ prefix to it.\n      schema: ${resources.schemas.starter.name}\n      serverless: true\n      continuous: false\n      channel: CURRENT\n      # Installs dbldatagen on the pipeline's serverless environment before the source runs.\n      environment:\n        dependencies:\n          - \"dbldatagen>=0.4\"\n      configuration:\n        starter.row_count: ${var.row_count}\n      libraries:\n        - glob:\n            include: ../guides/dab-starter/pipeline/**",
+      "functions": {}
+    },
+    {
+      "path": "reference/dab-starter/databricks.yml",
+      "symbol": null,
+      "startLine": 31,
+      "endLine": 39,
+      "language": "yml",
+      "code": "targets:\n  # Development mode is the default target. Resource names get a \"[dev <you>]\" prefix, job schedules\n  # are paused, and the schema is yours alone.\n  dev:\n    default: true\n    mode: development\n    presets:\n      tags:\n        release: ${var.release}",
+      "functions": {}
+    },
+    {
+      "path": "reference/dab-starter/resources/orders.job.yml",
+      "symbol": null,
+      "startLine": 1,
+      "endLine": 32,
+      "language": "yml",
+      "code": "resources:\n  jobs:\n    capability_guides_dab_starter:\n      name: dab-starter-orders\n      description: Runs the orders pipeline, then checks the bronze, silver, and gold tables and prints the expectation results.\n      tags:\n        capability_guide_job: capability_guides_dab_starter\n      max_concurrent_runs: 1\n      timeout_seconds: 3600\n      # Daily at 06:00 UTC. Development mode pauses it; the prod target runs it.\n      schedule:\n        quartz_cron_expression: \"0 0 6 * * ?\"\n        timezone_id: UTC\n      parameters:\n        - name: catalog\n          default: ${var.catalog}\n        - name: schema\n          default: ${resources.schemas.starter.name}\n        - name: pipeline_id\n          default: ${resources.pipelines.orders.id}\n        - name: row_count\n          default: ${var.row_count}\n      tasks:\n        - task_key: run_pipeline\n          pipeline_task:\n            pipeline_id: ${resources.pipelines.orders.id}\n\n        - task_key: check_gold\n          depends_on:\n            - task_key: run_pipeline\n          notebook_task:\n            notebook_path: ../guides/dab-starter/01_check_gold.py",
+      "functions": {}
+    },
+    {
+      "path": "reference/dab-starter/guides/dab-starter/pipeline/orders.py",
+      "symbol": "orders_bronze",
+      "startLine": 22,
+      "endLine": 36,
+      "language": "py",
+      "code": "@dp.materialized_view(comment=\"Raw synthetic orders, including rows the silver rules reject\")\ndef orders_bronze():\n    # Each random column gets its own seed. With one shared seed every column draws the same random\n    # number per row, so a low quantity would always come with the same category, status, and date.\n    spec = (\n        dg.DataGenerator(spark, name=\"orders\", rows=row_count(), partitions=4, randomSeed=SEED)\n        .withColumn(\"order_id\", \"long\", minValue=1_000_000, uniqueValues=row_count())\n        .withColumn(\"customer_id\", \"string\", prefix=\"C\", minValue=1, maxValue=5_000, random=True, randomSeed=SEED + 1, percentNulls=0.02)\n        .withColumn(\"product_category\", \"string\", values=CATEGORIES, weights=[2, 5, 3, 2, 3], random=True, randomSeed=SEED + 2)\n        .withColumn(\"quantity\", \"int\", minValue=-1, maxValue=8, random=True, randomSeed=SEED + 3)\n        .withColumn(\"unit_price\", \"decimal(10,2)\", minValue=1.99, maxValue=299.99, step=0.01, random=True, randomSeed=SEED + 4)\n        .withColumn(\"status\", \"string\", values=STATUSES + [\"unknown\"], weights=[3, 4, 8, 2, 1], random=True, randomSeed=SEED + 5)\n        .withColumn(\"order_ts\", \"timestamp\", begin=\"2026-01-01 00:00:00\", end=\"2026-03-31 23:59:00\", interval=\"1 minute\", random=True, randomSeed=SEED + 6)\n    )\n    return spec.build()",
+      "functions": {}
+    },
+    {
+      "path": "reference/dab-starter/guides/dab-starter/pipeline/orders.py",
+      "symbol": "orders_silver",
+      "startLine": 39,
+      "endLine": 59,
+      "language": "py",
+      "code": "@dp.materialized_view(comment=\"Orders that pass every rule, with the order total and date added\")\n@dp.expect_all_or_drop(\n    {\n        \"customer_present\": \"customer_id IS NOT NULL\",\n        \"quantity_positive\": \"quantity > 0\",\n        \"status_known\": \"status IN ('placed', 'shipped', 'delivered', 'cancelled')\",\n    }\n)\n@dp.expect(\"price_in_range\", \"unit_price BETWEEN 1 AND 300\")\ndef orders_silver():\n    return spark.read.table(\"orders_bronze\").select(\n        \"order_id\",\n        \"customer_id\",\n        \"product_category\",\n        \"quantity\",\n        \"unit_price\",\n        \"status\",\n        \"order_ts\",\n        F.to_date(\"order_ts\").alias(\"order_date\"),\n        (F.col(\"quantity\") * F.col(\"unit_price\")).alias(\"order_total\"),\n    )",
+      "functions": {}
+    },
+    {
+      "path": "reference/dab-starter/src/dab_starter_lib.py",
+      "symbol": "check_layers",
+      "startLine": 12,
+      "endLine": 25,
+      "language": "py",
+      "code": "def check_layers(row_count: int, bronze: int, silver: int, gold_orders: int, silver_not_cancelled: int) -> list[str]:\n    \"\"\"Problems with the row counts across bronze, silver, and gold; an empty list means they agree.\n\n    Gold counts orders per day and category without cancelled ones, so its orders must add up to the\n    silver rows that are not cancelled.\n    \"\"\"\n    problems = []\n    if bronze != row_count:\n        problems.append(f\"bronze has {bronze} rows, expected {row_count}\")\n    if not 0 < silver <= bronze:\n        problems.append(f\"silver has {silver} rows, expected between 1 and {bronze}\")\n    if gold_orders != silver_not_cancelled:\n        problems.append(f\"gold counts {gold_orders} orders, silver has {silver_not_cancelled} that are not cancelled\")\n    return problems",
+      "functions": {
+        "check_layers": "Problems with the row counts across bronze, silver, and gold; an empty list means they agree."
+      }
+    },
+    {
+      "path": "reference/dab-starter/guides/dab-starter/pipeline/orders.py",
+      "symbol": "row_count",
+      "startLine": 17,
+      "endLine": 19,
+      "language": "py",
+      "code": "def row_count() -> int:\n    # Set by the bundle: `configuration: starter.row_count` in resources/orders.pipeline.yml.\n    return int(spark.conf.get(\"starter.row_count\", \"100000\"))",
+      "functions": {}
+    },
+    {
+      "path": "reference/dab-starter/databricks.yml",
+      "symbol": null,
+      "startLine": 41,
+      "endLine": 50,
+      "language": "yml",
+      "code": "  # Production mode deploys one shared copy. Names are unprefixed and schedules are live.\n  prod:\n    mode: production\n    workspace:\n      # Production mode requires a fixed path that names the target, so only one copy is deployed.\n      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}\n    presets:\n      tags:\n        environment: prod\n        release: ${var.release}",
+      "functions": {}
+    },
+    {
+      "path": "reference/dab-starter/.github/workflows/bundle.yml",
+      "symbol": null,
+      "startLine": 18,
+      "endLine": 41,
+      "language": "yml",
+      "code": "env:\n  DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}\n  DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}\n  DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}\n  DATABRICKS_BUNDLE_ENV: prod\n  BUNDLE_VAR_catalog: ${{ vars.DATABRICKS_CATALOG }}\n\njobs:\n  validate:\n    if: github.event_name == 'pull_request'\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: databricks/setup-cli@main\n      - run: databricks bundle validate --strict\n\n  deploy:\n    if: github.event_name == 'push'\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: databricks/setup-cli@main\n      - run: databricks bundle deploy\n      - run: databricks bundle run capability_guides_dab_starter",
+      "functions": {}
+    }
+  ],
   "data-ingestion-feature-preparation": [
     {
       "path": "reference/ml-lifecycle/src/public_data.py",

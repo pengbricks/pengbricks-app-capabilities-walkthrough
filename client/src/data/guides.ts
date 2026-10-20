@@ -129,6 +129,20 @@ export const guides: readonly Guide[] = [
     ],
   },
   {
+    slug: 'dab-starter',
+    title: 'Running a Declarative Automation Bundle',
+    category: 'CI/CD & Version Control Guides',
+    difficulty: 2,
+    summary: 'Download a starter bundle, push it to your Git repo, then validate, deploy, and run it with the CLI.',
+    acceptanceCriteria:
+      'A starter bundle is downloaded, pushed to your own Git repo, validated, deployed to a development target, and run. A serverless Lakeflow Declarative Pipeline builds bronze, silver, and gold tables from synthetic orders. The same bundle then deploys to a prod target and is destroyed cleanly.',
+    evidence: [
+      'Validated, deployed, and run bundle in the development target',
+      'Bronze, silver, and gold tables with expectation results',
+      'Second deployment to a production target, and a CI workflow that validates and deploys',
+    ],
+  },
+  {
     slug: 'github-cicd',
     title: 'GitHub-based CI/CD',
     category: 'CI/CD & Version Control Guides',

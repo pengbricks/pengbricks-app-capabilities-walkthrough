@@ -31,6 +31,7 @@ import { Link, useParams, useSearchParams } from 'react-router';
 import { AutoLoaderDrop } from '../components/AutoLoaderDrop.tsx';
 import { GatewayControl } from '../components/GatewayControl.tsx';
 import { CodeExcerpt } from '../components/CodeExcerpt.tsx';
+import { DownloadCard } from '../components/DownloadCard.tsx';
 import { DifficultyStars } from '../components/DifficultyStars.tsx';
 import { getGuide } from '../data/guides.ts';
 import designedWalkthroughs from '../data/walkthroughs/designed.json';
@@ -114,11 +115,17 @@ export function GuidePage() {
 
         {hasWalkthrough && (
           <TabsContent value="walkthrough" className="mt-6">
+            {artifacts?.download && (
+              <div className="mb-8">
+                <DownloadCard slug={guide.slug} download={artifacts.download} />
+              </div>
+            )}
             <GuideWalkthrough slug={guide.slug} excerpts={artifacts?.highlights ?? []} />
           </TabsContent>
         )}
 
         <TabsContent value="run" className="mt-6 space-y-8">
+          {artifacts?.download && <DownloadCard slug={guide.slug} download={artifacts.download} />}
           {artifacts && (artifacts.workspace || artifacts.jobs.length > 0 || artifacts.recordedRuns.length > 0) ? (
             <RunsCard slug={guide.slug} artifacts={artifacts} onChange={() => void reload()} />
           ) : (

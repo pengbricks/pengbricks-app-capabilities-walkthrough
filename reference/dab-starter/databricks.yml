@@ -1,0 +1,50 @@
+# A starter Declarative Automation Bundle: one serverless Lakeflow Declarative Pipeline that generates
+# orders with dbldatagen and builds bronze, silver, and gold tables, plus a job that runs it.
+#
+#   databricks bundle validate --var catalog=<catalog>
+#   databricks bundle deploy   --var catalog=<catalog>
+#   databricks bundle run capability_guides_dab_starter --var catalog=<catalog>
+bundle:
+  name: dab-starter
+
+# Every resources/*.yml file is merged into this one.
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Existing Unity Catalog catalog where the bundle creates its schema
+  schema:
+    description: Schema the bundle creates for its tables. Development mode prefixes it with dev_<you>_
+    default: dab_starter
+  row_count:
+    description: Orders the pipeline generates on each update
+    default: "100000"
+  release:
+    description: Release identifier recorded in resource tags
+    default: local
+
+permissions:
+  - level: CAN_MANAGE
+    user_name: ${workspace.current_user.userName}
+
+targets:
+  # Development mode is the default target. Resource names get a "[dev <you>]" prefix, job schedules
+  # are paused, and the schema is yours alone.
+  dev:
+    default: true
+    mode: development
+    presets:
+      tags:
+        release: ${var.release}
+
+  # Production mode deploys one shared copy. Names are unprefixed and schedules are live.
+  prod:
+    mode: production
+    workspace:
+      # Production mode requires a fixed path that names the target, so only one copy is deployed.
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+    presets:
+      tags:
+        environment: prod
+        release: ${var.release}

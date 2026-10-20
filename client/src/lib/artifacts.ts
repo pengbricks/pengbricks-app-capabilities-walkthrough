@@ -54,6 +54,9 @@ export type WorkspaceLinks = {
   pipelines: ArtifactLink[];
 };
 
+/** A zip of the guide's bundle, built into the app. */
+export type GuideDownload = { filename: string; sizeBytes: number };
+
 export type GuideArtifacts = {
   slug: string;
   onePagerUrl: string;
@@ -64,6 +67,7 @@ export type GuideArtifacts = {
   walkthroughs: (ArtifactLink & { route: string | null })[];
   autoLoaderDrop: boolean;
   gatewayControl: boolean;
+  download: GuideDownload | null;
   highlights: CodeHighlight[];
   jobs: GuideJob[];
   workspace?: WorkspaceLinks;
@@ -76,6 +80,10 @@ export type GuideArtifacts = {
 };
 
 const API = '/api/capability-guides/artifacts';
+
+export function downloadUrl(slug: string): string {
+  return `${API}/${slug}/download`;
+}
 
 export function runStatus(run: Pick<JobRun, 'lifeCycleState' | 'resultState'>): string {
   return run.resultState ?? run.lifeCycleState ?? 'UNKNOWN';

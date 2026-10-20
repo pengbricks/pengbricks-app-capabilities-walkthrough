@@ -1,0 +1,32 @@
+resources:
+  jobs:
+    capability_guides_dab_starter:
+      name: dab-starter-orders
+      description: Runs the orders pipeline, then checks the bronze, silver, and gold tables and prints the expectation results.
+      tags:
+        capability_guide_job: capability_guides_dab_starter
+      max_concurrent_runs: 1
+      timeout_seconds: 3600
+      # Daily at 06:00 UTC. Development mode pauses it; the prod target runs it.
+      schedule:
+        quartz_cron_expression: "0 0 6 * * ?"
+        timezone_id: UTC
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${resources.schemas.starter.name}
+        - name: pipeline_id
+          default: ${resources.pipelines.orders.id}
+        - name: row_count
+          default: ${var.row_count}
+      tasks:
+        - task_key: run_pipeline
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.orders.id}
+
+        - task_key: check_gold
+          depends_on:
+            - task_key: run_pipeline
+          notebook_task:
+            notebook_path: ../guides/dab-starter/01_check_gold.py

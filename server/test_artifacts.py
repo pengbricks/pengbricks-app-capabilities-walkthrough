@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import importlib.util
+import io
+import zipfile
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -26,6 +28,8 @@ def test_every_artifact_path_exists() -> None:
             guide["onePager"],
             *(item["path"] for item in guide["code"] + guide.get("highlights", []) + guide.get("walkthroughs", [])),
         ]
+        if guide.get("download"):
+            paths.append(guide["download"]["path"])
         missing = [path for path in paths if not (ROOT / path).exists()]
         assert not missing, f"{slug}: {missing}"
 
@@ -34,6 +38,56 @@ def test_snippets_are_current() -> None:
     builder = load_snippet_builder()
     assert builder.OUTPUT.read_text(encoding="utf-8") == builder.build()
     assert builder.SAMPLES_OUTPUT.read_text(encoding="utf-8") == builder.build_samples()
+
+
+def test_downloads_are_current() -> None:
+    builder = load_snippet_builder()
+    built = builder.build_downloads()
+    assert built, "no guide offers a download"
+    for name, data in built.items():
+        assert (builder.DOWNLOADS_DIR / name).read_bytes() == data, f"{name} is stale. Run: python scripts/build_artifact_snippets.py"
+    assert {path.name for path in builder.DOWNLOADS_DIR.glob("*.zip")} == set(built)
+
+
+def test_download_zip_is_deterministic_and_leaves_out_local_state(tmp_path, monkeypatch) -> None:
+    builder = load_snippet_builder()
+    folder = tmp_path / "bundle"
+    (folder / ".databricks").mkdir(parents=True)
+    (folder / "__pycache__").mkdir()
+    (folder / "resources").mkdir()
+    for name in ["databricks.yml", ".databricks/state.json", "__pycache__/a.pyc", ".DS_Store", "resources/keep.yml", "resources/skip.yml"]:
+        (folder / name).write_text("x\n")
+    monkeypatch.setattr(builder, "ROOT", tmp_path)
+    config = {"path": "bundle", "filename": "starter.zip", "exclude": ["resources/skip.yml"]}
+
+    first = builder.build_download(config)
+    (folder / "databricks.yml").touch()  # a new mtime must not change the bytes
+    assert builder.build_download(config) == first
+    names = zipfile.ZipFile(io.BytesIO(first)).namelist()
+    assert names == ["starter/databricks.yml", "starter/resources/keep.yml"]
+
+
+def test_download_is_only_offered_where_configured() -> None:
+    assert client.get("/api/capability-guides/artifacts/monitoring/download").status_code == 404
+    assert client.get("/api/capability-guides/artifacts/not-a-guide/download").status_code == 404
+    assert client.get("/api/capability-guides/artifacts/monitoring").json()["download"] is None
+
+
+def test_download_returns_the_starter_bundle_as_a_zip() -> None:
+    response = client.get("/api/capability-guides/artifacts/dab-starter/download")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/zip"
+    assert 'filename="dab-starter.zip"' in response.headers["content-disposition"]
+    archive = zipfile.ZipFile(io.BytesIO(response.content))
+    assert archive.testzip() is None
+    names = archive.namelist()
+    assert "dab-starter/databricks.yml" in names
+    assert not any(".databricks/" in name or "__pycache__" in name or name.endswith(".pyc") for name in names)
+    assert "dab-starter/resources/app_access.yml" not in names
+
+    info = client.get("/api/capability-guides/artifacts/dab-starter").json()["download"]
+    assert info == {"filename": "dab-starter.zip", "sizeBytes": len(response.content)}
 
 
 def test_artifacts_fall_back_to_static_links_without_workspace(monkeypatch) -> None:

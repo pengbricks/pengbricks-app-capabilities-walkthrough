@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from .run_store import RunRecord, RunStore
@@ -26,6 +27,7 @@ logger = logging.getLogger(__name__)
 
 INDEX_PATH = Path(__file__).with_name("artifacts.json")
 SNIPPETS_PATH = Path(__file__).with_name("artifact_snippets.json")
+DOWNLOADS_DIR = Path(__file__).with_name("downloads")
 JOB_TAG = "capability_guide_job"
 JOB_CACHE_SECONDS = 120
 RUNS_PER_JOB = 5
@@ -208,6 +210,30 @@ def to_record(slug: str, job_key: str, job_id: int, summary: dict[str, Any], via
     )
 
 
+def download_path(entry: dict[str, Any]) -> Path | None:
+    """The built zip for a guide's `download` entry, or None when the guide offers none or it was not built."""
+    config = entry.get("download")
+    if not config:
+        return None
+    path = DOWNLOADS_DIR / Path(config["filename"]).name
+    return path if path.is_file() else None
+
+
+def download_info(entry: dict[str, Any]) -> dict[str, Any] | None:
+    path = download_path(entry)
+    if path is None:
+        return None
+    return {"filename": path.name, "sizeBytes": path.stat().st_size}
+
+
+@router.get("/artifacts/{slug}/download")
+def download_bundle(slug: str) -> FileResponse:
+    path = download_path(guide_entry(slug))
+    if path is None:
+        raise HTTPException(status_code=404, detail="This guide has no download")
+    return FileResponse(path, media_type="application/zip", filename=path.name)
+
+
 @router.get("/artifacts/{slug}")
 def get_artifacts(slug: str) -> dict[str, Any]:
     entry = guide_entry(slug)
@@ -220,6 +246,7 @@ def get_artifacts(slug: str) -> dict[str, Any]:
         "tools": entry.get("tools", []),
         "autoLoaderDrop": bool(entry.get("autoLoaderDrop")),
         "gatewayControl": bool(entry.get("gatewayControl")),
+        "download": download_info(entry),
         "walkthroughs": [
             {"label": item["label"], "url": repo_url(item["path"]), "route": item.get("route")}
             for item in entry.get("walkthroughs", [])

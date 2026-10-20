@@ -1,0 +1,41 @@
+# Validate the bundle on every pull request; deploy it to prod when a change lands on main.
+#
+# Set these in the GitHub repo (Settings > Secrets and variables > Actions):
+#   secret   DATABRICKS_HOST           your workspace URL, https://<workspace-host>
+#   secret   DATABRICKS_CLIENT_ID      application ID of a Databricks service principal
+#   secret   DATABRICKS_CLIENT_SECRET  an OAuth secret for that service principal
+#   variable DATABRICKS_CATALOG        the catalog the bundle creates its schema in
+#
+# The service principal needs USE CATALOG and CREATE SCHEMA on that catalog, and permission to
+# create jobs and pipelines in the workspace.
+name: bundle
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+env:
+  DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+  DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+  DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+  DATABRICKS_BUNDLE_ENV: prod
+  BUNDLE_VAR_catalog: ${{ vars.DATABRICKS_CATALOG }}
+
+jobs:
+  validate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: databricks/setup-cli@main
+      - run: databricks bundle validate --strict
+
+  deploy:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: databricks/setup-cli@main
+      - run: databricks bundle deploy
+      - run: databricks bundle run capability_guides_dab_starter

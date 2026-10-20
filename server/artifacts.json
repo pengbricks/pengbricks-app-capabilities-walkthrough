@@ -6438,6 +6438,241 @@
           ]
         }
       ]
+    },
+    "dab-starter": {
+      "bundle": "reference/dab-starter",
+      "onePager": "reference/dab-starter/guides/dab-starter/README.md",
+      "download": {
+        "path": "reference/dab-starter",
+        "filename": "dab-starter.zip",
+        "exclude": [
+          "resources/app_access.yml",
+          "guides/dab-starter/README.md"
+        ]
+      },
+      "code": [
+        {
+          "label": "Bundle definition: variables and targets",
+          "path": "reference/dab-starter/databricks.yml"
+        },
+        {
+          "label": "Pipeline source: bronze, silver, gold",
+          "path": "reference/dab-starter/guides/dab-starter/pipeline/orders.py"
+        },
+        {
+          "label": "Pipeline resource",
+          "path": "reference/dab-starter/resources/orders.pipeline.yml"
+        },
+        {
+          "label": "Job resource",
+          "path": "reference/dab-starter/resources/orders.job.yml"
+        },
+        {
+          "label": "Schema resource",
+          "path": "reference/dab-starter/resources/orders.schema.yml"
+        },
+        {
+          "label": "Check notebook",
+          "path": "reference/dab-starter/guides/dab-starter/01_check_gold.py"
+        },
+        {
+          "label": "Row-count and expectation helpers",
+          "path": "reference/dab-starter/src/dab_starter_lib.py"
+        },
+        {
+          "label": "GitHub Actions workflow",
+          "path": "reference/dab-starter/.github/workflows/bundle.yml"
+        },
+        {
+          "label": "README for the download",
+          "path": "reference/dab-starter/README.md"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_dab_starter",
+          "label": "Orders pipeline job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "Orders pipeline run (dev target): 100,000 bronze rows, 77,328 silver, 450 gold",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/763430277818546/runs/1088977987348444",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-20T17:02:00Z"
+        }
+      ],
+      "docs": [
+        {
+          "label": "What are Declarative Automation Bundles?",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/bundles"
+        },
+        {
+          "label": "Bundle configuration",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/bundles/settings"
+        },
+        {
+          "label": "Bundle variables",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/bundles/variables"
+        },
+        {
+          "label": "Deployment modes",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/bundles/deployment-modes"
+        },
+        {
+          "label": "Bundle resources",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/bundles/resources"
+        },
+        {
+          "label": "Develop a pipeline with bundles",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/bundles/pipelines-tutorial"
+        },
+        {
+          "label": "Bundle CLI commands",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/cli/bundle-commands"
+        },
+        {
+          "label": "Install the Databricks CLI",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/cli/install"
+        },
+        {
+          "label": "CLI authentication",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/cli/authentication"
+        },
+        {
+          "label": "Run as a service principal",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/bundles/run-as"
+        },
+        {
+          "label": "GitHub Actions with Databricks",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/ci-cd/github"
+        },
+        {
+          "label": "Lakeflow Declarative Pipelines",
+          "url": "https://docs.databricks.com/aws/en/ldp"
+        },
+        {
+          "label": "Manage data quality with expectations",
+          "url": "https://docs.databricks.com/aws/en/ldp/expectations"
+        },
+        {
+          "label": "Pipeline dependencies",
+          "url": "https://docs.databricks.com/aws/en/ldp/developer/external-dependencies"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Variables: catalog has no default",
+          "path": "reference/dab-starter/databricks.yml",
+          "lines": [
+            14,
+            25
+          ],
+          "section": "what-is-a-bundle",
+          "notes": [
+            "catalog belongs to your workspace, so you pass it in. schema and row_count have defaults."
+          ]
+        },
+        {
+          "label": "Serverless pipeline with a dependency",
+          "path": "reference/dab-starter/resources/orders.pipeline.yml",
+          "lines": [
+            1,
+            19
+          ],
+          "section": "what-is-a-bundle",
+          "notes": [
+            "environment.dependencies installs dbldatagen; the source needs no %pip.",
+            "The schema comes from the schema resource, so development mode's prefix carries through."
+          ]
+        },
+        {
+          "label": "The dev target",
+          "path": "reference/dab-starter/databricks.yml",
+          "lines": [
+            31,
+            39
+          ],
+          "section": "deploy",
+          "notes": [
+            "Development mode and default: true. It prefixes names, pauses schedules, and prefixes the schema."
+          ]
+        },
+        {
+          "label": "Job: pipeline task, then a check",
+          "path": "reference/dab-starter/resources/orders.job.yml",
+          "lines": [
+            1,
+            32
+          ],
+          "section": "run",
+          "notes": [
+            "The capability_guide_job tag is how the Capability Atlas app finds the job.",
+            "Job parameters take their defaults from bundle variables and resource names."
+          ]
+        },
+        {
+          "label": "Bronze: seeded orders from dbldatagen",
+          "path": "reference/dab-starter/guides/dab-starter/pipeline/orders.py",
+          "symbol": "orders_bronze",
+          "section": "run",
+          "notes": [
+            "Each random column has its own seed. One shared seed made every column draw the same number per row.",
+            "Some rows are bad on purpose: null customers, quantities of zero or less, an unknown status."
+          ]
+        },
+        {
+          "label": "Silver: expectations",
+          "path": "reference/dab-starter/guides/dab-starter/pipeline/orders.py",
+          "symbol": "orders_silver",
+          "section": "run",
+          "notes": [
+            "Three rules drop rows and one only records a failure. Reference run: 22,672 of 100,000 dropped."
+          ]
+        },
+        {
+          "label": "Check the layers agree",
+          "path": "reference/dab-starter/src/dab_starter_lib.py",
+          "symbol": "check_layers",
+          "section": "run",
+          "notes": [
+            "Plain Python, tested with pytest and no Spark. The check notebook fails the job on any problem."
+          ]
+        },
+        {
+          "label": "Rows to generate, set by the bundle",
+          "path": "reference/dab-starter/guides/dab-starter/pipeline/orders.py",
+          "symbol": "row_count",
+          "section": "change-and-redeploy",
+          "notes": [
+            "Reads starter.row_count, which resources/orders.pipeline.yml sets from the row_count variable."
+          ]
+        },
+        {
+          "label": "The prod target",
+          "path": "reference/dab-starter/databricks.yml",
+          "lines": [
+            41,
+            50
+          ],
+          "section": "prod",
+          "notes": [
+            "Production mode requires a fixed root_path that names the target."
+          ]
+        },
+        {
+          "label": "Validate on pull request, deploy on main",
+          "path": "reference/dab-starter/.github/workflows/bundle.yml",
+          "lines": [
+            18,
+            41
+          ],
+          "section": "ci",
+          "notes": [
+            "Credentials come from repository secrets; DATABRICKS_BUNDLE_ENV picks the prod target."
+          ]
+        }
+      ]
     }
   }
 }

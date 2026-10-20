@@ -1,0 +1,6 @@
+resources:
+  schemas:
+    starter:
+      name: ${var.schema}
+      catalog_name: ${var.catalog}
+      comment: Tables from the dab-starter bundle. bundle destroy drops this schema.

@@ -6,6 +6,10 @@
 Python highlights name a `symbol` (function or class) and are cut with `ast`, so line
 numbers stay correct as files change. Other files use an explicit `lines` range or their first MAX_LINES lines.
 The app runtime ships only server/, so snippets are embedded rather than read at request time.
+
+A guide with a `download` entry in artifacts.json also gets its bundle zipped into server/downloads/.
+The zip is deterministic (sorted entries, fixed timestamps, no compression), so rebuilding it from the
+same files gives the same bytes.
 """
 
 from __future__ import annotations
@@ -13,15 +17,23 @@ from __future__ import annotations
 import argparse
 import ast
 import json
+import fnmatch
+import io
 import re
+import subprocess
 import sys
+import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 INDEX = ROOT / "server" / "artifacts.json"
 OUTPUT = ROOT / "server" / "artifact_snippets.json"
 SAMPLES_OUTPUT = ROOT / "server" / "artifact_samples.json"
+DOWNLOADS_DIR = ROOT / "server" / "downloads"
 MAX_LINES = 40
+# Local state that never belongs in a download, whether or not the repository ignores it.
+LOCAL_STATE = {".databricks", "__pycache__", ".pytest_cache", ".venv", "node_modules", ".git", ".DS_Store", ".idea", ".vscode"}
+ZIP_TIMESTAMP = (2020, 1, 1, 0, 0, 0)
 
 
 def python_symbol(source: str, symbol: str) -> tuple[int, int]:
@@ -110,6 +122,53 @@ def build_samples() -> str:
     return json.dumps(samples, indent=2) + "\n"
 
 
+def download_files(config: dict) -> list[Path]:
+    """Files to ship, relative to the download folder.
+
+    Tracked files plus untracked ones the repository does not ignore, minus local state and the
+    config's `exclude` globs. Outside a checkout, every file under the folder.
+    """
+    folder = ROOT / config["path"]
+    listed = subprocess.run(
+        ["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z", "--", "."],
+        cwd=folder, capture_output=True, text=True,
+    )
+    if listed.returncode == 0:
+        candidates = [Path(name) for name in listed.stdout.split("\0") if name]
+    else:
+        candidates = [path.relative_to(folder) for path in folder.rglob("*") if path.is_file()]
+    excluded = config.get("exclude", [])
+    return sorted(
+        path for path in set(candidates)
+        if (folder / path).is_file()
+        and not LOCAL_STATE.intersection(path.parts)
+        and path.suffix != ".pyc"
+        and not any(fnmatch.fnmatch(path.as_posix(), pattern) for pattern in excluded)
+    )
+
+
+def build_download(config: dict) -> bytes:
+    """The folder as a zip under one top-level folder named for the file, so unzipping makes one directory."""
+    root = Path(config["filename"]).stem
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_STORED) as archive:
+        for path in download_files(config):
+            info = zipfile.ZipInfo(f"{root}/{path.as_posix()}", ZIP_TIMESTAMP)
+            info.create_system = 3  # Unix, so the permission bits below are read back
+            info.external_attr = 0o644 << 16
+            archive.writestr(info, (ROOT / config["path"] / path).read_bytes())
+    return buffer.getvalue()
+
+
+def build_downloads() -> dict[str, bytes]:
+    index = json.loads(INDEX.read_text(encoding="utf-8"))
+    return {
+        guide["download"]["filename"]: build_download(guide["download"])
+        for _, guide in sorted(index["guides"].items())
+        if guide.get("download")
+    }
+
+
 def guide_paths(guide: dict) -> list[str]:
     items = guide["code"] + guide.get("highlights", []) + guide.get("walkthroughs", [])
     return [guide["onePager"], guide["bundle"], *(item["path"] for item in items)]
@@ -146,11 +205,17 @@ def main() -> int:
     args = parser.parse_args()
     rendered = build()
     samples = build_samples()
+    downloads = build_downloads()
     if args.check:
         stale = [
             path.name for path, text in ((OUTPUT, rendered), (SAMPLES_OUTPUT, samples))
             if not path.exists() or path.read_text(encoding="utf-8") != text
         ]
+        stale += [
+            name for name, data in downloads.items()
+            if not (DOWNLOADS_DIR / name).exists() or (DOWNLOADS_DIR / name).read_bytes() != data
+        ]
+        stale += [path.name for path in DOWNLOADS_DIR.glob("*.zip") if path.name not in downloads]
         if stale:
             print(f"Stale: {', '.join(stale)}. Run: python scripts/build_artifact_snippets.py")
             return 1
@@ -159,7 +224,13 @@ def main() -> int:
     write_guide_updates()
     OUTPUT.write_text(rendered, encoding="utf-8")
     SAMPLES_OUTPUT.write_text(samples, encoding="utf-8")
-    print(f"Wrote {OUTPUT.relative_to(ROOT)} and {SAMPLES_OUTPUT.relative_to(ROOT)}")
+    DOWNLOADS_DIR.mkdir(exist_ok=True)
+    for path in DOWNLOADS_DIR.glob("*.zip"):
+        if path.name not in downloads:
+            path.unlink()
+    for name, data in downloads.items():
+        (DOWNLOADS_DIR / name).write_bytes(data)
+    print(f"Wrote {OUTPUT.relative_to(ROOT)}, {SAMPLES_OUTPUT.relative_to(ROOT)}, and {len(downloads)} download(s)")
     return 0
 
 

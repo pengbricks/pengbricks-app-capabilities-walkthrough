@@ -1,0 +1,19 @@
+resources:
+  pipelines:
+    orders:
+      name: dab-starter-orders
+      catalog: ${var.catalog}
+      # Use the schema resource's name, not var.schema: development mode adds the dev_<you>_ prefix to it.
+      schema: ${resources.schemas.starter.name}
+      serverless: true
+      continuous: false
+      channel: CURRENT
+      # Installs dbldatagen on the pipeline's serverless environment before the source runs.
+      environment:
+        dependencies:
+          - "dbldatagen>=0.4"
+      configuration:
+        starter.row_count: ${var.row_count}
+      libraries:
+        - glob:
+            include: ../guides/dab-starter/pipeline/**

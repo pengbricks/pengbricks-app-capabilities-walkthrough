@@ -1,0 +1,13 @@
+# Bundle state and caches, local to your machine
+.databricks/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+
+# Editor and OS
+.DS_Store
+.idea/
+.vscode/
