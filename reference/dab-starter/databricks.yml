@@ -4,13 +4,27 @@
 #   databricks bundle validate --var catalog=<catalog>
 #   databricks bundle deploy   --var catalog=<catalog>
 #   databricks bundle run capability_guides_dab_starter --var catalog=<catalog>
+#
+# examples/ holds commented, copy-ready resources this starter doesn't deploy: an app, a Lakebase
+# database, an AI/BI dashboard, and a Genie agent. Copy one into resources/ to add it to the bundle.
+#
+# Learn more:
+#   What bundles are and how they deploy  https://docs.databricks.com/aws/en/dev-tools/bundles
+#   Every top-level key in this file      https://docs.databricks.com/aws/en/dev-tools/bundles/settings
+#   Example bundles from Databricks       https://github.com/databricks/bundle-examples
+
+# The bundle name is part of the workspace path the files deploy to, so keep it stable once deployed.
 bundle:
   name: dab-starter
 
-# Every resources/*.yml file is merged into this one.
+# Every resources/*.yml file is merged into this one. Splitting resources across files keeps each
+# change small to review; the names inside them must still be unique across the whole bundle.
 include:
   - resources/*.yml
 
+# Variables are set with --var name=value, a BUNDLE_VAR_name environment variable, or a target's
+# variables block. A variable with no default must be set before validate succeeds.
+# https://docs.databricks.com/aws/en/dev-tools/bundles/variables
 variables:
   catalog:
     description: Existing Unity Catalog catalog where the bundle creates its schema
@@ -24,10 +38,16 @@ variables:
     description: Release identifier recorded in resource tags
     default: local
 
+# Top-level permissions apply to every resource the bundle deploys (the job and the pipeline here).
+# Each resource type has its own permission levels; CAN_MANAGE works for all of them.
+# https://docs.databricks.com/aws/en/dev-tools/bundles/permissions
 permissions:
   - level: CAN_MANAGE
     user_name: ${workspace.current_user.userName}
 
+# A target is one deployment of the bundle: a workspace, a mode, and overrides. Pass -t <name> to pick
+# one; without it, the target marked default: true is used.
+# https://docs.databricks.com/aws/en/dev-tools/bundles/deployment-modes
 targets:
   # Development mode is the default target. Resource names get a "[dev <you>]" prefix, job schedules
   # are paused, and the schema is yours alone.
@@ -44,6 +64,11 @@ targets:
     workspace:
       # Production mode requires a fixed path that names the target, so only one copy is deployed.
       root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+    # For a real production deployment, deploy as a service principal and add run_as here, so
+    # scheduled runs don't depend on a person:
+    #   run_as:
+    #     service_principal_name: <application-id>
+    # https://docs.databricks.com/aws/en/dev-tools/bundles/run-as
     presets:
       tags:
         environment: prod

@@ -108,6 +108,17 @@ pytest tests
 
 Give the service principal `USE CATALOG` and `CREATE SCHEMA` on the catalog. Never commit a token or a secret to the repo.
 
+## Add an app, Lakebase, a dashboard, or a Genie agent
+
+`examples/` has a commented, copy-ready file for each. Copy one into `resources/` and deploy. `examples/README.md` lists what each one needs first.
+
+| Example | Adds |
+|---|---|
+| `examples/app.app.yml` | A Databricks App that shows the gold table through a SQL warehouse |
+| `examples/lakebase.postgres.yml` | A Lakebase Postgres project, registered in Unity Catalog |
+| `examples/dashboard.dashboard.yml` | An AI/BI dashboard, pulled in from the UI with `bundle generate dashboard` |
+| `examples/genie.genie_space.yml` | A Genie agent, pulled in from the UI with `bundle generate genie-space` |
+
 ## Clean up
 
 ```bash
@@ -129,3 +140,22 @@ databricks bundle destroy -t prod --var catalog=<catalog>
 | `guides/dab-starter/00_start_here.py`, `01_check_gold.py` | Notebooks the job and you can open in the workspace |
 | `src/` | Helper code for the notebooks, and its tests in `tests/` |
 | `.github/workflows/bundle.yml` | Validate on pull request, deploy on `main` |
+| `examples/` | Copy-ready app, Lakebase, dashboard, and Genie agent resources |
+
+## Learn more
+
+| Topic | Documentation |
+|---|---|
+| Bundles, and how deploy works | <https://docs.databricks.com/aws/en/dev-tools/bundles> |
+| Every setting in `databricks.yml` | <https://docs.databricks.com/aws/en/dev-tools/bundles/settings> |
+| Every resource type a bundle can deploy | <https://docs.databricks.com/aws/en/dev-tools/bundles/resources> |
+| Variables | <https://docs.databricks.com/aws/en/dev-tools/bundles/variables> |
+| Development and production modes | <https://docs.databricks.com/aws/en/dev-tools/bundles/deployment-modes> |
+| Pipelines in a bundle | <https://docs.databricks.com/aws/en/dev-tools/bundles/pipelines-tutorial> |
+| Jobs in a bundle | <https://docs.databricks.com/aws/en/dev-tools/bundles/jobs-tutorial> |
+| Apps in a bundle | <https://docs.databricks.com/aws/en/dev-tools/bundles/apps-tutorial> |
+| Lakebase | <https://docs.databricks.com/aws/en/oltp/projects> |
+| AI/BI dashboards | <https://docs.databricks.com/aws/en/dashboards> |
+| Genie agents and Genie One | <https://docs.databricks.com/aws/en/genie-agents>, <https://docs.databricks.com/aws/en/genie-one> |
+| GitHub Actions | <https://docs.databricks.com/aws/en/dev-tools/ci-cd/github> |
+| Example bundles from Databricks | <https://github.com/databricks/bundle-examples> |

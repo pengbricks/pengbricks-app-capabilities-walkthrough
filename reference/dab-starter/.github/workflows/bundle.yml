@@ -8,6 +8,11 @@
 #
 # The service principal needs USE CATALOG and CREATE SCHEMA on that catalog, and permission to
 # create jobs and pipelines in the workspace.
+#
+# Learn more:
+#   Bundles in GitHub Actions             https://docs.databricks.com/aws/en/dev-tools/ci-cd/github
+#   OAuth for a service principal (M2M)   https://docs.databricks.com/aws/en/dev-tools/auth/oauth-m2m
+#   CI/CD on Databricks                   https://docs.databricks.com/aws/en/dev-tools/ci-cd
 name: bundle
 
 on:
@@ -19,7 +24,9 @@ env:
   DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
   DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
   DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+  # Picks the prod target without -t on every command.
   DATABRICKS_BUNDLE_ENV: prod
+  # Any BUNDLE_VAR_<name> sets the bundle variable <name>.
   BUNDLE_VAR_catalog: ${{ vars.DATABRICKS_CATALOG }}
 
 jobs:
@@ -37,5 +44,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: databricks/setup-cli@main
+      # Deploy changes only what differs from the last deploy, then the run proves the change works.
       - run: databricks bundle deploy
       - run: databricks bundle run capability_guides_dab_starter

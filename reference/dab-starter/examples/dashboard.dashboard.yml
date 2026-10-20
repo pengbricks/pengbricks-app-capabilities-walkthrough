@@ -1,0 +1,33 @@
+# An AI/BI dashboard on the gold table, deployed from a .lvdash.json file in the bundle.
+#
+# Build the dashboard in the workspace UI first, then pull it into the bundle. This writes the YAML and
+# the .lvdash.json for you:
+#   databricks bundle generate dashboard --existing-id <dashboard-id> --key orders_revenue
+# The dashboard ID is the last part of the dashboard's URL. Copy the generated YAML into resources/ (or
+# replace this file's values with it), then deploy. While you edit in the UI, keep the file in sync:
+#   databricks bundle generate dashboard --resource orders_revenue --watch
+#
+# Learn more:
+#   AI/BI dashboards                 https://docs.databricks.com/aws/en/dashboards
+#   dashboard settings you can set   https://docs.databricks.com/aws/en/dev-tools/bundles/resources#dashboard
+#   Manage dashboards with code      https://docs.databricks.com/aws/en/dashboards/automate
+#   Share and embed a dashboard      https://docs.databricks.com/aws/en/dashboards/share/share
+variables:
+  warehouse_id:
+    description: Existing SQL warehouse the dashboard runs its queries on
+
+resources:
+  dashboards:
+    orders_revenue:
+      display_name: dab-starter daily revenue
+      # Relative to this YAML file once it's in resources/.
+      file_path: ../examples/dashboards/orders_revenue.lvdash.json
+      warehouse_id: ${var.warehouse_id}
+      # Points every dataset at this target's tables, so the same file works in dev and prod.
+      dataset_catalog: ${var.catalog}
+      dataset_schema: ${resources.schemas.starter.name}
+      # Viewers see data with the deployer's access when true, with their own when false.
+      embed_credentials: false
+      permissions:
+        - level: CAN_READ
+          group_name: users

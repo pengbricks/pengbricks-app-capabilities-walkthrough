@@ -1,3 +1,10 @@
+# A Lakeflow job that runs the pipeline, then a notebook that checks the result. A task with no cluster
+# settings runs on serverless compute.
+#
+# Learn more:
+#   Job settings you can set here  https://docs.databricks.com/aws/en/dev-tools/bundles/resources#job
+#   Build a job with a bundle      https://docs.databricks.com/aws/en/dev-tools/bundles/jobs-tutorial
+#   Task types and their settings  https://docs.databricks.com/aws/en/dev-tools/bundles/work-tasks
 resources:
   jobs:
     capability_guides_dab_starter:
@@ -11,11 +18,13 @@ resources:
       schedule:
         quartz_cron_expression: "0 0 6 * * ?"
         timezone_id: UTC
+      # Job parameters reach the notebook as widgets: dbutils.widgets.get("catalog").
       parameters:
         - name: catalog
           default: ${var.catalog}
         - name: schema
           default: ${resources.schemas.starter.name}
+        # ${resources.pipelines.orders.id} resolves to the pipeline's ID once it's deployed.
         - name: pipeline_id
           default: ${resources.pipelines.orders.id}
         - name: row_count
@@ -29,4 +38,5 @@ resources:
           depends_on:
             - task_key: run_pipeline
           notebook_task:
+            # Relative to this YAML file. The notebook deploys with the bundle's other files.
             notebook_path: ../guides/dab-starter/01_check_gold.py

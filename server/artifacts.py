@@ -28,6 +28,8 @@ logger = logging.getLogger(__name__)
 INDEX_PATH = Path(__file__).with_name("artifacts.json")
 SNIPPETS_PATH = Path(__file__).with_name("artifact_snippets.json")
 DOWNLOADS_DIR = Path(__file__).with_name("downloads")
+# scripts/build_artifact_snippets.py stores each download as <filename>.bin; see STORED_SUFFIX there.
+DOWNLOAD_STORED_SUFFIX = ".bin"
 JOB_TAG = "capability_guide_job"
 JOB_CACHE_SECONDS = 120
 RUNS_PER_JOB = 5
@@ -215,15 +217,20 @@ def download_path(entry: dict[str, Any]) -> Path | None:
     config = entry.get("download")
     if not config:
         return None
-    path = DOWNLOADS_DIR / Path(config["filename"]).name
+    path = DOWNLOADS_DIR / f"{Path(config['filename']).name}{DOWNLOAD_STORED_SUFFIX}"
     return path if path.is_file() else None
+
+
+def download_name(path: Path) -> str:
+    """The name the user downloads: the stored name without its .bin suffix."""
+    return path.name.removesuffix(DOWNLOAD_STORED_SUFFIX)
 
 
 def download_info(entry: dict[str, Any]) -> dict[str, Any] | None:
     path = download_path(entry)
     if path is None:
         return None
-    return {"filename": path.name, "sizeBytes": path.stat().st_size}
+    return {"filename": download_name(path), "sizeBytes": path.stat().st_size}
 
 
 @router.get("/artifacts/{slug}/download")
@@ -231,7 +238,7 @@ def download_bundle(slug: str) -> FileResponse:
     path = download_path(guide_entry(slug))
     if path is None:
         raise HTTPException(status_code=404, detail="This guide has no download")
-    return FileResponse(path, media_type="application/zip", filename=path.name)
+    return FileResponse(path, media_type="application/zip", filename=download_name(path))
 
 
 @router.get("/artifacts/{slug}")

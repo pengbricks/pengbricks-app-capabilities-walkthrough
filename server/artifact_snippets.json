@@ -801,37 +801,37 @@
     {
       "path": "reference/dab-starter/databricks.yml",
       "symbol": null,
-      "startLine": 14,
-      "endLine": 25,
+      "startLine": 25,
+      "endLine": 39,
       "language": "yml",
-      "code": "variables:\n  catalog:\n    description: Existing Unity Catalog catalog where the bundle creates its schema\n  schema:\n    description: Schema the bundle creates for its tables. Development mode prefixes it with dev_<you>_\n    default: dab_starter\n  row_count:\n    description: Orders the pipeline generates on each update\n    default: \"100000\"\n  release:\n    description: Release identifier recorded in resource tags\n    default: local",
+      "code": "# Variables are set with --var name=value, a BUNDLE_VAR_name environment variable, or a target's\n# variables block. A variable with no default must be set before validate succeeds.\n# https://docs.databricks.com/aws/en/dev-tools/bundles/variables\nvariables:\n  catalog:\n    description: Existing Unity Catalog catalog where the bundle creates its schema\n  schema:\n    description: Schema the bundle creates for its tables. Development mode prefixes it with dev_<you>_\n    default: dab_starter\n  row_count:\n    description: Orders the pipeline generates on each update\n    default: \"100000\"\n  release:\n    description: Release identifier recorded in resource tags\n    default: local",
       "functions": {}
     },
     {
       "path": "reference/dab-starter/resources/orders.pipeline.yml",
       "symbol": null,
       "startLine": 1,
-      "endLine": 19,
+      "endLine": 33,
       "language": "yml",
-      "code": "resources:\n  pipelines:\n    orders:\n      name: dab-starter-orders\n      catalog: ${var.catalog}\n      # Use the schema resource's name, not var.schema: development mode adds the dev_<you>_ prefix to it.\n      schema: ${resources.schemas.starter.name}\n      serverless: true\n      continuous: false\n      channel: CURRENT\n      # Installs dbldatagen on the pipeline's serverless environment before the source runs.\n      environment:\n        dependencies:\n          - \"dbldatagen>=0.4\"\n      configuration:\n        starter.row_count: ${var.row_count}\n      libraries:\n        - glob:\n            include: ../guides/dab-starter/pipeline/**",
+      "code": "# A serverless Lakeflow Declarative Pipeline. Deploying creates or updates the pipeline definition; it\n# doesn't run it. The job in orders.job.yml runs it, or run it alone with:\n#   databricks bundle run orders --var catalog=<catalog>\n#\n# Learn more:\n#   Pipeline settings you can set here  https://docs.databricks.com/aws/en/dev-tools/bundles/resources#pipeline\n#   Build a pipeline with a bundle      https://docs.databricks.com/aws/en/dev-tools/bundles/pipelines-tutorial\n#   Lakeflow Declarative Pipelines      https://docs.databricks.com/aws/en/ldp\nresources:\n  pipelines:\n    orders:\n      name: dab-starter-orders\n      catalog: ${var.catalog}\n      # Use the schema resource's name, not var.schema: development mode adds the dev_<you>_ prefix to it.\n      schema: ${resources.schemas.starter.name}\n      # Serverless needs no cluster settings. https://docs.databricks.com/aws/en/compute/serverless\n      serverless: true\n      # Triggered: each update processes new data, then stops. continuous: true keeps it running.\n      continuous: false\n      channel: CURRENT\n      # Installs dbldatagen on the pipeline's serverless environment before the source runs.\n      environment:\n        dependencies:\n          - \"dbldatagen>=0.4\"\n      # Read in the source with spark.conf.get(\"starter.row_count\").\n      configuration:\n        starter.row_count: ${var.row_count}\n      # Every file under this folder is pipeline source. Paths are relative to this YAML file.\n      # The silver table's expectations are the data quality rules:\n      # https://docs.databricks.com/aws/en/ldp/expectations\n      libraries:\n        - glob:\n            include: ../guides/dab-starter/pipeline/**",
       "functions": {}
     },
     {
       "path": "reference/dab-starter/databricks.yml",
       "symbol": null,
-      "startLine": 31,
-      "endLine": 39,
+      "startLine": 48,
+      "endLine": 59,
       "language": "yml",
-      "code": "targets:\n  # Development mode is the default target. Resource names get a \"[dev <you>]\" prefix, job schedules\n  # are paused, and the schema is yours alone.\n  dev:\n    default: true\n    mode: development\n    presets:\n      tags:\n        release: ${var.release}",
+      "code": "# A target is one deployment of the bundle: a workspace, a mode, and overrides. Pass -t <name> to pick\n# one; without it, the target marked default: true is used.\n# https://docs.databricks.com/aws/en/dev-tools/bundles/deployment-modes\ntargets:\n  # Development mode is the default target. Resource names get a \"[dev <you>]\" prefix, job schedules\n  # are paused, and the schema is yours alone.\n  dev:\n    default: true\n    mode: development\n    presets:\n      tags:\n        release: ${var.release}",
       "functions": {}
     },
     {
       "path": "reference/dab-starter/resources/orders.job.yml",
       "symbol": null,
       "startLine": 1,
-      "endLine": 32,
+      "endLine": 40,
       "language": "yml",
-      "code": "resources:\n  jobs:\n    capability_guides_dab_starter:\n      name: dab-starter-orders\n      description: Runs the orders pipeline, then checks the bronze, silver, and gold tables and prints the expectation results.\n      tags:\n        capability_guide_job: capability_guides_dab_starter\n      max_concurrent_runs: 1\n      timeout_seconds: 3600\n      # Daily at 06:00 UTC. Development mode pauses it; the prod target runs it.\n      schedule:\n        quartz_cron_expression: \"0 0 6 * * ?\"\n        timezone_id: UTC\n      parameters:\n        - name: catalog\n          default: ${var.catalog}\n        - name: schema\n          default: ${resources.schemas.starter.name}\n        - name: pipeline_id\n          default: ${resources.pipelines.orders.id}\n        - name: row_count\n          default: ${var.row_count}\n      tasks:\n        - task_key: run_pipeline\n          pipeline_task:\n            pipeline_id: ${resources.pipelines.orders.id}\n\n        - task_key: check_gold\n          depends_on:\n            - task_key: run_pipeline\n          notebook_task:\n            notebook_path: ../guides/dab-starter/01_check_gold.py",
+      "code": "# A Lakeflow job that runs the pipeline, then a notebook that checks the result. A task with no cluster\n# settings runs on serverless compute.\n#\n# Learn more:\n#   Job settings you can set here  https://docs.databricks.com/aws/en/dev-tools/bundles/resources#job\n#   Build a job with a bundle      https://docs.databricks.com/aws/en/dev-tools/bundles/jobs-tutorial\n#   Task types and their settings  https://docs.databricks.com/aws/en/dev-tools/bundles/work-tasks\nresources:\n  jobs:\n    capability_guides_dab_starter:\n      name: dab-starter-orders\n      description: Runs the orders pipeline, then checks the bronze, silver, and gold tables and prints the expectation results.\n      tags:\n        capability_guide_job: capability_guides_dab_starter\n      max_concurrent_runs: 1\n      timeout_seconds: 3600\n      # Daily at 06:00 UTC. Development mode pauses it; the prod target runs it.\n      schedule:\n        quartz_cron_expression: \"0 0 6 * * ?\"\n        timezone_id: UTC\n      # Job parameters reach the notebook as widgets: dbutils.widgets.get(\"catalog\").\n      parameters:\n        - name: catalog\n          default: ${var.catalog}\n        - name: schema\n          default: ${resources.schemas.starter.name}\n        # ${resources.pipelines.orders.id} resolves to the pipeline's ID once it's deployed.\n        - name: pipeline_id\n          default: ${resources.pipelines.orders.id}\n        - name: row_count\n          default: ${var.row_count}\n      tasks:\n        - task_key: run_pipeline\n          pipeline_task:\n            pipeline_id: ${resources.pipelines.orders.id}\n\n        - task_key: check_gold\n          depends_on:\n            - task_key: run_pipeline\n          notebook_task:",
       "functions": {}
     },
     {
@@ -875,19 +875,19 @@
     {
       "path": "reference/dab-starter/databricks.yml",
       "symbol": null,
-      "startLine": 41,
-      "endLine": 50,
+      "startLine": 61,
+      "endLine": 75,
       "language": "yml",
-      "code": "  # Production mode deploys one shared copy. Names are unprefixed and schedules are live.\n  prod:\n    mode: production\n    workspace:\n      # Production mode requires a fixed path that names the target, so only one copy is deployed.\n      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}\n    presets:\n      tags:\n        environment: prod\n        release: ${var.release}",
+      "code": "  # Production mode deploys one shared copy. Names are unprefixed and schedules are live.\n  prod:\n    mode: production\n    workspace:\n      # Production mode requires a fixed path that names the target, so only one copy is deployed.\n      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}\n    # For a real production deployment, deploy as a service principal and add run_as here, so\n    # scheduled runs don't depend on a person:\n    #   run_as:\n    #     service_principal_name: <application-id>\n    # https://docs.databricks.com/aws/en/dev-tools/bundles/run-as\n    presets:\n      tags:\n        environment: prod\n        release: ${var.release}",
       "functions": {}
     },
     {
       "path": "reference/dab-starter/.github/workflows/bundle.yml",
       "symbol": null,
-      "startLine": 18,
-      "endLine": 41,
+      "startLine": 23,
+      "endLine": 49,
       "language": "yml",
-      "code": "env:\n  DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}\n  DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}\n  DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}\n  DATABRICKS_BUNDLE_ENV: prod\n  BUNDLE_VAR_catalog: ${{ vars.DATABRICKS_CATALOG }}\n\njobs:\n  validate:\n    if: github.event_name == 'pull_request'\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: databricks/setup-cli@main\n      - run: databricks bundle validate --strict\n\n  deploy:\n    if: github.event_name == 'push'\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: databricks/setup-cli@main\n      - run: databricks bundle deploy\n      - run: databricks bundle run capability_guides_dab_starter",
+      "code": "env:\n  DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}\n  DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}\n  DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}\n  # Picks the prod target without -t on every command.\n  DATABRICKS_BUNDLE_ENV: prod\n  # Any BUNDLE_VAR_<name> sets the bundle variable <name>.\n  BUNDLE_VAR_catalog: ${{ vars.DATABRICKS_CATALOG }}\n\njobs:\n  validate:\n    if: github.event_name == 'pull_request'\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: databricks/setup-cli@main\n      - run: databricks bundle validate --strict\n\n  deploy:\n    if: github.event_name == 'push'\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: databricks/setup-cli@main\n      # Deploy changes only what differs from the last deploy, then the run proves the change works.\n      - run: databricks bundle deploy\n      - run: databricks bundle run capability_guides_dab_starter",
       "functions": {}
     }
   ],

@@ -6578,8 +6578,8 @@
           "label": "Variables: catalog has no default",
           "path": "reference/dab-starter/databricks.yml",
           "lines": [
-            14,
-            25
+            25,
+            39
           ],
           "section": "what-is-a-bundle",
           "notes": [
@@ -6591,7 +6591,7 @@
           "path": "reference/dab-starter/resources/orders.pipeline.yml",
           "lines": [
             1,
-            19
+            33
           ],
           "section": "what-is-a-bundle",
           "notes": [
@@ -6603,8 +6603,8 @@
           "label": "The dev target",
           "path": "reference/dab-starter/databricks.yml",
           "lines": [
-            31,
-            39
+            48,
+            59
           ],
           "section": "deploy",
           "notes": [
@@ -6616,7 +6616,7 @@
           "path": "reference/dab-starter/resources/orders.job.yml",
           "lines": [
             1,
-            32
+            42
           ],
           "section": "run",
           "notes": [
@@ -6665,8 +6665,8 @@
           "label": "The prod target",
           "path": "reference/dab-starter/databricks.yml",
           "lines": [
-            41,
-            50
+            61,
+            75
           ],
           "section": "prod",
           "notes": [
@@ -6677,8 +6677,8 @@
           "label": "Validate on pull request, deploy on main",
           "path": "reference/dab-starter/.github/workflows/bundle.yml",
           "lines": [
-            18,
-            41
+            23,
+            49
           ],
           "section": "ci",
           "notes": [

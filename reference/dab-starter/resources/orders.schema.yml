@@ -1,3 +1,6 @@
+# The Unity Catalog schema the pipeline writes its tables to. The bundle creates it on deploy and drops
+# it, with its tables, on bundle destroy. Development mode prefixes the name with dev_<you>_.
+# https://docs.databricks.com/aws/en/dev-tools/bundles/resources#schema-unity-catalog
 resources:
   schemas:
     starter:

@@ -1,0 +1,39 @@
+# A Lakebase Postgres database for an app's transactional data, registered in Unity Catalog so you can
+# query it next to your lakehouse tables.
+#
+# To use it: copy this file into resources/, then deploy. A new project starts with a production branch,
+# a databricks_postgres database, and a read-write compute endpoint, so the project resource is all you
+# need for a working database.
+#
+# Learn more:
+#   Lakebase projects                    https://docs.databricks.com/aws/en/oltp/projects
+#   Branches                             https://docs.databricks.com/aws/en/oltp/projects/branches
+#   postgres_project settings            https://docs.databricks.com/aws/en/dev-tools/bundles/resources#postgres_project
+#   postgres_catalog settings            https://docs.databricks.com/aws/en/dev-tools/bundles/resources#postgres_catalog
+#   Sync lakehouse tables into Postgres  https://docs.databricks.com/aws/en/oltp/projects/sync-tables
+variables:
+  # Development mode doesn't prefix project or catalog IDs. Set a different value per target if dev
+  # and prod share a workspace, or each deploy will manage the same project.
+  lakebase_project_id:
+    description: Lakebase project ID. Lowercase letters, digits, and hyphens; starts with a letter.
+    default: dab-starter-orders
+
+resources:
+  postgres_projects:
+    orders_db:
+      project_id: ${var.lakebase_project_id}
+      display_name: dab-starter orders
+      # Compute for the default endpoint, in Compute Units (CU). Scale to zero is on by default, so an
+      # idle database costs nothing. The gap between max and min can't exceed 16 CU.
+      default_endpoint_settings:
+        autoscaling_limit_min_cu: 0.5
+        autoscaling_limit_max_cu: 2
+
+  # Registers the project's databricks_postgres database as a Unity Catalog catalog. Grant access with
+  # Unity Catalog the same way you would for any catalog.
+  postgres_catalogs:
+    orders_db_catalog:
+      catalog_id: dab_starter_orders_db
+      # Referencing the project resource makes the bundle create the project before the catalog.
+      branch: projects/${resources.postgres_projects.orders_db.project_id}/branches/production
+      postgres_database: databricks_postgres

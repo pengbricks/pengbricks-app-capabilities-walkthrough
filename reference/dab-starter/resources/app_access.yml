@@ -1,5 +1,8 @@
 # Lets the Capability Atlas app start the starter job from its Quick run button.
 # The download of this bundle leaves this file out, so a copy outside the repo needs no extra variable.
+#
+# A Databricks App runs as its own service principal, so it needs CAN_RUN on the job like any other user.
+# https://docs.databricks.com/aws/en/dev-tools/bundles/permissions
 variables:
   app_service_principal:
     description: Application ID of the Databricks App service principal that triggers quick runs
