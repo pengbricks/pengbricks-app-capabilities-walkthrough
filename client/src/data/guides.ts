@@ -234,11 +234,11 @@ export const guides: readonly Guide[] = [
     summary:
       'Classify, extract, mask, translate, and parse documents from SQL, and know when to build your own instead.',
     acceptanceCriteria:
-      'Pick the right AI Function for a task, run it once over a table and keep the result, and check the models, permissions, data residency, and compliance settings that apply before it touches regulated data.',
+      'Pick the right AI Function for a task, run it once in a pipeline or job and keep the result, return structured output, evaluate it against labeled rows, and check the models, permissions, data residency, and compliance settings before it touches regulated data.',
     evidence: [
-      'Use cases with the function and SQL for each',
-      'Decision table: task function, ai_query, or hand-built',
-      'Model, permission, residency, and compliance checklist',
+      'Task function, ai_query, or hand-built, chosen for each job',
+      'Structured output, error handling, and evaluation against labeled rows',
+      'Model, permission, residency, and compliance checks before regulated data',
     ],
   },
   {
@@ -246,13 +246,13 @@ export const guides: readonly Guide[] = [
     title: 'Assistant user experience',
     category: 'AI Guides',
     difficulty: 2,
-    summary: 'Observe representative users completing core discovery tasks.',
+    summary: 'Roll out a Genie Agent that business users trust: curate, measure, pilot, and distribute.',
     acceptanceCriteria:
-      'People find data, ask a question, refine the answer, and leave feedback in an assistant; issues and training needs are logged.',
+      'A Genie Agent is curated with instructions, sample questions, and trusted assets, scored with benchmarks, piloted with a small cohort, and shared with the right access and warehouse size.',
     evidence: [
-      'Representative user task script',
-      'Observed outcomes and feedback',
-      'Issue and training-needs register',
+      'Instructions, sample questions, and trusted assets for the agent',
+      'Benchmark set and accuracy score before wider release',
+      'Feedback review routine, pilot training, and distribution channels',
     ],
   },
   {
@@ -260,13 +260,13 @@ export const guides: readonly Guide[] = [
     title: 'Business terms and synonyms',
     category: 'AI Guides',
     difficulty: 2,
-    summary: 'Improve discovery through governed concepts and synonyms.',
+    summary: 'Define business terms once with metric views, governed tags, and comments so people and Genie read data the same way.',
     acceptanceCriteria:
-      'Business terms and synonyms are defined once and used to improve search and question answering.',
+      'Business terms and synonyms are defined once in metric views, comments, and governed tags, trusted assets are certified, and Genie benchmarks show how well questions are interpreted.',
     evidence: [
-      'Priority concept and synonym model',
-      'Before-and-after discovery examples',
-      'Interpretation quality evidence',
+      'Metric view with measures, dimensions, and synonyms',
+      'Governed tags, reviewed comments, and certified assets',
+      'Benchmark scores before and after a change to the semantics',
     ],
   },
   {
@@ -274,13 +274,13 @@ export const guides: readonly Guide[] = [
     title: 'Agents, MCP, and model gateway',
     category: 'AI Guides',
     difficulty: 5,
-    summary: 'Evaluate governed MCP, A2A, and model-gateway operations end to end.',
+    summary: 'Host MCP servers and agents on Databricks Apps, govern tools and models through Unity Gateway, and trace and evaluate runs.',
     acceptanceCriteria:
-      'One governed MCP tool call, one agent-to-agent handoff, and the same prompt routed to two models through a gateway with limits, safety checks, tracing, and fallback.',
+      'MCP servers and agents run on Databricks Apps with the right identity (app or on-behalf-of user), tools are governed through Unity Gateway and Unity Catalog, models are routed with limits and fallback, and runs are traced and evaluated with MLflow.',
     evidence: [
-      'Governed MCP call and cross-agent trace',
-      'Two-model gateway comparison and fallback',
-      'Controls, cost, latency, and portability matrix',
+      'Governed MCP tool call under Unity Catalog permissions',
+      'Model service with routing, fallback, rate limits, and audit',
+      'MLflow tracing, mlflow.genai.evaluate scores, and a status table of GA, Beta, and Legacy options',
     ],
   },
   {
@@ -288,13 +288,13 @@ export const guides: readonly Guide[] = [
     title: 'Building and shipping agents',
     category: 'AI Guides',
     difficulty: 5,
-    summary: 'Document the full assistant build-to-operations lifecycle.',
+    summary: 'Build with the Agent Bricks CLI, deploy to Agent Runtime on Apps, and promote only after evaluation.',
     acceptanceCriteria:
-      'An assistant is built, deployed, versioned, secured, and monitored, with its code, dependencies, and owners documented.',
+      'An agent is built with the Agent Bricks CLI and deployed to Agent Runtime on Databricks Apps with DurableAgentServer, evaluated before promotion, traced in production, and released with every dependency and resource declared.',
     evidence: [
-      'Versioned assistant implementation',
-      'Security and deployment configuration',
-      'Monitoring and operational ownership record',
+      'Agent project with agent.toml and pinned dependencies',
+      'Evaluation scores that gate promotion, and production tracing',
+      'Release record with resources, identity, and owners',
     ],
   },
   {
@@ -382,13 +382,13 @@ export const guides: readonly Guide[] = [
     title: 'Apache Iceberg interoperability',
     category: 'General Guides',
     difficulty: 4,
-    summary: 'Validate governed Iceberg interoperability and table evolution.',
+    summary: 'Use managed Iceberg, the Unity Catalog Iceberg REST catalog, and credential vending for governed interoperability.',
     acceptanceCriteria:
-      'Read and write an Iceberg table, evolve its schema, use time travel, and query it from an external engine.',
+      'A managed Iceberg table, or a Delta table with Iceberg reads, is chosen for the use case and read by an external engine through the Iceberg REST catalog with vended credentials and a service principal on OAuth M2M.',
     evidence: [
-      'Representative read and write run',
-      'Evolution and time-travel evidence',
-      'Catalog and external access validation',
+      'Choice of managed Iceberg, Iceberg reads, or foreign Iceberg, with the reason',
+      'External read through the REST catalog with least-privilege grants',
+      'Schema evolution, time travel, and sharing approach',
     ],
   },
   {
@@ -396,13 +396,13 @@ export const guides: readonly Guide[] = [
     title: 'JSON, CSV, Parquet, Delta, and Iceberg',
     category: 'General Guides',
     difficulty: 2,
-    summary: 'Compare file and table formats on one dataset: size, types, query cost, and table-only features.',
+    summary: 'Choose a format by use: Delta by default, Iceberg reads for interop, managed Iceberg when Iceberg is the contract.',
     acceptanceCriteria:
-      'Write one dataset as JSON, CSV, Parquet, Delta, and Iceberg, measure each, and show what only the table formats provide.',
+      'Raw files are ingested into Delta, tables are Unity Catalog managed with liquid clustering and predictive optimization, retention is set deliberately, and the format choice for each consumer is explained.',
     evidence: [
-      'Size, inferred-type, and query-time table per format',
-      'Update, time-travel, and schema-evolution runs on tables versus files',
-      'Delta log and Iceberg metadata file listings',
+      'Format decision for each consumer: Delta, Iceberg reads, or managed Iceberg',
+      'Ingestion of raw files into Delta with Auto Loader or read_files',
+      'Clustering, maintenance, and VACUUM retention settings',
     ],
   },
   {
@@ -410,12 +410,13 @@ export const guides: readonly Guide[] = [
     title: 'Partner tool integrations',
     category: 'General Guides',
     difficulty: 3,
-    summary: 'Connect two priority tools through supported integration patterns.',
-    acceptanceCriteria: 'Connect two common tools to Databricks using supported connectors and patterns.',
+    summary: 'Choose the integration pattern for each tool: SQL warehouse, Federation, Lakeflow Connect, sharing, or Lakebase.',
+    acceptanceCriteria:
+      'Each priority tool connects through the pattern that fits it, with OAuth identity and Unity Catalog governance, and the choice between query in place, ingest, and share is explained.',
     evidence: [
-      'Two configured integrations',
-      'Identity and connectivity pattern',
-      'Successful end-to-end exchange runs',
+      'Pattern chosen for each tool, with the reason',
+      'OAuth identity and least-privilege grants for each connection',
+      'End-to-end exchange through the chosen path',
     ],
   },
   {
@@ -423,13 +424,13 @@ export const guides: readonly Guide[] = [
     title: 'Legacy workload migration',
     category: 'General Guides',
     difficulty: 5,
-    summary: 'Assess conversion coverage and the remaining human effort.',
+    summary: 'Migrate with Lakebridge: assess, convert, and reconcile against the legacy system, in phases.',
     acceptanceCriteria:
-      'Assess one legacy workload, convert it automatically where possible, reconcile the results, and estimate the remaining effort by role.',
+      'One legacy workload is assessed, converted with automated tooling, reconciled against the legacy system’s own output, and landed on set-based SQL and Lakeflow patterns, with an effort estimate by role and a phased plan.',
     evidence: [
-      'Representative workload assessment',
-      'Automated coverage and remediation log',
-      'Test results and role-based effort estimate',
+      'Assessment from the Profiler and Analyzer, with a prioritized inventory',
+      'Converted code, flagged constructs, and the remediation log',
+      'Reconciliation against legacy output and a phase plan through decommission',
     ],
   },
   {

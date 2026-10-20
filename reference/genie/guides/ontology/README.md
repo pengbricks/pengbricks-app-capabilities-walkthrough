@@ -11,7 +11,7 @@ The sample sales tables store codes (`seg_cd`, `rgn_cd`, `ord_st`). The job asks
 | Priority concepts defined once | `sales_metrics` metric view: 5 measures (Revenue, Order Count, Cancelled Orders, Active Customers, Average Order Value) and 6 dimensions |
 | Table and column comments, tags | `COMMENT ON TABLE`, column comments, and `business_term` / `domain` tags on `cust` and `ord_fact` |
 | Synonyms | `synonyms:` on every measure and dimension in the metric view, plus a glossary in the Genie instructions and sample questions |
-| Better question interpretation | `ontology_comparison`: baseline matched 0 of 5 expected answers, with semantics 5 of 5 |
+| Better question interpretation | `ontology_comparison`: expected rows compared with each space's answer (see Reference run) |
 
 ## Architecture
 
@@ -53,8 +53,11 @@ flowchart LR
 
 - Tables: `cust` (400 rows), `ord_fact` (6,000 rows), `ontology_comparison`, `ontology_comparison_summary`, `genie_spaces`
 - Metric view: `sales_metrics`
-- Genie spaces, created through `POST /api/2.0/genie/spaces` (the bundle does not declare them): a baseline space and an enhanced space, IDs and URLs in `genie_spaces`
-- Reference run: matches expected answer 0 of 5 before, 5 of 5 after
+- Genie spaces, created through `POST /api/2.0/genie/spaces` by the notebooks (a bundle `genie_spaces` resource can declare them instead): a baseline space and an enhanced space, IDs and URLs in `genie_spaces`
+
+## Reference run
+
+- Matches expected answer 0 of 5 before, 5 of 5 after. Five questions on generated data illustrate the mechanism; they are not a measured accuracy.
 
 ## Limitations and next steps
 

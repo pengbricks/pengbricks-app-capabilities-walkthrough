@@ -50,6 +50,14 @@ All code is in `reference/open-data/`.
 6. Query `SELECT pattern, check, status, value, detail FROM <schema>.integration_checks`.
 7. Confirm the connection is gone: `SHOW CONNECTIONS` has no `capability_guides_lakebase_pg`.
 
+## Reference run
+
+What this reference bundle did in one run. The guide page teaches how to choose a pattern; these are bundle-specific.
+
+- SQL Connector: 4 regions, 5,000 orders, and a named-parameter query (1,531 West orders), both matching Spark.
+- Federation: 200 rows and the same total as Postgres, a join with a Unity Catalog table covering 200 rows, and an aggregate computed in Postgres.
+- The foreign catalog step was recorded as `BLOCKED` because the job identity lacked `CREATE CATALOG`, so the run used `remote_query` on the same connection.
+
 ## Artifacts produced
 
 - Table `<catalog>.<schema>.integration_checks`, plus `sharing_orders` and `sharing_products` as sample data.

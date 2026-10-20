@@ -12,7 +12,9 @@ All sample data is in `use_cases/general.yml`. The names, emails, and phone numb
 - **As a job:** run `capability-guides-ai-functions`, or Quick run in the app.
 - **Safe to rerun, in any mix:** every table is replaced, never appended; each step swaps its own rows in `aif_results`; the page-image folder is cleared before each parse; a scan whose checksum matches is not downloaded again; and step 1 creates the schema and volume if they are missing.
 
-## What this shows
+## Reference run
+
+Results from one run in the reference workspace. They show the setup works, not how a model does on your data.
 
 | Step | Functions | Result in the reference run |
 |---|---|---|
@@ -28,7 +30,7 @@ All sample data is in `use_cases/general.yml`. The names, emails, and phone numb
 
 Each step writes its scores to `aif_results`, replacing its own rows.
 
-## What the runs taught
+### What the reference run taught
 
 - **A VARIANT null is not SQL NULL.** `WHERE doc:error_status IS NULL` dropped every parsed PDF, because `ai_parse_document` returns a VARIANT and a JSON null inside it is a value. Count the errors instead: `coalesce(array_size(try_variant_get(doc, '$.error_status', 'ARRAY<VARIANT>')), 0) = 0`, which also handles a missing field and an empty array.
 - **Not every pay-per-token endpoint accepts batch calls.** `databricks-claude-haiku-5-5` and `databricks-claude-sonnet-5-5` returned "not supported for batch inference". Llama 3.3 70B, GPT OSS 120B, Claude Sonnet 4.6, and GPT-5 mini worked.

@@ -2,9 +2,11 @@
 
 ## Overview
 
-This guide creates a managed Iceberg table in Unity Catalog, writes to it, adds a column, reads an earlier version with time travel, and then reads the same table from outside Spark with PyIceberg through the Unity Catalog Iceberg REST catalog. The external read authenticates with the OAuth token of the job identity and uses vended credentials, so the client never holds storage keys. Every step writes a row to an `iceberg_checks` table.
+This guide creates a managed Iceberg table in Unity Catalog, writes to it, adds a column, reads an earlier version with time travel, and then reads the same table from outside Spark with PyIceberg through the Unity Catalog Iceberg REST catalog. The external read authenticates with the OAuth token of the job identity (an outside client should use a service principal with OAuth M2M) and uses vended credentials, so the client never holds storage keys. Every step writes a row to an `iceberg_checks` table.
 
-## What this shows
+## Reference run
+
+Results from one run in the reference workspace.
 
 | Guide topic | Artifact |
 |---|---|

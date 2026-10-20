@@ -16,6 +16,10 @@ export const walkthrough: Walkthrough = {
       body: 'Every call is a billed model inference. Write the output to a Delta table and query that, instead of calling the function in every dashboard query.',
     },
     {
+      title: 'Run it in a pipeline, with structured output and a labeled test set.',
+      body: 'Score new rows in a Lakeflow Spark Declarative Pipeline or job, return JSON with a fixed schema, and measure every prompt or model change against rows you labeled by hand.',
+    },
+    {
       title: 'Hand-build for latency, tools, or rules.',
       body: 'A per-request API, a multi-step agent, a fine-tuned model, or a job a regex can do are reasons to use Model Serving, an agent, or plain SQL instead.',
     },
@@ -150,11 +154,11 @@ FROM (SELECT path, ai_parse_document(content, map(
       FROM read_files('/Volumes/archive/scans/inbox/', format => 'binaryFile'))
 LATERAL VIEW explode(cast(doc:document:elements AS ARRAY<VARIANT>)) AS e;`,
           notes: [
-            'Scans with no text layer work: on a typed 1947 letter it read the body, the address block, and the handwritten postscript, and labeled both signatures.',
+            'Scans with no text layer work: OCR reads typed text, handwriting, and signatures, and labels each element.',
             'imageOutputPath saves one image per page, and coord is in that image’s pixels, so you can draw each box on the page to check what was read.',
-            'descriptionElementTypes adds a written description of each figure. On an 1880 patent it described all three drawings.',
-            'Check confidence before you extract. On a faded page it read the patent number as 223,996 (confidence 0.70); the cover page says 223,898 (0.86). Extracting from every element picked the misread value in one of three runs; keeping elements at 0.8 and above got it right in all four.',
-            'Results vary between runs, so score a labeled sample more than once before you rely on a field.',
+            'descriptionElementTypes adds a written description of each figure or drawing.',
+            'Check confidence before you extract. Faded pages produce low-confidence misreads, so keep elements above a threshold you set from a labeled sample (0.8 is a reasonable start) and send the rest to review.',
+            'Results can vary between runs, so score a labeled sample more than once before you rely on a field.',
           ],
         },
         {
@@ -180,7 +184,7 @@ WHERE score > 0.85;`,
           notes: [
             'Block the join first. A full cross join calls the model once per pair.',
             'Score each pair once in the inner query, then filter on the saved score.',
-            'No single threshold is clean. In the reference run the true match Adventure Works Cycles / Adventure Works scored 0.783, below the wrong pair Proseware Health / Proseware Logistics at 0.797. Send a middle band, such as 0.75 to 0.9, to a person.',
+            'No single threshold is clean: a true match can score below a wrong pair that shares a long prefix. Send a middle band, such as 0.75 to 0.9, to a person.',
           ],
         },
         {
@@ -207,7 +211,7 @@ FROM reviews.product_reviews;`,
   group_col => 'region'
 );`,
           notes: [
-            'Runs on the warehouse that submits it, with no separate inference charge. Use a Pro or serverless SQL warehouse: in the reference workspace, serverless notebook compute rejected it as a disabled preview.',
+            'Runs on the compute that submits it, with no separate inference charge. Run it on a Pro or serverless SQL warehouse, and check the function page for the runtimes that support it.',
           ],
         },
         {
@@ -229,32 +233,39 @@ WHERE churned IS NULL;`,
       ],
     },
     {
-      id: 'results',
-      heading: 'What the reference run scored',
+      id: 'pipelines',
+      heading: 'In pipelines and jobs: structured output and evaluation',
       prose:
-        'The job runs every example on this page over sample data with known answers, then scores the output. The samples are small on purpose: this shows the setup works, not how a model does on your data.',
-      table: {
-        columns: ['Step', 'Result'],
-        rows: [
-          [
-            'Triage 24 tickets',
-            'Category 24 of 24. Sentiment 20 of 24: short neutral requests read as negative or positive.',
-          ],
-          [
-            'Ask ai_decide two questions per ticket',
-            'Not run: the AI Decide preview is off in the reference workspace, so the step records that and moves on.',
-          ],
-          ['Extract 6 invoice PDFs', 'All parsed; 24 of 24 fields correct (number, vendor, date, total).'],
-          [
-            'Read 2 public-domain scans (5 pages)',
-            '41 elements found and all 3 figures described. Extraction scored 8 or 9 of 10 fields across four runs: the letter’s sender, whose name is only in the handwritten signature, was wrong every time.',
-          ],
-          ['Mask 6 call notes', '0 of 15 planted names, emails, and phone numbers left in the output.'],
-          ['Match 8 accounts to 8 vendors', 'At 0.85: 5 of 6 true matches, no false ones.'],
-          ['Translate 5 reviews to Japanese', '5 of 5 with ai_query and Llama 3.3 70B, no errors.'],
-          ['Forecast daily orders', 'Backtest error 0.72% (east) and 0.78% (west) over September 2026.'],
-        ],
-      },
+        'Run AI Functions where the rest of your transformation runs, in a Lakeflow Spark Declarative Pipeline or a Lakeflow Job, so the output is a governed table with lineage, retries, and a schedule. Do not call them from ad hoc dashboard queries.',
+      points: [
+        {
+          strong: 'Put them in the pipeline.',
+          text: 'Call the function in a streaming table or materialized view over new rows, so each row is scored once as it arrives. Put the prompt, labels, and schema in pipeline parameters or source files under Git.',
+        },
+        {
+          strong: 'Ask for structured output.',
+          text: 'ai_extract takes a JSON schema and ai_classify a label list, so the result has fixed fields you can cast and constrain. With ai_query, pass responseFormat with a JSON schema so the model returns parseable JSON instead of free text. Then add a pipeline expectation on the parsed fields and send rows that fail to a quarantine table.',
+        },
+        {
+          strong: 'Keep errors as data.',
+          text: 'Use failOnError => false with ai_query and keep the error column, so one bad row does not fail a batch and you can count and retry failures.',
+        },
+        {
+          strong: 'Evaluate outputs against labels.',
+          text: 'Hand-label a few hundred representative rows once. Score every prompt, schema, or model change against that set as an accuracy or per-field match, and gate the change on it. Rerun the set when release notes mention a function or when a model retires.',
+        },
+        {
+          strong: 'Sample for drift.',
+          text: 'In production, review a small random sample of outputs on a schedule, and track the share of nulls, errors, and low-confidence rows. A shift in those is the first sign that inputs or the model changed.',
+        },
+      ],
+      links: [
+        {
+          label: 'ai_query',
+          url: 'https://docs.databricks.com/aws/en/large-language-models/ai-query',
+          note: 'Structured output with responseFormat, failOnError, and batch inference.',
+        },
+      ],
     },
     {
       id: 'decide',
@@ -420,7 +431,7 @@ WHERE churned IS NULL;`,
         },
         {
           strong: 'ai_query uses the model you name.',
-          text: 'Not every pay-per-token endpoint accepts batch calls. In the reference workspace databricks-meta-llama-3-3-70b-instruct, databricks-gpt-oss-120b, databricks-claude-sonnet-4-6, and databricks-gpt-5-mini worked; databricks-claude-haiku-5-5 and databricks-claude-sonnet-5-5 returned "not supported for batch inference". Try a one-row query before building on a model.',
+          text: 'Not every serving endpoint accepts batch calls, and availability differs by region and workspace. Test a one-row ai_query against a model before you build on it, and prefer the batch-optimized models the ai_query page lists for large tables.',
         },
         {
           strong: 'Some models need cross-Geo routing.',

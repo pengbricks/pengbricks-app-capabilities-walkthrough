@@ -5,256 +5,261 @@ export const walkthrough: Walkthrough = {
   area: 'General Guides',
   title: 'Legacy workload migration',
   intro:
-    'A serverless job takes one nightly T-SQL sales batch through four tasks: assess, convert, reconcile, and record. It writes how much converts automatically, what needs hand remediation, whether the converted pipeline matches a Python reference, and how many hours each role should expect. Every number comes from the run. Lakebridge is the supported toolkit for production-scale migrations, and the guide shows the same loop on one workload.',
+    'Lakebridge is the Databricks Labs toolkit for migrating SQL workloads and data to Databricks. It covers the whole path: assess the estate, convert code, and reconcile the results against the legacy system. This page teaches that loop, a six-phase plan to run it, and the patterns to land on after conversion.',
   shortVersion: [
     {
-      title: 'Four tasks, one workload.',
-      body: 'assess, convert, test, and record run in order against nightly_sales_batch.sql, a 13-step legacy script.',
+      title: 'Assess before you convert.',
+      body: 'The Lakebridge Profiler surveys the source environment, and the Analyzer scans SQL and orchestration code. They size the migration, estimate effort, and flag problem constructs so you can prioritize.',
     },
     {
-      title: '69.2% converts automatically.',
-      body: 'Of 13 steps, 5 are clean, 4 are warnings that need a check, and 4 are manual rewrites.',
+      title: 'Automate the conversion.',
+      body: 'Lakebridge transpilers (BladeBridge, Morpheus, and Switch) and the agentic code converter turn legacy SQL into Databricks SQL or notebooks. Plan for human review of what they flag.',
     },
     {
-      title: 'Results are checked, not assumed.',
-      body: 'The converted pipeline runs on 120 generated rows and 26 of 26 reconcile checks pass against an independent Python reference.',
+      title: 'Reconcile against the legacy system’s own output.',
+      body: 'Lakebridge Reconcile compares schema, rows, and values between the source and Databricks. A test against a reference you wrote yourself proves your reference, not the migration.',
     },
     {
-      title: 'Effort is computed per role.',
-      body: 'Data engineer 23.25 h, analytics engineer 9.5 h, QA 13.5 h, and platform admin 3.4 h, from assumptions in the use-case spec.',
+      title: 'Migrate in phases.',
+      body: 'Inventory, prioritize, pilot, run in parallel, cut over, then decommission. Keep the legacy system until reconciliation passes for a full business cycle.',
     },
     {
-      title: 'Lakebridge covers the estate.',
-      body: 'Analyzer, the transpilers, and Reconciler do the same three stages at scale. This bundle shows each step end to end.',
+      title: 'Land on set-based SQL and Lakeflow.',
+      body: 'Replace cursors and loops with set-based SQL, run pipelines as Lakeflow Spark Declarative Pipelines or Lakeflow Jobs, and govern the output in Unity Catalog.',
     },
   ],
   sections: [
     {
-      id: 'flow',
-      heading: 'Assess, convert, reconcile, record',
-      prose:
-        'Each task reads the previous task output and writes tables to the shared guide schema. The convert task also reads hand-written replacements for steps it cannot convert, and the test task also reads generated sample data.',
-      diagram: {
-        type: 'flow',
-        title: 'The four tasks and the tables they write',
-        description:
-          'The assess task splits and classifies the legacy SQL and writes assessment_classification. The convert task uses sqlglot, plus hand-written remediation SQL, and writes assessment_conversion. The test task runs the converted pipeline on generated sample data, compares the output with a Python reference, and writes assessment_test_results. The record task writes assessment_statements, assessment_summary, and assessment_effort.',
-        nodes: [
-          { id: 'legacy', label: 'Legacy workload', sub: 'nightly_sales_batch.sql', col: 0, row: 1 },
-          { id: 'assess', label: 'assess', sub: 'split and classify', mono: true, col: 1, row: 1, kind: 'highlight' },
-          { id: 'convert', label: 'convert', sub: 'T-SQL to Databricks SQL', mono: true, col: 2, row: 1, kind: 'highlight' },
-          { id: 'test', label: 'test', sub: 'run and compare', mono: true, col: 3, row: 1, kind: 'highlight' },
-          { id: 'record', label: 'record', sub: 'summary and effort', mono: true, col: 4, row: 1, kind: 'highlight' },
-          { id: 'manual', label: 'Manual remediations', sub: 'manual_remediations.sql', col: 2, row: 0 },
-          { id: 'data', label: 'Sample data', sub: 'generated, fixed seed', col: 3, row: 0 },
-          { id: 'cls', label: 'Classification table', sub: 'assessment_classification', mono: true, col: 1, row: 2, kind: 'store' },
-          { id: 'conv', label: 'assessment_conversion', mono: true, col: 2, row: 2, kind: 'store' },
-          { id: 'res', label: 'assessment_test_results', mono: true, col: 3, row: 2, kind: 'store' },
-          { id: 'sum', label: 'Summary tables', sub: 'statements, summary, hours', col: 4, row: 2, kind: 'store' },
-        ],
-        edges: [
-          { from: 'legacy', to: 'assess' },
-          { from: 'assess', to: 'convert' },
-          { from: 'convert', to: 'test' },
-          { from: 'test', to: 'record' },
-          { from: 'manual', to: 'convert' },
-          { from: 'data', to: 'test' },
-          { from: 'assess', to: 'cls' },
-          { from: 'convert', to: 'conv' },
-          { from: 'test', to: 'res' },
-          { from: 'record', to: 'sum' },
-        ],
-        legend: [
-          { kind: 'highlight', label: 'Job task' },
-          { kind: 'store', label: 'Unity Catalog table' },
-        ],
-        caption:
-          'The job is capability_guides_legacy_conversion_assessment. The reconcile code runs as the task named test.',
-      },
-    },
-    {
-      id: 'status',
-      heading: 'How each step gets a status',
-      prose:
-        'The assess task splits the script on its step markers and classifies each step by rule. The convert task tries sqlglot on every step and assigns one of three statuses. Procedural code is always flagged manual.',
-      diagram: {
-        type: 'flow',
-        title: 'From legacy step to executed SQL',
-        description:
-          'Each legacy step goes to sqlglot. A construct check sorts the step into clean, warning, or manual. Clean and warning steps run as converted. Manual steps run the hand-written replacement. All three feed the executed SQL that the test task runs.',
-        nodes: [
-          { id: 'step', label: 'Legacy step', sub: '13 steps', col: 0, row: 1 },
-          { id: 'glot', label: 'sqlglot', sub: 'T-SQL to Databricks SQL', mono: true, col: 1, row: 1, kind: 'highlight' },
-          { id: 'gate', label: 'Construct check', col: 2, row: 1, kind: 'gate' },
-          { id: 'clean', label: 'clean: 5 steps', sub: 'nothing to review', col: 3, row: 0 },
-          { id: 'warn', label: 'warning: 4 steps', sub: 'temp table, IDENTITY, TOP', col: 3, row: 1 },
-          { id: 'man', label: 'manual: 4 steps', sub: 'cursor, WHILE, CTE DML', col: 3, row: 2 },
-          { id: 'run', label: 'Executed SQL', sub: 'in assessment_conversion', col: 4, row: 1, kind: 'store' },
-        ],
-        edges: [
-          { from: 'step', to: 'glot' },
-          { from: 'glot', to: 'gate' },
-          { from: 'gate', to: 'clean' },
-          { from: 'gate', to: 'warn' },
-          { from: 'gate', to: 'man', label: 'hand-written' },
-          { from: 'clean', to: 'run' },
-          { from: 'warn', to: 'run' },
-          { from: 'man', to: 'run' },
-        ],
-        legend: [
-          { kind: 'highlight', label: 'Automatic conversion' },
-          { kind: 'gate', label: 'Status decision' },
-          { kind: 'store', label: 'Table' },
-        ],
-        caption:
-          'Warnings also cover MERGE. Manual steps also cover TRY/CATCH. Their replacements are set-based rewrites kept in the remediation file.',
-      },
-      table: {
-        caption: 'Reference run: 13 steps, 69.2% automated coverage, 4 remediations.',
-        columns: ['Status', 'Meaning'],
-        rows: [
-          ['clean (5)', 'sqlglot converts the step and nothing needs review.'],
-          ['warning (4)', 'Converted, but a semantic difference needs a check: temp table, IDENTITY, TOP, MERGE.'],
-          ['manual (4)', 'No safe automatic conversion: cursor, WHILE loop, DML against a CTE, TRY/CATCH.'],
-        ],
-      },
-    },
-    {
       id: 'lakebridge',
-      heading: 'Where this bundle maps to Lakebridge',
+      heading: 'Lakebridge: assess, convert, reconcile',
+      prose:
+        'Lakebridge has a component for each stage. Use them in order, and feed what each learns into the next.',
+      diagram: {
+        type: 'matrix',
+        title: 'Migration stage by Lakebridge component',
+        description:
+          'Assessment uses the Profiler, which connects to the source environment and reports workload size, complexity, and features used, and the Analyzer, which scans SQL and orchestration code and flags problem constructs. Conversion uses one of three transpilers: BladeBridge, which handles a wide range of dialects and some ETL; Morpheus, a next-generation transpiler for fewer dialects with experimental dbt support; or Switch, an LLM-powered transpiler that produces Databricks notebooks. Reconciliation uses Reconcile, which compares source and target at the schema, row, and data level.',
+        corner: 'Stage ↓ · Component →',
+        columns: ['Component', 'What it does'],
+        rows: [
+          {
+            label: 'Assess: workload',
+            cells: [
+              { state: 'own', text: 'Profiler' },
+              { state: 'own', text: 'Size, complexity, and features used in the source environment' },
+            ],
+          },
+          {
+            label: 'Assess: code',
+            cells: [
+              { state: 'own', text: 'Analyzer' },
+              { state: 'own', text: 'Scans SQL and orchestration; flags problem constructs and effort' },
+            ],
+          },
+          {
+            label: 'Convert',
+            sub: 'wide dialect coverage',
+            cells: [
+              { state: 'own', text: 'BladeBridge' },
+              { state: 'own', text: 'Mature; many dialects and some ETL or orchestration' },
+            ],
+          },
+          {
+            label: 'Convert',
+            sub: 'next generation',
+            cells: [
+              { state: 'optional', text: 'Morpheus' },
+              { state: 'optional', text: 'Fewer dialects; experimental dbt support' },
+            ],
+          },
+          {
+            label: 'Convert',
+            sub: 'LLM-powered',
+            cells: [
+              { state: 'optional', text: 'Switch' },
+              { state: 'optional', text: 'Uses LLMs to produce Databricks notebooks' },
+            ],
+          },
+          {
+            label: 'Reconcile',
+            cells: [
+              { state: 'own', text: 'Reconcile' },
+              { state: 'own', text: 'Compares source and Databricks at schema, row, and data level' },
+            ],
+          },
+        ],
+        legend: [
+          { state: 'own', label: 'Core component' },
+          { state: 'optional', label: 'Option with narrower scope' },
+        ],
+        caption:
+          'Component names follow the Lakebridge documentation. Check it for the dialects each transpiler and Reconcile support.',
+      },
       examples: [
         {
           label: 'Run Lakebridge on a real source folder',
           language: 'sh',
           code: 'databricks labs install lakebridge\ndatabricks labs lakebridge install-transpile\ndatabricks labs lakebridge transpile \\\n  --transpiler-config-path <path> --input-source <path> \\\n  --source-dialect <dialect> --output-folder <path> \\\n  --catalog-name <catalog> --schema-name <schema>',
-          notes: ['The bundle uses sqlglot on one script. Lakebridge transpilers handle a whole folder of source files.'],
+          notes: ['Transpilers handle a whole folder of source files, not one script.'],
         },
       ],
+      links: [
+        {
+          label: 'Lakebridge documentation',
+          url: 'https://databrickslabs.github.io/lakebridge/docs/overview/',
+          note: 'Assessment, transpile, and reconcile guides.',
+        },
+      ],
+    },
+    {
+      id: 'phases',
+      heading: 'A phase model for the migration',
       prose:
-        'Lakebridge is the Databricks Labs toolkit for migrating to Databricks, and it covers the same three stages at estate scale. assess.py stands in for Analyzer on one workload, convert.py with sqlglot stands in for a transpiler, and reconcile.py stands in for Reconciler. Use this bundle to explain the loop and its artifacts, and use Lakebridge for a real estate.',
+        'Run the migration as six phases. Each has an exit test, so you do not carry unknowns into the next one.',
       diagram: {
-        type: 'matrix',
-        title: 'Bundle steps by Lakebridge component',
+        type: 'flow',
+        title: 'From inventory to decommission',
         description:
-          'The assess task stands in for Lakebridge Analyzer; Profiler has no bundle counterpart. The convert task is a stand-in for a transpiler, with BladeBridge, Morpheus, and Switch as the Lakebridge options. The reconcile task stands in for Reconciler. The record task has no Lakebridge counterpart.',
-        corner: 'Bundle step ↓ · Lakebridge →',
-        columns: ['Profiler', 'Analyzer', 'BladeBridge', 'Morpheus', 'Switch', 'Reconciler'],
-        rows: [
-          {
-            label: 'assess',
-            sub: 'assess.py',
-            cells: [
-              { state: 'none', text: 'no counterpart' },
-              { state: 'own', text: 'stands in' },
-              { state: 'none', text: 'none' },
-              { state: 'none', text: 'none' },
-              { state: 'none', text: 'none' },
-              { state: 'none', text: 'none' },
-            ],
-          },
-          {
-            label: 'convert',
-            sub: 'convert.py, sqlglot',
-            cells: [
-              { state: 'none', text: 'none' },
-              { state: 'none', text: 'none' },
-              { state: 'optional', text: 'wide dialects, some ETL' },
-              { state: 'optional', text: 'next generation, dbt' },
-              { state: 'optional', text: 'LLM-powered, notebooks' },
-              { state: 'none', text: 'none' },
-            ],
-          },
-          {
-            label: 'test',
-            sub: 'reconcile.py',
-            cells: [
-              { state: 'none', text: 'none' },
-              { state: 'none', text: 'none' },
-              { state: 'none', text: 'none' },
-              { state: 'none', text: 'none' },
-              { state: 'none', text: 'none' },
-              { state: 'own', text: 'stands in' },
-            ],
-          },
-          {
-            label: 'record',
-            sub: 'record.py',
-            cells: [
-              { state: 'none', text: 'no counterpart' },
-              { state: 'none', text: 'none' },
-              { state: 'none', text: 'none' },
-              { state: 'none', text: 'none' },
-              { state: 'none', text: 'none' },
-              { state: 'none', text: 'none' },
-            ],
-          },
+          'Inventory the workloads, prioritize by business value and effort, pilot one workload end to end, run old and new in parallel with reconciliation, cut over consumers, then decommission the legacy system.',
+        nodes: [
+          { id: 'inv', label: 'Inventory', sub: 'Profiler and Analyzer', col: 0, row: 0 },
+          { id: 'pri', label: 'Prioritize', sub: 'value, usage, effort', col: 1, row: 0 },
+          { id: 'pilot', label: 'Pilot', sub: 'one workload, end to end', col: 2, row: 0, kind: 'highlight' },
+          { id: 'par', label: 'Parallel run', sub: 'reconcile every cycle', col: 0, row: 1, kind: 'gate' },
+          { id: 'cut', label: 'Cutover', sub: 'repoint consumers', col: 1, row: 1 },
+          { id: 'dec', label: 'Decommission', sub: 'retire the legacy system', col: 2, row: 1 },
+        ],
+        edges: [
+          { from: 'inv', to: 'pri' },
+          { from: 'pri', to: 'pilot' },
+          { from: 'pilot', to: 'par' },
+          { from: 'par', to: 'cut', label: 'reconciled' },
+          { from: 'cut', to: 'dec' },
         ],
         legend: [
-          { state: 'own', label: 'Bundle step stands in for this component' },
-          { state: 'optional', label: 'Lakebridge transpiler option for this stage' },
-          { state: 'none', label: 'No match' },
+          { kind: 'highlight', label: 'Proves the pattern' },
+          { kind: 'gate', label: 'Exit gate' },
         ],
-        caption:
-          'Profiler connects to the source environment and reports workload size, complexity, and features used. Analyzer scans SQL and orchestration code to size the migration and flag problem constructs.',
+      },
+      table: {
+        columns: ['Phase', 'Exit test'],
+        rows: [
+          ['Inventory', 'Every workload, job, and consumer is listed with owner, size, and complexity'],
+          ['Prioritize', 'Waves are ordered by business value, usage, dependencies, and conversion effort; retire unused workloads instead of migrating them'],
+          ['Pilot', 'One representative workload runs on Databricks, reconciles, and teaches the team the pattern and the real effort per role'],
+          ['Parallel run', 'Legacy and Databricks outputs reconcile over a full business cycle, including month-end if it matters'],
+          ['Cutover', 'Consumers read from Databricks; rollback is rehearsed; data and code freeze on the legacy side'],
+          ['Decommission', 'Legacy access is removed after the agreed retention period, and archives are in place'],
+        ],
       },
     },
     {
-      id: 'reconcile',
-      heading: 'What the reconcile task checks',
+      id: 'convert',
+      heading: 'Convert: automate, then review what is flagged',
       prose:
-        'The test task runs each step, then compares four output tables with an independent pure-Python reference computed from the same 120 generated rows. In the reference run, 26 of 26 checks passed.',
+        'Automatic conversion handles the bulk of ordinary SQL. The remainder is procedural code that has no direct equivalent: cursors, loops, dynamic SQL, and vendor features. Sort converted statements into clean, needs-review, and manual, and spend human time on the last two.',
       points: [
         {
-          strong: 'Execution.',
-          text: 'Each step runs, using the converted SQL or the hand-written replacement.',
+          strong: 'Pick the converter by source and target.',
+          text: 'Lakebridge transpilers run from the command line on source folders. The agentic code converter in Genie Code (generally available for SQL conversion) converts T-SQL, Snowflake, Redshift, Oracle, BigQuery, and Teradata in a migration project and validates its output. Its Notebooks target is Beta.',
         },
         {
-          strong: 'Counts and keys.',
-          text: 'Row counts and key sets match for dim_customer, fact_daily_sales, region_summary, and dim_date.',
+          strong: 'Expect warnings and manual rewrites.',
+          text: 'Temp tables, identity columns, TOP, MERGE, cursors, WHILE loops, DML against CTEs, and TRY/CATCH need a check or a rewrite. Track each as a work item with an owner.',
         },
         {
-          strong: 'Values.',
-          text: 'Column values and sums match the reference. The expected results are defined in use_cases/general.yml.',
+          strong: 'Keep conversion repeatable.',
+          text: 'Treat the converter output as source: commit it, review it, and rerun the converter when the source changes during the project.',
         },
         {
-          strong: 'Scope.',
-          text: 'The checks run against sample data. They do not compare output from the legacy system.',
+          strong: 'Use a small script to learn the loop.',
+          text: 'The reference bundle runs the same assess, convert, reconcile loop on one T-SQL batch with the open-source sqlglot library. Its README has the numbers and the code; it is a teaching stand-in, not a replacement for Lakebridge.',
+        },
+      ],
+      links: [
+        {
+          label: 'Convert SQL with the agentic code converter',
+          url: 'https://docs.databricks.com/aws/en/migration/agentic-code-converter',
+        },
+        {
+          label: 'Migrate your data warehouse to the lakehouse',
+          url: 'https://docs.databricks.com/aws/en/migration/warehouse-to-lakehouse',
+        },
+      ],
+    },
+    {
+      id: 'targets',
+      heading: 'Target patterns to land on',
+      prose:
+        'A literal translation runs, but it keeps the legacy design. Move to patterns that fit the platform.',
+      table: {
+        columns: ['Legacy construct', 'Databricks pattern'],
+        rows: [
+          ['Cursor or WHILE loop over rows', 'Set-based SQL, or a window function or join'],
+          ['Stored procedure that chains steps', 'Lakeflow Jobs tasks, or a Lakeflow Spark Declarative Pipeline for table-to-table logic'],
+          ['Temp tables between steps', 'Views, CTEs, or intermediate pipeline tables'],
+          ['Nightly full reload', 'Incremental streaming tables or materialized views'],
+          ['Identity column or sequence', 'Generated identity columns on Delta, or a deterministic key'],
+          ['Permissions in the warehouse', 'Unity Catalog grants, row filters, and column masks'],
+          ['Scheduler outside the warehouse', 'Lakeflow Jobs with retries, alerts, and repair runs'],
+        ],
+      },
+      points: [
+        {
+          strong: 'Tune after you reconcile.',
+          text: 'Get correct output first, then tune. Use liquid clustering, predictive optimization, and serverless compute instead of replicating the legacy indexes and partitions.',
+        },
+        {
+          strong: 'Move the data deliberately.',
+          text: 'Use Lakeflow Connect or Lakehouse Federation to land source data while both systems run, and reconcile what lands.',
+        },
+      ],
+    },
+    {
+      id: 'reconcile',
+      heading: 'Reconcile against the legacy system’s own output',
+      prose:
+        'The only proof that a migrated workload is right is that it produces what the legacy system produces on the same inputs. Lakebridge Reconcile does that comparison.',
+      points: [
+        {
+          strong: 'Choose the report type.',
+          text: 'Schema compares column names and types. Row compares row hashes when there is no key. Data compares values by join columns, with per-column mismatches. All runs data and schema together.',
+        },
+        {
+          strong: 'Compare the same inputs.',
+          text: 'Run both systems on the same input snapshot, and compare results for the same period. Include edge cases: nulls, empty periods, rounding, time zones, and late data.',
+        },
+        {
+          strong: 'Do not reconcile only against your own reference.',
+          text: 'A reference that you wrote in Python proves the conversion matches that reference. It does not show the output matches the legacy system.',
+        },
+        {
+          strong: 'Keep reconciling through the parallel run.',
+          text: 'Schedule Reconcile every cycle, and treat a new mismatch as a defect until explained.',
+        },
+      ],
+      links: [
+        {
+          label: 'Lakebridge Reconcile',
+          url: 'https://databrickslabs.github.io/lakebridge/docs/reconcile/',
         },
       ],
     },
     {
       id: 'effort',
-      heading: 'Effort by role',
+      heading: 'Estimate effort by role',
       prose:
-        'The record task applies hours = fixed + clean x a + warning x b + manual x c for each role. The per-status and fixed hours are assumptions in use_cases/general.yml, reviewed by each role. They are planning inputs for one workload, not a quote, and they exclude data migration, cutover, and performance tuning.',
+        'Estimate per role, not as one number: hours = fixed + clean x a + warning x b + manual x c, with the fixed and per-status hours as stated assumptions that each role reviews. Count the statuses from the assessment. Treat the result as a planning input for one workload, and exclude data migration, cutover, and performance tuning, which you estimate separately.',
       table: {
-        caption: 'Reference run, from the assessment_effort table.',
-        columns: ['Role', 'Hours and assumption'],
+        caption: 'Roles to estimate',
+        columns: ['Role', 'Typical work'],
         rows: [
-          ['Data engineer', '23.25 h. Reviews converted SQL, rewrites manual steps, wires the job. Fixed 2 h.'],
-          ['Analytics engineer', '9.5 h. Validates business logic and outputs against legacy definitions. Fixed 1 h.'],
-          ['QA', '13.5 h. Builds reconciliation checks and triages differences. Fixed 3 h.'],
-          ['Platform admin', '3.4 h. Unity Catalog schema and grants, serverless job and permissions. Fixed 2 h.'],
+          ['Data engineer', 'Reviews converted SQL, rewrites manual steps, builds the pipelines and jobs'],
+          ['Analytics engineer', 'Validates business logic and outputs against the legacy definitions'],
+          ['QA', 'Builds reconciliation checks and triages differences'],
+          ['Platform admin', 'Unity Catalog structure and grants, compute, and job permissions'],
         ],
       },
-    },
-    {
-      id: 'limits',
-      heading: 'Limits of a one-workload guide',
-      points: [
-        {
-          strong: 'Scale.',
-          text: 'One workload with 13 steps. A real estate needs Lakebridge Analyzer to inventory thousands of objects, and the transpilers and Reconciler to run at that scale.',
-        },
-        {
-          strong: 'Parsing.',
-          text: 'Step splitting relies on step markers, and classification is regex on the step text. Lakebridge parses the original source files directly.',
-        },
-        {
-          strong: 'Reuse.',
-          text: 'To use the bundle for another workload, copy use_cases/general.yml and change the workload paths, sample columns, expected block, and effort model. The code in src/ does not change while the legacy script keeps the step markers.',
-        },
-      ],
     },
   ],
   related: [

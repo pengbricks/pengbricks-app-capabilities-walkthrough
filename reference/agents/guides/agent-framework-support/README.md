@@ -69,12 +69,17 @@ flowchart LR
 - Two Unity Gateway model services (created by the job, deleted by the teardown job)
 - Run: `capability_guides_agent_gateway`
 
+## Reference run
+
+Observations from one run in the reference workspace.
+
+- **Fallback was configured but not triggered.** Both primaries answered every request, so `routing_information.attempts` shows one attempt per call.
+- **Limits are approximate.** The 4 requests per minute limit let 21 of 30 burst requests through, because the limiter records usage after a response and runs per instance. Expect a delay after creation before limits apply; the job waits 120 seconds.
+- **Audit tables lag.** `system.ai_gateway.usage` showed this run's 36 requests (3 for service a; 24 answers and 9 HTTP 429 for service b) about 30 minutes after the calls. The inference tables held 3 and 23 rows. The audit task polls for 5 minutes and records what it saw, so the recorded run was repaired once the rows landed: rerun `gateway_audit` and `capability_matrix` after a wait.
+
 ## Limitations and next steps
 
 - **A2A is not available.** The docs index and release notes list no A2A endpoint, so the handoff is a supervisor pattern: the supervisor model calls a `handoff` tool and each specialist is its own model call.
 - **The managed MCP server for Unity Catalog functions is Public Preview.** Every function in the schema with EXECUTE appears as a tool, including the mask function. Keep tool functions in their own schema.
 - **Guardrails are Beta and UI-only.** Service policies (built-in unsafe-content, jailbreak, and sensitive-data checks) attach to a service in the Unity Gateway UI. The job does not attach one, so no guardrail result appears in the run.
-- **Fallback was configured but not triggered.** Both primaries answered every request, so `routing_information.attempts` shows one attempt per call.
-- **Limits are approximate.** The 4 requests per minute limit let 21 of 30 burst requests through, because the limiter records usage after a response and runs per instance. Expect a delay after creation before limits apply; the job waits 120 seconds.
-- **Audit tables lag.** `system.ai_gateway.usage` showed this run's 36 requests (3 for service a; 24 answers and 9 HTTP 429 for service b) about 30 minutes after the calls. The inference tables held 3 and 23 rows. The audit task polls for 5 minutes and records what it saw, so the recorded run was repaired once the rows landed: rerun `gateway_audit` and `capability_matrix` after a wait.
 - Next step: attach `system.ai.block_unsafe_content` and `system.ai.detect_sensitive_data` to the services in the UI, and add a budget scoped to a service tag.

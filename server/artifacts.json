@@ -1132,19 +1132,21 @@
           "label": "Classify legacy constructs",
           "path": "reference/legacy-conversion/src/lc_helpers.py",
           "notes": [
-            "Regex rules pick the main construct and the feature tags for each step."
+            "Regex rules pick the main construct and the feature tags for each step.",
+            "A teaching stand-in for the Lakebridge Analyzer on one script."
           ],
           "symbol": "classify",
-          "section": "status"
+          "section": "lakebridge"
         },
         {
           "label": "Transpile T-SQL to Databricks SQL",
           "path": "reference/legacy-conversion/src/lc_helpers.py",
           "notes": [
-            "sqlglot does the transpile. Status is manual, warning, or clean."
+            "sqlglot does the transpile. Status is manual, warning, or clean.",
+            "For real estates use a Lakebridge transpiler or the agentic code converter."
           ],
           "symbol": "convert_statement",
-          "section": "status"
+          "section": "convert"
         },
         {
           "label": "Role-based effort model",
@@ -1165,7 +1167,7 @@
             16,
             31
           ],
-          "section": "flow"
+          "section": "phases"
         },
         {
           "label": "Run each converted step",
@@ -1183,7 +1185,8 @@
           "label": "Compare one output table with the reference",
           "path": "reference/legacy-conversion/src/lc_expected.py",
           "notes": [
-            "Row counts, key sets, and column sums."
+            "Row counts, key sets, and column sums against a reference.",
+            "In a real migration the reference is the legacy system output."
           ],
           "symbol": "reconcile_table",
           "section": "reconcile"
@@ -4877,7 +4880,7 @@
             86,
             106
           ],
-          "section": "layers"
+          "section": "metrics"
         },
         {
           "label": "Ask the same questions twice",
@@ -4886,7 +4889,7 @@
             "Runs the expected query, asks Genie, and compares the rows."
           ],
           "symbol": "ask_all",
-          "section": "answers"
+          "section": "benchmarks"
         },
         {
           "label": "Compare answers to expected rows",
@@ -4895,7 +4898,8 @@
             "Ignores column names and order, not values.",
             "A code like NA does not match North America."
           ],
-          "symbol": "rows_match"
+          "symbol": "rows_match",
+          "section": "benchmarks"
         },
         {
           "label": "The five-task job",
@@ -4907,22 +4911,24 @@
             21,
             54
           ],
-          "section": "flow"
+          "section": "answers"
         },
         {
           "label": "Comment, tag, and define the metric view",
           "path": "reference/genie/src/apply_semantics.py",
           "notes": [
-            "Table and column comments, tags, then CREATE VIEW ... WITH METRICS LANGUAGE YAML."
+            "Table and column comments, tags, then CREATE VIEW ... WITH METRICS LANGUAGE YAML.",
+            "Use governed tags in production so the vocabulary stays consistent."
           ],
           "symbol": "apply_semantics",
-          "section": "layers"
+          "section": "governance"
         },
         {
           "label": "Instructions for the space",
           "path": "reference/genie/use_cases/general.yml",
           "notes": [
-            "The glossary text Genie reads, plus sample questions and one example query."
+            "The glossary text Genie reads, plus sample questions and one example query.",
+            "Prefer SQL expressions and example queries; keep text instructions short."
           ],
           "lines": [
             108,
@@ -4998,65 +5004,68 @@
           "path": "reference/genie/src/genie_lib.py",
           "notes": [
             "The first message starts a conversation. Later ones post to it, so a follow-up keeps its context.",
-            "Polls the message until it completes or times out."
+            "Use this to run the same questions on a schedule and compare rows."
           ],
           "symbol": "ask",
-          "section": "session"
+          "section": "benchmarks"
         },
         {
           "label": "Rate an answer through the API",
           "path": "reference/genie/src/genie_lib.py",
           "notes": [
-            "POSITIVE or NEGATIVE is a POST on the message. The error text comes back instead of raising."
+            "POSITIVE or NEGATIVE is a POST on the message.",
+            "Feedback does not change the agent; a reviewer turns it into context."
           ],
           "symbol": "feedback",
-          "section": "outcomes"
+          "section": "feedback"
         },
         {
           "label": "Find issues and training needs",
           "path": "reference/genie/src/genie_lib.py",
           "notes": [
-            "Plain rules: status, missing SQL, row mismatch, a guessed ambiguous request, slow answers."
+            "Plain rules: status, missing SQL, row mismatch, a guessed ambiguous request, slow answers.",
+            "Log each issue as agent context to fix or user training to give."
           ],
           "symbol": "find_issues",
-          "section": "issues"
+          "section": "pilot"
         },
         {
           "label": "The session is data",
           "path": "reference/genie/use_cases/general.yml",
           "notes": [
             "Each step has a prompt, an optional expected query, and the training need to log.",
-            "new_conversation starts a fresh chat; the rest share one."
+            "Keep test questions as data so they can grow into benchmarks."
           ],
           "lines": [
             161,
             186
           ],
-          "section": "session"
+          "section": "benchmarks"
         },
         {
           "label": "Create or update the space",
           "path": "reference/genie/guides/user-experience/03_run_user_session.py",
           "notes": [
-            "Builds the space from the metric view, instructions, and sample questions, then upserts it by title."
+            "Builds the agent from a metric view, instructions, and sample questions through the API.",
+            "A bundle genie_spaces resource can declare the same agent as code."
           ],
           "lines": [
             41,
             52
           ],
-          "section": "setup"
+          "section": "as-code"
         },
         {
           "label": "The three-task job",
           "path": "reference/genie/resources/genie_ux.job.yml",
           "notes": [
-            "Four job parameters come from bundle variables. run_id ties log rows to the job run."
+            "Job parameters come from bundle variables; run_id ties results to the run."
           ],
           "lines": [
             12,
             38
           ],
-          "section": "setup"
+          "section": "as-code"
         }
       ]
     },
@@ -5280,7 +5289,7 @@
           "path": "reference/open-data/src/open_data/iceberg.py",
           "notes": [
             "URI, warehouse, token, and the vended-credentials header.",
-            "Without the header the data read is denied."
+            "Without the header the data read is denied. For an outside client, use a service principal with OAuth M2M."
           ],
           "symbol": "catalog_properties",
           "section": "external"
@@ -5319,7 +5328,7 @@
             76,
             77
           ],
-          "section": "versions"
+          "section": "evolution"
         },
         {
           "label": "Time travel to before the change",
@@ -5331,7 +5340,7 @@
             90,
             94
           ],
-          "section": "versions"
+          "section": "evolution"
         },
         {
           "label": "Allow external access",
@@ -5381,7 +5390,7 @@
           "url": "https://docs.databricks.com/aws/en/iceberg/"
         },
         {
-          "label": "Read Delta tables as Iceberg (UniForm)",
+          "label": "Read Delta tables with Iceberg clients",
           "url": "https://docs.databricks.com/aws/en/delta/uniform"
         },
         {
@@ -5397,10 +5406,9 @@
         {
           "label": "Job parameters and task order",
           "path": "reference/open-data/resources/file_formats_compare.job.yml",
-          "section": "dataset",
+          "section": "compare",
           "notes": [
-            "Four job parameters feed every notebook as widgets.",
-            "Each task is one notebook, run in order."
+            "Job parameters feed every notebook as widgets; each task is one notebook."
           ],
           "lines": [
             16,
@@ -5410,9 +5418,9 @@
         {
           "label": "Write the same rows five ways",
           "path": "reference/open-data/guides/file-formats-delta-iceberg/01_write_formats.py",
-          "section": "dataset",
+          "section": "compare",
           "notes": [
-            "Rows are range-partitioned by order_date in every format.",
+            "Rows are range-partitioned by order_date here so every format has the same files. For new tables, prefer liquid clustering.",
             "Iceberg is created with USING ICEBERG and filled with SQL."
           ],
           "lines": [
@@ -5537,6 +5545,18 @@
         {
           "label": "Power BI",
           "url": "https://docs.databricks.com/aws/en/partners/bi/power-bi"
+        },
+        {
+          "label": "Excel Add-in",
+          "url": "https://docs.databricks.com/aws/en/integrations/excel"
+        },
+        {
+          "label": "Tableau",
+          "url": "https://docs.databricks.com/aws/en/partners/bi/tableau"
+        },
+        {
+          "label": "Lakebase Postgres",
+          "url": "https://docs.databricks.com/aws/en/oltp/"
         }
       ],
       "highlights": [
@@ -5544,7 +5564,8 @@
           "label": "Query the warehouse from a client",
           "path": "reference/open-data/guides/external-integrations/02_sql_connector_client.py",
           "notes": [
-            "Server hostname, HTTP path, and a credentials provider. The second query uses a named parameter."
+            "Server hostname, HTTP path, and a credentials provider.",
+            "The second query uses a named parameter."
           ],
           "lines": [
             74,
@@ -5557,7 +5578,7 @@
           "path": "reference/open-data/guides/external-integrations/03_lakehouse_federation.py",
           "notes": [
             "A Unity Catalog connection holds the host and credential.",
-            "Falls back to remote_query when CREATE CATALOG is denied."
+            "Creating a catalog needs CREATE CATALOG; remote_query reads through the connection without one."
           ],
           "lines": [
             86,
@@ -5578,7 +5599,7 @@
           "label": "The integrations job",
           "path": "reference/open-data/resources/external_integrations.job.yml",
           "notes": [
-            "Both patterns run after one data-prep task."
+            "Both reference patterns run after one data-prep task."
           ],
           "lines": [
             27,
@@ -5590,7 +5611,7 @@
           "label": "Choose the identity and connect settings",
           "path": "reference/open-data/guides/external-integrations/02_sql_connector_client.py",
           "notes": [
-            "A client ID and secret give OAuth M2M. Without them the notebook identity is used."
+            "A client ID and secret give OAuth M2M, the right identity for an unattended client."
           ],
           "lines": [
             53,
@@ -5905,7 +5926,7 @@
           "label": "Route one prompt to two models with a fallback",
           "path": "reference/agents/guides/agent-framework-support/04_gateway_routing.py",
           "notes": [
-            "Primary destination, fallback destination, two rate limits, and an inference table, all in one service config."
+            "Primary destination, fallback destination, rate limits, and an inference table, all in one service config."
           ],
           "symbol": "service_config",
           "section": "gateway"
@@ -5945,7 +5966,8 @@
           "label": "Usage and fallback attempts from the system table",
           "path": "reference/agents/guides/agent-framework-support/05_gateway_audit.py",
           "notes": [
-            "Counts requests, tokens, and requests that needed a second attempt, per service and destination model."
+            "Counts requests, tokens, and requests that needed a second attempt, per service and destination model.",
+            "Audit rows can arrive late; poll or rerun later."
           ],
           "lines": [
             86,
@@ -5957,13 +5979,13 @@
           "label": "The gateway job",
           "path": "reference/agents/resources/agent_gateway.job.yml",
           "notes": [
-            "Three parameters. gateway_audit waits for the system table, so it runs after routing."
+            "Job parameters come from bundle variables; the audit task runs after routing because the system table lags."
           ],
           "lines": [
             15,
             27
           ],
-          "section": "setup"
+          "section": "controls"
         }
       ]
     },
@@ -6031,7 +6053,7 @@
           "label": "The agent loop",
           "path": "reference/agents/src/agent/assistant.py",
           "notes": [
-            "Ask the model, run any tool calls, repeat up to max_tool_rounds."
+            "Ask the model, run any tool calls, repeat up to a round limit."
           ],
           "symbol": "predict",
           "section": "inside"
@@ -6040,45 +6062,47 @@
           "label": "Log, register, and alias",
           "path": "reference/agents/guides/agent-build-deployment/02_log_and_register.py",
           "notes": [
-            "Declared resources are what the endpoint credentials are scoped to.",
-            "The champion alias moves to the new version."
+            "Declared resources are what the deployment credentials are scoped to.",
+            "Reference bundle uses the Model Serving path, now Legacy; the current path is the Agent Bricks CLI."
           ],
           "lines": [
             84,
             96
           ],
-          "section": "flow"
+          "section": "legacy"
         },
         {
           "label": "Call the endpoint and check the trace",
           "path": "reference/agents/guides/agent-build-deployment/04_call_and_record.py",
           "notes": [
-            "Asks for the trace in the response and fails unless the tool span carries order data."
+            "Asks for the trace in the response and fails unless the tool span carries data.",
+            "The same check works as a gate on any deployment."
           ],
           "lines": [
             70,
             99
           ],
-          "section": "record"
+          "section": "evaluate"
         },
         {
           "label": "Create or update the endpoint",
           "path": "reference/agents/guides/agent-build-deployment/03_deploy_endpoint.py",
           "notes": [
-            "Tracing is switched on with an environment variable. Update when the endpoint exists, create when it does not."
+            "Update when the endpoint exists, create when it does not.",
+            "Model Serving agent deployment is Legacy."
           ],
           "lines": [
             77,
             93
           ],
-          "section": "flow"
+          "section": "legacy"
         },
         {
           "label": "The tool call as a trace span",
           "path": "reference/agents/src/agent/assistant.py",
           "notes": [
-            "The decorator names the span the build check looks for.",
-            "order_id is cast to int before it reaches SQL."
+            "A decorator names the span the check looks for.",
+            "Cast tool arguments to the type SQL expects before they reach the query."
           ],
           "symbol": "_call_tool",
           "section": "inside"
@@ -6087,13 +6111,14 @@
           "label": "The build job",
           "path": "reference/agents/resources/agent_build.job.yml",
           "notes": [
-            "Task values carry the version, run ID, and endpoint name from task to task."
+            "Task values carry the version and endpoint name from task to task.",
+            "Reference job for the Legacy Model Serving path."
           ],
           "lines": [
             30,
             58
           ],
-          "section": "setup"
+          "section": "legacy"
         }
       ]
     },
@@ -6170,7 +6195,7 @@
           "section": "use-cases",
           "notes": [
             "Classify, sentiment, and summary in one pass, saved to a table.",
-            "Category 24 of 24 correct; sentiment 20 of 24."
+            "Write the result once; query the table, not the function."
           ]
         },
         {
@@ -6183,7 +6208,7 @@
           "section": "use-cases",
           "notes": [
             "noul returns a probability; score returns a weighted score.",
-            "Needs the AI Decide preview; the reference workspace has it off, so the step records that and moves on."
+            "Beta. A workspace admin turns on the AI Decide preview first."
           ]
         },
         {
@@ -6209,7 +6234,7 @@
           "section": "use-cases",
           "notes": [
             "Type, confidence, text, figure description, and the box in page-image pixels.",
-            "41 elements on 5 scanned pages. The scan fields are extracted only from elements at 0.8 confidence and above."
+            "Extract only from elements above a confidence threshold you set from a labeled sample."
           ]
         },
         {
@@ -6221,7 +6246,8 @@
           ],
           "section": "use-cases",
           "notes": [
-            "30 pairs scored. At 0.85: 5 of 6 true matches, no false ones."
+            "Block the join, then score each pair once and filter on the saved score.",
+            "Review a middle band of scores by hand."
           ]
         },
         {
@@ -6234,7 +6260,7 @@
           "section": "models",
           "notes": [
             "The struct fields are result and errorMessage.",
-            "Llama 3.3 70B accepted batch calls; Claude Haiku 5.5 did not."
+            "Test a one-row query against a model before you build on it; not every endpoint accepts batch calls."
           ]
         },
         {
@@ -6246,8 +6272,8 @@
           ],
           "section": "flow",
           "notes": [
-            "Backtest error 0.72% (east) and 0.78% (west) on September 2026.",
-            "Serverless notebook compute rejected ai_forecast as a disabled preview."
+            "Runs on the compute that submits it, with no separate inference charge.",
+            "Run it on a Pro or serverless SQL warehouse."
           ]
         },
         {
@@ -6256,7 +6282,8 @@
           "symbol": "leaked",
           "section": "governance",
           "notes": [
-            "Every planted value is searched for in the masked output; 0 of 15 survived."
+            "Search the masked output for known sensitive values on a labeled sample.",
+            "ai_mask is model-based; a column mask is the control."
           ]
         },
         {

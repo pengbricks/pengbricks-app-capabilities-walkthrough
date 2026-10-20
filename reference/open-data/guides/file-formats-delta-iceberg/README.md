@@ -6,7 +6,9 @@ One generated dataset of 1,000,000 orders is written as JSON, CSV and Parquet fi
 
 It does not repeat two other guides. `file-format-ingestion` lands CSV, Excel, JSON and XML through one ingestion pipeline. `iceberg-support` covers managed Iceberg and the REST catalog read from PyIceberg. This guide compares the formats.
 
-## Comparison matrix
+## Reference run
+
+Comparison matrix from one run in the reference workspace. Small-data timings are indicative only.
 
 Numbers are from the job run in the reference workspace: 1,000,000 rows, 8 files per format, a one-day filter reading two columns.
 
