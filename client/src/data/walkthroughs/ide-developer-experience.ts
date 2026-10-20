@@ -6,6 +6,32 @@ export const walkthrough: Walkthrough = {
   title: 'Developer workflow in the IDE',
   intro:
     'The fast loop is: edit in your IDE, run the code on serverless compute through Databricks Connect, test plain functions with pytest, package shared code as a wheel, and run the same tests in CI before a bundle deploys. This page covers each step, what to keep in a notebook versus a package, and the checks to automate.',
+  businessValue: {
+    summary:
+      'Engineers catch broken code on their own machine and in CI before it reaches a production job. A data platform owner gets faster delivery with fewer failed releases.',
+    outcomes: [
+      {
+        title: 'Faster feedback, less idle compute',
+        body:
+          'Developers run code on serverless compute from their IDE and test against real data in seconds. There is no cluster to start or keep warm during development.',
+      },
+      {
+        title: 'Fewer failed releases',
+        body:
+          'CI runs lint and pytest on every pull request, and the job runs its tests on serverless as a first task. Downstream tasks never run on code that fails its tests.',
+      },
+      {
+        title: 'One copy of shared logic',
+        body:
+          'Shared code ships as a wheel with one version and one test suite. A fix lands in one place instead of three copied notebooks.',
+      },
+      {
+        title: 'One review path',
+        body:
+          'Notebook edits and IDE edits go through the same branches and pull requests, so reviewers see every change to production logic.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Run against serverless with Databricks Connect.',

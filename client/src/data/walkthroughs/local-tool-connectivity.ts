@@ -6,6 +6,32 @@ export const walkthrough: Walkthrough = {
   title: 'Connecting local tools',
   intro:
     'Analysts work in Excel, Power BI, Tableau, Python, R, SAS, and SPSS. All of them can reach the same serverless SQL warehouse, sign in with OAuth, and see only what Unity Catalog grants their identity. This page covers which client to use for each tool, how to authenticate without passwords or personal access tokens, and how to size the warehouse for BI.',
+  businessValue: {
+    summary:
+      'Analysts keep using Excel, Power BI, Tableau, Python, R, SAS, and SPSS against the same governed data. IT owners avoid passwords and shared tokens, and permissions follow each person.',
+    outcomes: [
+      {
+        title: 'No tool migration',
+        body:
+          'Every client reaches one serverless SQL warehouse, so teams keep the tools they know and a single warehouse serves them all.',
+      },
+      {
+        title: 'Stronger sign-in',
+        body:
+          'People sign in with OAuth in the browser, and scheduled tools use a service principal. No password or personal access token sits in a shared workbook.',
+      },
+      {
+        title: 'Permissions enforced at the source',
+        body:
+          'A local client sees only the tables its signed-in user or service principal can read, so Unity Catalog rules apply in Excel or Power BI as they do in the workspace.',
+      },
+      {
+        title: 'Capacity you can plan',
+        body:
+          'The guide covers sizing the warehouse for the BI crowd and restricting network access, so heavy concurrent use does not surprise the platform owner.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'One endpoint: a serverless SQL warehouse.',

@@ -6,6 +6,32 @@ export const walkthrough: Walkthrough = {
   title: 'Charts and dashboards in the platform',
   intro:
     'Define each business metric once in a Unity Catalog metric view, then consume it everywhere: AI/BI dashboards, notebook charts, Genie, alerts, and BI tools. A chart and its dashboard tile then show the same number because they share one definition. This page covers the metric view, the dashboard features that matter, notebook charts, and how Genie and Genie Code fit.',
+  businessValue: {
+    summary:
+      'Leaders get one definition of each business metric across dashboards, notebook charts, and Genie answers, so teams stop reconciling conflicting numbers.',
+    outcomes: [
+      {
+        title: 'One number everywhere',
+        body:
+          'A Unity Catalog metric view holds the measure once, and dashboards, notebooks, Genie, and alerts read it. A chart and its dashboard tile show the same value.',
+      },
+      {
+        title: 'New cuts without new reports',
+        body:
+          'A metric view separates measures from dimensions. Users group by any field and the engine computes the right result, so a new breakdown does not need a rebuilt report.',
+      },
+      {
+        title: 'Business users can ask',
+        body:
+          'Genie Agents answer from the same metric views, and Genie One gives business users a place to ask. Answers match the dashboards.',
+      },
+      {
+        title: 'Dashboards under change control',
+        body:
+          'Bundles deploy dashboards, Unity Catalog sets permissions, and teams certify the datasets the dashboards depend on.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Define metrics once, in a metric view.',

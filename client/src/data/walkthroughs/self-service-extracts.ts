@@ -6,6 +6,32 @@ export const walkthrough: Walkthrough = {
   title: 'Self-service extracts and subscriptions',
   intro:
     'Business users want numbers on a schedule and data in the tool they already use. Give them subscriptions to AI/BI dashboards, the Excel Add-in over governed tables, and Genie for ad hoc questions, and reserve file extracts for partners and systems that cannot connect. This page covers which delivery path fits each need, how credentials and permissions work, and how to deliver files safely.',
+  businessValue: {
+    summary:
+      'Business users get numbers on a schedule, in Excel, or by asking Genie, so fewer requests reach the data team. Governed delivery keeps permissions in force wherever the data goes.',
+    outcomes: [
+      {
+        title: 'Fewer extract requests',
+        body:
+          'Dashboard subscriptions send snapshots by email, Slack, or Teams. Genie Agents and Genie One answer ad hoc questions that would otherwise become custom extract requests.',
+      },
+      {
+        title: 'Governed data in Excel',
+        body:
+          'The Excel Add-in imports Unity Catalog tables and views and refreshes them on a schedule, with the permissions of the user still in force.',
+      },
+      {
+        title: 'A deliberate access choice',
+        body:
+          'Individual data permissions run each query as the viewer and enforce row and column rules per person. Shared data permissions run as the publisher and share a cache.',
+      },
+      {
+        title: 'Safer partner delivery',
+        body:
+          'Files go from a volume after a check, with READ VOLUME granted to a group. Where possible, OpenSharing shares the table so no copy is made.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Subscribe people to a dashboard.',

@@ -6,6 +6,32 @@ export const walkthrough: Walkthrough = {
   title: 'No-code data preparation',
   intro:
     'Lakeflow Designer (GA) lets a business user prepare data on a drag-and-drop canvas or in natural language, with every step governed by Unity Catalog. Each visual data prep is backed by real code, so it can move to production without a rebuild. This page covers how to build a flow, how to govern who builds and publishes, and when to hand work to an engineer.',
+  businessValue: {
+    summary:
+      'Business users can prepare data on a visual canvas or by describing the step, under Unity Catalog governance. Analytics leaders shorten the wait for engineering and keep a path to production.',
+    outcomes: [
+      {
+        title: 'Shorter engineering queue',
+        body:
+          'Business users build flows with drag-and-drop operators or natural language, so routine data prep does not wait for an engineer.',
+      },
+      {
+        title: 'Governed by default',
+        body:
+          'A flow reads and writes with the privileges of the signed-in user. Builders write to a sandbox schema, and outputs reach production schemas only when someone promotes them.',
+      },
+      {
+        title: 'No rebuild for production',
+        body:
+          'Each flow saves as a notebook, so it can live in a Git folder, run as a scheduled job, or deploy with a bundle.',
+      },
+      {
+        title: 'Consistent business definitions',
+        body:
+          'A Source can read a metric view, so a measure in a prepared dataset matches the same measure in dashboards.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Build visually or by describing the step.',

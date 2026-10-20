@@ -6,6 +6,32 @@ export const walkthrough: Walkthrough = {
   title: 'Collaborating on Databricks projects with Git',
   intro:
     'Your Git provider holds the code. Each person works on a branch, in their own Git folder in the workspace or in an IDE. Shared and production code reaches the workspace through pull requests, CI, and a bundle deploy. Nobody edits a shared or production copy by hand. This page covers how to connect Git, the daily Git folder workflow, the team conventions that keep main healthy, and the mistakes that break collaboration.',
+  businessValue: {
+    summary:
+      'Teams keep one reviewed version of every pipeline, notebook, and job in Git. Leaders get a record of who changed what and a production environment that nobody edits by hand.',
+    outcomes: [
+      {
+        title: 'Auditable change history',
+        body:
+          'Every change to shared code is a commit on a branch with a pull request, so you can show who changed what, who approved it, and when.',
+      },
+      {
+        title: 'Safer production',
+        body:
+          'Production deploys from CI through a bundle, not from a folder people edit. A merge to main is the only route for a change to reach shared workspaces.',
+      },
+      {
+        title: 'Work survives people and folders',
+        body:
+          'Anything committed and pushed outlives a deleted workspace folder or a departed employee. Work that exists only in the workspace is at risk.',
+      },
+      {
+        title: 'Automation without personal accounts',
+        body:
+          'Jobs and CI run as service principals with their own Git credential, so production does not depend on one person staying employed or keeping a token current.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'The Git repository is the source of truth.',

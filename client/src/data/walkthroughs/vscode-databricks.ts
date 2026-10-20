@@ -6,6 +6,32 @@ export const walkthrough: Walkthrough = {
   title: 'Working with Databricks in VS Code',
   intro:
     'The Databricks extension for Visual Studio Code (the docs call it the Databricks IDE extension, and it also runs in Cursor) ties one local project to one workspace. A CLI profile signs you in with OAuth, a bundle target says where code deploys, and a compute choice says where it runs. Set those three up first, open the project as a bundle, and the rest of the editor workflow follows. This page covers the recommended setup, how to run and debug code, and the mistakes that cost the most time.',
+  businessValue: {
+    summary:
+      'Developers work in the editor they already use, sign in with OAuth, and deploy through the same bundle that CI runs. Platform owners get one path from laptop to workspace without shared tokens.',
+    outcomes: [
+      {
+        title: 'Faster onboarding',
+        body:
+          'The project carries the bundle, targets, and environment setup. A teammate who clones the repository repeats only the sign-in and the compute choice.',
+      },
+      {
+        title: 'Fewer environment mismatches',
+        body:
+          'The extension builds a local environment that matches the Python and package versions of the chosen compute, so version gaps show up in the editor instead of on the cluster.',
+      },
+      {
+        title: 'Fewer long-lived secrets',
+        body:
+          'OAuth sign-in replaces personal access tokens, and the CLI, SDKs, and Databricks Connect reuse one profile. Security teams have fewer tokens to track.',
+      },
+      {
+        title: 'Production stays controlled',
+        body:
+          'Sync to the workspace is one way and for development only. Real changes go through Git and a bundle deploy, so nobody edits a live copy by hand.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Sign in with OAuth, not a token.',

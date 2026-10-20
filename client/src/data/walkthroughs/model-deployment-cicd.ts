@@ -6,6 +6,32 @@ export const walkthrough: Walkthrough = {
   title: 'Model release pipeline',
   intro:
     'A model release should be a repeatable path with checks, a human approval, and a record, not a manual alias change. On Databricks the pieces are Unity Catalog model versions and aliases, automated test gates, a protected CI environment for approval, a catalog per environment, Model Serving for rollout, and Unity Gateway for limits and logging. This page describes the pattern and why each part is there.',
+  businessValue: {
+    summary:
+      'Model releases follow a repeatable path with tests, a recorded human approval, and a one-step rollback. ML program owners get controlled production changes instead of manual alias edits.',
+    outcomes: [
+      {
+        title: 'Rollback in one step',
+        body:
+          'A release moves a Unity Catalog alias to a new model version, and a rollback moves it back. Versions are immutable, so the previous model is still there.',
+      },
+      {
+        title: 'Weak models caught before release',
+        body:
+          'Signature checks, a prediction smoke test, and a comparison against the current champion run before promotion. LLM apps gate on an MLflow 3 GenAI evaluation.',
+      },
+      {
+        title: 'Approval on record',
+        body:
+          'Required reviewers on a protected CI environment approve each release, and the job records who did. Auditors can see who signed off.',
+      },
+      {
+        title: 'Gradual exposure',
+        body:
+          'Traffic splits, Unity Gateway rate limits, and inference tables let a team watch a new model on part of the traffic before full cutover.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Aliases are the release pointer.',

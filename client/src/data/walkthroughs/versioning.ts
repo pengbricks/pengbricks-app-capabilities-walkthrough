@@ -6,6 +6,32 @@ export const walkthrough: Walkthrough = {
   title: 'Data contract versioning',
   intro:
     'A table schema is a contract with every reader. Databricks gives you the pieces to change it safely: Delta table features that evolve a schema in place, constraints that protect it, views that give readers a stable interface, Unity Catalog tags and lineage to run a deprecation, and OpenSharing for readers outside your workspace. This page shows which tool fits which change, and where a custom compatibility check in CI is worth adding.',
+  businessValue: {
+    summary:
+      'Table changes stop breaking dashboards, models, and partner feeds. Data owners change schemas on a schedule readers know about and retire old tables without surprising anyone.',
+    outcomes: [
+      {
+        title: 'Fewer broken downstream reports',
+        body:
+          'Readers query a view, so a producer can swap tables or rename columns behind it. The old shape stays alive until consumers move.',
+      },
+      {
+        title: 'Bad data stopped at write time',
+        body:
+          'NOT NULL and CHECK constraints reject bad rows when they are written, so a producer cannot break the contract by accident.',
+      },
+      {
+        title: 'Managed retirement',
+        body:
+          'Tag the old object as deprecated, find remaining readers with table lineage and query history, and drop it on the date you announced.',
+      },
+      {
+        title: 'Governed sharing outside the workspace',
+        body:
+          'OpenSharing gives outside recipients a governed table or view. Check that their readers support the table features you enable before you share.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Evolve in place when readers are unaffected.',

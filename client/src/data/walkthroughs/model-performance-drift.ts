@@ -6,6 +6,32 @@ export const walkthrough: Walkthrough = {
   title: 'Model quality and drift',
   intro:
     'A deployed model degrades in two ways: its inputs change, and its predictions stop matching outcomes. Databricks data quality monitoring tracks both. You attach an inference profile to a table of model requests, and it computes profile and drift metrics over time windows, builds a dashboard, and feeds SQL alerts. This page covers the setup, how to join delayed labels, what should trigger retraining, and how to promote a retrained model with a human decision.',
+  businessValue: {
+    summary:
+      'Teams learn that a model has degraded before the business sees bad decisions. ML owners get drift and quality metrics, a dashboard, and alerts on a table of model requests.',
+    outcomes: [
+      {
+        title: 'Early warning',
+        body:
+          'Data quality monitoring computes profile and drift metrics over time windows. A SQL alert on those tables notifies the model owner when a metric moves.',
+      },
+      {
+        title: 'Quality measured against outcomes',
+        body:
+          'Labels join by request ID when they arrive, which can take days or weeks. Quality metrics are read only for windows old enough to be labeled.',
+      },
+      {
+        title: 'Retraining under review',
+        body:
+          'A breach starts a retraining job that registers a challenger. A person compares it with the champion before the alias moves, so no model replaces itself in production.',
+      },
+      {
+        title: 'Little to build',
+        body:
+          'One inference profile writes the metrics tables and a dashboard. Teams add a custom metric, such as PSI, only when the built-in ones fall short.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Start with an inference profile.',

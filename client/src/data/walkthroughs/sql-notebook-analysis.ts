@@ -6,6 +6,32 @@ export const walkthrough: Walkthrough = {
   title: 'SQL and notebooks at scale',
   intro:
     'Analysts have four surfaces on the same governed data: the SQL editor on a serverless SQL warehouse, serverless notebooks in Python or SQL, Genie Code for writing and fixing code, and Genie for asking questions in plain language. This page covers where each fits, how to keep Python work distributed as data grows, how to keep queries fast, and what to use now that serverless has no R and hosted RStudio is end-of-life.',
+  businessValue: {
+    summary:
+      'Analysts query governed data on serverless compute with no clusters to size, and ask questions in plain language through Genie. Analytics leaders get faster answers under the same Unity Catalog permissions.',
+    outcomes: [
+      {
+        title: 'No wait for infrastructure',
+        body:
+          'The SQL editor on a serverless warehouse starts in seconds and scales with concurrency, so analysts do not queue for compute.',
+      },
+      {
+        title: 'One permission model',
+        body:
+          'The SQL editor, serverless notebooks, and Genie all use the same Unity Catalog grants, so access rules are defined once.',
+      },
+      {
+        title: 'Faster first drafts',
+        body:
+          'Genie Code writes, explains, and fixes SQL and Python. Genie answers business questions on curated data and shows the SQL it ran, so users can check it.',
+      },
+      {
+        title: 'R needs its own setup',
+        body:
+          'Serverless does not run R, and hosted RStudio is end-of-life. R teams connect their own IDE or use a notebook on classic compute.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Start in the SQL editor on a serverless warehouse.',

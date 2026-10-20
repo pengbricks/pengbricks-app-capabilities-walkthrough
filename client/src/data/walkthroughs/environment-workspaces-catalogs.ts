@@ -6,6 +6,32 @@ export const walkthrough: Walkthrough = {
   title: 'Workspaces and catalogs across dev, test, stage, and prod',
   intro:
     'Four environments need three kinds of boundary: where code runs (workspaces), where data lives (catalogs and storage), and who can change what (identities). This page compares the common workspace topologies, then puts the three catalog layouts side by side: a catalog per environment, a catalog per environment and domain, and one catalog with environment schemas. It shows the bindings, storage, identities, and commands behind the strongest layout and the databricks.yml that deploys to it. The reference bundle runs the weakest layout, because one workspace can only show that one, and audits it. For the shorter overview of the same ground, read the Environment separation page.',
+  businessValue: {
+    summary:
+      'Separate workspaces and catalogs keep development work away from production data. Platform and security owners get clear boundaries between environments and a way to see what each one costs.',
+    outcomes: [
+      {
+        title: 'Dev cannot reach prod data',
+        body:
+          'Each catalog is isolated and bound to its own workspace. Prod gets its own identities, storage, and network rules, so a developer in dev has no path to prod tables.',
+      },
+      {
+        title: 'Real records stay in prod',
+        body:
+          'Code moves between environments and data does not. Environments outside prod fill their tables from generated or masked data.',
+      },
+      {
+        title: 'Cost by environment',
+        body:
+          'Tags and a serverless usage policy per environment label spend, so system tables can answer what stage cost last month without a spreadsheet.',
+      },
+      {
+        title: 'Promotion changes settings, not code',
+        body:
+          'The same commit deploys to every target, and per-environment values live in bundle variables. Teams do not edit resource files to promote a release.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Prod gets its own workspace and its own catalog.',
