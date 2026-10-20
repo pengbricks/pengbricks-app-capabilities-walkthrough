@@ -52,8 +52,11 @@ sequenceDiagram
 ## Artifacts produced
 
 - Tables: `ux_session_log` (6 rows per run), `genie_spaces`
-- Genie space created through the API (not declared in the bundle); ID and URL in `genie_spaces`
-- Reference run: discovery answered; question and refinement matched the expected rows (15.9 s and 15.8 s); the ambiguous prompt drew a clarifying question; both feedback calls were accepted
+- Genie space created through the API by the last notebook (a bundle `genie_spaces` resource can declare it instead); ID and URL in `genie_spaces`
+
+## Reference run
+
+- discovery answered; question and refinement matched the expected rows (15.9 s and 15.8 s); the ambiguous prompt drew a clarifying question; both feedback calls were accepted
 
 ## Limitations and next steps
 

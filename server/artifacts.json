@@ -4882,7 +4882,7 @@
             86,
             106
           ],
-          "section": "layers"
+          "section": "metrics"
         },
         {
           "label": "Ask the same questions twice",
@@ -4891,7 +4891,7 @@
             "Runs the expected query, asks Genie, and compares the rows."
           ],
           "symbol": "ask_all",
-          "section": "answers"
+          "section": "benchmarks"
         },
         {
           "label": "Compare answers to expected rows",
@@ -4900,7 +4900,8 @@
             "Ignores column names and order, not values.",
             "A code like NA does not match North America."
           ],
-          "symbol": "rows_match"
+          "symbol": "rows_match",
+          "section": "benchmarks"
         },
         {
           "label": "The five-task job",
@@ -4912,22 +4913,24 @@
             21,
             54
           ],
-          "section": "flow"
+          "section": "answers"
         },
         {
           "label": "Comment, tag, and define the metric view",
           "path": "reference/genie/src/apply_semantics.py",
           "notes": [
-            "Table and column comments, tags, then CREATE VIEW ... WITH METRICS LANGUAGE YAML."
+            "Table and column comments, tags, then CREATE VIEW ... WITH METRICS LANGUAGE YAML.",
+            "Use governed tags in production so the vocabulary stays consistent."
           ],
           "symbol": "apply_semantics",
-          "section": "layers"
+          "section": "governance"
         },
         {
           "label": "Instructions for the space",
           "path": "reference/genie/use_cases/general.yml",
           "notes": [
-            "The glossary text Genie reads, plus sample questions and one example query."
+            "The glossary text Genie reads, plus sample questions and one example query.",
+            "Prefer SQL expressions and example queries; keep text instructions short."
           ],
           "lines": [
             108,
@@ -5003,65 +5006,68 @@
           "path": "reference/genie/src/genie_lib.py",
           "notes": [
             "The first message starts a conversation. Later ones post to it, so a follow-up keeps its context.",
-            "Polls the message until it completes or times out."
+            "Use this to run the same questions on a schedule and compare rows."
           ],
           "symbol": "ask",
-          "section": "session"
+          "section": "benchmarks"
         },
         {
           "label": "Rate an answer through the API",
           "path": "reference/genie/src/genie_lib.py",
           "notes": [
-            "POSITIVE or NEGATIVE is a POST on the message. The error text comes back instead of raising."
+            "POSITIVE or NEGATIVE is a POST on the message.",
+            "Feedback does not change the agent; a reviewer turns it into context."
           ],
           "symbol": "feedback",
-          "section": "outcomes"
+          "section": "feedback"
         },
         {
           "label": "Find issues and training needs",
           "path": "reference/genie/src/genie_lib.py",
           "notes": [
-            "Plain rules: status, missing SQL, row mismatch, a guessed ambiguous request, slow answers."
+            "Plain rules: status, missing SQL, row mismatch, a guessed ambiguous request, slow answers.",
+            "Log each issue as agent context to fix or user training to give."
           ],
           "symbol": "find_issues",
-          "section": "issues"
+          "section": "pilot"
         },
         {
           "label": "The session is data",
           "path": "reference/genie/use_cases/general.yml",
           "notes": [
             "Each step has a prompt, an optional expected query, and the training need to log.",
-            "new_conversation starts a fresh chat; the rest share one."
+            "Keep test questions as data so they can grow into benchmarks."
           ],
           "lines": [
             161,
             186
           ],
-          "section": "session"
+          "section": "benchmarks"
         },
         {
           "label": "Create or update the space",
           "path": "reference/genie/guides/user-experience/03_run_user_session.py",
           "notes": [
-            "Builds the space from the metric view, instructions, and sample questions, then upserts it by title."
+            "Builds the agent from a metric view, instructions, and sample questions through the API.",
+            "A bundle genie_spaces resource can declare the same agent as code."
           ],
           "lines": [
             41,
             52
           ],
-          "section": "setup"
+          "section": "as-code"
         },
         {
           "label": "The three-task job",
           "path": "reference/genie/resources/genie_ux.job.yml",
           "notes": [
-            "Four job parameters come from bundle variables. run_id ties log rows to the job run."
+            "Job parameters come from bundle variables; run_id ties results to the run."
           ],
           "lines": [
             12,
             38
           ],
-          "section": "setup"
+          "section": "as-code"
         }
       ]
     },

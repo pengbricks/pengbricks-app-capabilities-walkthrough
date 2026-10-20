@@ -5,68 +5,34 @@ export const walkthrough: Walkthrough = {
   area: 'AI Guides',
   title: 'Business terms and synonyms',
   intro:
-    'The sample sales tables use codes: seg_cd, rgn_cd, ord_st, net_amt. A Genie space over the raw tables answered five business questions with codes and counted cancelled orders as revenue. The job then defined the business terms once, as comments, tags, and a Unity Catalog metric view with synonyms, and asked a second space the same five questions.',
+    'Enterprise tables use codes such as seg_cd, rgn_cd, and ord_st. A person, a dashboard, or Genie can read them correctly only if the meaning is written down once, next to the data. Unity Catalog does not have a feature called an ontology. You build the same result from comments, governed tags, metric views with synonyms, certification, and Genie Agent context, and you check it with benchmarks.',
   shortVersion: [
     {
-      title: 'Same questions, two spaces.',
-      body: 'One Genie space reads the raw tables. A second reads the metric view and carries the glossary. Both get the same five questions through the Conversation API.',
+      title: 'Define each term once, next to the data.',
+      body: 'Revenue means completed orders. Segment codes map to names. Put those definitions in a metric view and in table and column comments, not in every dashboard or Genie Agent.',
     },
     {
-      title: 'Terms are defined once.',
-      body: 'Revenue means completed orders. Segment, region, and channel codes map to names. These live in the metric view, not in each space.',
+      title: 'Metric views carry synonyms.',
+      body: 'Agent metadata in a metric view adds display names, formats, and synonyms. Revenue can answer to sales or turnover, and Customer Segment to tier.',
     },
     {
-      title: 'Synonyms sit next to the term.',
-      body: 'Revenue also answers to sales, bookings, and turnover. Customer segment answers to tier. Each synonym is a line in the metric view YAML.',
+      title: 'Govern tags with tag policies.',
+      body: 'Governed tags are account-level tags with a policy for allowed keys, values, and who can assign them. Use them for domain, sensitivity, and business-term labels that stay consistent.',
     },
     {
-      title: 'Answers are checked against SQL.',
-      body: 'Each question has an expected query in the use-case spec. The job runs it and compares rows with what the SQL Genie generated.',
+      title: 'Generate comments, then review them.',
+      body: 'AI-generated comments give you a first draft of table and column descriptions. An owner confirms them before Genie or users rely on them.',
     },
     {
-      title: 'The reference run went from 0 to 5 of 5.',
-      body: 'Without the semantics, no answer matched. With them, all five did. The comparison table keeps both queries side by side.',
+      title: 'Certify what you vouch for.',
+      body: 'The system.certification_status tag marks assets certified or deprecated, so people and Genie One prefer the trusted ones.',
+    },
+    {
+      title: 'Prove it with benchmarks.',
+      body: 'Write the expected SQL for the questions people ask and score the Genie Agent before and after each change to the semantics.',
     },
   ],
   sections: [
-    {
-      id: 'flow',
-      heading: 'What the job does',
-      prose:
-        'One job runs five tasks. It generates the tables, asks the baseline space, adds the semantics, asks the second space, and pivots the answers into one table.',
-      diagram: {
-        type: 'flow',
-        title: 'Before and after in one job',
-        description:
-          'generate_data creates the cust and ord_fact tables from the use-case spec. ask_before creates a baseline Genie space over those tables and asks five questions. add_semantics writes comments and tags and creates the sales_metrics metric view. ask_after creates a second space over the metric view with instructions and asks the same questions. compare_answers writes ontology_comparison_summary.',
-        lanes: [
-          { label: 'Before', fromRow: 0, toRow: 0 },
-          { label: 'Semantic layer', fromRow: 1, toRow: 1 },
-          { label: 'After', fromRow: 2, toRow: 2 },
-        ],
-        nodes: [
-          { id: 'gen', label: 'generate_data', mono: true, sub: 'generated data, fixed seed', col: 0, row: 0 },
-          { id: 'before', label: 'ask_before', mono: true, sub: 'space over raw tables', col: 1, row: 0, kind: 'highlight' },
-          { id: 'sem', label: 'add_semantics', mono: true, sub: 'comments, tags, metrics', col: 1, row: 1 },
-          { id: 'mv', label: 'sales_metrics', mono: true, sub: 'metric view', col: 2, row: 1, kind: 'store' },
-          { id: 'after', label: 'ask_after', mono: true, sub: 'space over metric view', col: 1, row: 2, kind: 'highlight' },
-          { id: 'cmp', label: 'compare_answers', mono: true, sub: 'pivot before and after', col: 2, row: 2 },
-          { id: 'tbl', label: 'ontology_comparison', mono: true, sub: 'SQL and match flag', col: 3, row: 2, kind: 'store' },
-        ],
-        edges: [
-          { from: 'gen', to: 'before' },
-          { from: 'before', to: 'sem' },
-          { from: 'sem', to: 'mv' },
-          { from: 'mv', to: 'after' },
-          { from: 'after', to: 'cmp' },
-          { from: 'cmp', to: 'tbl' },
-        ],
-        legend: [
-          { kind: 'highlight', label: 'Asks Genie through the API' },
-          { kind: 'store', label: 'Unity Catalog object' },
-        ],
-      },
-    },
     {
       id: 'layers',
       heading: 'Where each term is defined',
@@ -76,11 +42,11 @@ export const walkthrough: Walkthrough = {
         type: 'flow',
         title: 'Business term to Genie answer',
         description:
-          'Table and column comments and tags describe the raw tables in Unity Catalog. The sales_metrics metric view defines measures, dimensions, and synonyms on top of them. The Genie space adds instructions, sample questions, and an example query. A user question is answered with MEASURE queries against the metric view.',
+          'Table and column comments, governed tags, and certification describe the raw tables in Unity Catalog. A metric view defines measures, dimensions, and synonyms on top of them. The Genie Agent adds instructions, sample questions, and example queries. A user question is answered with MEASURE queries against the metric view.',
         nodes: [
-          { id: 'raw', label: 'cust, ord_fact', mono: true, sub: 'comments and tags', col: 0, row: 0, kind: 'store' },
-          { id: 'view', label: 'sales_metrics', mono: true, sub: 'measures, synonyms', col: 1, row: 0, kind: 'highlight' },
-          { id: 'space', label: 'Genie space', sub: 'glossary, samples', col: 2, row: 0, kind: 'surface' },
+          { id: 'raw', label: 'Tables and columns', sub: 'comments, tags, certified', col: 0, row: 0, kind: 'store' },
+          { id: 'view', label: 'Metric view', sub: 'measures, synonyms', col: 1, row: 0, kind: 'highlight' },
+          { id: 'space', label: 'Genie Agent', sub: 'glossary, samples', col: 2, row: 0, kind: 'surface' },
           { id: 'ask', label: 'User question', sub: 'uses business words', col: 3, row: 0 },
           { id: 'sql', label: 'MEASURE() query', sub: 'names, not codes', col: 3, row: 1 },
         ],
@@ -92,38 +58,142 @@ export const walkthrough: Walkthrough = {
         ],
         legend: [
           { kind: 'highlight', label: 'Single definition of each term' },
-          { kind: 'surface', label: 'Genie space' },
+          { kind: 'surface', label: 'Genie Agent' },
         ],
       },
       table: {
-        caption: 'Terms the metric view defines',
+        caption: 'Terms a metric view defines (example)',
         columns: ['Term', 'Definition and synonyms'],
         rows: [
           ['Revenue', 'SUM(net_amt) for completed orders. Synonyms: sales, net sales, bookings, turnover, income'],
           ['Active Customers', 'Distinct customers with a completed order. Synonyms: active accounts, buying customers'],
           ['Average Order Value', 'Revenue / completed orders. Synonyms: AOV, average order size, basket size'],
-          ['Customer Segment', "E, M, S mapped to Enterprise, Mid-Market, SMB. Synonyms: tier, account type"],
+          ['Customer Segment', 'E, M, S mapped to Enterprise, Mid-Market, SMB. Synonyms: tier, account type'],
           ['Region', 'NA, EM, AP mapped to North America, EMEA, APAC. Synonyms: territory, geo'],
         ],
       },
     },
     {
-      id: 'answers',
-      heading: 'Same questions, before and after',
+      id: 'metrics',
+      heading: 'Metric views with synonyms',
       prose:
-        'A row matches when the rows Genie returned equal the rows from the expected query, ignoring column names and order. A code where a name is expected does not match.',
+        'A metric view is the governed semantic layer: a Unity Catalog object that defines measures and dimensions in YAML once, for AI/BI dashboards, Genie, notebooks, and SQL. Agent metadata (YAML version 1.1) adds display names, formats, and synonyms to each measure and dimension.',
+      points: [
+        {
+          strong: 'Put the business rule in the measure.',
+          text: 'Define revenue with the filter that excludes cancelled orders. Every consumer then gets the same number, and Genie queries it with MEASURE() instead of re-deriving it.',
+        },
+        {
+          strong: 'Map codes to names in dimensions.',
+          text: 'A CASE expression turns E, M, S into Enterprise, Mid-Market, SMB once. Users see names, and a question about a tier finds the dimension.',
+        },
+        {
+          strong: 'Add the words people actually use.',
+          text: 'List synonyms from real questions and support tickets, not guesses. A synonym such as turnover for revenue lets Genie match a word that appears in no column name.',
+        },
+        {
+          strong: 'Pre-join in the view.',
+          text: 'A metric view over a fact table and its dimensions gives Genie one object to query and keeps an agent within its limit of 50 tables and views.',
+        },
+      ],
+      links: [
+        {
+          label: 'Metric views',
+          url: 'https://docs.databricks.com/aws/en/metric-views/',
+        },
+        {
+          label: 'Agent metadata in metric views',
+          url: 'https://docs.databricks.com/aws/en/metric-views/data-modeling/semantic-metadata',
+          note: 'Display names, formats, and synonyms.',
+        },
+      ],
+    },
+    {
+      id: 'governance',
+      heading: 'Governed tags, comments, and certification',
+      prose:
+        'Metadata that people can edit freely drifts. Govern the vocabulary, draft descriptions with AI, and mark the assets you trust.',
+      steps: [
+        {
+          title: 'Create governed tags with tag policies',
+          body: 'A governed tag is an account-level tag whose policy fixes the allowed values and who may assign it. Create tags such as domain, sensitivity, and business_term, then apply them to tables, columns, dashboards, and Genie Agents. Do not put secrets in tag names or values: tag data is stored as plain text.',
+        },
+        {
+          title: 'Draft comments with AI, then review',
+          body: 'Unity Catalog can generate table and column comments from the schema and data. Use them as a draft. Genie relies on column descriptions, so a wrong one produces wrong SQL. Edit or reject any that do not match what you would write by hand.',
+        },
+        {
+          title: 'Certify the assets you vouch for',
+          body: 'Apply the system.certification_status tag with the value certified to the tables, metric views, and dashboards that meet your standard, and deprecated to the ones to avoid. It requires ASSIGN on the tag. Certified assets show a check mark and help Genie One prioritize trusted data.',
+        },
+      ],
+      links: [
+        {
+          label: 'Governed tags',
+          url: 'https://docs.databricks.com/aws/en/admin/governed-tags',
+        },
+        {
+          label: 'Tag policies',
+          url: 'https://docs.databricks.com/aws/en/admin/tag-policies',
+        },
+        {
+          label: 'AI-generated comments',
+          url: 'https://docs.databricks.com/aws/en/comments/ai-comments',
+        },
+        {
+          label: 'Certify or deprecate data',
+          url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/certify-deprecate-data',
+        },
+      ],
+    },
+    {
+      id: 'benchmarks',
+      heading: 'Check interpretation with Genie benchmarks',
+      prose:
+        'Benchmarks turn "does it understand our terms" into a score. Each benchmark is a business question plus the SQL that returns the right answer. Genie runs the question as a new conversation and compares its result with yours.',
+      points: [
+        {
+          strong: 'Cover the vocabulary.',
+          text: 'Include a question for each synonym and each coded dimension. A question that uses turnover, tier, or territory tests the semantics, not just the SQL.',
+        },
+        {
+          strong: 'Add two to four phrasings of each question.',
+          text: 'Users ask the same thing in different words. All phrasings share one gold query.',
+        },
+        {
+          strong: 'Score before and after each change.',
+          text: 'Run the set before you add a synonym, a comment, or an instruction, and again after. Keep the change when the score rises, and revert when it falls.',
+        },
+        {
+          strong: 'Compare result rows, not text.',
+          text: 'A code such as NA is not the same answer as North America. Matching on values catches answers that are technically correct but unreadable.',
+        },
+      ],
+      links: [
+        {
+          label: 'Test and monitor a Genie Agent',
+          url: 'https://docs.databricks.com/aws/en/genie/benchmarks',
+          note: 'Benchmarks and response feedback.',
+        },
+      ],
+    },
+    {
+      id: 'answers',
+      heading: 'Illustration: the same questions, before and after',
+      prose:
+        'The reference example asks a Genie Agent five questions over raw coded tables, then over a metric view with comments and synonyms. The five questions are a small illustration of the mechanism on generated data. They are not a measured accuracy figure, and your results depend on your data and questions.',
       diagram: {
         type: 'matrix',
-        title: 'What each space answered',
+        title: 'What each setup answered (illustrative)',
         description:
-          'For all five questions the baseline space returned codes such as S, M, E, NA, or W, and for three of them it also counted cancelled and returned orders. The space over the metric view returned business names and matched the expected rows on all five.',
-        corner: 'Question ↓ · Space →',
+          'Over raw tables the agent returned codes such as S, M, E, NA, or W, and counted cancelled and returned orders in revenue for some questions. Over the metric view it returned business names and matched the expected rows.',
+        corner: 'Question ↓ · Setup →',
         columns: ['Raw tables', 'With semantics'],
         rows: [
           {
             label: 'Revenue by segment',
             cells: [
-              { state: 'none', text: 'Codes S, M, E', sub: 'all orders: SMB 3.05M vs 2.44M' },
+              { state: 'none', text: 'Codes S, M, E', sub: 'counts all orders' },
               { state: 'own', text: 'Matches', sub: 'completed orders, names' },
             ],
           },
@@ -131,28 +201,28 @@ export const walkthrough: Walkthrough = {
             label: 'Active customers by region',
             cells: [
               { state: 'none', text: 'Codes AP, EM, NA', sub: 'counts right, labels wrong' },
-              { state: 'own', text: 'Matches', sub: '209 / 111 / 80' },
+              { state: 'own', text: 'Matches', sub: 'region names' },
             ],
           },
           {
             label: 'Enterprise order value',
             cells: [
-              { state: 'none', text: '990.48', sub: 'AVG over all orders' },
-              { state: 'own', text: 'Matches: 995.26', sub: 'AOV measure' },
+              { state: 'none', text: 'Average over all orders', sub: 'includes cancelled' },
+              { state: 'own', text: 'Matches', sub: 'AOV measure' },
             ],
           },
           {
-            label: 'Top region, September',
+            label: 'Top region in a month',
             cells: [
-              { state: 'none', text: 'NA, 1,008,144', sub: 'includes cancelled orders' },
-              { state: 'own', text: 'North America', sub: '805,370' },
+              { state: 'none', text: 'Region code', sub: 'includes cancelled orders' },
+              { state: 'own', text: 'Region name', sub: 'completed orders only' },
             ],
           },
           {
             label: 'Cancellations by channel',
             cells: [
               { state: 'none', text: 'Codes W, S, P', sub: 'counts right, labels wrong' },
-              { state: 'own', text: 'Matches', sub: 'Web 291, Sales rep 160' },
+              { state: 'own', text: 'Matches', sub: 'channel names' },
             ],
           },
         ],
@@ -160,33 +230,8 @@ export const walkthrough: Walkthrough = {
           { state: 'none', label: 'Does not match expected rows' },
           { state: 'own', label: 'Matches expected rows' },
         ],
-        caption: 'Baseline 0 of 5, with semantics 5 of 5. The generated SQL for both is in ontology_comparison.',
+        caption: 'Illustrative, on generated data. Score your own agent with benchmarks on your own questions.',
       },
-    },
-    {
-      id: 'replay',
-      heading: 'Replay it',
-      steps: [
-        {
-          title: 'Open the comparison table',
-          body: 'ontology_comparison holds one row per question and stage: the SQL Genie wrote, the expected SQL, both result sets, and a matches_expected flag.',
-          code: 'SELECT question_id, baseline_match, enhanced_match\nFROM <catalog>.<schema>.ontology_comparison_summary;',
-        },
-        {
-          title: 'Open both spaces',
-          body: 'genie_spaces lists the baseline and enhanced space IDs and URLs for the run. Ask a question in each and open Show code.',
-        },
-        {
-          title: 'Add your own term',
-          body: 'Add a synonym to the metric view YAML in use_cases/general.yml, rerun add_semantics, and ask the question with the new word.',
-        },
-      ],
-      points: [
-        {
-          strong: 'The baseline space shares the tables.',
-          text: 'Its comments were added after its questions ran. Open it later and it sees the annotated tables, though not the metric view or the glossary.',
-        },
-      ],
     },
   ],
   related: [

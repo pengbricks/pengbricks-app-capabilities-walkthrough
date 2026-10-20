@@ -246,13 +246,13 @@ export const guides: readonly Guide[] = [
     title: 'Assistant user experience',
     category: 'AI Guides',
     difficulty: 2,
-    summary: 'Observe representative users completing core discovery tasks.',
+    summary: 'Roll out a Genie Agent that business users trust: curate, measure, pilot, and distribute.',
     acceptanceCriteria:
-      'People find data, ask a question, refine the answer, and leave feedback in an assistant; issues and training needs are logged.',
+      'A Genie Agent is curated with instructions, sample questions, and trusted assets, scored with benchmarks, piloted with a small cohort, and shared with the right access and warehouse size.',
     evidence: [
-      'Representative user task script',
-      'Observed outcomes and feedback',
-      'Issue and training-needs register',
+      'Instructions, sample questions, and trusted assets for the agent',
+      'Benchmark set and accuracy score before wider release',
+      'Feedback review routine, pilot training, and distribution channels',
     ],
   },
   {
@@ -260,13 +260,13 @@ export const guides: readonly Guide[] = [
     title: 'Business terms and synonyms',
     category: 'AI Guides',
     difficulty: 2,
-    summary: 'Improve discovery through governed concepts and synonyms.',
+    summary: 'Define business terms once with metric views, governed tags, and comments so people and Genie read data the same way.',
     acceptanceCriteria:
-      'Business terms and synonyms are defined once and used to improve search and question answering.',
+      'Business terms and synonyms are defined once in metric views, comments, and governed tags, trusted assets are certified, and Genie benchmarks show how well questions are interpreted.',
     evidence: [
-      'Priority concept and synonym model',
-      'Before-and-after discovery examples',
-      'Interpretation quality evidence',
+      'Metric view with measures, dimensions, and synonyms',
+      'Governed tags, reviewed comments, and certified assets',
+      'Benchmark scores before and after a change to the semantics',
     ],
   },
   {
