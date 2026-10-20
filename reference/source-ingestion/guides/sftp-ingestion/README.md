@@ -2,7 +2,7 @@
 
 ## Overview
 
-One job connects to an SFTP server with credentials from a Databricks secret scope, copies the files it has not copied before to a Unity Catalog volume, and ingests them with a Lakeflow Declarative Pipeline and Auto Loader. A second fetch right after ingestion finds nothing new. The reference run uses the public read-only server `test.rebex.net`, which is reachable from serverless compute.
+Read from SFTP with the Lakeflow Connect SFTP connector: a Unity Catalog connection with a PEM private key, plus Auto Loader. Open the network path for classic or serverless egress addresses. A copy-to-volume job is the fallback when the connector does not fit. This reference implements the fallback copy loop against a public test server.
 
 ## What this shows
 
@@ -58,7 +58,11 @@ flowchart LR
    ```
 6. Run the job again. `fetch_files` copies 0 files and the pipeline update processes 0 new rows.
 
-## Artifacts produced
+## Reference run
+
+One job connects to an SFTP server with credentials from a Databricks secret scope, copies the files it has not copied before to a Unity Catalog volume, and ingests them with a Lakeflow Declarative Pipeline and Auto Loader. A second fetch right after ingestion finds nothing new. The reference run uses the public read-only server `test.rebex.net`, which is reachable from serverless compute.
+
+Artifacts:
 
 - Job `capability-guides-sftp` (tag `capability_guide_job: capability_guides_sftp`) and pipeline `capability-guides-sftp`
 - Secret scope `capability-guides` (created outside the bundle, see below)

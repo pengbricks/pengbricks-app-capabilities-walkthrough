@@ -5,82 +5,124 @@ export const walkthrough: Walkthrough = {
   area: 'Ingestion',
   title: 'SFTP file retrieval',
   intro:
-    'A job stores SFTP credentials in a secret scope, connects with paramiko, copies the files it has not copied before into a volume, and a Lakeflow Declarative Pipeline ingests them with Auto Loader. The reference run reads the public test server test.rebex.net: 17 files, of which 2 are text and 15 are images.',
+    'Use the Lakeflow Connect SFTP connector: a Unity Catalog connection stores the credentials, and Auto Loader reads files straight from the server incrementally. Fall back to a copy job only when the server needs something the connector does not support. This page covers the connector setup, key-based authentication, the network path, and the fallback.',
   shortVersion: [
     {
-      title: 'Credentials stay in a secret scope.',
-      body: 'The first task creates the scope capability-guides and writes sftp-username and sftp-password. Code reads them with dbutils.secrets.get.',
+      title: 'Read from SFTP with a connection and Auto Loader.',
+      body: 'Create a Unity Catalog connection of type SFTP, then point Auto Loader at an sftp:// path with the databricks.connection option. It tracks files incrementally and ingests each once.',
     },
     {
-      title: 'The job copies, Auto Loader ingests.',
-      body: 'paramiko lists the server and copies files to the volume. The pipeline reads from the volume, not from the server.',
+      title: 'Prefer a PEM private key.',
+      body: 'The connection supports a PEM private key (recommended) or a password. Use a read-only account limited to the directories you ingest.',
     },
     {
-      title: 'A transfer log decides what is new.',
-      body: 'A file counts as new when its path, size, and modification time are not in sftp_transfer_log.',
+      title: 'Open the network path first.',
+      body: 'The SFTP server must allow the IP addresses your compute connects from: a stable NAT address for classic compute, or the serverless outbound addresses through network connectivity configuration.',
     },
     {
-      title: 'A second fetch copies nothing.',
-      body: 'After ingestion, refetch_finds_nothing lists the same 17 files and copies 0. The task fails if it copies any.',
+      title: 'Govern with Unity Catalog.',
+      body: 'Grant USE CONNECTION to the people or service principals that read the server. They never see the key or password.',
     },
     {
-      title: 'A blocked server has a fallback.',
-      body: 'If SFTP cannot connect, the same code runs against a folder in the volume and the run records the error.',
+      title: 'Copy-then-ingest is the fallback.',
+      body: 'If the server needs behavior the connector lacks, run a job that copies new files to a volume and let Auto Loader ingest the volume. You then own the transfer log.',
     },
   ],
   sections: [
     {
       id: 'flow',
-      heading: 'From server to table',
+      heading: 'The recommended path',
       prose:
-        'Five tasks run in order. Each one leaves a table behind, so a failed run shows which step stopped.',
+        'No copy step is needed. The connection holds the credentials, and the streaming table reads the remote path. Auto Loader keeps a checkpoint, so a rerun reads only files it has not seen.',
       diagram: {
         type: 'flow',
-        title: 'The SFTP job',
+        title: 'SFTP connector to Delta',
         description:
-          'setup_secrets creates the secret scope. fetch_files reads the credentials, connects to the SFTP server, copies new files to the source_landing volume, and writes sftp_transfer_log. The ingest_files task runs a Lakeflow Declarative Pipeline whose Auto Loader streaming tables read the volume: sftp_text_files and sftp_binary_files. refetch_finds_nothing runs the fetch again and fails if it copies a file. verify_tables compares copied and ingested file counts.',
+          'A Unity Catalog connection stores the SFTP host, user, and PEM private key. A Lakeflow pipeline or job uses Auto Loader with the connection to read files from the SFTP server. Auto Loader tracks which files it has read and writes new rows to a streaming table. Compute reaches the server through a stable IP address that the server allows.',
         lanes: [
-          { label: 'Lakeflow job tasks', fromRow: 0, toRow: 0 },
-          { label: 'Data and credentials', fromRow: 1, toRow: 2 },
+          { label: 'Unity Catalog', fromRow: 0, toRow: 0 },
+          { label: 'Compute', fromRow: 1, toRow: 1 },
+          { label: 'Outside', fromRow: 2, toRow: 2 },
         ],
         nodes: [
-          { id: 'secrets', label: 'setup_secrets', mono: true, col: 0, row: 0 },
-          { id: 'fetch', label: 'fetch_files', mono: true, sub: 'paramiko copy', col: 1, row: 0, kind: 'highlight' },
-          { id: 'ingest', label: 'ingest_files', mono: true, sub: 'pipeline update', col: 2, row: 0, kind: 'highlight' },
-          { id: 'refetch', label: 'refetch_finds_nothing', mono: true, col: 3, row: 0 },
-          { id: 'verify', label: 'verify_tables', mono: true, col: 4, row: 0 },
-          { id: 'scope', label: 'Secret scope', sub: 'capability-guides', col: 0, row: 1, kind: 'store' },
-          { id: 'server', label: 'SFTP server', sub: 'test.rebex.net', col: 1, row: 1, kind: 'surface' },
-          { id: 'volume', label: 'Volume', sub: 'source_landing/sftp', col: 2, row: 1, kind: 'store' },
-          { id: 'log', label: 'sftp_transfer_log', mono: true, col: 1, row: 2, kind: 'store' },
-          { id: 'text', label: 'sftp_text_files', mono: true, sub: '2 rows', col: 2, row: 2, kind: 'store' },
-          { id: 'bin', label: 'sftp_binary_files', mono: true, sub: '15 rows', col: 3, row: 2, kind: 'store' },
+          { id: 'conn', label: 'SFTP connection', sub: 'host, user, PEM key', col: 0, row: 0, kind: 'store' },
+          { id: 'table', label: 'Streaming table', sub: 'Delta, with checkpoint', col: 2, row: 0, kind: 'store' },
+          { id: 'al', label: 'Auto Loader', sub: 'databricks.connection', col: 1, row: 1, kind: 'highlight' },
+          { id: 'net', label: 'Stable egress IP', sub: 'NAT or serverless NCC', col: 2, row: 1 },
+          { id: 'server', label: 'SFTP server', sub: 'allow-lists the IP', col: 2, row: 2, kind: 'surface' },
         ],
         edges: [
-          { from: 'secrets', to: 'scope' },
-          { from: 'secrets', to: 'fetch' },
-          { from: 'scope', to: 'fetch', label: 'user, password' },
-          { from: 'server', to: 'fetch' },
-          { from: 'fetch', to: 'volume', label: 'copy' },
-          { from: 'fetch', to: 'log' },
-          { from: 'fetch', to: 'ingest' },
-          { from: 'volume', to: 'text' },
-          { from: 'volume', to: 'bin' },
-          { from: 'ingest', to: 'refetch' },
-          { from: 'refetch', to: 'verify' },
+          { from: 'conn', to: 'al', label: 'credentials' },
+          { from: 'al', to: 'net' },
+          { from: 'net', to: 'server' },
+          { from: 'al', to: 'table' },
         ],
         legend: [
-          { kind: 'highlight', label: 'Does the work' },
-          { kind: 'store', label: 'Volume, scope, or table' },
+          { kind: 'highlight', label: 'Reads incrementally' },
+          { kind: 'store', label: 'Unity Catalog object' },
           { kind: 'surface', label: 'External server' },
         ],
       },
+      examples: [
+        {
+          label: 'Create the connection and ingest',
+          language: 'sql',
+          code: `-- One-time, by a user with CREATE CONNECTION
+-- Create the connection in Catalog Explorer (type SFTP, auth type PEM Private Key),
+-- or with SQL; then grant it:
+GRANT USE CONNECTION ON CONNECTION partner_sftp TO \`ingest-sp\`;
+
+-- In a pipeline
+CREATE OR REFRESH STREAMING TABLE partner_files AS
+SELECT *, _metadata.file_path AS source_file
+FROM STREAM read_files(
+  'sftp://partner.example.com:22/outbound/invoices/',
+  format => 'csv',
+  \`databricks.connection\` => 'partner_sftp',
+  header => true
+);`,
+          notes: [
+            'The connector needs compute on Databricks Runtime 17.3 or above. Pinning the connection by name with databricks.connection needs DBR 18.2 or above; earlier versions match the connection by host and user.',
+            'Wildcards in the path select subsets of files. Auto Loader handles JSON, CSV, XML, Parquet, Avro, text, binary, and ORC.',
+          ],
+        },
+      ],
+      links: [
+        { label: 'Ingest files from SFTP servers', url: 'https://docs.databricks.com/aws/en/ingestion/sftp' },
+        { label: 'File connectors', url: 'https://docs.databricks.com/aws/en/ingestion/lakeflow-connect/file-connectors-overview' },
+      ],
+    },
+    {
+      id: 'auth',
+      heading: 'Authentication and network access',
+      points: [
+        {
+          strong: 'Private-key authentication.',
+          text: 'Create the connection with auth type PEM Private Key, paste the key (and passphrase if the key has one), and leave host key fingerprint enforcement on. Databricks recommends the key over a password. If the connector rejects the key format, convert it to PEM.',
+        },
+        {
+          strong: 'Least privilege on the server.',
+          text: 'Use a non-root, read-only user whose home or chroot holds only the folders you ingest.',
+        },
+        {
+          strong: 'Allow-list classic compute.',
+          text: 'Give classic compute a stable public address through a NAT gateway or equivalent, and add that address to the server’s allow list. The server must also be reachable from the VPC your workspace uses.',
+        },
+        {
+          strong: 'Allow-list serverless compute.',
+          text: 'Get the outbound addresses for serverless from the serverless compute firewall configuration, or use a network connectivity configuration with stable IPs, and allow them on the server.',
+        },
+        {
+          strong: 'Check the release stage.',
+          text: 'Databricks announced the SFTP connector in Public Preview. Confirm its current stage on the docs page before you rely on it in production.',
+        },
+      ],
     },
     {
       id: 'new-files',
-      heading: 'How a file is judged new',
+      heading: 'Fallback: copy to a volume, then ingest',
       prose:
-        'The copy step compares each remote file with the transfer log before it downloads anything. Auto Loader then tracks the volume files in its own checkpoint, so a copied file is ingested once.',
+        'Use this only when the connector does not fit, for example a server that requires a protocol feature it lacks, or one reachable only from a host outside Databricks. A job lists the remote tree, copies files it has not copied, and Auto Loader ingests the volume.',
       diagram: {
         type: 'flow',
         title: 'Deciding what to copy',
@@ -91,7 +133,7 @@ export const walkthrough: Walkthrough = {
           { id: 'seen', label: 'In transfer log?', sub: 'path, size, mtime', col: 1, row: 0, kind: 'gate' },
           { id: 'skip', label: 'Skip', col: 2, row: 0 },
           { id: 'copy', label: 'Copy to volume', sub: 'check size after', col: 1, row: 1, kind: 'highlight' },
-          { id: 'logrow', label: 'sftp_transfer_log', mono: true, sub: 'add a row', col: 2, row: 1, kind: 'store' },
+          { id: 'logrow', label: 'Transfer log', sub: 'add a row', col: 2, row: 1, kind: 'store' },
           { id: 'al', label: 'Auto Loader', sub: 'reads unread files', col: 3, row: 1, kind: 'highlight' },
         ],
         edges: [
@@ -107,72 +149,22 @@ export const walkthrough: Walkthrough = {
           { kind: 'store', label: 'Delta table' },
         ],
       },
-    },
-    {
-      id: 'result',
-      heading: 'What the run produced',
-      prose: 'The two fetch tasks and the two tables, from the successful run.',
-      diagram: {
-        type: 'matrix',
-        title: 'Files by step',
-        description:
-          'fetch_files saw 17 remote files and copied 17. refetch_finds_nothing saw the same 17 and copied 0. sftp_text_files holds 2 rows and sftp_binary_files holds 15 rows.',
-        corner: 'Step ↓ · Count →',
-        columns: ['Remote files', 'Copied', 'Rows ingested'],
-        rows: [
-          {
-            label: 'fetch_files',
-            sub: 'first copy',
-            cells: [
-              { state: 'own', text: '17' },
-              { state: 'own', text: '17' },
-              { state: 'none', text: '-' },
-            ],
-          },
-          {
-            label: 'ingest_files',
-            sub: 'Auto Loader',
-            cells: [
-              { state: 'none', text: '-' },
-              { state: 'none', text: '-' },
-              { state: 'own', text: '2 text, 15 binary' },
-            ],
-          },
-          {
-            label: 'refetch_finds_nothing',
-            sub: 'same server, same files',
-            cells: [
-              { state: 'own', text: '17' },
-              { state: 'none', text: '0' },
-              { state: 'none', text: '-' },
-            ],
-          },
-        ],
-        legend: [
-          { state: 'own', label: 'Files counted' },
-          { state: 'none', label: 'Zero or not applicable' },
-        ],
-      },
-    },
-    {
-      id: 'limits',
-      heading: 'Before you use this against a real server',
       points: [
         {
-          strong: 'The scope is created by the job.',
-          text: 'Secret scopes are not a bundle resource. Delete capability-guides with databricks secrets delete-scope when you are done.',
+          strong: 'Credentials.',
+          text: 'Keep the username, password, or private key in a secret scope and read them with dbutils.secrets.get. Use key-based authentication, and give only the job’s service principal access to the scope.',
         },
         {
-          strong: 'Key-based auth.',
-          text: 'Store the private key as another secret in the same scope and pass it to paramiko.',
+          strong: 'Copy to a volume, not DBFS.',
+          text: 'Land files in a Unity Catalog volume. Check the size after each copy and write the transfer log only after the copy succeeds.',
         },
         {
-          strong: 'Rewritten files.',
-          text: 'A server that rewrites a file in place with the same size and modification time is not detected as changed.',
+          strong: 'Change detection.',
+          text: 'A file is new by path, size, and modification time. A server that rewrites a file in place with identical size and time is not detected as changed. Add a checksum if that matters.',
         },
         {
-          strong: 'Lakeflow Connect SFTP connector.',
-          text: 'It is in Public Preview and replaces the copy step with a managed incremental pull.',
+          strong: 'Prove idempotence.',
+          text: 'Rerunning the fetch after ingestion should copy nothing. Make that a check that fails the job.',
         },
       ],
     },
@@ -180,5 +172,6 @@ export const walkthrough: Walkthrough = {
   related: [
     { slug: 'file-format-ingestion', title: 'File format ingestion' },
     { slug: 'multi-source-pipeline', title: 'Multi-source pipeline' },
+    { slug: 'batch-real-time-ingestion', title: 'Batch and streaming ingestion' },
   ],
 };

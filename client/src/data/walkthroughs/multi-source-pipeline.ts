@@ -5,170 +5,167 @@ export const walkthrough: Walkthrough = {
   area: 'Ingestion',
   title: 'Multi-source pipeline',
   intro:
-    'One Lakeflow Declarative Pipeline reads a database extract, landed CSV files, and landed API pages. Each source maps its own column names into the same shape and tags its rows with a source_system value. The output is one customers_conformed table with 260 rows.',
+    'Several systems describe the same business entity in different shapes. Conformance maps each system into one schema, tags every row with where it came from, and resolves duplicates across systems. This page covers the design: a staging table per source, append flows into one streaming table, per-source expectations, and entity resolution with survivorship.',
   shortVersion: [
     {
-      title: 'Three sources, one pipeline.',
-      body: 'A materialized view reads the database extract. Two streaming tables read files and API pages with Auto Loader.',
+      title: 'Stage each source on its own.',
+      body: 'One staging table per source keeps raw names, types, and quirks visible. A mapping mistake is then easy to trace, and a source can change without touching the others.',
     },
     {
-      title: 'Each source keeps its own staging table.',
-      body: 'Raw column names and types stay visible in the stg_ tables, so a mapping mistake is easy to trace.',
+      title: 'Tag every row with its source.',
+      body: 'Add a source_system column and keep the source’s own key as source_id. The pair (source_system, source_id) is the natural key of the conformed table.',
     },
     {
-      title: 'One query holds the mapping.',
-      body: 'customers_conformed has one SELECT branch per source. They produce the same seven columns.',
+      title: 'Append flows feed one streaming table.',
+      body: 'Each source writes to the conformed streaming table through its own append flow with its own checkpoint. Adding a source adds a flow and does not reprocess the others.',
     },
     {
-      title: 'Every row names its source.',
-      body: 'source_system is database, files, or api. An expectation fails the update if a row has no value.',
+      title: 'Validate twice.',
+      body: 'Put expectations for source quirks on each staging table, and expectations for the shared contract (required columns, allowed values) on the conformed table.',
     },
     {
-      title: 'The counts are checked.',
-      body: 'The last task compares 120, 80, and 60 rows with the inputs and confirms each (source_system, source_id) is unique.',
+      title: 'Resolve entities after conformance.',
+      body: 'Match records across systems with deterministic keys first, then fuzzy matching. Choose a surviving value per field by explicit rules and keep a crosswalk to the source records.',
     },
   ],
   sections: [
     {
       id: 'graph',
-      heading: 'The pipeline graph',
+      heading: 'The pipeline shape',
       prose:
-        'A first task prepares the three inputs. The pipeline then stages each source and combines them. A last task checks the result.',
+        'Staging holds each source as it arrived, conformance maps to the shared schema, and resolution produces one record per real-world entity.',
       diagram: {
         type: 'flow',
-        title: 'Three sources into one table',
+        title: 'Sources to a resolved entity table',
         description:
-          'prepare_inputs writes the ms_db_customers Delta table, a CSV file in the source_landing volume, and JSON-lines API pages in the source_landing volume. In the pipeline, stg_db_customers is a materialized view over the extract. stg_files_customers and stg_api_users are Auto Loader streaming tables. All three feed customers_conformed, which feeds customers_by_source. verify_conformed checks the counts.',
+          'Three sources feed three staging tables, each with its own expectations. Each staging table writes to one conformed streaming table through an append flow that sets source_system. Entity resolution reads the conformed table, matches records across sources, and writes a crosswalk table and a resolved entity table.',
         lanes: [
-          { label: 'Inputs', fromRow: 0, toRow: 2 },
-          { label: 'Lakeflow Declarative Pipeline', fromRow: 0, toRow: 2 },
+          { label: 'Sources', fromRow: 0, toRow: 0 },
+          { label: 'Staging', fromRow: 1, toRow: 1 },
+          { label: 'Conformed and resolved', fromRow: 2, toRow: 3 },
         ],
         nodes: [
-          { id: 'db', label: 'ms_db_customers', mono: true, sub: 'database extract', col: 0, row: 0, kind: 'store' },
-          { id: 'files', label: 'Landed CSV file', sub: 'volume, 80 rows', col: 0, row: 1, kind: 'store' },
-          { id: 'api', label: 'Landed API pages', sub: 'volume, 60 rows', col: 0, row: 2, kind: 'store' },
-          { id: 'sdb', label: 'stg_db_customers', mono: true, sub: 'materialized view', col: 1, row: 0 },
-          { id: 'sfiles', label: 'stg_files_customers', mono: true, sub: 'Auto Loader', col: 1, row: 1 },
-          { id: 'sapi', label: 'stg_api_users', mono: true, sub: 'Auto Loader', col: 1, row: 2 },
-          { id: 'conf', label: 'customers_conformed', mono: true, sub: '260 rows', col: 2, row: 1, kind: 'highlight' },
-          { id: 'by', label: 'customers_by_source', mono: true, col: 3, row: 0, kind: 'store' },
-          { id: 'verify', label: 'verify_conformed', mono: true, sub: 'job task', col: 3, row: 2 },
+          { id: 'db', label: 'Database', sub: 'CDC or extract', col: 0, row: 0, kind: 'surface' },
+          { id: 'files', label: 'Files', sub: 'Auto Loader', col: 1, row: 0, kind: 'surface' },
+          { id: 'api', label: 'API', sub: 'landed JSON', col: 2, row: 0, kind: 'surface' },
+          { id: 'sdb', label: 'Staging: database', sub: 'source expectations', col: 0, row: 1 },
+          { id: 'sfiles', label: 'Staging: files', sub: 'source expectations', col: 1, row: 1 },
+          { id: 'sapi', label: 'Staging: API', sub: 'source expectations', col: 2, row: 1 },
+          { id: 'conf', label: 'Conformed table', sub: 'append flows', col: 1, row: 2, kind: 'highlight' },
+          { id: 'xwalk', label: 'Crosswalk', sub: 'source key to entity id', col: 0, row: 3, kind: 'store' },
+          { id: 'ent', label: 'Resolved entities', sub: 'survivorship applied', col: 2, row: 3, kind: 'store' },
         ],
         edges: [
           { from: 'db', to: 'sdb' },
           { from: 'files', to: 'sfiles' },
           { from: 'api', to: 'sapi' },
-          { from: 'sdb', to: 'conf', label: "'database'" },
-          { from: 'sfiles', to: 'conf', label: "'files'" },
-          { from: 'sapi', to: 'conf', label: "'api'" },
-          { from: 'conf', to: 'by' },
-          { from: 'conf', to: 'verify' },
+          { from: 'sdb', to: 'conf', label: 'flow' },
+          { from: 'sfiles', to: 'conf', label: 'flow' },
+          { from: 'sapi', to: 'conf', label: 'flow' },
+          { from: 'conf', to: 'xwalk' },
+          { from: 'conf', to: 'ent' },
         ],
         legend: [
-          { kind: 'highlight', label: 'Conformed table' },
-          { kind: 'store', label: 'Landed data or output table' },
+          { kind: 'highlight', label: 'Shared schema, source_system on every row' },
+          { kind: 'store', label: 'Output table' },
+          { kind: 'surface', label: 'Source system' },
         ],
-        caption: 'Edge labels show the source_system value each branch writes.',
       },
     },
     {
       id: 'mapping',
-      heading: 'How three shapes become one',
+      heading: 'Conform with append flows',
       prose:
-        'The three sources name the same fields differently. The conformed query maps each one. The API has no signup date, so created_date is NULL for those rows.',
-      diagram: {
-        type: 'matrix',
-        title: 'Column mapping by source',
-        description:
-          'source_id comes from customer_id, cust_no, or id. full_name joins first_name and last_name for the database, comes from name for files, and joins firstName and lastName for the API. email comes from email, mail, or email. city comes from city, town, or address.city. country comes from country, nation, or address.country. created_date comes from created_date or signup_date, and is NULL for the API.',
-        corner: 'Conformed column ↓ · Source →',
-        columns: ['database', 'files', 'api'],
-        rows: [
-          {
-            label: 'source_id',
-            cells: [
-              { state: 'own', text: 'customer_id' },
-              { state: 'own', text: 'cust_no' },
-              { state: 'own', text: 'id' },
-            ],
-          },
-          {
-            label: 'full_name',
-            cells: [
-              { state: 'own', text: 'first + last name' },
-              { state: 'own', text: 'name' },
-              { state: 'own', text: 'firstName + lastName' },
-            ],
-          },
-          {
-            label: 'email',
-            cells: [
-              { state: 'own', text: 'email' },
-              { state: 'own', text: 'mail' },
-              { state: 'own', text: 'email' },
-            ],
-          },
-          {
-            label: 'city',
-            cells: [
-              { state: 'own', text: 'city' },
-              { state: 'own', text: 'town' },
-              { state: 'own', text: 'address.city' },
-            ],
-          },
-          {
-            label: 'country',
-            cells: [
-              { state: 'own', text: 'country' },
-              { state: 'own', text: 'nation' },
-              { state: 'own', text: 'address.country' },
-            ],
-          },
-          {
-            label: 'created_date',
-            cells: [
-              { state: 'own', text: 'created_date' },
-              { state: 'own', text: 'signup_date' },
-              { state: 'none', text: 'NULL' },
-            ],
-          },
-        ],
-        legend: [
-          { state: 'own', label: 'Source column used' },
-          { state: 'none', label: 'Not available in this source' },
-        ],
-      },
+        'Declare the conformed table once and give each source its own flow. Every flow maps its columns to the shared schema and sets source_system.',
+      examples: [
+        {
+          label: 'One streaming table, one flow per source',
+          language: 'sql',
+          code: `CREATE OR REFRESH STREAMING TABLE customers_conformed (
+  CONSTRAINT has_source EXPECT (source_system IS NOT NULL) ON VIOLATION FAIL UPDATE,
+  CONSTRAINT has_key EXPECT (source_id IS NOT NULL) ON VIOLATION DROP ROW,
+  CONSTRAINT valid_email EXPECT (email IS NULL OR email LIKE '%_@_%')
+);
+
+CREATE FLOW from_crm AS INSERT INTO customers_conformed BY NAME
+SELECT 'crm' AS source_system, CAST(account_id AS STRING) AS source_id,
+       account_name AS full_name, lower(email) AS email, city, country, opened_on AS created_date
+FROM STREAM stg_crm_accounts;
+
+CREATE FLOW from_web AS INSERT INTO customers_conformed BY NAME
+SELECT 'web', CAST(id AS STRING), concat_ws(' ', firstName, lastName), lower(email),
+       address.city, address.country, CAST(NULL AS DATE)
+FROM STREAM stg_web_users;`,
+          notes: [
+            'BY NAME matches columns by name, so each flow can order its select list differently.',
+            'Fill columns a source lacks with NULL of the right type instead of a made-up default.',
+            'Append flows read streaming sources. For small batch sources, a materialized view with UNION ALL is simpler.',
+          ],
+        },
+      ],
+      points: [
+        {
+          strong: 'Own the contract.',
+          text: 'Write the conformed schema down: column names, types, nullability, allowed values, and what NULL means. New sources conform to it, not the other way around.',
+        },
+        {
+          strong: 'Keep source_id as text.',
+          text: 'Cast keys to STRING so numeric, padded, and composite keys from different systems share one column.',
+        },
+        {
+          strong: 'Record the origin.',
+          text: 'Carry source_system, source_id, and a load time or source file. They support audit, lineage, and reprocessing.',
+        },
+      ],
     },
     {
-      id: 'counts',
-      heading: 'What the run produced',
-      prose: 'The pipeline uses a full refresh because the job regenerates its inputs each time.',
-      table: {
-        caption: 'customers_by_source for the successful run',
-        columns: ['source_system', 'rows and distinct countries'],
-        rows: [
-          ['database', '120 rows, 10 countries'],
-          ['files', '80 rows, 10 countries'],
-          ['api', '60 rows, 1 country (the API returns one country for every user)'],
-        ],
-      },
+      id: 'quality',
+      heading: 'Expectations per source and for the contract',
+      points: [
+        {
+          strong: 'On each staging table.',
+          text: 'Check what is specific to that system: its date format, its status codes, its required fields. Drop or quarantine rows that break source rules here, so one source’s problems do not hide in the merged table.',
+        },
+        {
+          strong: 'On the conformed table.',
+          text: 'Check the shared contract: key not null, source_system in the known list, email shape. Use FAIL UPDATE for contract breaks that mean a mapping bug.',
+        },
+        {
+          strong: 'Measure by source.',
+          text: 'Group the pipeline event log or the conformed table by source_system to see which system produces the rejects and the nulls.',
+        },
+      ],
+      links: [
+        { label: 'Manage data quality with pipeline expectations', url: 'https://docs.databricks.com/aws/en/ldp/expectations' },
+        { label: 'Use append flows to write to a streaming table', url: 'https://docs.databricks.com/aws/en/ldp/flows' },
+      ],
     },
     {
-      id: 'extend',
-      heading: 'Adding or changing a source',
+      id: 'resolution',
+      heading: 'Entity resolution and survivorship',
+      prose:
+        'Conformance gives one table of records. Resolution decides which of them are the same customer, and survivorship decides which value to show.',
       steps: [
         {
-          title: 'Stage it',
-          body: 'Add one file under src/pipelines/multi_source/ that reads the source with its own names and types.',
+          title: 'Match on deterministic keys first',
+          body: 'Normalize a key, such as lower-cased email or a tax ID, and group on it. Exact matches are safe to merge automatically.',
         },
         {
-          title: 'Map it',
-          body: 'Add one SELECT branch to customers_conformed.sql with a new source_system value.',
-          code: "UNION ALL\nSELECT 'crm', CAST(account_id AS STRING), account_name, email, city, country, opened_on\nFROM stg_crm_accounts",
+          title: 'Add fuzzy matching with review',
+          body: 'For names and addresses, score candidate pairs with edit distance or ai_similarity, merge above a high threshold, and send the middle band to a review table.',
         },
         {
-          title: 'Check it',
-          body: 'Add its row count to verify_multi_source.py so a silent drop fails the job.',
+          title: 'Assign an entity id and keep a crosswalk',
+          body: 'Write (entity_id, source_system, source_id) rows. The crosswalk lets you trace any resolved value back to its source records and undo a wrong merge.',
+        },
+        {
+          title: 'Apply survivorship rules per field',
+          body: 'Choose the value by explicit rule: source priority, most recent, or most complete. Rank the candidates and take the first.',
+          code: `SELECT entity_id,
+       max_by(email, struct(source_rank, updated_at)) AS email,
+       max_by(full_name, struct(source_rank, updated_at)) AS full_name
+FROM customers_matched
+GROUP BY entity_id;`,
         },
       ],
     },
@@ -176,5 +173,7 @@ export const walkthrough: Walkthrough = {
   related: [
     { slug: 'relational-db-ingestion', title: 'Relational database extracts' },
     { slug: 'file-format-ingestion', title: 'File format ingestion' },
+    { slug: 'rest-api-ingestion', title: 'Authenticated REST API ingestion' },
+    { slug: 'medallion-architecture', title: 'Medallion architecture' },
   ],
 };

@@ -5,27 +5,27 @@ export const walkthrough: Walkthrough = {
   area: 'Ingestion',
   title: 'Feature preparation from source data',
   intro:
-    'Real invoice lines from a UK online retailer become a customer feature table in Unity Catalog, pass 18 quality checks, and are frozen as a training set tied to exact Delta versions. Unity Catalog lineage then shows the training set back through three hops to the raw invoice lines.',
+    'Model inputs need the same care as any production table: a governed home, a check before use, a join that does not leak the future, and a record of exactly what a model trained on. This page covers feature tables in Unity Catalog, point-in-time-correct training sets, logging the training set with the model, refreshing features, and how long you can reproduce an input.',
   shortVersion: [
     {
-      title: 'The source is a public dataset.',
-      body: 'land_source downloads UCI Online Retail II (CC BY 4.0), checks its pinned SHA-256, and writes all 1,067,371 invoice lines. 243,007 have no customer ID and stay out of the snapshot. The rest become 3,321 customers as of 2010-09-01.',
+      title: 'A feature table is a governed Delta table.',
+      body: 'Create it in Unity Catalog with a primary key. Access control, lineage, and discovery then work as they do for any table, and the Feature Engineering client reads it by name.',
     },
     {
-      title: 'Features live in a governed table.',
-      body: 'The Feature Engineering client creates customer_features with customer_id as the primary key.',
+      title: 'Join features as of each label’s time.',
+      body: 'Declare a timestamp key on the feature table and a timestamp lookup key on the labels. The training set takes the latest feature value at or before each label time, which keeps future data out of training.',
     },
     {
-      title: 'Eighteen checks gate the job.',
-      body: 'Key, null, and range checks write to feature_quality_results. Any failure fails the task before a training set exists. All 18 passed with zero violations.',
+      title: 'Log the training set with the model.',
+      body: 'Log the model with the training set so serving and batch scoring look up the same features by key, and so the model’s lineage names its feature tables.',
     },
     {
-      title: 'The training set is versioned.',
-      body: 'training_set_v<N> is a snapshot of the feature table at Delta version N joined to labels at a recorded source version. The reference run wrote training_set_v2 with 3,321 rows.',
+      title: 'Refresh features with MERGE.',
+      body: 'Recompute changed entities on a schedule and upsert them by primary key. A rerun then updates rows and leaves no duplicates.',
     },
     {
-      title: 'Lineage is read back.',
-      body: 'The last task asks Unity Catalog for the upstream tables and records what it found: ml_retail_transactions, customer_activity_raw, customer_features, then training_set_v2.',
+      title: 'Time travel is not permanent.',
+      body: 'VERSION AS OF works only while the data files exist. VACUUM and the retention settings remove old versions. Snapshot or clone the training data when you need reproducibility beyond the retention window.',
     },
   ],
   sections: [
@@ -33,206 +33,158 @@ export const walkthrough: Walkthrough = {
       id: 'flow',
       heading: 'From source rows to a training set',
       prose:
-        'Four tasks run in order. Each passes the Delta versions it used to the next, so the training set can name its inputs. The first task lands the raw invoice lines and the customer snapshot with its churn label.',
+        'Keep the stages separate so each can fail on its own: land and clean the source, derive features and check them, build the training set, and record what it used.',
       diagram: {
         type: 'flow',
-        title: 'Feature preparation job',
+        title: 'Feature preparation stages',
         description:
-          'land_source downloads and verifies the public dataset, then writes ml_retail_transactions (every invoice line) and customer_activity_raw (one row per customer, with the churn label). build_features derives features, creates customer_features, and writes quality results. snapshot_training_set joins the feature table at a Delta version with labels from the source and writes training_set_vN and a version registry row. record_lineage reads Unity Catalog lineage and writes feature_lineage.',
+          'Source records are cleaned into a source table. A feature job derives features and writes them to a Unity Catalog feature table with a primary key, after quality checks pass. A training set job joins labels to the feature table point-in-time and logs the training set with the model. Unity Catalog lineage links the model back to the feature table and the source.',
         lanes: [
-          { label: 'Lakeflow job', fromRow: 0, toRow: 0 },
-          { label: 'Unity Catalog tables', fromRow: 1, toRow: 2 },
+          { label: 'Jobs', fromRow: 0, toRow: 0 },
+          { label: 'Unity Catalog', fromRow: 1, toRow: 1 },
         ],
         nodes: [
-          { id: 'gen', label: 'land_source', mono: true, sub: 'download, verify, load', col: 0, row: 0 },
-          {
-            id: 'feat',
-            label: 'build_features',
-            mono: true,
-            sub: 'derive and check',
-            col: 1,
-            row: 0,
-            kind: 'highlight',
-          },
-          { id: 'snap', label: 'snapshot_training_set', mono: true, sub: 'join at Delta versions', col: 2, row: 0 },
-          { id: 'lin', label: 'record_lineage', mono: true, sub: 'lineage API', col: 3, row: 0 },
-          {
-            id: 'raw',
-            label: 'customer_activity_raw',
-            mono: true,
-            sub: 'one row per customer',
-            col: 0,
-            row: 1,
-            kind: 'store',
-          },
-          {
-            id: 'tx',
-            label: 'ml_retail_transactions',
-            mono: true,
-            sub: 'every invoice line',
-            col: 0,
-            row: 2,
-            kind: 'store',
-          },
-          { id: 'ft', label: 'customer_features', mono: true, sub: 'primary key', col: 1, row: 1, kind: 'store' },
-          { id: 'ts', label: 'training_set_vN', mono: true, col: 2, row: 1, kind: 'store' },
-          { id: 'fl', label: 'feature_lineage', mono: true, col: 3, row: 1, kind: 'store' },
-          { id: 'q', label: 'feature_quality_results', mono: true, col: 1, row: 2, kind: 'store' },
-          { id: 'reg', label: 'training_set_versions', mono: true, col: 2, row: 2, kind: 'store' },
+          { id: 'src', label: 'Clean source data', sub: 'typed, deduplicated', col: 0, row: 0 },
+          { id: 'feat', label: 'Compute features', sub: 'then check them', col: 1, row: 0, kind: 'highlight' },
+          { id: 'train', label: 'Build training set', sub: 'point-in-time join', col: 2, row: 0 },
+          { id: 'model', label: 'Log model', sub: 'with the training set', col: 3, row: 0 },
+          { id: 'srct', label: 'Source table', col: 0, row: 1, kind: 'store' },
+          { id: 'ft', label: 'Feature table', sub: 'primary key + timestamp', col: 1, row: 1, kind: 'store' },
+          { id: 'ts', label: 'Training set', sub: 'snapshot if long-lived', col: 2, row: 1, kind: 'store' },
+          { id: 'reg', label: 'Registered model', sub: 'lineage to features', col: 3, row: 1, kind: 'store' },
         ],
         edges: [
-          { from: 'gen', to: 'feat' },
-          { from: 'feat', to: 'snap', label: 'versions' },
-          { from: 'snap', to: 'lin' },
-          { from: 'gen', to: 'raw' },
-          { from: 'gen', to: 'tx' },
+          { from: 'src', to: 'feat' },
+          { from: 'feat', to: 'train' },
+          { from: 'train', to: 'model' },
+          { from: 'src', to: 'srct' },
           { from: 'feat', to: 'ft' },
-          { from: 'feat', to: 'q' },
-          { from: 'snap', to: 'ts' },
-          { from: 'snap', to: 'reg' },
-          { from: 'lin', to: 'fl' },
+          { from: 'train', to: 'ts' },
+          { from: 'model', to: 'reg' },
         ],
         legend: [
-          { kind: 'highlight', label: 'Creates the feature table and runs checks' },
-          { kind: 'store', label: 'Unity Catalog table' },
+          { kind: 'highlight', label: 'Gate: checks must pass' },
+          { kind: 'store', label: 'Unity Catalog object' },
         ],
       },
+      examples: [
+        {
+          label: 'Create a point-in-time feature table',
+          language: 'python',
+          code: `from databricks.feature_engineering import FeatureEngineeringClient
+
+fe = FeatureEngineeringClient()
+fe.create_table(
+    name="main.ml.customer_features",
+    primary_keys=["customer_id", "as_of_date"],
+    timeseries_columns="as_of_date",
+    df=features_df,
+    description="Customer activity features, one row per customer per day",
+)`,
+          notes: ['A timeseries column makes the table eligible for point-in-time lookups.'],
+        },
+      ],
     },
     {
       id: 'quality',
-      heading: 'What the checks cover',
+      heading: 'Check features before anyone trains on them',
       prose:
-        'The checks are SQL built from the spec, one per column rule. Each returns a count of violating rows, and zero passes. The data is real, so it is messy. Credit notes (invoice numbers starting with C) count as returns. Customers with one order have no gap between orders, so days_between_orders is null for 1,284 of 3,321 customers (38.7%). order_gap_days fills that null with days_since_purchase, and single_order flags the customers it filled, so the not-null check on order_gap_days passes.',
-      diagram: {
-        type: 'matrix',
-        title: 'Quality checks in the reference run',
-        description:
-          'The key is checked for nulls and duplicates. Ten feature columns are checked for nulls. Six columns have inclusive range checks. All 18 checks passed with zero violating rows.',
-        corner: 'Check type ↓',
-        columns: ['Checks', 'Violations'],
-        rows: [
-          {
-            label: 'Key',
-            sub: 'customer_id',
-            cells: [
-              { state: 'own', text: '2 checks', sub: 'not null, unique' },
-              { state: 'none', text: '0 rows' },
-            ],
-          },
-          {
-            label: 'Not null',
-            sub: 'every feature column',
-            cells: [
-              { state: 'own', text: '10 checks' },
-              { state: 'none', text: '0 rows' },
-            ],
-          },
-          {
-            label: 'Range',
-            sub: 'inclusive min and max',
-            cells: [
-              { state: 'own', text: '6 checks' },
-              { state: 'none', text: '0 rows' },
-            ],
-          },
-        ],
-        legend: [
-          { state: 'own', label: 'Checks run' },
-          { state: 'none', label: 'No violations' },
-        ],
-        caption: 'A violation fails build_features, so no training set is written from a failing table.',
-      },
+        'Run the checks in the job that writes the feature table and fail the task on a violation, so a bad table never reaches a training set.',
+      points: [
+        {
+          strong: 'Key checks.',
+          text: 'The primary key is not null and unique. Duplicate keys make a lookup return the wrong row.',
+        },
+        {
+          strong: 'Null and range checks.',
+          text: 'Each feature has a null policy. Decide where null is meaningful and where you fill it, and add a flag column when you fill so the model can tell the difference.',
+        },
+        {
+          strong: 'Distribution checks.',
+          text: 'Compare new feature statistics to a baseline. Data quality monitoring on the feature table tracks drift and null rates over time.',
+        },
+        {
+          strong: 'Use pipeline expectations when the features come from a pipeline.',
+          text: 'Expectations enforce constraints inside the pipeline, with fail or drop actions per rule.',
+        },
+      ],
     },
     {
       id: 'version',
-      heading: 'Versioned training input and lineage',
+      heading: 'Point-in-time training sets and reproducibility',
       prose:
-        'The training set records the Delta version of the feature table and of the source it joined. In the reference run, training_set_v2 holds 3,321 rows from customer_features version 2 and customer_activity_raw version 8. Any later run can read the same rows with VERSION AS OF. The snapshot row count must equal the feature table row count at that version, or the task fails.',
-      diagram: {
-        type: 'flow',
-        title: 'How a training set points back to its inputs',
-        description:
-          'customer_activity_raw at a source version supplies labels. customer_features at a feature table version supplies features. snapshot_training_set joins them into training_set_vN. A row in training_set_versions names both versions. Unity Catalog lineage walks back from training_set_vN to customer_features, to customer_activity_raw, to ml_retail_transactions.',
-        nodes: [
-          {
-            id: 'raw',
-            label: 'customer_activity_raw',
-            mono: true,
-            sub: 'labels at source version',
-            col: 0,
-            row: 0,
-            kind: 'store',
-          },
-          {
-            id: 'ft',
-            label: 'customer_features',
-            mono: true,
-            sub: 'features at version N',
-            col: 0,
-            row: 1,
-            kind: 'store',
-          },
-          { id: 'join', label: 'Join on customer_id', sub: 'VERSION AS OF', col: 1, row: 0, kind: 'highlight' },
-          { id: 'ts', label: 'training_set_vN', mono: true, col: 2, row: 0, kind: 'store' },
-          {
-            id: 'reg',
-            label: 'training_set_versions',
-            mono: true,
-            sub: 'both versions recorded',
-            col: 2,
-            row: 1,
-            kind: 'store',
-          },
-          {
-            id: 'tx',
-            label: 'ml_retail_transactions',
-            mono: true,
-            sub: 'raw invoice lines',
-            col: 0,
-            row: 2,
-            kind: 'store',
-          },
-          { id: 'lin', label: 'Lineage tab', sub: 'upstream tables', col: 3, row: 0, kind: 'surface' },
-        ],
-        edges: [
-          { from: 'tx', to: 'raw', dashed: true, label: 'hop 1' },
-          { from: 'raw', to: 'join' },
-          { from: 'ft', to: 'join' },
-          { from: 'join', to: 'ts' },
-          { from: 'join', to: 'reg' },
-          { from: 'ts', to: 'lin', dashed: true, label: 'read back' },
-        ],
-        legend: [
-          { kind: 'highlight', label: 'Time-travel join' },
-          { kind: 'surface', label: 'Unity Catalog lineage' },
-        ],
-        caption:
-          'The lineage API found all three hops in the reference run. The task polls for up to five minutes and records what it finds.',
-      },
-    },
-    {
-      id: 'reproduce',
-      heading: 'Check it yourself',
-      steps: [
+        'A plain join on the key lets a label from last March see a feature value computed this week. That leaks the future and inflates offline accuracy. Give the training set the label time and let it pick the right feature row.',
+      examples: [
         {
-          title: 'Read the registry',
-          body: 'training_set_versions names the snapshot, the feature table version, and the source table version.',
-          code: 'SELECT * FROM training_set_versions ORDER BY created_at DESC;',
+          label: 'Point-in-time training set, logged with the model',
+          language: 'python',
+          code: `from databricks.feature_engineering import FeatureLookup
+
+lookups = [
+    FeatureLookup(
+        table_name="main.ml.customer_features",
+        lookup_key="customer_id",
+        timestamp_lookup_key="label_date",
+    )
+]
+training_set = fe.create_training_set(
+    df=labels_df,  # customer_id, label_date, churned
+    feature_lookups=lookups,
+    label="churned",
+)
+train_df = training_set.load_df()
+
+fe.log_model(
+    model=model,
+    artifact_path="model",
+    flavor=mlflow.sklearn,
+    training_set=training_set,
+    registered_model_name="main.ml.churn_model",
+)`,
+          notes: [
+            'Scoring with fe.score_batch or a serving endpoint looks up the same features by key.',
+            'Unity Catalog lineage then links the model to its feature tables and the source behind them.',
+          ],
         },
         {
-          title: 'Rebuild the input from the versions',
-          body: 'Time travel returns the same feature rows even after the table changes.',
-          code: 'SELECT count(*) FROM customer_features VERSION AS OF <feature_table_version>;',
+          label: 'Refresh a feature table with MERGE',
+          language: 'python',
+          code: `fe.write_table(
+    name="main.ml.customer_features",
+    df=changed_features_df,
+    mode="merge",
+)`,
+          notes: ['A merge on the primary key updates changed rows and adds new ones. Rerunning the same batch is safe.'],
+        },
+      ],
+      points: [
+        {
+          strong: 'Record what a model trained on.',
+          text: 'Log the training dataset to MLflow and store the feature table version. Delta table history gives you the version number.',
         },
         {
-          title: 'Open lineage',
-          body: 'On training_set_vN in Catalog Explorer, the Lineage tab lists customer_features upstream, and customer_activity_raw and ml_retail_transactions behind it. feature_lineage holds the same three hops.',
+          strong: 'Time travel has a limit.',
+          text: 'VERSION AS OF reads old files. VACUUM deletes files older than delta.deletedFileRetentionDuration (7 days by default), and the log is trimmed after delta.logRetentionDuration. Past that window the version is gone.',
         },
+        {
+          strong: 'Pin what must last.',
+          text: 'For audits and long-lived models, write the training set to its own table, or DEEP CLONE the feature table at the version you used. A shallow clone still depends on the source’s files, so it is not durable.',
+        },
+        {
+          strong: 'Or extend retention deliberately.',
+          text: 'Raising deletedFileRetentionDuration keeps more history at the cost of storage. Choose it per table instead of globally.',
+        },
+      ],
+      links: [
+        { label: 'Feature tables in Unity Catalog', url: 'https://docs.databricks.com/aws/en/machine-learning/feature-store/uc/feature-tables-uc' },
+        { label: 'Point-in-time feature joins', url: 'https://docs.databricks.com/aws/en/machine-learning/feature-store/time-series' },
+        { label: 'Delta table history and time travel', url: 'https://docs.databricks.com/aws/en/delta/history' },
       ],
     },
   ],
   related: [
     { slug: 'model-training-compatibility', title: 'Training and bringing existing models' },
     { slug: 'experiment-tracking', title: 'Reproducible experiments' },
+    { slug: 'medallion-architecture', title: 'Medallion architecture' },
   ],
 };

@@ -2,7 +2,7 @@
 
 ## Overview
 
-One Lakeflow Declarative Pipeline reads three sources in three shapes: a database extract (a Delta table), landed CSV files, and API pages landed as JSON lines. Each source maps its own column names into one shape and tags every row with a `source_system` value. The result is one conformed `customers_conformed` table with 260 rows: 120 from the database, 80 from files, and 60 from the API.
+Conform several sources into one schema: a staging table per source with its own expectations, append flows into one streaming table with a source_system column, then entity resolution and survivorship to produce one record per entity. This reference conforms a database extract, landed CSV files, and API pages.
 
 ## What this shows
 
@@ -61,7 +61,11 @@ flowchart LR
 5. Open `customers_conformed.sql` and point at the three `SELECT` branches. Adding a fourth source is one more branch and one more stage table.
 6. Open the `verify_conformed` output for the count check.
 
-## Artifacts produced
+## Reference run
+
+One Lakeflow Declarative Pipeline reads three sources in three shapes: a database extract (a Delta table), landed CSV files, and API pages landed as JSON lines. Each source maps its own column names into one shape and tags every row with a `source_system` value. The result is one conformed `customers_conformed` table with 260 rows: 120 from the database, 80 from files, and 60 from the API.
+
+Artifacts:
 
 - Job `capability-guides-multi-source` (tag `capability_guide_job: capability_guides_multi_source`) and pipeline `capability-guides-multi-source`
 - Tables `ms_db_customers`, `stg_db_customers`, `stg_files_customers`, `stg_api_users`, `customers_conformed`, `customers_by_source`

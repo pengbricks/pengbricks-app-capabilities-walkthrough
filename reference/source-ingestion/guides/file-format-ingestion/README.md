@@ -2,7 +2,7 @@
 
 ## Overview
 
-One job generates five sample files from the use-case spec, ingests them with one Lakeflow Declarative Pipeline, and checks each table against the spec. The formats are a CSV file, a pipe-delimited file with quoted embedded delimiters, a multi-sheet Excel workbook of which one named sheet is read, nested JSON, and XML with repeating and optional nodes. Auto Loader (`read_files`) ingests all five.
+Land each file format with Auto Loader or read_files and the options it needs, find new files with file events, handle schema drift with hints, an evolution mode, and rescued data, load volatile JSON as Variant, and parse documents with ai_parse_document. Verify counts, types, and rescued rows after each load. This reference ingests five formats with one pipeline.
 
 ## What this shows
 
@@ -64,7 +64,11 @@ flowchart LR
    ORDER BY checked_at DESC, table_name;
    ```
 
-## Artifacts produced
+## Reference run
+
+One job generates five sample files from the use-case spec, ingests them with one Lakeflow Declarative Pipeline, and checks each table against the spec. The formats are a CSV file, a pipe-delimited file with quoted embedded delimiters, a multi-sheet Excel workbook of which one named sheet is read, nested JSON, and XML with repeating and optional nodes. Auto Loader (`read_files`) ingests all five.
+
+Artifacts:
 
 - Job `capability-guides-file-formats` (tag `capability_guide_job: capability_guides_file_formats`) and pipeline `capability-guides-file-formats`
 - Seven pipeline tables above plus `format_ingestion_checks`

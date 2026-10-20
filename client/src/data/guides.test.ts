@@ -23,7 +23,7 @@ describe('guide catalog', () => {
   });
 
   it('resolves a guide by slug', () => {
-    expect(getGuide('configuration-vs-code')?.title).toBe('Configuration-driven ingestion');
+    expect(getGuide('configuration-vs-code')?.title).toBe('Metadata-driven ingestion');
   });
 
   it('groups ingestion framework guides together', () => {

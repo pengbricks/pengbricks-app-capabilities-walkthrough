@@ -2,7 +2,7 @@
 
 ## Overview
 
-One job builds a small source in Lakebase Postgres, connects Databricks to it through a Unity Catalog connection, and lands two kinds of extract: full tables and the result of a custom SQL query. The custom query joins two tables, aggregates per customer, calls a database function, and ranks customers inside each country with a window function. All of it runs inside Postgres. A last task re-runs each query at the source and compares row counts, a checksum, and column types with the landed Delta tables.
+Choose the ingestion path for a relational source by freshness, volume, and source load: Lakehouse Federation to query in place, Lakeflow Connect CDC connectors for continuous replication, or query-based connectors for scheduled incremental pulls. Push joins and aggregates down to the database, and verify landed data against the source. This reference shows the Federation pushdown path and the verification.
 
 ## What this shows
 
@@ -65,7 +65,11 @@ flowchart LR
    WHERE country_rank = 1 ORDER BY country;
    ```
 
-## Artifacts produced
+## Reference run
+
+One job builds a small source in Lakebase Postgres, connects Databricks to it through a Unity Catalog connection, and lands two kinds of extract: full tables and the result of a custom SQL query. The custom query joins two tables, aggregates per customer, calls a database function, and ranks customers inside each country with a window function. All of it runs inside Postgres. A last task re-runs each query at the source and compares row counts, a checksum, and column types with the landed Delta tables.
+
+Artifacts:
 
 - Job `capability-guides-relational-extract` (tag `capability_guide_job: capability_guides_relational_extract`)
 - Tables `rel_customers`, `rel_orders`, `rel_customer_revenue`, `relational_extract_log`, `relational_extract_checks`

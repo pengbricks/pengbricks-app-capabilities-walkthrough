@@ -5,7 +5,7 @@ export const walkthrough: Walkthrough = {
   area: 'Ingestion',
   title: 'SQL Server connections with Lakeflow Connect',
   intro:
-    'Lakeflow Connect ingests SQL Server tables into Unity Catalog with two managed pipelines and no extract code. The ingestion gateway runs on classic compute in your workspace network and reads CDC or Change Tracking from SQL Server. The ingestion pipeline runs on serverless compute and applies the staged changes to bronze tables. Credentials live in a Unity Catalog connection. This page follows the demo: the customer\'s questions, the connection, the wizard, live changes, day-two operations, silver with lineage and Genie, and the same pipeline as a bundle in Git. The reference bundle has no recorded run: the reference workspace allows only serverless compute, so the gateway cannot start there.',
+    'Lakeflow Connect ingests SQL Server tables into Unity Catalog with two managed pipelines and no extract code. The ingestion gateway runs on classic compute in your workspace network and reads CDC or Change Tracking from SQL Server. The ingestion pipeline runs on serverless compute and applies the staged changes to bronze tables. Credentials live in a Unity Catalog connection. This page covers the questions customers ask, the source setup, the connection, the wizard, live changes, day-two operations, silver with lineage and Genie, and the same pipeline as a bundle in Git. The gateway needs classic compute, so run it in a workspace that allows classic compute.',
   shortVersion: [
     {
       title: 'Two pipelines, two kinds of compute.',
@@ -17,15 +17,19 @@ export const walkthrough: Walkthrough = {
     },
     {
       title: 'The DBA work comes first.',
-      body: 'A login, the Databricks utility objects script, the setup procedures, and CDC retention. It has the longest lead time, so start it before the demo.',
+      body: 'A login, the Databricks utility objects script, the setup procedures, and CDC retention. It has the longest lead time, so start it first.',
     },
     {
       title: 'Open one network path.',
       body: 'TCP 1433 from the workspace compute subnets to the primary, plus the workspace storage endpoints for staging. TLS is validated against public CAs unless you supply the CA certificate.',
     },
     {
-      title: 'No run in the reference workspace.',
-      body: 'The reference workspace allows only serverless compute, and the gateway needs classic compute, so the bundle validates but does not run there. Deploy it to a workspace that allows classic compute.',
+      title: 'The gateway needs classic compute.',
+      body: 'A workspace that allows only serverless compute rejects the gateway. Allow classic compute for the gateway; the ingestion pipeline stays serverless.',
+    },
+    {
+      title: 'An integrated CDC pipeline has no gateway.',
+      body: 'It runs extraction and apply in one pipeline update, on serverless or classic compute. The feature is enabled per workspace by your account team, and you create it through the API, CLI, or a bundle.',
     },
     {
       title: 'Keep the gateway running and history safe.',
@@ -35,9 +39,9 @@ export const walkthrough: Walkthrough = {
   sections: [
     {
       id: 'questions',
-      heading: 'Their questions first',
+      heading: 'Questions to answer first',
       prose:
-        'Answer these before showing anything. Most of them decide the setup: which tables get CDC, what the network team opens, and who owns the gateway.',
+        'Answer these before you build. Most of them decide the setup: which tables get CDC, what the network team opens, and who owns the gateway.',
       table: {
         columns: ['Question', 'Answer'],
         rows: [
@@ -159,22 +163,56 @@ export const walkthrough: Walkthrough = {
           text: "If it is down longer than the source's CDC or Change Tracking retention, changes age out of SQL Server and the affected tables need a full refresh.",
         },
         {
-          strong: 'Turn it on and off from the guide.',
-          text: 'The Run it tab has a gateway button: turn the classic cluster on before a demo and off after, as long as it stays off for less than the source retention.',
+          strong: 'Stopping it is a demo-only cost control.',
+          text: 'In a short-lived demo environment you can stop the gateway between sessions, but only for less than the source CDC or Change Tracking retention. Do not do it in production. The Run it tab has a button for the demo cluster.',
         },
         {
           strong: 'Limits.',
           text: 'One gateway per ingestion pipeline, up to 250 tables per pipeline, and staged change data is purged after 30 days.',
         },
         {
-          strong: 'Serverless-only workspaces cannot run this.',
-          text: 'The gateway needs classic compute, and a workspace that allows only serverless compute rejects it ("Only serverless compute is supported in the workspace"). The reference workspace is one of those, so this guide has no recorded run.',
+          strong: 'Prerequisite: classic compute.',
+          text: 'The gateway runs on classic compute. A workspace that allows only serverless compute rejects it with "Only serverless compute is supported in the workspace", so enable classic compute, or use an integrated CDC pipeline if your workspace has it.',
         },
       ],
       links: [
         {
           label: 'SQL Server connector overview',
           url: 'https://docs.databricks.com/aws/en/ingestion/lakeflow-connect/sql-server-overview',
+        },
+      ],
+    },
+    {
+      id: 'integrated',
+      heading: 'Integrated CDC pipeline: no gateway',
+      prose:
+        'An integrated CDC pipeline replaces the gateway and ingestion pipeline with one pipeline. Each update extracts changes from SQL Server into a staging volume, applies them to streaming tables, and stops when it catches up, bounded by a maximum runtime. Schedule it with a Lakeflow Jobs task.',
+      points: [
+        {
+          strong: 'Compute.',
+          text: 'It can run on serverless or classic compute. Serverless needs serverless network connectivity from Databricks to the source database.',
+        },
+        {
+          strong: 'Availability.',
+          text: 'The feature is gated: ask your Databricks account team to enable it for the workspace.',
+        },
+        {
+          strong: 'Authoring.',
+          text: 'It is API-only for now: create it with the REST API, the CLI, a notebook, or a bundle. UI creation is not yet available. The pipeline references a Unity Catalog connection with connection_name and sets connector_type to CDC.',
+        },
+        {
+          strong: 'Source limits.',
+          text: 'It reads the primary instance only, not read replicas or secondary instances. SCD type 2 needs SQL Server CDC on the source and is not supported with Change Tracking.',
+        },
+        {
+          strong: 'When to choose it.',
+          text: 'Pick it when you want to avoid an always-on classic gateway and its cost, and a scheduled catch-up fits your freshness target. Pick the gateway for continuous capture.',
+        },
+      ],
+      links: [
+        {
+          label: 'Integrated CDC pipeline for SQL Server',
+          url: 'https://learn.microsoft.com/en-us/azure/databricks/ingestion/lakeflow-connect/sql-server-integrated-pipeline',
         },
       ],
     },
@@ -283,7 +321,7 @@ account_id  plan      status  __START_AT        __END_AT
       id: 'dba-setup',
       heading: 'SQL Server setup: the DBA checklist',
       prose:
-        'Nine steps across four roles. The DBA work comes first and has the longest lead time. In the reference bundle, source/01_setup_source.sql does the DBA steps for the three demo tables.',
+        'Nine steps across four roles. The DBA work comes first and has the longest lead time. The reference bundle includes a script for the DBA steps.',
       diagram: {
         type: 'flow',
         title: 'Who does what, in order',
@@ -655,7 +693,7 @@ WHERE order_id IN (20, 117) OR customer_id = 42 AND status = 'NEW';  -- 20 is go
       id: 'day-two',
       heading: 'Day-two operations: a schema change and a full refresh',
       prose:
-        'The job adds loyalty_tier to dbo.customers and fills it for 20 customers; the next ingestion run adds the column to bronze with no pipeline change. Then it runs a full refresh of lfc_orders only and checks that lfc_customers kept its history.',
+        'A column added at the source reaches bronze on the next ingestion run with no pipeline change. A full refresh of one SCD type 1 table leaves the SCD type 2 history tables alone.',
       table: {
         caption: 'Schema changes and what happens',
         columns: ['Source change', 'What happens'],
@@ -705,7 +743,7 @@ WHERE order_id IN (20, 117) OR customer_id = 42 AND status = 'NEW';  -- 20 is go
       id: 'lineage-genie',
       heading: 'Lineage to a Silver table, then a Genie query on it',
       prose:
-        'A serverless pipeline builds three silver materialized views from bronze: current customers, plan history with validity windows, and orders joined to customer and product. Unity Catalog records lineage from each bronze table to silver; open lfc_silver_orders in Catalog Explorer and choose the Lineage tab. Then a Genie space over the silver tables answers revenue by plan, and the job runs the SQL Genie wrote and compares it with a hand-written query.',
+        'Build silver as materialized views over bronze: current rows, history with validity windows, and facts joined to dimensions. Unity Catalog records lineage from each bronze table to silver; open a silver table in Catalog Explorer and choose the Lineage tab. A Genie space over the silver tables can then answer business questions, and you can compare the SQL it writes with a hand-written query.',
       examples: [
         {
           label: 'Read lineage from the system table',
@@ -729,6 +767,32 @@ WHERE target_table_full_name LIKE '<catalog>.<schema>.lfc_silver_%'
       ],
     },
     {
+      id: 'operate',
+      heading: 'Monitoring and run_as',
+      points: [
+        {
+          strong: 'Watch the gateway and the pipeline.',
+          text: 'Both write pipeline event logs. Query the gateway event log for connection, snapshot, and replication state, and the ingestion pipeline event log for update results and rows applied. Alert on failed updates and on staging lag.',
+        },
+        {
+          strong: 'Notifications.',
+          text: 'Set email or webhook notifications on both pipelines for failures. A failed gateway matters more than a failed update, because it risks the source retention window.',
+        },
+        {
+          strong: 'Monitor cost.',
+          text: 'The gateway bills classic compute around the clock and the ingestion pipeline bills serverless per update. Tag both pipelines and report from system.billing.usage.',
+        },
+        {
+          strong: 'Run as a service principal.',
+          text: 'Set run_as on the gateway and ingestion pipelines in the bundle so they run as a service principal, not the deploying user. Grant that principal USE CONNECTION on the connection and write access to the target schema and staging volume.',
+        },
+      ],
+      links: [
+        { label: 'Gateway event logs', url: 'https://docs.databricks.com/aws/en/ingestion/lakeflow-connect/gateway-event-logs' },
+        { label: 'Monitor ingestion costs', url: 'https://docs.databricks.com/aws/en/ingestion/lakeflow-connect/monitor-costs' },
+      ],
+    },
+    {
       id: 'bundle',
       heading: 'The same pipeline as a bundle in Git',
       prose:
@@ -737,8 +801,7 @@ WHERE target_table_full_name LIKE '<catalog>.<schema>.lfc_silver_%'
         {
           label: 'Deploy and run',
           language: 'bash',
-          code: `cd reference/lakeflow-connect
-databricks bundle deploy -t dev --profile <profile> \\
+          code: `databricks bundle deploy -t dev --profile <profile> \\
   --var catalog=<catalog> --var warehouse_id=<warehouse-id> \\
   --var app_service_principal=<app-sp-application-id> \\
   --var sqlserver_connection_name=sqlserver_source \\

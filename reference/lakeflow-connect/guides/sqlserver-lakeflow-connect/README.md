@@ -2,9 +2,7 @@
 
 ## Overview
 
-Lakeflow Connect ingests three SQL Server tables into Unity Catalog through two managed pipelines. The ingestion gateway runs on classic compute in the workspace network and reads CDC and Change Tracking from SQL Server. The ingestion pipeline runs on serverless compute and applies the staged changes to bronze. A Unity Catalog connection holds the credentials. One job then proves the parts a customer asks about. It changes rows on the source and checks each one in bronze, adds a column, full-refreshes one table, builds silver, and asks Genie a question. Job key: `capability_guides_lakeflow_connect`.
-
-**This bundle does not run in the reference workspace.** The gateway needs classic compute, and the reference workspace allows only serverless compute ("Only serverless compute is supported in the workspace"). The bundle validates there, but the gateway cannot start, so this guide has no recorded run. To run it, deploy to a workspace that allows classic compute, with a SQL Server the gateway can reach on port 1433.
+Lakeflow Connect ingests SQL Server tables into Unity Catalog through two managed pipelines: a gateway on classic compute that reads CDC or Change Tracking, and a serverless ingestion pipeline that applies changes to bronze. An integrated CDC pipeline removes the gateway where your workspace has it. Run the pipelines as a service principal, monitor them, and keep the gateway running within the source retention window. This reference bundle deploys the standard architecture.
 
 ## What this shows
 
@@ -93,6 +91,12 @@ databricks secrets put-secret lakeflow_connect_demo sqlserver_app_password --pro
 5. **Day two.** Run `04_schema_change`, then show `DESCRIBE TABLE lfc_customers`. Show the `full_refresh_orders` task and explain why it names one table.
 6. **Lineage and Genie.** Open `lfc_silver_orders` in Catalog Explorer, **Lineage** tab, then the Genie space and ask for revenue by plan.
 7. **Bundle in Git.** Show `resources/` in the repository and the deploy commands above.
+
+## Reference run
+
+Lakeflow Connect ingests three SQL Server tables into Unity Catalog through two managed pipelines. The ingestion gateway runs on classic compute in the workspace network and reads CDC and Change Tracking from SQL Server. The ingestion pipeline runs on serverless compute and applies the staged changes to bronze. A Unity Catalog connection holds the credentials. One job then proves the parts a customer asks about. It changes rows on the source and checks each one in bronze, adds a column, full-refreshes one table, builds silver, and asks Genie a question. Job key: `capability_guides_lakeflow_connect`.
+
+**This bundle does not run in the reference workspace.** The gateway needs classic compute, and the reference workspace allows only serverless compute ("Only serverless compute is supported in the workspace"). The bundle validates there, but the gateway cannot start, so this guide has no recorded run. To run it, deploy to a workspace that allows classic compute, with a SQL Server the gateway can reach on port 1433.
 
 ## Limitations
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-One serverless job downloads a public retail dataset and turns it into a governed customer feature table in Unity Catalog. It checks the features, freezes a versioned training set, and reads back the lineage to the raw invoice lines. Job key: `capability_guides_feature_preparation`.
+Keep model inputs in governed Unity Catalog feature tables with a primary key and timestamp, check them before use, build training sets with point-in-time joins, log the training set with the model, and refresh features by MERGE. Time travel reproduces an input only within the VACUUM retention window, so snapshot or clone data that must last longer. This reference builds that flow from a public retail dataset.
 
 ## What this shows
 
@@ -72,7 +72,11 @@ flowchart LR
 7. Open the Lineage tab on `training_set_vN`: it shows `customer_features` upstream, then `customer_activity_raw`, then `ml_retail_transactions`.
 8. Set a range in the spec to an impossible value, redeploy, and rerun: `build_features` fails and no training set is written.
 
-## Artifacts produced
+## Reference run
+
+One serverless job downloads a public retail dataset and turns it into a governed customer feature table in Unity Catalog. It checks the features, freezes a versioned training set, and reads back the lineage to the raw invoice lines. Job key: `capability_guides_feature_preparation`.
+
+Artifacts:
 
 - Tables `ml_retail_transactions`, `customer_activity_raw`, `customer_features`, `feature_quality_results`, `training_set_v<N>`, `training_set_versions`, `feature_lineage`
 - A successful run of `capability-guides-feature-preparation`

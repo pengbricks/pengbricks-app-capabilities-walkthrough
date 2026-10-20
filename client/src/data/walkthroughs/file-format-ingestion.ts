@@ -5,57 +5,57 @@ export const walkthrough: Walkthrough = {
   area: 'Ingestion',
   title: 'File format ingestion',
   intro:
-    'One job generates a file in each of five formats from the use-case spec, ingests them with one Lakeflow Declarative Pipeline, and checks every table against the spec. The files are chosen to be awkward on purpose: quoted delimiters, an extra Excel sheet, nested JSON, and XML with a repeating node and an optional node.',
+    'Files arrive as CSV, delimited text, Excel, JSON, XML, and PDFs, and each needs a few format options. Land them with Auto Loader or read_files into Delta tables, keep the schema flexible without losing data, and verify what landed. This page covers the options per format, how schemas and state are managed, how to discover new files, and when to use JSON as a Variant or parse documents with ai_parse_document.',
   shortVersion: [
     {
-      title: 'Five formats, one pipeline.',
-      body: 'CSV, pipe-delimited text, Excel, nested JSON, and XML all use read_files with Auto Loader. Only the options differ.',
+      title: 'One pattern, different options.',
+      body: 'CSV, delimited text, Excel, JSON, and XML all load with read_files in a streaming table, which uses Auto Loader. Only the format options differ.',
     },
     {
-      title: 'Quotes protect delimiters.',
-      body: 'In the pipe-delimited file, 301 of 1,000 notes contain a pipe inside double quotes. All 1,000 rows keep the same columns.',
+      title: 'Choose read_files or Auto Loader by control.',
+      body: 'Use read_files in SQL for pipelines, ad hoc queries, and simple streaming tables. Use the cloudFiles reader in Python when you need foreachBatch, custom state handling, or options read_files does not expose.',
     },
     {
-      title: 'Excel reads one sheet.',
-      body: 'dataAddress names the Orders sheet. The README and Products sheets in the same workbook add no rows or columns.',
+      title: 'Discover files with file events.',
+      body: 'Enable file events on the external location and Auto Loader finds new files from storage events instead of listing the directory.',
     },
     {
-      title: 'Nested and repeating data stays queryable.',
-      body: 'JSON keeps a struct and an array, XML keeps repeating <line> nodes, and two materialized views explode them to rows.',
+      title: 'Keep schema drift safe.',
+      body: 'Pin the types you care about with schemaHints, choose a schemaEvolutionMode, and let anything that does not fit land in _rescued_data.',
     },
     {
-      title: 'Nothing is dropped silently.',
-      body: 'The verify task checks counts, types, and rescued data for every table and fails the job on a mismatch.',
+      title: 'Use Variant for volatile JSON and ai_parse_document for documents.',
+      body: 'Land JSON whose shape changes as a VARIANT column and shred stable fields later. Turn PDFs and scans into structured text with ai_parse_document.',
     },
   ],
   sections: [
     {
       id: 'flow',
-      heading: 'From spec to tables',
+      heading: 'From landing folder to tables',
       prose:
-        'The job generates sample rows from the spec with a fixed seed. Plain Python writers shape them into each format and copy the files to a volume. The pipeline reads each folder with the options its format needs.',
+        'Put each format in its own folder in a Unity Catalog volume or external location. One streaming table per folder reads with the options its format needs. Materialized views then explode arrays and repeating nodes into rows.',
       diagram: {
         type: 'flow',
-        title: 'The file format job',
+        title: 'File formats into Delta',
         description:
-          'generate_files writes customers.csv, orders.txt, orders_workbook.xlsx, customers_nested.json, and orders.xml into folders in the source_landing volume. The ingest_formats pipeline reads each folder with Auto Loader into fmt_customers_csv, fmt_orders_pipe, fmt_orders_excel, fmt_customers_json, and fmt_orders_xml. Two materialized views explode the JSON contacts and the XML lines. verify_tables compares every table with the spec and writes format_ingestion_checks.',
+          'Files in CSV, pipe-delimited, Excel, nested JSON, and XML formats sit in separate folders of a landing volume. A Lakeflow Spark Declarative Pipeline reads each folder with Auto Loader into a streaming table. Materialized views explode the JSON arrays and the XML repeating nodes into one row per element.',
         lanes: [
           { label: 'Landing volume', fromRow: 0, toRow: 0 },
-          { label: 'Lakeflow Declarative Pipeline', fromRow: 1, toRow: 2 },
+          { label: 'Lakeflow pipeline', fromRow: 1, toRow: 2 },
         ],
         nodes: [
-          { id: 'csv', label: 'csv/', mono: true, sub: 'customers.csv', col: 0, row: 0, kind: 'store' },
-          { id: 'pipe', label: 'pipe/', mono: true, sub: 'orders.txt', col: 1, row: 0, kind: 'store' },
-          { id: 'xlsx', label: 'excel/', mono: true, sub: '3-sheet workbook', col: 2, row: 0, kind: 'store' },
+          { id: 'csv', label: 'csv/', mono: true, sub: 'header, typed columns', col: 0, row: 0, kind: 'store' },
+          { id: 'pipe', label: 'delimited/', mono: true, sub: 'custom delimiter', col: 1, row: 0, kind: 'store' },
+          { id: 'xlsx', label: 'excel/', mono: true, sub: 'workbooks', col: 2, row: 0, kind: 'store' },
           { id: 'json', label: 'json/', mono: true, sub: 'nested documents', col: 3, row: 0, kind: 'store' },
-          { id: 'xml', label: 'xml/', mono: true, sub: 'orders.xml', col: 4, row: 0, kind: 'store' },
-          { id: 't1', label: 'fmt_customers_csv', mono: true, col: 0, row: 1 },
-          { id: 't2', label: 'fmt_orders_pipe', mono: true, col: 1, row: 1 },
-          { id: 't3', label: 'fmt_orders_excel', mono: true, col: 2, row: 1 },
-          { id: 't4', label: 'fmt_customers_json', mono: true, col: 3, row: 1 },
-          { id: 't5', label: 'fmt_orders_xml', mono: true, col: 4, row: 1 },
-          { id: 'v4', label: 'fmt_json_contacts', mono: true, sub: 'one row per contact', col: 3, row: 2, kind: 'highlight' },
-          { id: 'v5', label: 'fmt_xml_order_lines', mono: true, sub: 'one row per line', col: 4, row: 2, kind: 'highlight' },
+          { id: 'xml', label: 'xml/', mono: true, sub: 'repeating nodes', col: 4, row: 0, kind: 'store' },
+          { id: 't1', label: 'CSV table', col: 0, row: 1 },
+          { id: 't2', label: 'Delimited table', col: 1, row: 1 },
+          { id: 't3', label: 'Excel table', col: 2, row: 1 },
+          { id: 't4', label: 'JSON table', col: 3, row: 1 },
+          { id: 't5', label: 'XML table', col: 4, row: 1 },
+          { id: 'v4', label: 'Contacts view', sub: 'one row per element', col: 3, row: 2, kind: 'highlight' },
+          { id: 'v5', label: 'Order lines view', sub: 'one row per element', col: 4, row: 2, kind: 'highlight' },
         ],
         edges: [
           { from: 'csv', to: 't1' },
@@ -70,8 +70,57 @@ export const walkthrough: Walkthrough = {
           { kind: 'store', label: 'Folder in the volume' },
           { kind: 'highlight', label: 'Materialized view that explodes an array' },
         ],
-        caption: 'Tables on row 1 are Auto Loader streaming tables.',
+        caption: 'Tables on the middle row are Auto Loader streaming tables.',
       },
+    },
+    {
+      id: 'discovery',
+      heading: 'Finding files and choosing a reader',
+      points: [
+        {
+          strong: 'File events.',
+          text: 'For a path on a Unity Catalog external location with file events enabled, Auto Loader reads change notifications instead of listing the directory. Set cloudFiles.useManagedFileEvents to true, or rely on the if_available default. Discovery stays fast as the folder grows.',
+        },
+        {
+          strong: 'read_files.',
+          text: 'A SQL table-valued function. With STREAM in a streaming table it runs on Auto Loader and keeps a checkpoint. Without STREAM it is a one-time batch read, good for exploring a folder or a one-off load.',
+        },
+        {
+          strong: 'Auto Loader (cloudFiles) in Python.',
+          text: 'The same engine with the full option set. Choose it for foreachBatch writes, custom post-processing, or when you manage the checkpoint and schema location yourself outside a pipeline.',
+        },
+        {
+          strong: 'Variant for JSON that changes shape.',
+          text: 'Parse the document into a VARIANT column with parse_json and read fields with the : path syntax. New keys and type changes do not break the load. Promote stable fields to typed columns in silver.',
+        },
+        {
+          strong: 'ai_parse_document for PDFs, scans, and Office files.',
+          text: 'Read binary files from a volume and parse them to structured text and layout in SQL. Store the parsed output in a table, then extract fields from it. See the AI Functions guide.',
+        },
+      ],
+      examples: [
+        {
+          label: 'JSON as Variant, then parse documents',
+          language: 'sql',
+          code: `-- Raw JSON Lines kept intact as a VARIANT
+CREATE OR REFRESH STREAMING TABLE events_raw AS
+SELECT parse_json(value) AS payload, _metadata.file_path AS source_file
+FROM STREAM read_files('/Volumes/main/ingest/landing/events/', format => 'text');
+
+SELECT payload:customer.id::INT AS customer_id, payload:items[0].sku::STRING AS first_sku
+FROM events_raw;
+
+-- Documents in a volume parsed to structured content
+SELECT path, ai_parse_document(content) AS parsed
+FROM read_files('/Volumes/main/ingest/docs/', format => 'binaryFile');`,
+          notes: ['Use ai_parse_document output as input to ai_extract or AI Search indexing.'],
+        },
+      ],
+      links: [
+        { label: 'Auto Loader file events', url: 'https://docs.databricks.com/aws/en/ingestion/cloud-object-storage/auto-loader/file-events-explained' },
+        { label: 'Query variant data', url: 'https://docs.databricks.com/aws/en/semi-structured/variant' },
+        { label: 'read_files table-valued function', url: 'https://docs.databricks.com/aws/en/sql/language-manual/functions/read_files' },
+      ],
     },
     {
       id: 'options',
@@ -170,15 +219,15 @@ FROM STREAM read_files('\${formats_path}/csv/', format => 'csv', header => true,
       points: [
         {
           strong: 'Nothing to configure in the SQL.',
-          text: 'The read_files calls above have no schema location and no checkpoint option. The pipeline creates both per table.',
+          text: 'The read_files calls on this page have no schema location and no checkpoint option. The pipeline creates both per table.',
         },
         {
           strong: 'Parameters, not paths to state.',
-          text: 'The pipeline YAML passes formats_path and excel_sheet, and the SQL reads them as ${formats_path} and ${excel_sheet}. Changing them points the same tables at another folder or sheet.',
+          text: 'Pass the folder and sheet as pipeline configuration values and read them in SQL as ${formats_path}. Changing the value points the same tables at another folder or sheet, per environment.',
         },
         {
           strong: 'Full refresh resets it.',
-          text: 'The job runs the pipeline with full_refresh. That clears each table\'s checkpoint and inferred schema, so the files are read again and the schema is inferred again. Drop it for files that arrive over time.',
+          text: 'A full refresh clears each table\'s checkpoint and inferred schema, so the files are read again and the schema is inferred again. Use it deliberately, and protect tables whose source files expire.',
         },
       ],
       examples: [
@@ -203,70 +252,31 @@ def fmt_customers_csv():
     },
     {
       id: 'checks',
-      heading: 'What the checks found',
+      heading: 'Verify what landed',
       prose:
-        'Expected values come from the same rules that write the files, so a check compares the table with what the generator promised.',
-      diagram: {
-        type: 'matrix',
-        title: 'Rows, types, and rescued data by format',
-        description:
-          'The CSV table has 200 rows, decimal and date types, and no rescued rows. The pipe-delimited table has 1000 rows, 301 notes with an embedded pipe, and no rescued rows. The Excel table has 1000 rows from the Orders sheet only. The JSON table has 200 documents, 267 contacts, and 40 loyalty structs, with no rescued rows. The XML table has 100 orders, 250 lines, and 25 coupons, with no rescued rows.',
-        corner: 'Format ↓ · Result →',
-        columns: ['Rows', 'Tricky part', 'Rescued rows'],
-        rows: [
-          {
-            label: 'CSV',
-            sub: 'fmt_customers_csv',
-            cells: [
-              { state: 'own', text: '200' },
-              { state: 'own', text: 'decimal(12,2), date' },
-              { state: 'none', text: '0' },
-            ],
-          },
-          {
-            label: 'Pipe-delimited',
-            sub: 'fmt_orders_pipe',
-            cells: [
-              { state: 'own', text: '1,000' },
-              { state: 'own', text: '301 quoted pipes' },
-              { state: 'none', text: '0' },
-            ],
-          },
-          {
-            label: 'Excel',
-            sub: 'fmt_orders_excel',
-            cells: [
-              { state: 'own', text: '1,000' },
-              { state: 'own', text: 'Orders sheet only' },
-              { state: 'optional', text: 'no column' },
-            ],
-          },
-          {
-            label: 'Nested JSON',
-            sub: 'fmt_customers_json',
-            cells: [
-              { state: 'own', text: '200' },
-              { state: 'own', text: '267 contacts, 40 loyalty' },
-              { state: 'none', text: '0' },
-            ],
-          },
-          {
-            label: 'XML',
-            sub: 'fmt_orders_xml',
-            cells: [
-              { state: 'own', text: '100' },
-              { state: 'own', text: '250 lines, 25 coupons' },
-              { state: 'none', text: '0' },
-            ],
-          },
-        ],
-        legend: [
-          { state: 'own', label: 'Matches the spec' },
-          { state: 'none', label: 'Zero rows rescued' },
-          { state: 'optional', label: 'Excel has no rescued-data column' },
-        ],
-        caption: 'The Excel table has no _rescued_data column because Excel requires schemaEvolutionMode none. The type hints and the row count cover it instead.',
-      },
+        'Check each table against what the source promised, and fail the load on a mismatch. Silent loss is the failure to rule out.',
+      points: [
+        {
+          strong: 'Row counts.',
+          text: 'Compare rows loaded with rows in the source files, or with a control total the sender provides.',
+        },
+        {
+          strong: 'Types.',
+          text: 'Assert the key columns have the types you pinned with schemaHints, so a drifting source does not turn a DECIMAL into a STRING.',
+        },
+        {
+          strong: 'Rescued data.',
+          text: 'Count rows where _rescued_data is not null. A non-zero count means the file had values or columns the schema did not expect. Decide whether to alert, quarantine, or widen the schema.',
+        },
+        {
+          strong: 'Format-specific traps.',
+          text: 'Check that embedded delimiters stayed in their field, that only the intended Excel sheet loaded, and that optional XML nodes are null instead of shifting columns.',
+        },
+        {
+          strong: 'Excel has no rescued column.',
+          text: 'The Excel reader requires schemaEvolutionMode none, so rely on type hints and the row-count check.',
+        },
+      ],
     },
     {
       id: 'tricks',
@@ -274,7 +284,7 @@ def fmt_customers_csv():
       points: [
         {
           strong: 'Volumes and zip files.',
-          text: 'An .xlsx file is a zip archive, and a volume path rejects the random-access writes a zip needs. The job writes the workbook to local disk and copies it.',
+          text: 'An .xlsx file is a zip archive, and a volume path rejects the random-access writes a zip needs. Write a workbook to local disk first, then copy it to the volume.',
         },
         {
           strong: 'Single-cell Excel ranges.',
@@ -286,7 +296,7 @@ def fmt_customers_csv():
         },
         {
           strong: 'Reruns.',
-          text: 'The job rewrites the files and refreshes the pipeline fully, so counts stay the same. For files that arrive over time, drop the full refresh and Auto Loader reads only new files.',
+          text: 'For files that arrive over time, run normal updates and Auto Loader reads only new files. Use a full refresh only to rebuild a table from scratch.',
         },
       ],
     },
@@ -294,5 +304,6 @@ def fmt_customers_csv():
   related: [
     { slug: 'sftp-ingestion', title: 'SFTP file retrieval' },
     { slug: 'multi-source-pipeline', title: 'Multi-source pipeline' },
+    { slug: 'ai-functions', title: 'AI Functions in SQL' },
   ],
 };

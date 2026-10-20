@@ -2,7 +2,7 @@
 
 ## Overview
 
-One job calls a paginated, token-authenticated REST API, follows every page, refreshes the token, retries failures with backoff, and lands the records in a Delta table with a log of every HTTP request. The reference run pulls 208 users from the public DummyJSON test API in 7 pages. It logs in once, refreshes the token three times, and survives a 401 that the run injects on page 4.
+Use a managed Lakeflow Connect connector when one exists. Otherwise build a custom connector, wrap the API in a Python data source, or land raw responses for Auto Loader. Keep credentials in Unity Catalog connections or secret scopes, pull incrementally with a stored cursor, upsert with MERGE, and retry only the errors a retry can fix. This reference implements the land-raw path with a hand-written client.
 
 ## What this shows
 
@@ -59,7 +59,11 @@ flowchart LR
 5. Open `api_client.py` and walk `fetch_all_pages`: one log row per attempt, one retry path per status class.
 6. Change `rest_api.page_size` in `use_cases/general.yml`, redeploy, and rerun. The page count changes and the record count does not.
 
-## Artifacts produced
+## Reference run
+
+One job calls a paginated, token-authenticated REST API, follows every page, refreshes the token, retries failures with backoff, and lands the records in a Delta table with a log of every HTTP request. The reference run pulls 208 users from the public DummyJSON test API in 7 pages. It logs in once, refreshes the token three times, and survives a 401 that the run injects on page 4.
+
+Artifacts:
 
 - Job `capability-guides-rest-api` (tag `capability_guide_job: capability_guides_rest_api`)
 - Tables `api_users`, `api_request_log`, and `api_pull_runs` in the guide schema

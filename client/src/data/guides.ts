@@ -37,11 +37,11 @@ export const guides: readonly Guide[] = [
     difficulty: 1,
     summary: 'The lakehouse: open tables in your storage, compute that comes and goes, one catalog over both.',
     acceptanceCriteria:
-      'Explain where data lives, where compute runs, and what the control plane does. Show that two kinds of compute read the same table and that stopping compute leaves the data in place.',
+      'Data lives in open-format tables in your storage, compute is serverless and separate, and Unity Catalog governs both. Default to managed tables with predictive optimization, serverless compute, and tagged cost attribution.',
     evidence: [
-      'Control plane, compute plane, and storage diagram',
-      'Same table queried from a notebook and a SQL warehouse',
-      'Compute and storage billed and scaled separately',
+      'Control plane, compute plane, and storage layout',
+      'One table read by several engines without a copy',
+      'Compute and storage billed separately, with spend attributed by tag',
     ],
   },
   {
@@ -51,11 +51,11 @@ export const guides: readonly Guide[] = [
     difficulty: 1,
     summary: 'Catalogs, schemas, and tables: how every object is named, found, and granted.',
     acceptanceCriteria:
-      'Create a catalog, a schema, a table, and a volume, query the table by its three-level name, grant a group read access, and find the table and its lineage in Catalog Explorer.',
+      'Objects are named catalog.schema.object, managed by Unity Catalog, owned by groups or service principals, and granted to groups at the least privilege. Environments are separate catalogs bound to workspaces, and lineage and audit come from system tables.',
     evidence: [
       'Metastore, catalog, schema, and object hierarchy',
-      'Three-level names and a group grant',
-      'Lineage and ownership in Catalog Explorer',
+      'Group grants with least privilege and tag-based policies',
+      'Catalog per environment, volumes instead of mounts, and system-table audit',
     ],
   },
   {
@@ -65,25 +65,25 @@ export const guides: readonly Guide[] = [
     difficulty: 1,
     summary: 'Bronze, silver, and gold: raw data in, cleaned data in the middle, business tables out.',
     acceptanceCriteria:
-      'Land raw records in bronze, clean and deduplicate them into silver, and build a gold aggregate a dashboard can read, each layer a set of tables with a clear owner and contract.',
+      'Raw records land in bronze, silver is cleaned and deduplicated with AUTO CDC, and gold is a view, materialized view, or metric view that suits how it is read. Expectations choose warn, drop, or fail per rule, and a quarantine table holds rows that need review.',
     evidence: [
       'What each layer holds and who reads it',
-      'Bronze to silver to gold pipeline',
-      'Quality rules applied between layers',
+      'Expectation actions and a quarantine pattern between layers',
+      'Liquid clustering and the choice of gold object',
     ],
   },
   {
     slug: 'configuration-vs-code',
-    title: 'Configuration-driven ingestion',
+    title: 'Metadata-driven ingestion',
     category: 'Ingestion',
     difficulty: 4,
-    summary: 'Separate provider-specific adapters from reusable control-plane services.',
+    summary: 'Describe sources in configuration, run them through shared code, and use native Lakeflow features before a custom runner.',
     acceptanceCriteria:
-      'Two providers land through one shared framework. Only a feed config and a 20-line adapter differ between them; validation, quarantine, audit, and error handling are shared.',
+      'Per-source differences live in validated configuration and, where unavoidable, a narrow adapter. Validation, upserts, and fan-out use expectations, AUTO CDC, and for_each. Rejected rows are quarantined with the failed rule, and every run is audited.',
     evidence: [
-      'Provider adapter and shared framework boundary',
-      'Common validation, audit, and exception flow',
-      'Run trace proving shared orchestration behavior',
+      'Boundary between configuration, adapter, and shared code',
+      'Native expectations, AUTO CDC, and for_each in place of a custom runner',
+      'Quarantine, audit, and alerting on the reject rate',
     ],
   },
   {
@@ -91,13 +91,13 @@ export const guides: readonly Guide[] = [
     title: 'Reusable ingestion templates',
     category: 'Ingestion',
     difficulty: 4,
-    summary: 'Prove that a second source can be onboarded without rebuilding the framework.',
+    summary: 'Parameterize and template ingestion so a new source, tenant, or environment is a configuration change.',
     acceptanceCriteria:
-      'A second provider is added with a spec entry and a rendered feed config. The same job, rules, and tables handle both feeds.',
+      'Parameters flow from bundle variables to job, task, for_each, and pipeline settings. Targets override per environment, shared code ships as a wheel, and new projects start from a bundle template.',
     evidence: [
-      'Two representative source configurations',
-      'Mapping-only onboarding diff',
-      'Comparable successful runs for both feeds',
+      'Parameter layers from deploy to task',
+      'Target overrides and run_as per environment',
+      'Custom bundle template and shared wheel',
     ],
   },
   {
@@ -105,13 +105,13 @@ export const guides: readonly Guide[] = [
     title: 'Batch and streaming ingestion',
     category: 'Ingestion',
     difficulty: 3,
-    summary: 'Demonstrate priority batch and supported streaming ingestion patterns.',
+    summary: 'Choose between triggered, continuous, and real-time mode by latency target and cost.',
     acceptanceCriteria:
-      'A batch framework run and a streaming Lakeflow pipeline share one job. Auto Loader picks up new files, expectations drop bad rows, and latency is measured per row.',
+      'The trigger mode follows the latency target. Files are discovered with file events, message buses and Zerobus are used where producers write events, checkpoints and watermarks keep state correct, and backfills are idempotent.',
     evidence: [
-      'Batch and streaming reference pipelines',
-      'Latency and throughput measurements',
-      'Scaling, checkpoint, and monitoring evidence',
+      'Trigger-mode decision with latency and cost trade-offs',
+      'File events, message bus, and direct-write sources',
+      'Checkpoint, watermark, and one-time backfill handling',
     ],
   },
   {
@@ -302,13 +302,13 @@ export const guides: readonly Guide[] = [
     title: 'Feature preparation from source data',
     category: 'Ingestion',
     difficulty: 3,
-    summary: 'Create reproducible, governed model inputs from source data.',
+    summary: 'Create governed, point-in-time-correct model inputs from source data.',
     acceptanceCriteria:
-      'Source data becomes versioned, quality-checked model features with lineage back to the source.',
+      'Features live in Unity Catalog feature tables with a primary key and timestamp, pass quality checks before use, join to labels as of each label time, and are logged with the model. Reproducibility beyond the VACUUM retention window uses a snapshot or clone.',
     evidence: [
-      'Source-to-feature pipeline',
-      'Quality checks and versioned model input',
-      'Feature lineage and reproducibility run',
+      'Governed feature table refreshed by MERGE',
+      'Point-in-time training set logged with the model',
+      'Snapshot or clone for long-lived reproducibility, and feature lineage',
     ],
   },
   {
@@ -465,13 +465,13 @@ export const guides: readonly Guide[] = [
     title: 'File format ingestion',
     category: 'Ingestion',
     difficulty: 2,
-    summary: 'Land CSV, delimited text, Excel, JSON, and XML through one pipeline.',
+    summary: 'Land CSV, delimited text, Excel, JSON, XML, and documents with one pattern.',
     acceptanceCriteria:
-      'CSV, pipe-delimited text with quoted delimiters, a named Excel sheet, nested JSON, and XML with repeating and optional nodes all land in Delta tables with types preserved and nothing dropped.',
+      'Each format loads with the options it needs, new files are found with file events, schema drift is handled with hints, evolution modes, and rescued data, volatile JSON lands as Variant, and documents are parsed with ai_parse_document.',
     evidence: [
-      'One table per format with row counts',
-      'Rescued-data and type checks',
-      'Pipeline run with every format',
+      'Format options and read_files versus Auto Loader choice',
+      'Schema evolution modes and rescued data',
+      'Row count, type, and rescued-data verification',
     ],
   },
   {
@@ -479,33 +479,41 @@ export const guides: readonly Guide[] = [
     title: 'Authenticated REST API ingestion',
     category: 'Ingestion',
     difficulty: 3,
-    summary: 'Pull a paginated, authenticated API into Delta.',
+    summary: 'Choose a managed connector, a Python data source, or land-then-Auto-Loader, and pull APIs reliably.',
     acceptanceCriteria:
-      'A job calls a paginated REST endpoint with OAuth or an API key, follows pages until the end, refreshes tokens, and lands every record with the request log.',
-    evidence: ['Paginated pull with token handling', 'Request log with page counts', 'Job run with total records'],
+      'A managed Lakeflow Connect connector is used when one exists. Otherwise a custom connector, Python data source, or raw landing feeds Delta. Credentials stay in Unity Catalog connections or secrets, pulls are incremental with a stored cursor and MERGE, and retries follow the status code.',
+    evidence: [
+      'Ingestion options ranked by effort and control',
+      'Credentials in connections, service credentials, or secret scopes',
+      'Retry and backoff rules, incremental cursor, and idempotent upsert',
+    ],
   },
   {
     slug: 'sftp-ingestion',
     title: 'SFTP file retrieval',
     category: 'Ingestion',
     difficulty: 3,
-    summary: 'Fetch files from an SFTP server and ingest them.',
+    summary: 'Ingest files from an SFTP server with the Lakeflow Connect SFTP connector.',
     acceptanceCriteria:
-      'A job connects to an SFTP server with stored credentials, copies new files to a volume, and Auto Loader ingests them without reprocessing old files.',
-    evidence: ['Credentials in a secret scope', 'Files copied to a volume', 'Ingested table and job run'],
+      'A Unity Catalog SFTP connection with a PEM private key and Auto Loader ingest files incrementally. The server allows the compute egress addresses. A copy-to-volume job is used only when the connector does not fit.',
+    evidence: [
+      'SFTP connection with private-key authentication and grants',
+      'Network allow-listing for classic or serverless compute',
+      'Copy-then-ingest fallback with a transfer log',
+    ],
   },
   {
     slug: 'multi-source-pipeline',
     title: 'Multi-source pipeline',
     category: 'Ingestion',
     difficulty: 3,
-    summary: 'Combine database, file, and API sources in one pipeline.',
+    summary: 'Conform database, file, and API sources into one schema and resolve duplicate entities.',
     acceptanceCriteria:
-      'One Lakeflow Declarative Pipeline reads a database extract, landed files, and API output, tags each row with its source, and builds one conformed table.',
+      'Each source has a staging table with its own expectations. Append flows write to one streaming table with a source_system column, and entity resolution with survivorship rules produces one record per entity and a crosswalk to source records.',
     evidence: [
-      'Single pipeline graph with three sources',
-      'source_system column on every row',
-      'Pipeline update with row counts',
+      'Staging table per source feeding one conformed table',
+      'source_system and source_id on every row',
+      'Resolution and survivorship rules with a crosswalk',
     ],
   },
   {
@@ -513,24 +521,28 @@ export const guides: readonly Guide[] = [
     title: 'Relational database extracts',
     category: 'Ingestion',
     difficulty: 2,
-    summary: 'Full extracts and custom SQL from a relational database.',
+    summary: 'Choose Lakehouse Federation, Lakeflow Connect CDC, or a query-based connector for a relational source.',
     acceptanceCriteria:
-      'A full table extract and a custom query with joins, aggregates, window functions, and a database function land in Delta and match the same query run at the source.',
-    evidence: ['Full extract with types preserved', 'Custom SQL result matching the source', 'Run log with row counts'],
+      'The ingestion path follows freshness, volume, and source-load needs: Federation to query in place, CDC connectors for continuous replication, query-based connectors for scheduled pulls with a cursor column. Landed data is verified against the source by count, checksum, and type.',
+    evidence: [
+      'Decision between Federation, CDC, and query-based connectors',
+      'Pushdown of joins and aggregates to the source',
+      'Count, checksum, and type comparison with the source',
+    ],
   },
   {
     slug: 'sqlserver-lakeflow-connect',
     title: 'SQL Server connections with Lakeflow Connect',
     category: 'Ingestion',
     difficulty: 3,
-    summary: 'A Unity Catalog connection, a gateway and a serverless pipeline, and CDC or Change Tracking per table. Needs classic compute for the gateway.',
+    summary: 'A Unity Catalog connection, a gateway and a serverless pipeline, and CDC or Change Tracking per table. The gateway needs classic compute.',
     acceptanceCriteria:
-      'A Lakeflow Connect gateway and ingestion pipeline land three SQL Server tables, one with SCD type 2 history. Inserts, updates, and deletes made on the source show up in bronze, a new source column flows through with no pipeline change, a full refresh of one table leaves the history table intact, and silver tables show lineage and answer a Genie question.',
+      'A Lakeflow Connect gateway and ingestion pipeline replicate SQL Server tables, with SCD type 2 history where needed. Inserts, updates, and deletes reach bronze, schema changes flow through, a single-table full refresh keeps history tables intact, and the pipelines run as a service principal with monitoring and alerts.',
     evidence: [
-      'Change Tracking or CDC per table, checked on the source',
-      'Every source insert, update, and delete found in bronze',
+      'Change Tracking or CDC chosen per table and verified on the source',
+      'Inserts, updates, and deletes applied to bronze',
       'Schema change and single-table full refresh with history kept',
-      'Lineage to silver and a Genie answer matching SQL',
+      'Lineage to silver, monitoring, and run_as',
     ],
   },
   {
