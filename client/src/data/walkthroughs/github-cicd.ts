@@ -6,6 +6,32 @@ export const walkthrough: Walkthrough = {
   title: 'GitHub-based CI/CD',
   intro:
     'Author in Git folders or your IDE, review in a pull request, and let CI deploy a Declarative Automation Bundle. One commit moves from dev through test, stage, and prod, and a service principal does the deploying. Git folders are where people work; bundles are what production runs from. This page covers that split, the bundle and pipeline practices that make it safe, GitHub sign-in without a stored secret, and the approval gate.',
+  businessValue: {
+    summary:
+      'Every production change passes a pull request, automated tests, and an approval before it deploys. Platform owners get controlled releases without storing deploy secrets in GitHub.',
+    outcomes: [
+      {
+        title: 'Gated releases',
+        body:
+          'Pull requests run unit tests and bundle validate --strict, and later environments require named reviewers. A broken change stops before it reaches production.',
+      },
+      {
+        title: 'One tested commit deploys',
+        body:
+          'The same commit SHA deploys to dev, test, stage, and prod, so what passed testing is what runs in production.',
+      },
+      {
+        title: 'No stored deploy secrets',
+        body:
+          'GitHub signs in as a service principal through OIDC workload identity federation, so no token or client secret sits in GitHub to leak or expire.',
+      },
+      {
+        title: 'Smaller blast radius',
+        body:
+          'Deploy identity and run identity are separate service principals. The account that deploys is not the account that runs production jobs, and neither is a person.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Git folders are for authoring, bundles are for deploying.',

@@ -6,6 +6,32 @@ export const walkthrough: Walkthrough = {
   title: 'Reproducible experiments',
   intro:
     'An experiment is reproducible when its run records the data, code, and environment that produced the result, and when that record is enough to run it again. MLflow tracking holds those records. This page covers the pattern: log the dataset version with mlflow.data and mlflow.log_input, capture the Git commit and a pinned environment, fix the sources of randomness, and keep the old data version alive long enough to replay.',
+  businessValue: {
+    summary:
+      'Any model result can be traced to the data, code, and environment that produced it. ML program owners and reviewers can rerun a result instead of relying on someone\'s memory.',
+    outcomes: [
+      {
+        title: 'Defensible results',
+        body:
+          'Each run records the Delta table and version, the Git commit, and pinned requirements, so a team can show how a number was produced.',
+      },
+      {
+        title: 'Easier handoffs',
+        body:
+          'A new team member or reviewer can replay a run from its record. Nothing depends on the original author remembering the setup.',
+      },
+      {
+        title: 'Fair comparisons',
+        body:
+          'Fixed seeds and a tolerance on comparisons keep teams from chasing small metric shifts that threads or hardware cause.',
+      },
+      {
+        title: 'A retention decision to make',
+        body:
+          'Replay works only while Delta keeps the old files. Sponsors should set retention longer than the replay window they need, or snapshot the table.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Log the dataset as an input.',

@@ -6,6 +6,32 @@ export const walkthrough: Walkthrough = {
   title: 'Running a Declarative Automation Bundle',
   intro:
     'A Declarative Automation Bundle (formerly Databricks Asset Bundles) puts jobs, pipelines, and schemas in YAML next to the code they run. The Databricks CLI validates the folder, deploys it to a workspace, and runs it. This page walks one small bundle end to end: download it, push it to your own Git repo, deploy it to a development target, run it, change it, deploy it to a second target, and take it down. The bundle holds a serverless Lakeflow Spark Declarative Pipeline that builds bronze, silver, and gold tables from synthetic orders, and a job that runs it.',
+  businessValue: {
+    summary:
+      'A bundle defines a job or pipeline as reviewed code that deploys the same way to dev and prod. Platform owners replace hand-built production jobs with a repeatable, testable release.',
+    outcomes: [
+      {
+        title: 'Repeatable deploys',
+        body:
+          'One databricks.yml deploys to dev and prod through different targets. Environments match because they come from one definition, not from clicking through the UI twice.',
+      },
+      {
+        title: 'Safe experimentation',
+        body:
+          'Development mode prefixes names with the developer, pauses schedules, and gives each person a separate schema, so tests do not touch the shared production copy.',
+      },
+      {
+        title: 'Rollback and cleanup',
+        body:
+          'A bad release rolls back by redeploying the previous commit. The destroy command removes everything the bundle created, so nothing is left running.',
+      },
+      {
+        title: 'Review before release',
+        body:
+          'A GitHub Actions workflow validates every pull request and deploys main, so reviewers see job settings and schedules as a diff before they go live.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'A bundle is a folder with a databricks.yml.',

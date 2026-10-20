@@ -6,6 +6,32 @@ export const walkthrough: Walkthrough = {
   title: 'Training and bringing existing models',
   intro:
     'A model is reproducible when someone else can load it, call it with the right inputs, and get the same answers in a different runtime. That takes a logged signature, pinned requirements, a serialization format you can trust, and a check that the registered model matches its baseline. This page covers how to log models into Unity Catalog that way, how to move models in from elsewhere, and how Feature Views keep training and serving features the same.',
+  businessValue: {
+    summary:
+      'Models one team trains can be loaded, called, and trusted by another team. ML program owners avoid deployments that fail on missing inputs, version gaps, or unsafe files.',
+    outcomes: [
+      {
+        title: 'Fewer failed deployments',
+        body:
+          'mlflow.models.predict loads the model in an isolated environment built from its pinned requirements and runs an example. A failure shows up before registration, not at deployment.',
+      },
+      {
+        title: 'A clear contract for callers',
+        body:
+          'The logged signature defines what a caller must send, and Unity Catalog requires one. Application teams know the inputs without asking the data scientist.',
+      },
+      {
+        title: 'Lower security risk',
+        body:
+          'Pickle runs code on load. MLflow flavors, ONNX, and skops avoid that, and trusted pickle files can be wrapped as pyfunc models.',
+      },
+      {
+        title: 'Consistent predictions',
+        body:
+          'A Feature View defines a feature once for training and serving, which removes the most common source of training-serving skew.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Log a signature and an input example.',

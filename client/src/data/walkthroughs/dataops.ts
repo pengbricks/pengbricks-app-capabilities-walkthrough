@@ -6,6 +6,32 @@ export const walkthrough: Walkthrough = {
   title: 'Pipeline operations',
   intro:
     'Day-two operations come down to four questions. Can a failed task run again safely? Who finds out, and how fast? How do you see trends across runs? What do you do when a bad write has already landed? This page covers the Lakeflow Jobs settings and platform tables that answer them: idempotent tasks, retries and repair, notifications and health rules, system tables, concurrency limits, and recovery with Delta.',
+  businessValue: {
+    summary:
+      'Failed pipeline runs get found fast and fixed without duplicate data or full reruns. Data owners get alerts, run history, and a recovery plan before the first incident.',
+    outcomes: [
+      {
+        title: 'Safe reruns',
+        body:
+          'Tasks use MERGE or overwrite by partition, so a retry or repair run replaces the first attempt instead of duplicating rows.',
+      },
+      {
+        title: 'Less rework after a failure',
+        body:
+          'A repair run re-executes only the failed and skipped tasks and keeps the successful ones, so a team does not rerun a whole job to fix one task.',
+      },
+      {
+        title: 'Earlier warning',
+        body:
+          'Failure and duration alerts go to Slack, PagerDuty, Teams, or a webhook. A SQL alert on system tables catches slow drift that single-run alerts miss.',
+      },
+      {
+        title: 'A plan for bad writes',
+        body:
+          'RESTORE works only inside the retention window and on one table. The guide sets out when to use deep clone backups or redeploy the last good release instead.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Make every task safe to run twice.',

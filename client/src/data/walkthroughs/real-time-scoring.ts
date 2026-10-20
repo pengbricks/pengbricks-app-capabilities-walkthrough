@@ -6,6 +6,32 @@ export const walkthrough: Walkthrough = {
   title: 'Online model scoring',
   intro:
     'Online scoring is a model behind an authenticated HTTPS endpoint with a latency target. Databricks Model Serving hosts the model, scales it, and logs its traffic. Around it you decide who may call it, how much they may call, where features come from at request time, and how you will know when it slows or fails. This page covers those decisions and a repeatable way to load-test the result.',
+  businessValue: {
+    summary:
+      'Applications can call a model over a secured HTTPS endpoint and get answers within a latency target. ML owners control who calls it, how much, and how they find out when it slows.',
+    outcomes: [
+      {
+        title: 'Controlled access',
+        body:
+          'CAN QUERY grants and OAuth tokens decide who can call the endpoint. Callers use M2M or workload identity federation, so no personal access tokens sit in applications.',
+      },
+      {
+        title: 'Cost matched to demand',
+        body:
+          'Provisioned concurrency is sized from queries per second times latency. Scale-to-zero cuts cost on quiet endpoints, at the price of a cold start.',
+      },
+      {
+        title: 'Protection from runaway callers',
+        body:
+          'Unity Gateway rate limits per endpoint, user, or group keep one caller from using all the capacity.',
+      },
+      {
+        title: 'Evidence before and after launch',
+        body:
+          'Load tests report p50, p95, and p99 latency and error rate on staging. Inference tables and endpoint alerts give an operating record in production.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Secure callers with OAuth and CAN QUERY.',

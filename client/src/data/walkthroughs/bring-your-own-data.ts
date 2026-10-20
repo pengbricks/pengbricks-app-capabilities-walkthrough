@@ -6,6 +6,32 @@ export const walkthrough: Walkthrough = {
   title: 'Bring your own data',
   intro:
     'Analysts often hold a spreadsheet the warehouse does not: targets, mappings, a one-off list. Let them upload it into a governed location, join it to governed tables, and promote it when others need it. This page covers the upload options, how to set up a safe place for uploads, how to read a file reliably, and how to join it without losing bad keys.',
+  businessValue: {
+    summary:
+      'Analysts can join their own spreadsheets to governed tables without a ticket to engineering or an unmanaged file share. Data owners keep control through Unity Catalog.',
+    outcomes: [
+      {
+        title: 'Less shadow data',
+        body:
+          'Uploads land in a volume or sandbox schema with grants on a group. Spreadsheets live where Unity Catalog controls who sees them, not on laptops and shared drives.',
+      },
+      {
+        title: 'Fewer silent errors',
+        body:
+          'A declared schema stops a stray value from changing a column type. A full outer join labels unmatched keys, so a typo shows up as a row to fix.',
+      },
+      {
+        title: 'Analyst self-service',
+        body:
+          'Catalog Explorer, Lakeflow Designer, and the Excel Add-in give analysts three ways in, so a one-off list does not need an engineering request.',
+      },
+      {
+        title: 'Deliberate promotion',
+        body:
+          'One-off uploads stay in the sandbox under a retention rule. A file that others need becomes a governed table with an owner.',
+      },
+    ],
+  },
   shortVersion: [
     {
       title: 'Give users a governed place to upload.',
