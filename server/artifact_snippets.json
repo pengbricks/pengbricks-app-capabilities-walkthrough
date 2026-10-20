@@ -3527,11 +3527,7 @@
       "code": "# Databricks notebook source\n# MAGIC %md\n# MAGIC # Daily orders\n# MAGIC\n# MAGIC The same file runs two ways. In VS Code, each cell shows Run Cell, Run Above, and Debug Cell: your Python runs\n# MAGIC locally and Spark work runs on serverless compute through Databricks Connect. In the workspace (and as the job's\n# MAGIC first task) it is an ordinary notebook. The logic lives in the `orders_demo` package, not here.\n\n# COMMAND ----------\n\nfrom orders_demo import clean_orders, daily_revenue, sample_orders, spark_daily_revenue\n\nraw = sample_orders()\nprint(f\"{len(raw)} raw orders\")\n\n# COMMAND ----------\n\n# Plain pandas: runs on your machine in VS Code, so a breakpoint here steps through the real code.\ncleaned = clean_orders(raw)\nprint(f\"{len(raw) - len(cleaned)} orders dropped\")\ndisplay(cleaned)\n\n# COMMAND ----------\n",
       "functions": {
         "clean_orders": "Drop orders with no customer, a quantity of zero or less, or an unknown status; add `revenue`.",
-        "display": "Call saferepr on the expression.",
-        "len": "Return the length of each list in the Series.",
-        "print": "Print the simple string representation of the current :class:`LogicalPlan`.",
-        "sample_orders": "Eight orders with a few bad rows: a missing customer, a zero quantity, and an unknown status.",
-        "workspace": "The Workspace API allows you to list, import, export, and delete workspace objects such as notebooks, files, folders, and dashboards."
+        "sample_orders": "Eight orders with a few bad rows: a missing customer, a zero quantity, and an unknown status."
       }
     },
     {
@@ -3552,15 +3548,8 @@
       "code": "from databricks.connect import DatabricksSession\n\nfrom orders_demo import clean_orders, sample_orders, spark_daily_revenue\n\n# Uses the profile the extension selected. Outside VS Code, set DATABRICKS_CONFIG_PROFILE=<profile>.\nspark = DatabricksSession.builder.serverless().getOrCreate()\n\nraw = sample_orders()\ncleaned = clean_orders(raw)\n\n# Set a breakpoint on the next line. In the Variables pane compare `raw` with `cleaned`, then\n# step into spark_daily_revenue (F11) and watch the DataFrame being built.\ntotals = spark_daily_revenue(spark.createDataFrame(cleaned))\n\ndropped = raw[~raw[\"order_id\"].isin(cleaned[\"order_id\"])]\nprint(f\"Dropped {len(dropped)} of {len(raw)} orders:\")\nprint(dropped[[\"order_id\", \"customer_id\", \"quantity\", \"status\"]].to_string(index=False))",
       "functions": {
         "clean_orders": "Drop orders with no customer, a quantity of zero or less, or an unknown status; add `revenue`.",
-        "createDataFrame": "Creates a :class:`DataFrame` from an :class:`RDD`, a list, a :class:`pandas.DataFrame`, or a :class:`pyarrow.Table`.",
-        "getOrCreate": "Get an existing :class:SparkSession for the provided configuration or, if there is no  existing one, create a new one.",
-        "isin": "Calculates ``element in test_elements``, broadcasting over `element` only. Returns a boolean array of the same shape as `element` that is True where an element of `element` is in `test_elements` and False otherwise.",
-        "len": "Return the length of each list in the Series.",
-        "print": "Print the simple string representation of the current :class:`LogicalPlan`.",
         "sample_orders": "Eight orders with a few bad rows: a missing customer, a zero quantity, and an unknown status.",
-        "serverless": "Connect to the serverless endpoint of the workspace. Can't be used with clusterId at the same time.",
-        "spark_daily_revenue": "The same total as `daily_revenue`, for a Spark DataFrame of cleaned orders.",
-        "to_string": "Compute the full User-Agent header."
+        "spark_daily_revenue": "The same total as `daily_revenue`, for a Spark DataFrame of cleaned orders."
       }
     },
     {
@@ -3571,13 +3560,7 @@
       "language": "py",
       "code": "def clean_orders(orders: pd.DataFrame) -> pd.DataFrame:\n    \"\"\"Drop orders with no customer, a quantity of zero or less, or an unknown status; add `revenue`.\n\n    Status is trimmed and lower-cased first, so \"Shipped \" counts as \"shipped\".\n    \"\"\"\n    cleaned = orders.assign(status=orders[\"status\"].str.strip().str.lower())\n    keep = cleaned[\"customer_id\"].notna() & (cleaned[\"quantity\"] > 0) & cleaned[\"status\"].isin(KNOWN_STATUSES)\n    cleaned = cleaned[keep]\n    return cleaned.assign(revenue=cleaned[\"quantity\"] * cleaned[\"unit_price\"]).reset_index(drop=True)",
       "functions": {
-        "assign": "Give *expr* a name.",
-        "clean_orders": "Drop orders with no customer, a quantity of zero or less, or an unknown status; add `revenue`.",
-        "isin": "Calculates ``element in test_elements``, broadcasting over `element` only. Returns a boolean array of the same shape as `element` that is True where an element of `element` is in `test_elements` and False otherwise.",
-        "lower": "Return an array with the elements of `self` converted to lowercase.",
-        "notna": "Inverse of isna",
-        "reset_index": "Reset the index, or a level of it.",
-        "strip": "Return new Source object with trailing and leading blank lines removed."
+        "clean_orders": "Drop orders with no customer, a quantity of zero or less, or an unknown status; add `revenue`."
       }
     },
     {
@@ -3596,15 +3579,7 @@
       "endLine": 24,
       "language": "py",
       "code": "@pytest.fixture(scope=\"module\")\ndef spark():\n    connect = pytest.importorskip(\"databricks.connect\")\n    try:\n        session = connect.DatabricksSession.builder.serverless().getOrCreate()\n        session.range(1).collect()  # fails here, not in the test, when sign-in has expired\n    except Exception as error:  # noqa: BLE001 - any connection problem means skip, not fail\n        pytest.skip(f\"Databricks Connect is not available: {type(error).__name__}\")\n    return session",
-      "functions": {
-        "collect": "Collect children (items and collectors) for this collector.",
-        "fixture": "Decorator to mark a fixture factory function.",
-        "getOrCreate": "Get an existing :class:SparkSession for the provided configuration or, if there is no  existing one, create a new one.",
-        "importorskip": "Import and return the requested module ``modname``, or skip the current test if the module cannot be imported.",
-        "range": "Create a new RDD of int containing elements from `start` to `end` (exclusive), increased by `step` every element. Can be called the same way as python's built-in range() function. If called with a single argument, the argument is interpreted as `end`, and `start` is set to 0.",
-        "serverless": "Connect to the serverless endpoint of the workspace. Can't be used with clusterId at the same time.",
-        "type": "The exception class."
-      }
+      "functions": {}
     },
     {
       "path": "reference/vscode-starter/src/orders_demo/main.py",
@@ -3614,9 +3589,7 @@
       "language": "py",
       "code": "def get_spark():\n    \"\"\"The running Spark session on Databricks, a serverless Databricks Connect session elsewhere.\"\"\"\n    from databricks.connect import DatabricksSession\n\n    builder = DatabricksSession.builder\n    if \"DATABRICKS_RUNTIME_VERSION\" not in os.environ:  # set on Databricks compute, not on your machine\n        builder = builder.serverless()\n    return builder.getOrCreate()",
       "functions": {
-        "getOrCreate": "Get an existing :class:SparkSession for the provided configuration or, if there is no  existing one, create a new one.",
-        "get_spark": "The running Spark session on Databricks, a serverless Databricks Connect session elsewhere.",
-        "serverless": "Connect to the serverless endpoint of the workspace. Can't be used with clusterId at the same time."
+        "get_spark": "The running Spark session on Databricks, a serverless Databricks Connect session elsewhere."
       }
     }
   ]
