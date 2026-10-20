@@ -253,5 +253,6 @@ export const walkthrough: Walkthrough = {
   related: [
     { slug: 'agent-framework-support', title: 'Agents, MCP, and model gateway' },
     { slug: 'model-deployment-cicd', title: 'Model release pipeline' },
+    { slug: 'omnigent', title: 'Omnigent: coding agents with shared sessions and policies' },
   ],
 };

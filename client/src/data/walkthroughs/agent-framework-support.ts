@@ -384,5 +384,6 @@ export const walkthrough: Walkthrough = {
   related: [
     { slug: 'agent-build-deployment', title: 'Building and shipping agents' },
     { slug: 'model-deployment-cicd', title: 'Model release pipeline' },
+    { slug: 'omnigent', title: 'Omnigent: coding agents with shared sessions and policies' },
   ],
 };

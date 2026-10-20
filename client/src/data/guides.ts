@@ -356,6 +356,20 @@ export const guides: readonly Guide[] = [
     ],
   },
   {
+    slug: 'omnigent',
+    title: 'Omnigent: coding agents with shared sessions and policies',
+    category: 'AI Guides',
+    difficulty: 3,
+    summary: 'Run coding agents through one server with shared sessions and enforced policies, using the managed service on Databricks or a self-managed deployment on Apps.',
+    acceptanceCriteria:
+      'Coding agents run through Omnigent on Databricks, with the managed service as the default and a self-managed deployment on Databricks Apps only for needs it does not cover. Each user connects with their own OAuth identity, models route through Unity Gateway, traces go to MLflow Tracing, and policies set cost budgets, repo allowlists, approval gates, and blast-radius limits at the session, agent, and server levels.',
+    evidence: [
+      'Server-wide policies for cost budget, repo allowlist, and blast radius',
+      'Per-user Databricks connection, with models through Unity Gateway and traces in MLflow Tracing',
+      'Shared session on a sandbox host, with MCP tools limited to an allowlist',
+    ],
+  },
+  {
     slug: 'data-ingestion-feature-preparation',
     title: 'Feature preparation from source data',
     category: 'Ingestion',
