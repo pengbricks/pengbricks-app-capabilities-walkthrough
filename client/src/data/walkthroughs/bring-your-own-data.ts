@@ -5,121 +5,135 @@ export const walkthrough: Walkthrough = {
   area: 'Analyst Guides',
   title: 'Bring your own data',
   intro:
-    'A user drops a spreadsheet into a volume folder named after their login and joins it to a governed table. A full outer join keeps keys that appear on only one side, so a bad key shows up as a row instead of disappearing.',
+    'Analysts often hold a spreadsheet the warehouse does not: targets, mappings, a one-off list. Let them upload it into a governed location, join it to governed tables, and promote it when others need it. This page covers the upload options, how to set up a safe place for uploads, how to read a file reliably, and how to join it without losing bad keys.',
   shortVersion: [
     {
-      title: 'Each user gets a folder.',
-      body: 'Uploads land in /Volumes/<catalog>/<schema>/uploads/<user>/, where the folder name comes from the login.',
+      title: 'Give users a governed place to upload.',
+      body: 'Create a volume or a sandbox schema with grants on a group. Each user gets a folder, and Unity Catalog decides who sees it.',
     },
     {
-      title: 'The join keeps both sides.',
-      body: 'A full outer join labels every key matched, upload_only, or governed_only.',
+      title: 'Choose the upload path by the user.',
+      body: 'Catalog Explorer uploads a file to a volume or creates a table from it. Lakeflow Designer imports a file into a visual flow. The Excel Add-in reads tables and writes sheets back.',
     },
     {
-      title: 'Counts are recorded.',
-      body: 'The reference run matched 450 keys, found 30 only in the upload, and found 4,550 customers with no upload row.',
+      title: 'Read files with read_files and an explicit schema.',
+      body: 'read_files queries a file in place. A declared schema stops a stray value from changing a column type, and bad rows land in _rescued_data.',
     },
     {
-      title: 'The job simulates the upload.',
-      body: 'A task writes a 480-row CSV to the caller\'s folder. In real use the person uploads the file in Catalog Explorer.',
+      title: 'Join with a full outer join to see bad keys.',
+      body: 'Label every key matched, upload_only, or governed_only. A typo then shows up as a row to fix instead of a silent drop.',
     },
     {
-      title: 'Governance does not change.',
-      body: 'The governed table is read with the caller\'s permissions. The upload is a file, not a new copy of the table.',
+      title: 'Promote what others need.',
+      body: 'Keep one-off uploads in the sandbox, with a retention rule. When a file becomes shared, load it into a governed table with an owner.',
     },
   ],
   sections: [
     {
-      id: 'flow',
-      heading: 'From upload to joined table',
-      prose:
-        'The job creates the analyst_customers table, writes the CSV, reads it back with a header and inferred types, and joins on customer_id after trimming whitespace.',
-      diagram: {
-        type: 'flow',
-        title: 'Upload, join, count',
-        description:
-          'generate_data writes the analyst_customers table. simulate_upload writes account_targets.csv to the uploads volume under a folder named after the current user. join_to_governed reads the CSV, full outer joins it to analyst_customers on customer_id, and writes byod_joined and byod_match_counts. The task fails if no key matches.',
-        lanes: [
-          { label: 'Job tasks', fromRow: 0, toRow: 0 },
-          { label: 'Storage', fromRow: 1, toRow: 1 },
-        ],
-        nodes: [
-          { id: 'gen', label: 'generate_data', mono: true, col: 0, row: 0 },
-          { id: 'upload', label: 'simulate_upload', mono: true, sub: 'writes the CSV', col: 1, row: 0 },
-          { id: 'join', label: 'join_to_governed', mono: true, sub: 'full outer join', col: 2, row: 0, kind: 'highlight' },
-          { id: 'customers', label: 'analyst_customers', mono: true, sub: 'governed table', col: 0, row: 1, kind: 'store' },
-          { id: 'csv', label: 'uploads/<user>/', mono: true, sub: 'account_targets.csv', col: 1, row: 1, kind: 'store' },
-          { id: 'joined', label: 'byod_joined', mono: true, sub: 'every key, with status', col: 2, row: 1, kind: 'store' },
-          { id: 'counts', label: 'byod_match_counts', mono: true, sub: 'one row per status', col: 3, row: 1, kind: 'store' },
-        ],
-        edges: [
-          { from: 'gen', to: 'upload' },
-          { from: 'upload', to: 'join' },
-          { from: 'gen', to: 'customers' },
-          { from: 'upload', to: 'csv' },
-          { from: 'csv', to: 'join' },
-          { from: 'customers', to: 'join' },
-          { from: 'join', to: 'joined' },
-          { from: 'join', to: 'counts' },
-        ],
-        legend: [
-          { kind: 'highlight', label: 'Join that keeps unmatched keys' },
-          { kind: 'store', label: 'Table or volume file' },
-        ],
-      },
-    },
-    {
-      id: 'status',
-      heading: 'What each match status means',
-      prose:
-        'Match status tells the analyst what to fix. Upload-only rows are typos or retired accounts. Governed-only rows are customers the spreadsheet did not cover.',
-      diagram: {
-        type: 'matrix',
-        title: 'Match status and counts',
-        description:
-          'matched: the key is in the upload and the analyst_customers table, 450 keys. upload_only: the key is in the upload but not in analyst_customers, 30 keys. governed_only: the key is in analyst_customers but not in the upload, 4,550 keys.',
-        corner: 'Status ↓ · Present in →',
-        columns: ['Upload', 'analyst_customers', 'Keys'],
+      id: 'options',
+      heading: 'Upload options',
+      table: {
+        columns: ['User and file', 'Use'],
         rows: [
-          { label: 'matched', sub: 'in both', cells: [{ state: 'own', text: 'yes' }, { state: 'own', text: 'yes' }, { state: 'own', text: '450' }] },
-          { label: 'upload_only', sub: 'check the key', cells: [{ state: 'own', text: 'yes' }, { state: 'none', text: 'no' }, { state: 'optional', text: '30' }] },
-          { label: 'governed_only', sub: 'not in the file', cells: [{ state: 'none', text: 'no' }, { state: 'own', text: 'yes' }, { state: 'optional', text: '4,550' }] },
+          ['A CSV or Excel file to keep as is', 'Catalog Explorer: upload to a volume'],
+          ['A file that should become a table', 'Catalog Explorer: create a table from the uploaded file'],
+          ['A no-code user who wants to clean it', 'Lakeflow Designer: bring the file into a visual data prep'],
+          ['Someone who already lives in Excel', 'Excel Add-in: import tables, and write a sheet back to a Unity Catalog table'],
+          ['A file that arrives on a schedule', 'Auto Loader or a file-arrival trigger on the volume, not a manual upload'],
         ],
-        legend: [
-          { state: 'own', label: 'Present or matched' },
-          { state: 'optional', label: 'Needs a look' },
-          { state: 'none', label: 'Absent' },
-        ],
-        caption: 'Run 283267119841726. 480 uploaded rows: 450 matched plus 30 upload_only.',
       },
+      links: [
+        {
+          label: 'Work with files in Unity Catalog volumes',
+          url: 'https://docs.databricks.com/aws/en/ingestion/file-upload/',
+        },
+        {
+          label: 'Databricks Excel Add-in',
+          url: 'https://docs.databricks.com/aws/en/integrations/excel/',
+        },
+        {
+          label: 'Lakeflow Designer',
+          url: 'https://docs.databricks.com/aws/en/designer/',
+        },
+      ],
     },
     {
       id: 'path',
-      heading: 'The per-user path',
+      heading: 'Set up a safe place to upload',
       prose:
-        'user_folder() lowercases the login and collapses punctuation to underscores, so a.analyst@example.com becomes a_analyst_example_com. The helper has unit tests, and the same rule works for a Unity Catalog grant or a folder-per-team layout.',
+        'Uploads should not mix with production tables. Use a dedicated volume, or a sandbox schema, where users can write and everyone else cannot read by default. A folder per user, named from the login, keeps files apart. Enforce it with grants instead of trust.',
+      points: [
+        {
+          strong: 'Grant a group, not a person.',
+          text: 'GRANT READ VOLUME and WRITE VOLUME on the uploads volume to an analysts group. Give a user access to another user’s folder only by request.',
+        },
+        {
+          strong: 'Tag and expire.',
+          text: 'Tag upload objects with an owner and a purpose. Review them on a schedule and remove files nobody uses.',
+        },
+        {
+          strong: 'Separate read from join.',
+          text: 'Users read governed tables with their own permissions. The upload is a file in their folder, not a new copy of the table.',
+        },
+        {
+          strong: 'Promote deliberately.',
+          text: 'When a file becomes a shared input, load it into a table in a governed schema with a named owner, a schema, and a refresh plan.',
+        },
+      ],
       steps: [
         {
           title: 'Upload in the UI',
-          body: 'In Catalog Explorer, open the uploads volume, create a folder named after your login, and choose Upload to this volume.',
+          body: 'In Catalog Explorer, open the uploads volume, open your folder, and choose Upload to this volume.',
         },
         {
           title: 'Read it in SQL',
           body: 'Query the file in place before you load anything.',
           code: "SELECT * FROM read_files('/Volumes/<catalog>/<schema>/uploads/<user>/account_targets.csv', format => 'csv', header => true);",
         },
-        {
-          title: 'Join and keep unmatched keys',
-          body: 'Count each status to see how much of the file matched.',
-          code: 'SELECT match_status, COUNT(*) FROM <catalog>.<schema>.byod_joined GROUP BY match_status;',
-        },
       ],
       examples: [
         {
-          label: "Read the file with an explicit schema",
+          label: 'Read the file with an explicit schema',
           language: 'sql',
           code: "SELECT *\nFROM read_files(\n  '/Volumes/<catalog>/<schema>/uploads/<user>/account_targets.csv',\n  format => 'csv',\n  header => true,\n  schema => 'customer_id STRING, account_owner STRING, annual_target INT'\n);",
-          notes: ["The reference notebook infers the schema. An explicit schema stops a stray text value from changing a column type. Rows that do not fit land in _rescued_data."],
+          notes: ['An explicit schema stops a stray text value from changing a column type. Rows that do not fit land in _rescued_data.'],
+        },
+      ],
+      links: [
+        {
+          label: 'read_files table-valued function',
+          url: 'https://docs.databricks.com/aws/en/sql/language-manual/functions/read_files',
+        },
+      ],
+    },
+    {
+      id: 'status',
+      heading: 'Join and keep unmatched keys',
+      prose:
+        'A full outer join keeps keys that appear on only one side. The match status tells the analyst what to fix. Upload-only rows are typos or retired accounts. Governed-only rows are customers the spreadsheet did not cover.',
+      diagram: {
+        type: 'matrix',
+        title: 'Match status',
+        description:
+          'matched: the key is in the upload and in the governed table. upload_only: the key is in the upload but not in the governed table. governed_only: the key is in the governed table but not in the upload.',
+        corner: 'Status ↓ · Present in →',
+        columns: ['Upload', 'Governed table'],
+        rows: [
+          { label: 'matched', sub: 'in both', cells: [{ state: 'own', text: 'yes' }, { state: 'own', text: 'yes' }] },
+          { label: 'upload_only', sub: 'check the key', cells: [{ state: 'own', text: 'yes' }, { state: 'none', text: 'no' }] },
+          { label: 'governed_only', sub: 'not in the file', cells: [{ state: 'none', text: 'no' }, { state: 'own', text: 'yes' }] },
+        ],
+        legend: [
+          { state: 'own', label: 'Present' },
+          { state: 'none', label: 'Absent' },
+        ],
+        caption: 'Trim whitespace and match case on both keys before you join.',
+      },
+      examples: [
+        {
+          label: 'Label every key',
+          language: 'sql',
+          code: "SELECT coalesce(u.customer_id, g.customer_id) AS customer_id,\n       CASE WHEN u.customer_id IS NULL THEN 'governed_only'\n            WHEN g.customer_id IS NULL THEN 'upload_only'\n            ELSE 'matched' END AS match_status\nFROM (SELECT trim(customer_id) AS customer_id, annual_target\n      FROM read_files('/Volumes/<catalog>/<schema>/uploads/<user>/account_targets.csv', format => 'csv', header => true)) u\nFULL OUTER JOIN <catalog>.<schema>.customers g\n  ON u.customer_id = g.customer_id;",
         },
       ],
     },

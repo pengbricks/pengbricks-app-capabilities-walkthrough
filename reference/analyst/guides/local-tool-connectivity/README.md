@@ -58,3 +58,10 @@ flowchart LR
 - The job proves the Python connector path. The R, SAS, and SPSS examples need a workstation with the driver installed, and were not run here.
 - The job authenticates as the job identity. Set the M2M environment variables on the task to test a service principal.
 - Fill in the `<...>` placeholders. Workspace hosts and IDs are not in the repo.
+
+## Reference run
+
+Numbers from the recorded run of the bundle job (run 936695289546560).
+
+- `sql_connector_check` connects as the job identity (no `DATABRICKS_CLIENT_ID` set), counts 5,000 customers across 4 regions, and took 1.56 s. It writes one row to `connectivity_check` and fails if the connector returns no rows.
+- `examples/` holds copy-paste files: `python_sql_connector.py`, `databricks_connect.py`, `r_odbc.R`, `r_jdbc.R`, `odbc.ini.example`, `jdbc_url.txt`, and `sas_spss.md` (a `libname` statement for SAS and the Database Wizard steps for SPSS).

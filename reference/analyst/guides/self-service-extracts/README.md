@@ -62,3 +62,12 @@ flowchart LR
 - The subscription targets a workspace user by email. For addresses outside the workspace, use a notification destination.
 - Scheduled dashboards email a snapshot. Files for partners need a job schedule on `build_extracts`.
 - Unity Catalog Volumes do not support seeks in zip files, so the task builds the workbook locally and copies it.
+
+## Reference run
+
+Numbers from the recorded run of the bundle job (run 480047373211928).
+
+- `extract_orders` holds West-region completed orders from January to June 2026: 13,211 rows and 18,124,357.00 in revenue.
+- Both files carry the same nine columns and 13,211 rows: `orders_extract.xlsx` 621,272 bytes and `orders_extract.txt` (pipe-delimited) 1,052,781 bytes, under `partner/` in the extracts volume. The workbook has a styled header, frozen header row, autofilter, `#,##0.00` and `yyyy-mm-dd` formats, and a Summary sheet built with openpyxl.
+- The task reads both files back from the volume and fails unless the row counts match the table.
+- The bundle deploys the dashboard but does not declare a schedule or subscription, so `schedule_dashboard` creates a Monday 07:00 America/New_York schedule and subscribes `notification_email` through the Databricks SDK, reuses them on rerun, and records the IDs in `dashboard_subscription`.

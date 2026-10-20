@@ -5,113 +5,117 @@ export const walkthrough: Walkthrough = {
   area: 'Analyst Guides',
   title: 'SQL and notebooks at scale',
   intro:
-    'One job explores governed tables with SQL, round-trips a result through pandas in a Python notebook, and aggregates 6 million generated rows on serverless compute. An R notebook ships with the bundle but runs on classic compute, because serverless does not run R.',
+    'Analysts have four surfaces on the same governed data: the SQL editor on a serverless SQL warehouse, serverless notebooks in Python or SQL, Genie Code for writing and fixing code, and Genie for asking questions in plain language. This page covers where each fits, how to keep Python work distributed as data grows, how to keep queries fast, and what to use now that serverless has no R and hosted RStudio is end-of-life.',
   shortVersion: [
     {
-      title: 'SQL runs as a job task.',
-      body: 'Three statements on a SQL warehouse each save a result table: revenue by region and segment, top customers, and a monthly running total.',
+      title: 'Start in the SQL editor on a serverless warehouse.',
+      body: 'It starts in seconds, scales with concurrency, and fits exploration, joins, and aggregates. Save the query, parameterize it, and share it.',
     },
     {
-      title: 'Python round-trips to pandas.',
-      body: 'The notebook collects a query into pandas, pivots it and adds rolling means, then writes it back to Unity Catalog and re-reads it.',
+      title: 'Move to a serverless notebook for Python.',
+      body: 'Use it for multi-step analysis, plotting, and libraries. There is no cluster to size, and the same Unity Catalog permissions apply.',
     },
     {
-      title: '6 million rows aggregate in seconds.',
-      body: 'The reference run wrote 6,000,000 rows in 6.49 s and built a customer-by-month aggregate over them in 4.18 s.',
+      title: 'Aggregate in Spark, then collect.',
+      body: 'Bring only the small result into pandas. When the data is too large for one machine, use the pandas API on Spark.',
     },
     {
-      title: 'Timings are recorded.',
-      body: 'Every step writes its row count and seconds to large_aggregation_timing, so reruns are comparable.',
+      title: 'Let Genie Code and Genie do the first draft.',
+      body: 'Genie Code writes, explains, and fixes SQL and Python in the editor and notebooks. Genie answers business questions on curated data, and shows the SQL it ran.',
     },
     {
-      title: 'R needs classic compute.',
-      body: 'The sparklyr notebook is in the bundle with a note. The job runs the SQL and Python parts only.',
+      title: 'Use RStudio Desktop or Posit with Databricks for R.',
+      body: 'Serverless does not run R and hosted RStudio is end-of-life. Connect your own R IDE through sparklyr and Databricks Connect or ODBC, or use an R notebook on classic compute.',
     },
   ],
   sections: [
     {
-      id: 'flow',
-      heading: 'What the job runs',
-      prose:
-        'The job generates the sample tables from the use-case spec, then runs the three analysis tasks in parallel. The R notebook sits beside them but is not a task.',
-      diagram: {
-        type: 'flow',
-        title: 'From use-case spec to analysis tables',
-        description:
-          'The use-case spec feeds generate_data, which writes analyst_customers and analyst_orders. Three tasks then run in parallel: sql_exploration writes three SQL result tables, python_pandas_roundtrip writes pandas_region_trend, and large_aggregation writes events_large, events_large_customer_month, and large_aggregation_timing. An R notebook is shown separately because it needs classic compute.',
-        lanes: [
-          { label: 'Setup', fromRow: 0, toRow: 0 },
-          { label: 'Analysis tasks', fromRow: 1, toRow: 1 },
-          { label: 'Unity Catalog tables', fromRow: 2, toRow: 2 },
-        ],
-        nodes: [
-          { id: 'spec', label: 'Use-case spec', sub: 'use_cases/general.yml', col: 0, row: 0 },
-          { id: 'gen', label: 'generate_data', mono: true, sub: 'generated data, fixed seed', col: 1, row: 0 },
-          { id: 'base', label: 'analyst_* tables', mono: true, sub: '5,000 and 200,000 rows', col: 2, row: 0, kind: 'store' },
-          { id: 'sql', label: 'sql_exploration', mono: true, sub: 'SQL warehouse', col: 0, row: 1 },
-          { id: 'py', label: 'python_pandas_roundtrip', mono: true, sub: 'serverless notebook', col: 1, row: 1, kind: 'highlight' },
-          { id: 'big', label: 'large_aggregation', mono: true, sub: '6,000,000 rows, timed', col: 2, row: 1, kind: 'highlight' },
-          { id: 'r', label: 'R notebook', sub: 'classic compute only', col: 3, row: 1, kind: 'surface' },
-          { id: 'sqlout', label: 'sql_* tables', mono: true, sub: 'three result tables', col: 0, row: 2, kind: 'store' },
-          { id: 'pyout', label: 'pandas_region_trend', mono: true, sub: 'written from pandas', col: 1, row: 2, kind: 'store' },
-          { id: 'bigout', label: 'large_aggregation_timing', mono: true, sub: 'step, rows, seconds', col: 2, row: 2, kind: 'store' },
-        ],
-        edges: [
-          { from: 'spec', to: 'gen' },
-          { from: 'gen', to: 'base' },
-          { from: 'base', to: 'sql' },
-          { from: 'base', to: 'py' },
-          { from: 'base', to: 'big' },
-          { from: 'base', to: 'r', dashed: true },
-          { from: 'sql', to: 'sqlout' },
-          { from: 'py', to: 'pyout' },
-          { from: 'big', to: 'bigout' },
-        ],
-        legend: [
-          { kind: 'highlight', label: 'Python on serverless' },
-          { kind: 'surface', label: 'Shipped, not run by the job' },
-          { kind: 'store', label: 'Unity Catalog table' },
-          { kind: 'dashed', label: 'Optional path' },
+      id: 'surfaces',
+      heading: 'Which surface for which job',
+      table: {
+        columns: ['Job', 'Use'],
+        rows: [
+          ['Explore a table, join, aggregate, share a query', 'SQL editor on a serverless SQL warehouse'],
+          ['Multi-step analysis, plots, Python libraries', 'Serverless notebook (Python and SQL cells)'],
+          ['Write, explain, or fix code', 'Genie Code in the editor or notebook'],
+          ['Ask a business question without writing SQL', 'Genie Agents, or Genie One for business users'],
+          ['Statistical work in R', 'Your own R IDE with sparklyr, or an R notebook on classic compute'],
+          ['Chart and share results', 'AI/BI dashboard on the same tables'],
         ],
       },
+      links: [
+        {
+          label: 'Serverless SQL warehouses',
+          url: 'https://docs.databricks.com/aws/en/admin/sql/serverless',
+        },
+        {
+          label: 'Genie Code',
+          url: 'https://docs.databricks.com/aws/en/genie-code/',
+        },
+        {
+          label: 'Genie Agents',
+          url: 'https://docs.databricks.com/aws/en/genie-agents/',
+        },
+      ],
+    },
+    {
+      id: 'flow',
+      heading: 'Explore with SQL',
+      prose:
+        'Write queries against Unity Catalog tables and keep them readable. Window functions with QUALIFY give shares and top-N without a subquery. Parameter markers let one saved query serve many people without string editing, and the query history and query profile show where time goes.',
+      points: [
+        {
+          strong: 'Use parameter markers.',
+          text: ':status in a query adds a parameter widget in the editor and a bound parameter in a notebook or job. It avoids string formatting and SQL injection.',
+        },
+        {
+          strong: 'Read the query profile.',
+          text: 'It shows time per operator, files read, and spill. Fix the slowest operator before you resize the warehouse.',
+        },
+        {
+          strong: 'Keep queries in Git.',
+          text: 'Store notebooks and SQL files in a Git folder so changes are reviewed and versioned.',
+        },
+      ],
       examples: [
         {
-          label: "Parameterize a SQL cell with a widget",
+          label: 'A parameterized query with a window share',
           language: 'sql',
-          code: "CREATE WIDGET TEXT status DEFAULT 'completed';\n\nSELECT c.region, SUM(o.quantity * o.unit_price) AS revenue\nFROM analyst_orders o JOIN analyst_customers c USING (customer_id)\nWHERE o.status = :status\nGROUP BY c.region;",
-          notes: ["Named parameter markers bind the widget value without string formatting."],
+          code: "SELECT c.region,\n       SUM(o.quantity * o.unit_price) AS revenue,\n       SUM(o.quantity * o.unit_price) / SUM(SUM(o.quantity * o.unit_price)) OVER () AS share\nFROM analyst_orders o JOIN analyst_customers c USING (customer_id)\nWHERE o.status = :status\nGROUP BY c.region;",
+          notes: ['Named parameter markers bind the value without string formatting.'],
+        },
+      ],
+      links: [
+        {
+          label: 'Query profile',
+          url: 'https://docs.databricks.com/aws/en/sql/user/queries/query-profile',
         },
       ],
     },
     {
       id: 'roundtrip',
-      heading: 'The pandas round trip',
+      heading: 'Python with pandas, kept small',
       prose:
-        'A SQL aggregate leaves Spark as a pandas DataFrame, gets reshaped with pandas, and returns to Unity Catalog as a Delta table. The notebook asserts that the re-read table has the same row count.',
+        'pandas runs on one machine, so aggregate in Spark first and collect only the result. Reshape it, then write it back to Unity Catalog so others can query it. When the data is too large to collect, the pandas API on Spark keeps the pandas syntax and runs the work distributed.',
       diagram: {
         type: 'flow',
         title: 'SQL to pandas and back',
         description:
-          'A Spark SQL query aggregates revenue by region and month. toPandas collects the result. pandas pivots it by region and adds a three-month rolling mean and month-over-month growth. createDataFrame writes the result to pandas_region_trend. The notebook reads the table back and checks the row count.',
+          'A Spark SQL query aggregates revenue by region and month. toPandas collects the small result. pandas pivots it and adds a rolling mean. createDataFrame writes the result to a governed table.',
         nodes: [
-          { id: 'query', label: 'Spark SQL', sub: 'revenue by region, month', col: 0, row: 0 },
-          { id: 'pandas', label: 'toPandas()', mono: true, sub: 'collect to the driver', col: 1, row: 0 },
+          { id: 'query', label: 'Spark SQL', sub: 'aggregate first', col: 0, row: 0 },
+          { id: 'pandas', label: 'toPandas()', mono: true, sub: 'a small result', col: 1, row: 0 },
           { id: 'shape', label: 'pandas', sub: 'pivot, rolling, growth', col: 2, row: 0, kind: 'highlight' },
           { id: 'write', label: 'createDataFrame()', mono: true, sub: 'saveAsTable', col: 3, row: 0 },
-          { id: 'table', label: 'pandas_region_trend', mono: true, col: 3, row: 1, kind: 'store' },
-          { id: 'check', label: 'Row count check', sub: 'assert on re-read', col: 2, row: 1, kind: 'gate' },
+          { id: 'table', label: 'Unity Catalog table', sub: 'shared and governed', col: 3, row: 1, kind: 'store' },
         ],
         edges: [
           { from: 'query', to: 'pandas' },
           { from: 'pandas', to: 'shape' },
           { from: 'shape', to: 'write' },
           { from: 'write', to: 'table' },
-          { from: 'table', to: 'check', label: 'read back' },
         ],
-        legend: [
-          { kind: 'highlight', label: 'Runs on the driver' },
-          { kind: 'gate', label: 'Fails the task on mismatch' },
-        ],
+        legend: [{ kind: 'highlight', label: 'Runs on the driver' }],
       },
       steps: [
         {
@@ -130,34 +134,52 @@ export const walkthrough: Walkthrough = {
       ],
       examples: [
         {
-          label: "Stay distributed with the pandas API on Spark",
+          label: 'Stay distributed with the pandas API on Spark',
           language: 'py',
-          code: "import pyspark.pandas as ps\n\norders = ps.read_table(f\"{fq}.analyst_orders\")\nrevenue = (orders.quantity * orders.unit_price).groupby(orders.status).sum()",
-          notes: ["Use this when the data is too large to collect to the driver. The code looks like pandas, but Spark runs it."],
+          code: 'import pyspark.pandas as ps\n\norders = ps.read_table("main.sales.orders")\nrevenue = (orders.quantity * orders.unit_price).groupby(orders.status).sum()',
+          notes: ['The code looks like pandas, but Spark runs it across the cluster, so the data does not have to fit on one machine.'],
+        },
+      ],
+      links: [
+        {
+          label: 'Pandas API on Spark',
+          url: 'https://docs.databricks.com/aws/en/pandas/pandas-on-spark',
         },
       ],
     },
     {
       id: 'scale',
-      heading: 'Timings for 6 million rows',
+      heading: 'Keep large queries fast',
       prose:
-        'large_aggregation generates the table, scans it, and runs two aggregations. Each step writes its row count and seconds to large_aggregation_timing. Serverless SQL and Spark do the work, so the notebook needs no cluster sizing.',
-      diagram: {
-        type: 'matrix',
-        title: 'Recorded timings, reference run',
-        description:
-          'generate_and_write_events wrote 6,000,000 rows in 6.49 seconds. full_scan_count counted 6,000,000 rows in 0.42 seconds. aggregate_customer_by_month returned 59,594 rows in 4.18 seconds. aggregate_percentiles_by_type returned 4 rows in 0.83 seconds.',
-        corner: 'Step ↓ · Result →',
-        columns: ['Rows', 'Seconds'],
-        rows: [
-          { label: 'generate_and_write', sub: 'generated data to Delta', cells: [{ state: 'own', text: '6,000,000' }, { state: 'own', text: '6.49' }] },
-          { label: 'full_scan_count', sub: 'count(*)', cells: [{ state: 'own', text: '6,000,000' }, { state: 'own', text: '0.42' }] },
-          { label: 'customer_by_month', sub: 'group by, write table', cells: [{ state: 'own', text: '59,594' }, { state: 'own', text: '4.18' }] },
-          { label: 'percentiles_by_type', sub: 'percentile_approx', cells: [{ state: 'own', text: '4' }, { state: 'own', text: '0.83' }] },
-        ],
-        legend: [{ state: 'own', label: 'Recorded in large_aggregation_timing' }],
-        caption: 'Run 1119284534838043. Timings vary with warehouse and serverless load, so compare reruns in the timing table.',
-      },
+        'Serverless SQL and Spark scale out on their own, so most of the speedup comes from how the data is laid out and how the query is written.',
+      points: [
+        {
+          strong: 'Cluster the tables you filter and join on.',
+          text: 'Liquid clustering replaces partitioning and Z-ordering. CLUSTER BY AUTO lets Databricks choose the keys.',
+        },
+        {
+          strong: 'Turn on predictive optimization.',
+          text: 'It compacts files and runs maintenance on managed tables.',
+        },
+        {
+          strong: 'Select only the columns you need.',
+          text: 'Columnar storage reads only the columns you name, and filters on clustered columns skip files.',
+        },
+        {
+          strong: 'Size the warehouse for the slowest query, scale clusters for the crowd.',
+          text: 'A larger size speeds one query. More clusters help many users at once.',
+        },
+        {
+          strong: 'Cache results with materialized views.',
+          text: 'For a heavy aggregate that many people read, build a materialized view and query that.',
+        },
+      ],
+      links: [
+        {
+          label: 'Liquid clustering',
+          url: 'https://docs.databricks.com/aws/en/delta/clustering',
+        },
+      ],
     },
     {
       id: 'r',
@@ -165,15 +187,33 @@ export const walkthrough: Walkthrough = {
       points: [
         {
           strong: 'Serverless does not run R.',
-          text: 'Serverless notebooks and jobs run Python and SQL. The job leaves the R notebook out so the run stays green.',
+          text: 'Serverless notebooks and jobs run Python and SQL. Hosted RStudio on Databricks is end-of-life.',
         },
         {
-          strong: 'Use sparklyr on classic compute.',
-          text: 'src/notebooks/r_sparklyr_summary.r aggregates in Spark, collects a small result into R, runs summary(), quantile(), and lm(), and writes a Delta table.',
+          strong: 'Bring your own R IDE.',
+          text: 'Run RStudio Desktop or Posit Workbench on your side and use sparklyr through Databricks Connect, which Posit supports, to run Spark work on a Databricks cluster.',
+        },
+        {
+          strong: 'Query a SQL warehouse with ODBC.',
+          text: 'From any R session, odbc::databricks() reads Unity Catalog tables on a serverless SQL warehouse with OAuth. It suits data pulls and dplyr queries.',
+        },
+        {
+          strong: 'Use sparklyr, not SparkR, in notebooks.',
+          text: 'R notebooks run on classic compute. SparkR is deprecated on Databricks Runtime 16 and above, so write new code with sparklyr.',
         },
         {
           strong: 'Same governed tables.',
-          text: 'The R notebook reads the same analyst_orders and analyst_customers tables, so Unity Catalog permissions apply unchanged.',
+          text: 'Every path reads the same Unity Catalog tables, so permissions apply unchanged.',
+        },
+      ],
+      links: [
+        {
+          label: 'Databricks for R developers',
+          url: 'https://docs.databricks.com/aws/en/sparkr/',
+        },
+        {
+          label: 'Databricks Connect for R',
+          url: 'https://docs.databricks.com/aws/en/dev-tools/databricks-connect/r/',
         },
       ],
     },
@@ -181,5 +221,6 @@ export const walkthrough: Walkthrough = {
   related: [
     { slug: 'bring-your-own-data', title: 'Bring your own data' },
     { slug: 'in-platform-visualization', title: 'Charts and dashboards in the platform' },
+    { slug: 'local-tool-connectivity', title: 'Connecting local tools' },
   ],
 };

@@ -65,3 +65,11 @@ flowchart LR
 - The notebook uses matplotlib. Plotly works the same way and adds interactivity in the notebook.
 - The totals check compares dataset queries, not rendered tiles. The dashboard widgets aggregate those datasets without extra filters.
 - Add dashboard filters carefully. A filtered tile differs from the unfiltered view total by design.
+
+## Reference run
+
+Numbers from the recorded run of the bundle job (run 152844643966943).
+
+- `v_revenue_by_month` and `v_revenue_by_region_segment` slice the same orders, so the view total, the dashboard dataset total, and the notebook's plotted total are all 246,476,934.00 for both views.
+- `confirm_totals` loads the deployed `lvdash.json`, takes each dataset's `queryLines`, runs them on the same warehouse with the catalog and schema set, and compares them with the views and `chart_totals`. `totals_match` accepts a difference of at most half a cent, and the task writes one row per view to `totals_check`.
+- `notebook_charts` saves two PNG files (a line chart and a stacked bar chart) to the charts volume.

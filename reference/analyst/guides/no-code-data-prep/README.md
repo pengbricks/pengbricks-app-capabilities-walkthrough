@@ -58,3 +58,11 @@ flowchart LR
 - Lakeflow Designer has no public API, so the job cannot create or run the flow. The steps above are manual.
 - The Designer operator names follow the current documentation. Menu labels may change between releases.
 - Move the saved flow to production by placing it in a Git folder and running it as a job task.
+
+## Reference run
+
+Numbers from the recorded run of the bundle job (run 577542446375509).
+
+- Lakeflow Designer is UI-only here, so the job runs the same steps in SQL (`sql/prep_flow_output.sql`) and writes `prep_flow_output`: 99,710 rows, 5,000 customers, total 138,172,774.00. `prep_flow_summary` holds those numbers.
+- To compare with a flow built in Designer, query `prep_flow_output_designer` for its row count and `SUM(order_total)`, and list rows on one side only with `EXCEPT` on `order_number`. A difference usually points to a filter condition or a join type.
+- Operator to SQL: Source is `FROM`, Filter is `WHERE status = 'completed' AND order_ts >= '2026-01-01'`, Join is `JOIN ... ON customer_id`, Select is column aliases, Custom columns is `CASE WHEN` for `order_total` and `order_size`.

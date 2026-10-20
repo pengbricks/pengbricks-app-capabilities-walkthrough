@@ -60,3 +60,12 @@ flowchart LR
 - The job writes the CSV to simulate a user upload. In real use the person uploads through Catalog Explorer or Lakeflow Designer.
 - The per-user folder is a convention. Enforce it with volume grants or a folder-per-group layout.
 - Keys are trimmed but not case-normalized. Add normalization when the source spreadsheet is messy.
+
+## Reference run
+
+Numbers from the recorded run of the bundle job (run 283267119841726).
+
+- `simulate_upload` writes a 480-row `account_targets.csv` to the caller's folder. In real use, the person uploads the file in Catalog Explorer.
+- `byod_match_counts`: 450 `matched`, 30 `upload_only`, 4,550 `governed_only`. 480 uploaded rows are 450 matched plus 30 upload-only.
+- `user_folder()` lowercases the login and collapses punctuation to underscores, so `a.analyst@example.com` becomes `a_analyst_example_com`. The helper has unit tests.
+- The join task fails if no key matches.

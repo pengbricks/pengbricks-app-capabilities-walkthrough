@@ -5,48 +5,48 @@ export const walkthrough: Walkthrough = {
   area: 'Analyst Guides',
   title: 'No-code data preparation',
   intro:
-    'A business user builds a visual data prep in Lakeflow Designer: browse tables, filter, join, rename, derive a column, and save. Designer is UI-only, so the bundle runs the same steps in SQL and writes prep_flow_output. The user compares the flow output with that table.',
+    'Lakeflow Designer (GA) lets a business user prepare data on a drag-and-drop canvas or in natural language, with every step governed by Unity Catalog. Each visual data prep is backed by real code, so it can move to production without a rebuild. This page covers how to build a flow, how to govern who builds and publishes, and when to hand work to an engineer.',
   shortVersion: [
     {
-      title: 'Six clicks-and-forms steps.',
-      body: 'Source, Filter, Join, Select (rename), Custom columns, then Output. No code.',
+      title: 'Build visually or by describing the step.',
+      body: 'Add operators such as Source, Filter, Join, Aggregate, and Output on the canvas, or search by intent and let Designer pick the operator. Each operator shows a description you can edit to reconfigure it.',
     },
     {
-      title: 'The flow is saved.',
-      body: 'Designer stores the visual data prep as a notebook that can run on a schedule or move to Git.',
+      title: 'Start from governed data.',
+      body: 'A Source reads a Unity Catalog table, a file, or a metric view. Using a metric view keeps the business definition of a measure the same as in dashboards.',
     },
     {
-      title: 'SQL gives the comparison.',
-      body: 'The job writes prep_flow_output with the same logic: 99,710 rows and a total of 138,172,774.00.',
+      title: 'The flow is code.',
+      body: 'Designer saves a visual data prep as a notebook named <name>.designer.ipynb. Put it in a Git folder, schedule it as a job, or deploy it with a bundle.',
     },
     {
-      title: 'The check is one query.',
-      body: 'Row count and total from the Designer output should equal the numbers in prep_flow_summary.',
+      title: 'Governance is Unity Catalog.',
+      body: 'The flow reads and writes with the signed-in user’s privileges. Give builders a sandbox schema to write to, and promote outputs to production schemas deliberately.',
     },
     {
-      title: 'Permissions apply.',
-      body: 'The flow reads and writes Unity Catalog tables with the signed-in user\'s privileges.',
+      title: 'Hand off when logic outgrows the canvas.',
+      body: 'Move to SQL or a declarative pipeline when a flow needs tests, shared logic, or heavy scale. The generated code is the starting point.',
     },
   ],
   sections: [
     {
       id: 'flow',
-      heading: 'The flow, step by step',
+      heading: 'Build a flow',
       prose:
-        'The canvas runs left to right. Each operator is configured in a side pane and previews its result below the canvas.',
+        'The canvas runs left to right. Each operator is configured in a side pane and previews its result below the canvas. Changing a source invalidates the cached output of every operator after it.',
       diagram: {
         type: 'flow',
-        title: 'Visual data prep operators',
+        title: 'A typical visual data prep',
         description:
-          'Two Source operators read analyst_orders and analyst_customers. A Filter operator keeps completed orders from 2026-01-01. A Join operator links the filtered orders to analyst_customers on customer_id. A Select operator renames columns. A Custom columns operator adds order_total and order_size. An Output operator writes the table prep_flow_output_designer to Unity Catalog.',
+          'Two Source operators read an orders table and a customers table. A Filter operator keeps the rows you want. A Join operator links orders to customers on a key. A Select operator renames columns. A Custom columns operator derives new fields. An Output operator writes a table to Unity Catalog.',
         nodes: [
-          { id: 'orders', label: 'analyst_orders', sub: 'Source, browse existing', col: 0, row: 0 },
-          { id: 'filter', label: 'Filter', sub: 'completed, from 2026-01-01', col: 1, row: 0 },
-          { id: 'customers', label: 'analyst_customers', sub: 'Source, browse existing', col: 1, row: 1 },
-          { id: 'join', label: 'Join', sub: 'on customer_id', col: 2, row: 0, kind: 'highlight' },
+          { id: 'orders', label: 'Orders', sub: 'Source', col: 0, row: 0 },
+          { id: 'filter', label: 'Filter', sub: 'keep matching rows', col: 1, row: 0 },
+          { id: 'customers', label: 'Customers', sub: 'Source', col: 1, row: 1 },
+          { id: 'join', label: 'Join', sub: 'on a shared key', col: 2, row: 0, kind: 'highlight' },
           { id: 'select', label: 'Select', sub: 'rename columns', col: 3, row: 0 },
-          { id: 'custom', label: 'Custom columns', sub: 'order_total, order_size', col: 4, row: 0 },
-          { id: 'out', label: 'Output', sub: 'prep_flow_output_designer', col: 4, row: 1, kind: 'store' },
+          { id: 'custom', label: 'Custom columns', sub: 'derive new fields', col: 4, row: 0 },
+          { id: 'out', label: 'Output', sub: 'table in Unity Catalog', col: 4, row: 1, kind: 'store' },
         ],
         edges: [
           { from: 'orders', to: 'filter' },
@@ -61,60 +61,71 @@ export const walkthrough: Walkthrough = {
           { kind: 'store', label: 'Unity Catalog table' },
         ],
       },
-    },
-    {
-      id: 'sql',
-      heading: 'The same flow in SQL',
-      prose:
-        'Each operator has a line in sql/prep_flow_output.sql. The job runs it, so the guide has a table to compare with.',
-      diagram: {
-        type: 'matrix',
-        title: 'Operator and SQL equivalent',
-        description:
-          'Source maps to FROM analyst_orders and analyst_customers. Filter maps to WHERE status = completed and order_ts >= 2026-01-01. Join maps to JOIN analyst_customers ON customer_id. Select maps to column aliases such as order_number and sales_region. Custom columns maps to order_total and order_size expressions.',
-        corner: 'Operator ↓ · Form →',
-        columns: ['In Designer', 'In SQL'],
-        rows: [
-          { label: 'Source', sub: 'two tables', cells: [{ state: 'own', text: 'Browse existing' }, { state: 'own', text: 'FROM analyst_orders o' }] },
-          { label: 'Filter', sub: 'two conditions', cells: [{ state: 'own', text: 'condition builder' }, { state: 'own', text: 'WHERE status = ...' }] },
-          { label: 'Join', sub: 'inner', cells: [{ state: 'own', text: 'pick matching columns' }, { state: 'own', text: 'JOIN ... ON' }] },
-          { label: 'Select', sub: 'rename', cells: [{ state: 'own', text: 'Rename field' }, { state: 'own', text: 'AS sales_region' }] },
-          { label: 'Custom columns', sub: 'derive', cells: [{ state: 'own', text: 'Formula' }, { state: 'own', text: 'CASE WHEN ...' }] },
-        ],
-        legend: [{ state: 'own', label: 'Equivalent step' }],
-      },
-    },
-    {
-      id: 'compare',
-      heading: 'Compare the two outputs',
-      prose:
-        'Run the job, build the flow, then compare row counts and totals. A difference points at one operator, usually a filter condition or a join type.',
-      steps: [
+      links: [
         {
-          title: 'Reference numbers',
-          body: 'prep_flow_summary holds the SQL output counts: 99,710 rows, 5,000 customers, a total of 138,172,774.00 (run 577542446375509).',
-          code: 'SELECT * FROM <catalog>.<schema>.prep_flow_summary;',
+          label: 'Lakeflow Designer',
+          url: 'https://docs.databricks.com/aws/en/designer/',
         },
         {
-          title: 'Designer numbers',
-          body: 'Query the table your flow wrote.',
-          code: 'SELECT COUNT(*) AS output_rows, SUM(order_total) AS output_total\nFROM <catalog>.<schema>.prep_flow_output_designer;',
+          label: 'Built-in operators',
+          url: 'https://docs.databricks.com/aws/en/designer/built-in-operators',
+        },
+      ],
+    },
+    {
+      id: 'govern',
+      heading: 'Govern who builds and publishes',
+      points: [
+        {
+          strong: 'Give builders a sandbox.',
+          text: 'Grant the analysts group CREATE TABLE on one sandbox schema. Outputs land there, not in production schemas.',
         },
         {
-          title: 'Row-level difference',
-          body: 'If the totals differ, list rows that appear on one side only.',
-          code: 'SELECT order_number FROM <catalog>.<schema>.prep_flow_output\nEXCEPT\nSELECT order_number FROM <catalog>.<schema>.prep_flow_output_designer;',
+          strong: 'Publish through review.',
+          text: 'Store the file in a Git folder and promote it through a pull request, a job, and a bundle. A production schema gets its table from a job running as a service principal.',
+        },
+        {
+          strong: 'Check the output with lineage.',
+          text: 'Catalog Explorer shows which tables a flow read and wrote, so a reviewer can confirm sources before approving.',
+        },
+        {
+          strong: 'Reuse measures from metric views.',
+          text: 'Source a metric view and pick dimensions and measures, so the number matches the AI/BI dashboard.',
+        },
+        {
+          strong: 'Extend with user-defined operators.',
+          text: 'Platform teams can publish approved operators built on Unity Catalog functions, so users get vetted steps instead of copying code.',
         },
       ],
     },
     {
       id: 'saved',
-      heading: 'Save and rerun',
+      heading: 'Save, schedule, and promote',
       points: [
         { strong: 'Saved flow.', text: 'Designer saves the visual data prep as <name>.designer.ipynb. Place it in a Git folder to version it.' },
         { strong: 'Schedule.', text: 'Use the Schedule button in Designer, or run the file as a job task.' },
-        { strong: 'Write mode.', text: 'Output defaults to Overwrite. Append and Merge are available for tables.' },
+        { strong: 'Write mode.', text: 'Output defaults to Overwrite. Append and Merge are available for tables, so pick the one that matches how the data arrives.' },
+        { strong: 'Edited in Git.', text: 'If someone changes an operator’s generated code outside Designer, Designer blocks edits to that operator until you choose Regenerate code.' },
       ],
+      links: [
+        {
+          label: 'Move a visual data prep to production',
+          url: 'https://docs.databricks.com/aws/en/designer/production',
+        },
+      ],
+    },
+    {
+      id: 'choose',
+      heading: 'Designer, Genie, or code',
+      table: {
+        columns: ['Need', 'Use'],
+        rows: [
+          ['Repeatable cleanup and joins by a business user', 'Lakeflow Designer'],
+          ['A one-off answer in plain language', 'Genie Agents or Genie One'],
+          ['Help writing or fixing SQL or Python', 'Genie Code'],
+          ['Tested, shared, or high-volume transformations', 'SQL or a Lakeflow Spark Declarative Pipeline, owned by data engineering'],
+        ],
+      },
     },
   ],
   related: [

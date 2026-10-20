@@ -5,118 +5,187 @@ export const walkthrough: Walkthrough = {
   area: 'Analyst Guides',
   title: 'Charts and dashboards in the platform',
   intro:
-    'Two governed views feed both a notebook that draws matplotlib charts and a published AI/BI dashboard. A final task runs the dashboard\'s own dataset queries and compares their totals with the views and the notebook, so a chart and its dashboard tile show the same number.',
+    'Define each business metric once in a Unity Catalog metric view, then consume it everywhere: AI/BI dashboards, notebook charts, Genie, alerts, and BI tools. A chart and its dashboard tile then show the same number because they share one definition. This page covers the metric view, the dashboard features that matter, notebook charts, and how Genie and Genie Code fit.',
   shortVersion: [
     {
-      title: 'Two governed views.',
-      body: 'v_revenue_by_month and v_revenue_by_region_segment hold the business logic once.',
+      title: 'Define metrics once, in a metric view.',
+      body: 'A metric view separates measures from dimensions. Users group by any field, and the engine computes the right result for each query.',
     },
     {
-      title: 'Notebook charts go to a volume.',
-      body: 'The notebook draws a line chart and a stacked bar chart, then saves both PNG files to the charts volume.',
+      title: 'Build the dashboard on governed data.',
+      body: 'An AI/BI dashboard reads datasets over metric views or governed views, so logic lives in Unity Catalog and not in each tile.',
     },
     {
-      title: 'The dashboard reads the same views.',
-      body: 'Its two datasets are SELECT statements over the views, with counters, a line chart, a bar chart, and a table.',
+      title: 'Use the built-in notebook charts first.',
+      body: 'display() and the visualization editor chart a query in place. Use matplotlib or Plotly when you need a custom figure.',
     },
     {
-      title: 'Totals are compared.',
-      body: 'Dashboard, view, and notebook totals are all 246,476,934.00 for both views.',
+      title: 'Let people ask Genie on the same data.',
+      body: 'Genie Agents answer questions from the same metric views, and Genie One gives business users a place to ask. Genie Code helps authors write the queries.',
     },
     {
-      title: 'A mismatch fails the job.',
-      body: 'confirm_totals raises an error when the three totals differ by more than half a cent.',
+      title: 'Treat dashboards as code.',
+      body: 'Deploy dashboards with bundles, set permissions with Unity Catalog, and certify the datasets they depend on.',
     },
   ],
   sections: [
     {
-      id: 'flow',
-      heading: 'Views first, then charts',
+      id: 'metric',
+      heading: 'Define the measure once as a metric view',
       prose:
-        'The job builds the views, then the notebook reads them. The dashboard is deployed by the bundle and reads the same views. confirm_totals closes the loop.',
-      diagram: {
-        type: 'flow',
-        title: 'One source of numbers',
-        description:
-          'generate_data writes analyst_customers and analyst_orders. create_views defines v_revenue_by_month and v_revenue_by_region_segment. notebook_charts reads the views, saves two PNG files to the charts volume, and writes chart_totals. The published dashboard reads the same views. confirm_totals runs the dashboard dataset queries, compares their totals with the views and with chart_totals, and writes totals_check.',
-        lanes: [
-          { label: 'Job tasks', fromRow: 0, toRow: 0 },
-          { label: 'Governed objects', fromRow: 1, toRow: 2 },
-        ],
-        nodes: [
-          { id: 'gen', label: 'generate_data', mono: true, col: 0, row: 0 },
-          { id: 'views', label: 'create_views', mono: true, col: 1, row: 0 },
-          { id: 'nb', label: 'notebook_charts', mono: true, sub: 'matplotlib', col: 2, row: 0, kind: 'highlight' },
-          { id: 'confirm', label: 'confirm_totals', mono: true, sub: 'compare three totals', col: 3, row: 0, kind: 'gate' },
-          { id: 'v1', label: 'v_revenue_by_month', mono: true, col: 1, row: 1, kind: 'store' },
-          { id: 'v2', label: 'Region and segment view', sub: 'v_revenue_by_region', col: 1, row: 2, kind: 'store' },
-          { id: 'png', label: 'charts volume', sub: 'two PNG files', col: 2, row: 1, kind: 'store' },
-          { id: 'dash', label: 'AI/BI dashboard', sub: 'published', col: 3, row: 1, kind: 'surface' },
-          { id: 'check', label: 'totals_check', mono: true, sub: 'one row per view', col: 3, row: 2, kind: 'store' },
-        ],
-        edges: [
-          { from: 'gen', to: 'views' },
-          { from: 'views', to: 'nb' },
-          { from: 'nb', to: 'confirm' },
-          { from: 'views', to: 'v1' },
-          { from: 'views', to: 'v2' },
-          { from: 'v1', to: 'png', label: 'read' },
-          { from: 'v1', to: 'dash', dashed: true },
-          { from: 'v2', to: 'dash', dashed: true },
-          { from: 'dash', to: 'confirm', dashed: true },
-          { from: 'confirm', to: 'check' },
-        ],
-        legend: [
-          { kind: 'highlight', label: 'Notebook charts' },
-          { kind: 'gate', label: 'Fails on mismatch' },
-          { kind: 'surface', label: 'Dashboard' },
-        ],
-      },
+        'A standard view fixes its grouping when you create it. A metric view stores the measure and the dimensions separately, so one definition of revenue serves a monthly trend, a regional breakdown, and a Genie question. Query it with the MEASURE() function from SQL editors, notebooks, dashboards, Genie, alerts, and BI tools.',
       examples: [
         {
-          label: "Define the measure once as a metric view",
+          label: 'Create and query a metric view',
           language: 'sql',
           code: "CREATE OR REPLACE VIEW <catalog>.<schema>.revenue_metrics\nWITH METRICS\nLANGUAGE YAML\nAS $$\n  version: 1.1\n  source: <catalog>.<schema>.analyst_orders\n  dimensions:\n    - name: order_month\n      expr: DATE_TRUNC('MONTH', order_ts)\n  measures:\n    - name: revenue\n      expr: SUM(quantity * unit_price)\n$$;\n\nSELECT order_month, MEASURE(revenue) FROM <catalog>.<schema>.revenue_metrics GROUP BY ALL;",
-          notes: ["A metric view keeps the revenue formula in one place for notebooks and dashboards."],
+          notes: ['A metric view keeps the revenue formula in one place for notebooks, dashboards, and Genie.'],
+        },
+      ],
+      points: [
+        {
+          strong: 'Add agent metadata.',
+          text: 'Synonyms, display names, and formats help Genie answer accurately and show values the same way in every tool.',
+        },
+        {
+          strong: 'Materialize heavy metrics.',
+          text: 'Metric view materialization pre-computes aggregations, and the engine rewrites queries to use them.',
+        },
+        {
+          strong: 'Reach BI tools.',
+          text: 'Power BI and Tableau can query metric views, so a report outside Databricks shares the definition.',
+        },
+      ],
+      links: [
+        {
+          label: 'Unity Catalog metric views',
+          url: 'https://docs.databricks.com/aws/en/metric-views/',
+        },
+        {
+          label: 'Create a metric view',
+          url: 'https://docs.databricks.com/aws/en/metric-views/create',
         },
       ],
     },
     {
-      id: 'totals',
-      heading: 'The three totals',
+      id: 'flow',
+      heading: 'Build once, consume everywhere',
       prose:
-        'Each view has three totals: the view itself, the notebook\'s plotted values, and the dashboard dataset. The reference run found them equal.',
+        'Put the logic in the governed layer and keep consumers thin. Every consumer reads through Unity Catalog, so permissions and lineage apply to all of them.',
       diagram: {
-        type: 'matrix',
-        title: 'Revenue totals by source',
+        type: 'flow',
+        title: 'One source of numbers',
         description:
-          'For v_revenue_by_month, the view total, the dashboard dataset total, and the notebook chart total are all 246,476,934.00. For v_revenue_by_region_segment, all three totals are also 246,476,934.00.',
-        corner: 'View ↓ · Source →',
-        columns: ['View', 'Dashboard', 'Notebook'],
-        rows: [
-          { label: 'by_month', sub: 'v_revenue_by_month', cells: [{ state: 'own', text: '246,476,934.00' }, { state: 'own', text: '246,476,934.00' }, { state: 'own', text: '246,476,934.00' }] },
-          { label: 'by_region_segment', sub: 'region and segment', cells: [{ state: 'own', text: '246,476,934.00' }, { state: 'own', text: '246,476,934.00' }, { state: 'own', text: '246,476,934.00' }] },
+          'A metric view or governed view sits over the source tables. An AI/BI dashboard, notebook charts, a Genie Agent, and external BI tools all read it.',
+        nodes: [
+          { id: 'tables', label: 'Source tables', sub: 'governed in Unity Catalog', col: 0, row: 1, kind: 'store' },
+          { id: 'mv', label: 'Metric view', sub: 'measures and dimensions', col: 1, row: 1, kind: 'highlight' },
+          { id: 'dash', label: 'AI/BI dashboard', sub: 'published', col: 2, row: 0, kind: 'surface' },
+          { id: 'nb', label: 'Notebook charts', sub: 'display(), Plotly', col: 2, row: 1, kind: 'surface' },
+          { id: 'genie', label: 'Genie Agent', sub: 'plain-language questions', col: 2, row: 2, kind: 'surface' },
+          { id: 'bi', label: 'Power BI, Tableau', sub: 'over OAuth', col: 3, row: 1, kind: 'surface' },
         ],
-        legend: [{ state: 'own', label: 'Matches the view total' }],
-        caption: 'Run 152844643966943. The two views slice the same orders, so both totals are equal.',
+        edges: [
+          { from: 'tables', to: 'mv' },
+          { from: 'mv', to: 'dash' },
+          { from: 'mv', to: 'nb' },
+          { from: 'mv', to: 'genie' },
+          { from: 'mv', to: 'bi' },
+        ],
+        legend: [
+          { kind: 'highlight', label: 'Business logic, defined once' },
+          { kind: 'surface', label: 'Consumer' },
+          { kind: 'store', label: 'Unity Catalog table' },
+        ],
       },
     },
     {
+      id: 'dashboards',
+      heading: 'AI/BI dashboards',
+      points: [
+        {
+          strong: 'Datasets are the query layer.',
+          text: 'Point each dataset at a metric view or a governed view. Keep the SQL short, and let parameters and filters narrow it.',
+        },
+        {
+          strong: 'Filters and cross-filtering.',
+          text: 'Use page filters, parameters, and cross-filtering so viewers explore without editing a query.',
+        },
+        {
+          strong: 'Credentials.',
+          text: 'Shared data permissions give every viewer the same data and a shared cache. Individual data permissions run as each viewer, so row filters and column masks apply.',
+        },
+        {
+          strong: 'Schedule and subscribe.',
+          text: 'A schedule refreshes the dashboard, and subscriptions send snapshots to email, Slack, or Microsoft Teams.',
+        },
+        {
+          strong: 'Deploy with a bundle.',
+          text: 'The bundle dashboard resource keeps the definition in Git, so changes are reviewed and promoted across environments.',
+        },
+      ],
+      links: [
+        {
+          label: 'AI/BI dashboards',
+          url: 'https://docs.databricks.com/aws/en/dashboards/',
+        },
+      ],
+    },
+    {
+      id: 'notebooks',
+      heading: 'Notebook charts',
+      prose:
+        'In a notebook or the SQL editor, create a chart from a query result with the built-in visualization editor. It needs no code and updates when the query reruns. Use matplotlib or Plotly when you need a custom figure, and read the data from the same governed view or metric view the dashboard uses.',
+      links: [
+        {
+          label: 'Visualizations in notebooks and the SQL editor',
+          url: 'https://docs.databricks.com/aws/en/notebooks/visualizations/',
+        },
+      ],
+    },
+    {
+      id: 'genie',
+      heading: 'Genie and Genie Code',
+      points: [
+        {
+          strong: 'Genie Agents for questions.',
+          text: 'Attach a Genie Agent to the metric view and tables behind the dashboard. Business users ask in plain language and see the SQL that answered.',
+        },
+        {
+          strong: 'Genie One for business users.',
+          text: 'It is the place where business users ask Genie without learning the workspace.',
+        },
+        {
+          strong: 'Genie Code for authors.',
+          text: 'It writes and explains the SQL for a dataset and fixes errors in a notebook.',
+        },
+      ],
+      links: [
+        {
+          label: 'Genie Agents',
+          url: 'https://docs.databricks.com/aws/en/genie-agents/',
+        },
+        {
+          label: 'Genie Code',
+          url: 'https://docs.databricks.com/aws/en/genie-code/',
+        },
+      ],
+    },
+    {
       id: 'how',
-      heading: 'How the check works',
-      steps: [
+      heading: 'Keep numbers trustworthy',
+      points: [
         {
-          title: 'Read the dashboard definition',
-          body: 'The task loads the deployed lvdash.json and takes each dataset\'s queryLines.',
+          strong: 'Certify and tag datasets.',
+          text: 'Tag the metric views and governed views that are approved for reporting, so authors pick them first.',
         },
         {
-          title: 'Run it as the dashboard does',
-          body: 'The query runs on the same warehouse with the catalog and schema set, which is how the dashboard resolves bare table names.',
-          code: 'SELECT SUM(revenue) FROM (SELECT month, orders, revenue FROM v_revenue_by_month) t',
+          strong: 'Grant consumers the least they need.',
+          text: 'Give viewers access to the dashboard and its data through groups. With shared data permissions, viewers need not read the underlying tables.',
         },
         {
-          title: 'Compare',
-          body: 'totals_match accepts a difference of at most half a cent, then writes one row per view to totals_check.',
+          strong: 'Test a change.',
+          text: 'When you change a metric, compare the dashboard dataset and the view for the same filter before you publish. A reconciliation in a job catches a drift in logic.',
         },
       ],
     },
