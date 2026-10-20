@@ -6669,12 +6669,13 @@
           "label": "Validate on pull request, deploy on main",
           "path": "reference/dab-starter/.github/workflows/bundle.yml",
           "lines": [
-            23,
-            49
+            35,
+            84
           ],
           "section": "ci",
           "notes": [
-            "Credentials come from repository secrets; DATABRICKS_BUNDLE_ENV picks the prod target."
+            "Signs in with GitHub OIDC, so the repo holds no Databricks secret. The deploy job runs in the prod environment, whose reviewers approve it.",
+            "DATABRICKS_BUNDLE_TARGET picks the prod target, and setup-cli is pinned to the tested CLI version."
           ]
         }
       ]

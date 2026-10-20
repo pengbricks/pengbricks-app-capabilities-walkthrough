@@ -884,10 +884,10 @@
     {
       "path": "reference/dab-starter/.github/workflows/bundle.yml",
       "symbol": null,
-      "startLine": 23,
-      "endLine": 49,
+      "startLine": 35,
+      "endLine": 74,
       "language": "yml",
-      "code": "env:\n  DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}\n  DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}\n  DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}\n  # Picks the prod target without -t on every command.\n  DATABRICKS_BUNDLE_ENV: prod\n  # Any BUNDLE_VAR_<name> sets the bundle variable <name>.\n  BUNDLE_VAR_catalog: ${{ vars.DATABRICKS_CATALOG }}\n\njobs:\n  validate:\n    if: github.event_name == 'pull_request'\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: databricks/setup-cli@main\n      - run: databricks bundle validate --strict\n\n  deploy:\n    if: github.event_name == 'push'\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: databricks/setup-cli@main\n      # Deploy changes only what differs from the last deploy, then the run proves the change works.\n      - run: databricks bundle deploy\n      - run: databricks bundle run capability_guides_dab_starter",
+      "code": "# id-token: write lets each job request the OIDC token; contents: read lets it check out the repo.\npermissions:\n  id-token: write\n  contents: read\n\nenv:\n  DATABRICKS_AUTH_TYPE: github-oidc\n  DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}\n  DATABRICKS_CLIENT_ID: ${{ vars.DATABRICKS_CLIENT_ID }}\n  # Picks the prod target without -t on every command.\n  DATABRICKS_BUNDLE_TARGET: prod\n  # Any BUNDLE_VAR_<name> sets the bundle variable <name>. The release tag records which commit deployed.\n  BUNDLE_VAR_catalog: ${{ vars.DATABRICKS_CATALOG }}\n  BUNDLE_VAR_release: ${{ github.sha }}\n\njobs:\n  # The helper code's tests need no Spark and no workspace, so they run first and fail fast.\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-python@v5\n        with:\n          python-version: \"3.12\"\n      - run: pip install pytest\n      - run: pytest tests\n\n  validate:\n    if: github.event_name == 'pull_request'\n    needs: test\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      # Pinned to the CLI version the starter is tested with, so a new CLI release can't change a deploy.\n      - uses: databricks/setup-cli@v1.17.0\n      - run: databricks bundle validate --strict\n\n  deploy:\n    if: github.event_name == 'push'\n    needs: test",
       "functions": {}
     }
   ],

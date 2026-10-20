@@ -5,7 +5,7 @@ A small Declarative Automation Bundle (formerly Databricks Asset Bundles) you ca
 - a serverless Lakeflow Declarative Pipeline that generates 100,000 synthetic orders with [dbldatagen](https://databrickslabs.github.io/dbldatagen/public_docs/index.html) (bronze), drops the rows that break a rule (silver), and totals revenue per day and category (gold)
 - a job that runs the pipeline, then checks the row counts and prints the expectation results
 - a `dev` target (the default) and a `prod` target
-- a GitHub Actions workflow that validates pull requests and deploys `main`
+- a GitHub Actions workflow that tests and validates pull requests and deploys `main`, signing in with OIDC
 
 Everything runs on serverless compute.
 
@@ -97,16 +97,27 @@ pytest tests
 
 ## Deploy from GitHub Actions
 
-`.github/workflows/bundle.yml` validates every pull request and deploys `main` to prod. It signs in as a service principal through OAuth. Add these in your repo under Settings, Secrets and variables, Actions:
+`.github/workflows/bundle.yml` runs the tests and validates the bundle on every pull request, and deploys `main` to prod. It signs in with GitHub OIDC: each run gets a short-lived token that Databricks trusts, so the repo stores no Databricks secret.
 
-| Name | Type | Value |
-|---|---|---|
-| `DATABRICKS_HOST` | secret | Your workspace URL |
-| `DATABRICKS_CLIENT_ID` | secret | Application ID of a service principal |
-| `DATABRICKS_CLIENT_SECRET` | secret | An OAuth secret for that service principal |
-| `DATABRICKS_CATALOG` | variable | The catalog from above |
+1. Create a service principal and give it `USE CATALOG` and `CREATE SCHEMA` on the catalog.
+2. Add two federation policies to the service principal, with issuer `https://token.actions.githubusercontent.com`:
 
-Give the service principal `USE CATALOG` and `CREATE SCHEMA` on the catalog. Never commit a token or a secret to the repo.
+   | Job | Subject |
+   |---|---|
+   | deploy | `repo:<org>/<repo>:environment:prod` |
+   | validate | `repo:<org>/<repo>:pull_request` |
+
+   Newer repositories put numeric IDs in the subject, such as `repo:<org>@<id>/<repo>@<id>:environment:prod`. Use the form your repository's tokens carry. See <https://docs.databricks.com/aws/en/dev-tools/auth/provider-github>.
+3. In the GitHub repo, create an environment named `prod` (Settings, Environments) and add required reviewers, so a person approves each production deploy.
+4. Add these repository variables (Settings, Secrets and variables, Actions, Variables):
+
+   | Name | Value |
+   |---|---|
+   | `DATABRICKS_HOST` | Your workspace URL |
+   | `DATABRICKS_CLIENT_ID` | Application ID of the service principal |
+   | `DATABRICKS_CATALOG` | The catalog from above |
+
+The workflow pins `databricks/setup-cli@v1.17.0`, the CLI version this starter is tested with. Change the version on purpose, in a pull request, so a new CLI release can't change a deploy. Never commit a token or a secret to the repo.
 
 ## Add an app, Lakebase, a dashboard, or a Genie agent
 
@@ -139,7 +150,7 @@ databricks bundle destroy -t prod --var catalog=<catalog>
 | `guides/dab-starter/pipeline/orders.py` | The pipeline source |
 | `guides/dab-starter/00_start_here.py`, `01_check_gold.py` | Notebooks the job and you can open in the workspace |
 | `src/` | Helper code for the notebooks, and its tests in `tests/` |
-| `.github/workflows/bundle.yml` | Validate on pull request, deploy on `main` |
+| `.github/workflows/bundle.yml` | Test and validate on pull request, deploy on `main` with OIDC |
 | `examples/` | Copy-ready app, Lakebase, dashboard, and Genie agent resources |
 
 ## Learn more
@@ -158,4 +169,5 @@ databricks bundle destroy -t prod --var catalog=<catalog>
 | AI/BI dashboards | <https://docs.databricks.com/aws/en/dashboards> |
 | Genie agents and Genie One | <https://docs.databricks.com/aws/en/genie-agents>, <https://docs.databricks.com/aws/en/genie-one> |
 | GitHub Actions | <https://docs.databricks.com/aws/en/dev-tools/ci-cd/github> |
+| Sign in from GitHub Actions with OIDC | <https://docs.databricks.com/aws/en/dev-tools/auth/provider-github> |
 | Example bundles from Databricks | <https://github.com/databricks/bundle-examples> |

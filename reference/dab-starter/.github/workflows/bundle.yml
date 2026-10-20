@@ -1,18 +1,30 @@
-# Validate the bundle on every pull request; deploy it to prod when a change lands on main.
+# Test the helper code and validate the bundle on every pull request; deploy it to prod when a change
+# lands on main.
 #
-# Set these in the GitHub repo (Settings > Secrets and variables > Actions):
-#   secret   DATABRICKS_HOST           your workspace URL, https://<workspace-host>
-#   secret   DATABRICKS_CLIENT_ID      application ID of a Databricks service principal
-#   secret   DATABRICKS_CLIENT_SECRET  an OAuth secret for that service principal
-#   variable DATABRICKS_CATALOG        the catalog the bundle creates its schema in
+# Sign-in uses GitHub OIDC (workload identity federation): each run gets a short-lived GitHub token
+# that Databricks exchanges for access, so the repo stores no Databricks secret.
+#
+# In the GitHub repo, add these variables (Settings > Secrets and variables > Actions > Variables):
+#   DATABRICKS_HOST       your workspace URL, https://<workspace-host>
+#   DATABRICKS_CLIENT_ID  application ID of a Databricks service principal
+#   DATABRICKS_CATALOG    the catalog the bundle creates its schema in
+# and create an environment named prod (Settings > Environments) with required reviewers, so a person
+# approves each production deploy.
+#
+# On the service principal, add a federation policy for each job, with issuer
+# https://token.actions.githubusercontent.com and these subjects:
+#   repo:<org>/<repo>:environment:prod   the deploy job, which runs in the prod environment
+#   repo:<org>/<repo>:pull_request       the validate job
+# Newer repositories put numeric IDs in the subject, such as repo:<org>@<id>/<repo>@<id>:environment:prod.
+# Use the form your repository's tokens carry.
 #
 # The service principal needs USE CATALOG and CREATE SCHEMA on that catalog, and permission to
 # create jobs and pipelines in the workspace.
 #
 # Learn more:
-#   Bundles in GitHub Actions             https://docs.databricks.com/aws/en/dev-tools/ci-cd/github
-#   OAuth for a service principal (M2M)   https://docs.databricks.com/aws/en/dev-tools/auth/oauth-m2m
-#   CI/CD on Databricks                   https://docs.databricks.com/aws/en/dev-tools/ci-cd
+#   Sign in from GitHub Actions with OIDC  https://docs.databricks.com/aws/en/dev-tools/auth/provider-github
+#   Bundles in GitHub Actions              https://docs.databricks.com/aws/en/dev-tools/ci-cd/github
+#   CI/CD on Databricks                    https://docs.databricks.com/aws/en/dev-tools/ci-cd
 name: bundle
 
 on:
@@ -20,30 +32,53 @@ on:
   push:
     branches: [main]
 
+# id-token: write lets each job request the OIDC token; contents: read lets it check out the repo.
+permissions:
+  id-token: write
+  contents: read
+
 env:
-  DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
-  DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
-  DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+  DATABRICKS_AUTH_TYPE: github-oidc
+  DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
+  DATABRICKS_CLIENT_ID: ${{ vars.DATABRICKS_CLIENT_ID }}
   # Picks the prod target without -t on every command.
-  DATABRICKS_BUNDLE_ENV: prod
-  # Any BUNDLE_VAR_<name> sets the bundle variable <name>.
+  DATABRICKS_BUNDLE_TARGET: prod
+  # Any BUNDLE_VAR_<name> sets the bundle variable <name>. The release tag records which commit deployed.
   BUNDLE_VAR_catalog: ${{ vars.DATABRICKS_CATALOG }}
+  BUNDLE_VAR_release: ${{ github.sha }}
 
 jobs:
-  validate:
-    if: github.event_name == 'pull_request'
+  # The helper code's tests need no Spark and no workspace, so they run first and fail fast.
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: databricks/setup-cli@main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pytest
+      - run: pytest tests
+
+  validate:
+    if: github.event_name == 'pull_request'
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Pinned to the CLI version the starter is tested with, so a new CLI release can't change a deploy.
+      - uses: databricks/setup-cli@v1.17.0
       - run: databricks bundle validate --strict
 
   deploy:
     if: github.event_name == 'push'
+    needs: test
     runs-on: ubuntu-latest
+    # Runs in the prod environment: its required reviewers approve the deploy, and the OIDC token's
+    # subject names the environment, which the federation policy checks.
+    environment: prod
     steps:
       - uses: actions/checkout@v4
-      - uses: databricks/setup-cli@main
+      - uses: databricks/setup-cli@v1.17.0
       # Deploy changes only what differs from the last deploy, then the run proves the change works.
       - run: databricks bundle deploy
       - run: databricks bundle run capability_guides_dab_starter
