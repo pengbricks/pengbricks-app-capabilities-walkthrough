@@ -64,7 +64,7 @@ export const walkthrough: Walkthrough = {
           ],
           [
             'Tags',
-            'At deploy. Set custom_tags on jobs and pipelines, and tags on budget policies, so usage and ownership appear in system tables.',
+            'At deploy. Set custom_tags on jobs and pipelines, and tags on serverless usage policies, so usage and ownership appear in system tables.',
           ],
         ],
       },

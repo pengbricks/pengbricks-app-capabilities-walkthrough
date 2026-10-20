@@ -228,7 +228,7 @@ SELECT * FROM read_files('/Volumes/main/ingest/archive/events', format => 'json'
         },
         {
           strong: 'Cost.',
-          text: 'Tag pipelines and jobs and use a serverless budget policy. Compare the cost per million rows of triggered and continuous modes before you commit to the faster one.',
+          text: 'Tag pipelines and jobs and use a serverless usage policy. Compare the cost per million rows of triggered and continuous modes before you commit to the faster one.',
         },
       ],
     },

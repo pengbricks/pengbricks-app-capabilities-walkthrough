@@ -115,7 +115,7 @@ export const walkthrough: Walkthrough = {
         type: 'flow',
         title: 'SQL Server to bronze',
         description:
-          'The ingestion gateway, on classic compute, connects to SQL Server over TCP 1433 with TLS, using the credentials in the Unity Catalog connection. It stages change data in a Unity Catalog volume. The serverless ingestion pipeline applies the staged changes to bronze tables on a schedule. Silver tables and a Genie space read from bronze.',
+          'The ingestion gateway, on classic compute, connects to SQL Server over TCP 1433 with TLS, using the credentials in the Unity Catalog connection. It stages change data in a Unity Catalog volume. The serverless ingestion pipeline applies the staged changes to bronze tables on a schedule. Silver tables and a Genie Agent read from bronze.',
         nodes: [
           { id: 'src', label: 'SQL Server', sub: 'CDC + Change Tracking', col: 0, row: 0, kind: 'store' },
           { id: 'conn', label: 'UC connection', sub: 'host, login, TLS', col: 0, row: 1 },
@@ -743,7 +743,7 @@ WHERE order_id IN (20, 117) OR customer_id = 42 AND status = 'NEW';  -- 20 is go
       id: 'lineage-genie',
       heading: 'Lineage to a Silver table, then a Genie query on it',
       prose:
-        'Build silver as materialized views over bronze: current rows, history with validity windows, and facts joined to dimensions. Unity Catalog records lineage from each bronze table to silver; open a silver table in Catalog Explorer and choose the Lineage tab. A Genie space over the silver tables can then answer business questions, and you can compare the SQL it writes with a hand-written query.',
+        'Build silver as materialized views over bronze: current rows, history with validity windows, and facts joined to dimensions. Unity Catalog records lineage from each bronze table to silver; open a silver table in Catalog Explorer and choose the Lineage tab. A Genie Agent over the silver tables can then answer business questions, and you can compare the SQL it writes with a hand-written query.',
       examples: [
         {
           label: 'Read lineage from the system table',
@@ -763,7 +763,7 @@ WHERE target_table_full_name LIKE '<catalog>.<schema>.lfc_silver_%'
       ],
       links: [
         { label: 'Data lineage in Unity Catalog', url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/data-lineage' },
-        { label: 'Genie spaces', url: 'https://docs.databricks.com/aws/en/genie' },
+        { label: 'Genie Agents', url: 'https://docs.databricks.com/aws/en/genie' },
       ],
     },
     {

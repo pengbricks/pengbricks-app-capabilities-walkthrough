@@ -135,7 +135,7 @@ export const guides: readonly Guide[] = [
     difficulty: 2,
     summary: 'Download a starter bundle, push it to your Git repo, then validate, deploy, and run it with the CLI.',
     acceptanceCriteria:
-      'A starter bundle is downloaded, pushed to your own Git repo, validated, deployed to a development target, and run. A serverless Lakeflow Declarative Pipeline builds bronze, silver, and gold tables from synthetic orders. The same bundle then deploys to a prod target and is destroyed cleanly.',
+      'A starter bundle is downloaded, pushed to your own Git repo, validated, deployed to a development target, and run. A serverless Lakeflow Spark Declarative Pipeline builds bronze, silver, and gold tables from synthetic orders. The same bundle then deploys to a prod target and is destroyed cleanly.',
     evidence: [
       'Validated, deployed, and run bundle in the development target',
       'Bronze, silver, and gold tables with expectation results',
@@ -771,11 +771,11 @@ export const guides: readonly Guide[] = [
     category: 'Governance/Monitoring',
     difficulty: 2,
     summary:
-      'Attribute spend with tags and serverless budget policies, alert with Budgets, and forecast once there is history.',
+      'Attribute spend with tags and serverless usage policies, alert with Budgets, and forecast once there is history.',
     acceptanceCriteria:
-      'Classic compute carries enforced custom tags and serverless usage carries a budget policy, so spend rolls up by team. Budgets alert on thresholds, usage_metadata and identity_metadata fill the gaps, and untagged spend is tracked down to zero.',
+      'Classic compute carries enforced custom tags and serverless usage carries a serverless usage policy, so spend rolls up by team. Budgets alert on thresholds, usage_metadata and identity_metadata fill the gaps, and untagged spend is tracked down to zero.',
     evidence: [
-      'Tag and budget policy coverage for classic and serverless spend',
+      'Tag and serverless usage policy coverage for classic and serverless spend',
       'Budget thresholds and account usage dashboards',
       'Untagged-spend and product-level usage queries',
     ],

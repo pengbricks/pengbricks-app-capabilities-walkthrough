@@ -74,4 +74,4 @@ This guide records a SQL alert on 7-day list-price spend. The account budgets AP
 - Costs are list prices. Discounts and commitments change the invoice.
 - The system tables hold every workspace in the metastore, so the view filters on this workspace's ID at run time.
 - Billing records land with a delay, and the current day is partial, which pulls the forecast down.
-- Most spend in the reference workspace is untagged. Add tags (or a serverless budget policy) to workloads before using the tag breakdown for chargeback.
+- Most spend in the reference workspace is untagged. Add tags (or a serverless usage policy) to workloads before using the tag breakdown for chargeback.

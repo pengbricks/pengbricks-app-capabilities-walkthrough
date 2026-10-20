@@ -2,7 +2,7 @@
 
 ## Overview
 
-The sample sales tables store codes (`seg_cd`, `rgn_cd`, `ord_st`). The job asks a Genie space five business questions over the raw tables, adds table and column comments, tags, and a Unity Catalog metric view with synonyms, then asks a second space the same five questions. It records the SQL Genie wrote each time and whether the rows match an expected query.
+The sample sales tables store codes (`seg_cd`, `rgn_cd`, `ord_st`). The job asks a Genie Agent five business questions over the raw tables, adds table and column comments, tags, and a Unity Catalog metric view with synonyms, then asks a second space the same five questions. It records the SQL Genie wrote each time and whether the rows match an expected query.
 
 ## What this shows
 
@@ -46,14 +46,14 @@ flowchart LR
    SELECT question_id, baseline_match, enhanced_match FROM <catalog>.<schema>.ontology_comparison_summary;
    ```
 4. Open `ontology_comparison` and compare `genie_sql` for one question across the two stages.
-5. Open both Genie spaces from `genie_spaces` and ask "What is total revenue by customer segment?" in each.
+5. Open both Genie Agents from `genie_spaces` and ask "What is total revenue by customer segment?" in each.
 6. Ask the second space "Show turnover by tier". Neither word appears in the column names.
 
 ## Artifacts produced
 
 - Tables: `cust` (400 rows), `ord_fact` (6,000 rows), `ontology_comparison`, `ontology_comparison_summary`, `genie_spaces`
 - Metric view: `sales_metrics`
-- Genie spaces, created through `POST /api/2.0/genie/spaces` by the notebooks (a bundle `genie_spaces` resource can declare them instead): a baseline space and an enhanced space, IDs and URLs in `genie_spaces`
+- Genie Agents, created through `POST /api/2.0/genie/spaces` by the notebooks (a bundle `genie_spaces` resource can declare them instead): a baseline space and an enhanced space, IDs and URLs in `genie_spaces`
 
 ## Reference run
 

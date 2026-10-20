@@ -212,7 +212,7 @@ export const walkthrough: Walkthrough = {
         },
         {
           strong: 'Prefer serverless jobs.',
-          text: 'They start fast and need no cluster sizing. Use budget policies to attribute their cost.',
+          text: 'They start fast and need no cluster sizing. Use serverless usage policies to attribute their cost.',
         },
       ],
       links: [

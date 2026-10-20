@@ -94,4 +94,4 @@ flowchart LR
 - The first request after scale-to-zero includes a cold start; the output records both a first and a second request.
 - The data is public and the thresholds are low. Real churn scores about 0.72 holdout AUC here, so dev uses `min_auc` 0.65 and test 0.70 (the earlier synthetic data scored about 0.98). A production pipeline would read a governed feature table and add fairness and drift checks to `run_tests`.
 - Rollback is a re-run with the previous version's alias; there is no automatic rollback on a failed smoke test.
-- Add canary traffic splitting or an AI Gateway rate limit for production use.
+- Add canary traffic splitting or an Unity Gateway rate limit for production use.

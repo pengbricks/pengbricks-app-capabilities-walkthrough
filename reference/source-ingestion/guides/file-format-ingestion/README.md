@@ -66,7 +66,7 @@ flowchart LR
 
 ## Reference run
 
-One job generates five sample files from the use-case spec, ingests them with one Lakeflow Declarative Pipeline, and checks each table against the spec. The formats are a CSV file, a pipe-delimited file with quoted embedded delimiters, a multi-sheet Excel workbook of which one named sheet is read, nested JSON, and XML with repeating and optional nodes. Auto Loader (`read_files`) ingests all five.
+One job generates five sample files from the use-case spec, ingests them with one Lakeflow Spark Declarative Pipeline, and checks each table against the spec. The formats are a CSV file, a pipe-delimited file with quoted embedded delimiters, a multi-sheet Excel workbook of which one named sheet is read, nested JSON, and XML with repeating and optional nodes. Auto Loader (`read_files`) ingests all five.
 
 Artifacts:
 

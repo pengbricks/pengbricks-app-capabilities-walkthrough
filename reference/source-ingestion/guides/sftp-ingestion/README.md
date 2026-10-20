@@ -23,7 +23,7 @@ flowchart LR
   log[(sftp_transfer_log)] --> fetch
   fetch --> vol[/Volume: source_landing/sftp/]
   fetch --> log
-  vol --> al[Auto Loader<br/>Lakeflow Declarative Pipeline]
+  vol --> al[Auto Loader<br/>Lakeflow Spark Declarative Pipeline]
   al --> text[(sftp_text_files)]
   al --> bin[(sftp_binary_files)]
   text --> verify[verify_tables]
@@ -60,7 +60,7 @@ flowchart LR
 
 ## Reference run
 
-One job connects to an SFTP server with credentials from a Databricks secret scope, copies the files it has not copied before to a Unity Catalog volume, and ingests them with a Lakeflow Declarative Pipeline and Auto Loader. A second fetch right after ingestion finds nothing new. The reference run uses the public read-only server `test.rebex.net`, which is reachable from serverless compute.
+One job connects to an SFTP server with credentials from a Databricks secret scope, copies the files it has not copied before to a Unity Catalog volume, and ingests them with a Lakeflow Spark Declarative Pipeline and Auto Loader. A second fetch right after ingestion finds nothing new. The reference run uses the public read-only server `test.rebex.net`, which is reachable from serverless compute.
 
 Artifacts:
 

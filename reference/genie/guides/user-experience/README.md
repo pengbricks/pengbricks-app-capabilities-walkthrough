@@ -2,7 +2,7 @@
 
 ## Overview
 
-A scripted user works through a Genie space over the `sales_metrics` metric view: find out what data exists, ask a question, refine it in the same conversation, ask a vague question, and rate the answers. The job drives the Genie Conversation API and logs each task in `ux_session_log` with its outcome, any issue, and the training need.
+A scripted user works through a Genie Agent over the `sales_metrics` metric view: find out what data exists, ask a question, refine it in the same conversation, ask a vague question, and rate the answers. The job drives the Genie Conversation API and logs each task in `ux_session_log` with its outcome, any issue, and the training need.
 
 ## What this shows
 
@@ -52,7 +52,7 @@ sequenceDiagram
 ## Artifacts produced
 
 - Tables: `ux_session_log` (6 rows per run), `genie_spaces`
-- Genie space created through the API by the last notebook (a bundle `genie_spaces` resource can declare it instead); ID and URL in `genie_spaces`
+- Genie Agent created through the API by the last notebook (a bundle `genie_spaces` resource can declare it instead); ID and URL in `genie_spaces`
 
 ## Reference run
 

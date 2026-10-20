@@ -5,15 +5,15 @@ export const walkthrough: Walkthrough = {
   area: 'Governance/Monitoring',
   title: 'Cost tracking and chargeback',
   intro:
-    'Chargeback works when every unit of spend carries a label for who owns it. On classic compute that label is a custom tag. On serverless it comes from a serverless budget policy, because there is no cluster to tag. Databricks writes the labels into system.billing.usage, where you join them to list prices, report by team, and raise alerts with Budgets. This page covers how to attribute spend for each product, how to enforce the labels, which columns identify the workload and the person, and how to forecast without fooling yourself.',
+    'Chargeback works when every unit of spend carries a label for who owns it. On classic compute that label is a custom tag. On serverless it comes from a serverless usage policy, because there is no cluster to tag. Databricks writes the labels into system.billing.usage, where you join them to list prices, report by team, and raise alerts with Budgets. This page covers how to attribute spend for each product, how to enforce the labels, which columns identify the workload and the person, and how to forecast without fooling yourself.',
   shortVersion: [
     {
       title: 'Tag classic compute; use policies for serverless.',
-      body: 'Custom tags on clusters, pools, and warehouses flow into billing. Serverless budget policies add tags to serverless notebooks, jobs, pipelines, apps, and endpoints.',
+      body: 'Custom tags on clusters, pools, and warehouses flow into billing. Serverless usage policies add tags to serverless notebooks, jobs, pipelines, apps, and endpoints.',
     },
     {
       title: 'Enforce the tags.',
-      body: 'Require tags in compute policies, and assign a budget policy to every user, group, and service principal. Untagged spend is the number to drive to zero.',
+      body: 'Require tags in compute policies, and assign a serverless usage policy to every user, group, and service principal. Untagged spend is the number to drive to zero.',
     },
     {
       title: 'Use Budgets for threshold alerts.',
@@ -31,7 +31,7 @@ export const walkthrough: Walkthrough = {
   sections: [
     {
       id: 'attribute',
-      heading: 'Attribute spend: tags and serverless budget policies',
+      heading: 'Attribute spend: tags and serverless usage policies (formerly serverless budget policies)',
       table: {
         caption: 'How each kind of spend gets its label',
         columns: ['Spend', 'Label'],
@@ -42,7 +42,7 @@ export const walkthrough: Walkthrough = {
           ],
           [
             'Serverless notebooks, jobs, pipelines, apps, endpoints',
-            'A serverless budget policy assigned to the user, group, or service principal. Its tags appear in custom_tags. Assignment applies to new work; update existing jobs to attach a policy.',
+            'A serverless usage policy assigned to the user, group, or service principal. Its tags appear in custom_tags. Assignment applies to new work; update existing jobs to attach a policy.',
           ],
           [
             'Queries on a shared SQL warehouse',
@@ -54,7 +54,7 @@ export const walkthrough: Walkthrough = {
       points: [
         {
           strong: 'Naming.',
-          text: 'Serverless budget policies were renamed from budget policies. The current docs page is titled serverless usage policies and the billing column is usage_policy_id; budget_policy_id is deprecated.',
+          text: 'Serverless usage policies were renamed from budget policies. The current docs page is titled serverless usage policies and the billing column is usage_policy_id; budget_policy_id is deprecated.',
         },
         {
           strong: 'Pick a small tag set.',
@@ -84,7 +84,7 @@ export const walkthrough: Walkthrough = {
           text: 'Set a required or fixed custom tag in policies for classic compute, so no cluster can start without a cost center.',
         },
         {
-          strong: 'Budget policies for everyone.',
+          strong: 'Serverless usage policies for everyone.',
           text: 'A user with one assigned policy gets it automatically. A user with several must choose one, and otherwise the alphabetically first applies. Assign a policy to each group and service principal.',
         },
         {
@@ -142,7 +142,7 @@ ORDER BY dbus DESC;`,
       points: [
         {
           strong: 'Apps.',
-          text: 'Usage records carry app_id and app_name in usage_metadata, and the creator in identity_metadata.created_by. Put the app under a serverless budget policy so its compute also carries your tags.',
+          text: 'Usage records carry app_id and app_name in usage_metadata, and the creator in identity_metadata.created_by. Put the app under a serverless usage policy so its compute also carries your tags.',
         },
         {
           strong: 'Model Serving.',

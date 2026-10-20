@@ -125,7 +125,7 @@ export const walkthrough: Walkthrough = {
       id: 'subsets',
       heading: 'Share a subset with a view',
       prose:
-        'Delta Sharing does not share a table that has row filters or column masks on it; the provider skips it. To give a recipient only some rows or columns, create a view over the table that selects them, and add the view to the share instead of the base table. The recipient never sees the base table or the columns you left out.',
+        'OpenSharing does not share a table that has row filters or column masks on it; the provider skips it. To give a recipient only some rows or columns, create a view over the table that selects them, and add the view to the share instead of the base table. The recipient never sees the base table or the columns you left out.',
       examples: [
         {
           label: 'A view that fixes the region and drops a PII column',

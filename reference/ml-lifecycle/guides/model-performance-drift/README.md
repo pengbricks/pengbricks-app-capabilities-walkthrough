@@ -8,7 +8,7 @@ Best practice: attach data quality monitoring (an inference profile) to a table 
 
 A job trains a model on a 2010-09-01 customer snapshot, scores nine later monthly snapshots, and records operational and model metrics in Unity Catalog tables. The drift is real: the customer base changes from month to month. The job detects it with PSI and mean shift, a SQL alert emails the owner, and a conditional task trains a challenger model for review. Job key: `capability_guides_model_drift`.
 
-Data: UCI Online Retail II (CC BY 4.0), invoice lines from a UK online retailer, 2009-12-01 to 2011-12-09. Chen, D. (2012). Online Retail II [Dataset]. UCI Machine Learning Repository. https://doi.org/10.24432/C5CG6D. The job downloads the zip into a Unity Catalog volume and checks its SHA-256. Metrics are computed in the job; Lakehouse Monitoring was not used.
+Data: UCI Online Retail II (CC BY 4.0), invoice lines from a UK online retailer, 2009-12-01 to 2011-12-09. Chen, D. (2012). Online Retail II [Dataset]. UCI Machine Learning Repository. https://doi.org/10.24432/C5CG6D. The job downloads the zip into a Unity Catalog volume and checks its SHA-256. Metrics are computed in the job; data quality monitoring was not used.
 
 ## What this shows
 
@@ -81,4 +81,4 @@ flowchart LR
 - The alert runs hourly and checks only the newest run's output, so the email can lag the job by up to an hour.
 - Batch AUC did not fall in this run (0.75 to 0.77), but the model under-predicts churn: predicted rate 0.25 to 0.30 against an actual 0.39 to 0.54. Drift metrics and calibration catch this; AUC alone would not.
 - Each run overwrites `batch_scores`, `ops_metrics`, `model_metrics`, and `drift_metrics`, so they hold the latest run only; `retraining_log` grows. Append with a run ID if you need history.
-- Next: Lakehouse Monitoring (data profiling) on `batch_scores` for managed drift tables and a dashboard, and a human approval step before promotion.
+- Next: data quality monitoring (data profiling) on `batch_scores` for managed drift tables and a dashboard, and a human approval step before promotion.

@@ -77,7 +77,7 @@ flowchart LR
 | Separate prod workspace | Isolates prod identities, network rules, secrets, and quotas from development traffic. |
 | Same region for all environment workspaces | They share one metastore, so lineage, grants, and system tables cover the whole path. |
 | Workspace-catalog bindings | A prod catalog is not even visible from dev, regardless of grants. |
-| Serverless compute with budget policies per environment | No cluster sprawl. Cost is attributed by environment tag. |
+| Serverless compute with serverless usage policies per environment | No cluster sprawl. Cost is attributed by environment tag. |
 | Private networking and IP access lists on stage and prod | Prod is reachable only from approved networks. |
 | Bundle targets map to workspaces | `targets.prod.workspace.host` is the only place the prod host appears. |
 
@@ -90,7 +90,7 @@ flowchart LR
 | Bind catalogs to workspaces | Set the catalog's isolation mode to isolated and bind it to the environment's workspace. Bind prod read-only into stage only when a parity check needs it. |
 | Grant to groups, not users | `<env>-engineers`, `<env>-analysts`, `<env>-deployers`. In prod, people get read access and the deploy service principal owns objects. |
 | Service principal ownership in prod | Jobs and pipelines `run_as` the environment's service principal. Ownership does not leave with a person. |
-| No prod data in dev | Use generated sample data (this repo builds it from a use-case spec), masked samples, or Delta Sharing of approved datasets. |
+| No prod data in dev | Use generated sample data (this repo builds it from a use-case spec), masked samples, or OpenSharing of approved datasets. |
 | Tags for environment and release | Every resource carries `environment` and `release` tags, so system tables can report by environment and commit. |
 
 ## Metastore practices
@@ -98,7 +98,7 @@ flowchart LR
 - **One metastore per region, owned by a group.** Assign the metastore admin role to a small admin group, not a person.
 - **No metastore-level default storage for business data.** Give each catalog its own managed location, so the storage boundary follows the environment.
 - **Storage credentials and external locations per environment.** The dev credential cannot reach the prod bucket.
-- **Use Delta Sharing between regions or accounts.** When environments span regions, share across metastores instead of copying data.
+- **Use OpenSharing between regions or accounts.** When environments span regions, share across metastores instead of copying data.
 - **System tables are account-wide.** Monitor every environment from one place and filter by `workspace_id` or the `environment` tag (see the monitoring guide).
 
 ## How this repo applies it

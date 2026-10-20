@@ -42,7 +42,7 @@ flowchart LR
   ing --> b3[(lfc_products)]
   b1 & b2 & b3 --> silver[Silver pipeline]
   silver --> s[(lfc_silver_*)]
-  s --> genie[Genie space]
+  s --> genie[Genie Agent]
 ```
 
 ## Reference code
@@ -89,7 +89,7 @@ databricks secrets put-secret lakeflow_connect_demo sqlserver_app_password --pro
    WHERE customer_id = <id> ORDER BY __START_AT;
    ```
 5. **Day two.** Run `04_schema_change`, then show `DESCRIBE TABLE lfc_customers`. Show the `full_refresh_orders` task and explain why it names one table.
-6. **Lineage and Genie.** Open `lfc_silver_orders` in Catalog Explorer, **Lineage** tab, then the Genie space and ask for revenue by plan.
+6. **Lineage and Genie.** Open `lfc_silver_orders` in Catalog Explorer, **Lineage** tab, then the Genie Agent and ask for revenue by plan.
 7. **Bundle in Git.** Show `resources/` in the repository and the deploy commands above.
 
 ## Reference run

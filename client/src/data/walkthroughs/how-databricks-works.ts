@@ -29,7 +29,7 @@ export const walkthrough: Walkthrough = {
     },
     {
       title: 'You pay for each separately, so tag the spend.',
-      body: 'Compute is billed in DBUs only while it runs. Storage is billed by the cloud provider. Attach serverless budget policies and tags to workloads, then report from system.billing.usage.',
+      body: 'Compute is billed in DBUs only while it runs. Storage is billed by the cloud provider. Attach serverless usage policies and tags to workloads, then report from system.billing.usage.',
     },
   ],
   sections: [
@@ -114,7 +114,7 @@ export const walkthrough: Walkthrough = {
         type: 'matrix',
         title: 'Compute by workload',
         description:
-          'SQL warehouses serve SQL queries, dashboards, and BI tools. Serverless notebooks and jobs run Python and SQL code and scheduled work. Lakeflow Declarative Pipelines run batch and streaming ETL. Classic clusters are optional for workloads that need custom machines or libraries serverless does not support.',
+          'SQL warehouses serve SQL queries, dashboards, and BI tools. Serverless notebooks and jobs run Python and SQL code and scheduled work. Lakeflow Spark Declarative Pipelines run batch and streaming ETL. Classic clusters are optional for workloads that need custom machines or libraries serverless does not support.',
         corner: 'Compute ↓ · Use →',
         columns: ['SQL and BI', 'Notebooks and jobs', 'Pipelines'],
         rows: [
@@ -168,7 +168,7 @@ export const walkthrough: Walkthrough = {
         },
         {
           strong: 'Attribute cost on day one.',
-          text: 'Apply serverless budget policies so serverless usage carries a tag, add custom tags to classic compute and warehouses, and query system.billing.usage by those tags for chargeback.',
+          text: 'Apply serverless usage policies so serverless usage carries a tag, add custom tags to classic compute and warehouses, and query system.billing.usage by those tags for chargeback.',
         },
         {
           strong: 'One metastore per region, many workspaces.',
@@ -177,7 +177,7 @@ export const walkthrough: Walkthrough = {
       ],
       links: [
         { label: 'Predictive optimization', url: 'https://docs.databricks.com/aws/en/optimizations/predictive-optimization' },
-        { label: 'Serverless budget policies', url: 'https://docs.databricks.com/aws/en/admin/usage/budget-policies' },
+        { label: 'Serverless usage policies', url: 'https://docs.databricks.com/aws/en/admin/usage/budget-policies' },
         { label: 'Billable usage system table', url: 'https://docs.databricks.com/aws/en/admin/system-tables/billing' },
       ],
     },

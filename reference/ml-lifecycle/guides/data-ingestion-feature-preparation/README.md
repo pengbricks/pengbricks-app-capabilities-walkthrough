@@ -83,7 +83,7 @@ Artifacts:
 
 ## Limitations and next steps
 
-- The data arrives as one file. A production pipeline reads a governed source and refreshes features on a schedule or with a Lakeflow Declarative Pipeline.
+- The data arrives as one file. A production pipeline reads a governed source and refreshes features on a schedule or with a Lakeflow Spark Declarative Pipeline.
 - Quality checks run after the table is written. Add expectations in a pipeline to stop bad rows earlier.
 - Unity Catalog lineage can lag a query by a minute or more. `record_lineage` polls for up to five minutes and records what it found rather than failing.
 - Each run rewrites the feature table, so the training set name changes with the table version. A production flow would merge into the table and keep older snapshots.

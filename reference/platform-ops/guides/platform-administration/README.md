@@ -10,7 +10,7 @@ One job, `capability-guides-platform-admin`, scripts routine administrator tasks
 |---|---|
 | Set up workspaces | `workspace_checks` records caller identity, workspace ID, metastore, and five workspace settings (token policy, IP access lists, and others) |
 | Set up roles | `roles` finds or creates the workspace group `capability-guides-analysts`, then tries to grant it schema access |
-| Apply policies | `policies` tries a serverless budget policy, then applies the cluster policy `capability-guides-policy` and edits it only if its definition drifts |
+| Apply policies | `policies` tries a serverless usage policy, then applies the cluster policy `capability-guides-policy` and edits it only if its definition drifts |
 | Manage capacity | `capacity` flags warehouses with auto-stop off or above 60 minutes and sums serverless DBUs from `system.billing.usage` |
 | Read audit logs | `audit_access` groups the last 7 days of `system.access.audit` by service and action |
 | Handle routine support | `routine_support` lists failed job runs from the last 24 hours and workspace tokens that expire within 30 days |
@@ -53,16 +53,16 @@ flowchart LR
 
 - Table: `admin_actions` (111 rows across 3 runs in the reference workspace; 53 rows per run)
 - Objects: workspace group `capability-guides-analysts`, cluster policy `capability-guides-policy`
-- Reference run: job `capability_guides_platform_admin`, run 306932051442801. Task results: 8 workspace rows ok, 12 capacity rows ok, 16 audit rows ok, 9 failed-run rows flagged, 1 budget policy `not_allowed`, 1 schema grant `not_allowed`.
+- Reference run: job `capability_guides_platform_admin`, run 306932051442801. Task results: 8 workspace rows ok, 12 capacity rows ok, 16 audit rows ok, 9 failed-run rows flagged, 1 serverless usage policy `not_allowed`, 1 schema grant `not_allowed`.
 
 ## Reference run
 
-The run wrote 53 `admin_actions` rows (111 across three runs): 8 workspace rows (5 settings checked), 12 capacity rows (1 warehouse and 10 serverless SKUs), 16 audit rows (15 service and action pairs plus a summary), and 9 failed-run rows flagged (7 failed runs listed). Two actions were recorded as `not_allowed`: the schema grant, because the job created a workspace-local group and Unity Catalog grants need an account-level group, and the serverless budget policy, because the budget-policies API returned Not Found at the workspace level in the reference workspace. Both are properties of that workspace and its setup; budget policies are managed from the account console or account API, and groups should be created at the account (SCIM, automatic identity management, or Terraform).
+The run wrote 53 `admin_actions` rows (111 across three runs): 8 workspace rows (5 settings checked), 12 capacity rows (1 warehouse and 10 serverless SKUs), 16 audit rows (15 service and action pairs plus a summary), and 9 failed-run rows flagged (7 failed runs listed). Two actions were recorded as `not_allowed`: the schema grant, because the job created a workspace-local group and Unity Catalog grants need an account-level group, and the serverless usage policy, because the budget-policies API returned Not Found at the workspace level in the reference workspace. Both are properties of that workspace and its setup; serverless usage policies are managed from the account console or account API, and groups should be created at the account (SCIM, automatic identity management, or Terraform).
 
 ## Limitations and next steps
 
 - Unity Catalog grants need an account-level group. The job creates a workspace-local group, so the schema grant is refused and recorded. Create the group at the account level (SCIM or Terraform) to complete it.
-- The budget-policies API returned Not Found at the workspace level in the reference workspace. Budget policies are managed from the account console or account API.
+- The budget-policies API returned Not Found at the workspace level in the reference workspace. Serverless usage policies are managed from the account console or account API.
 - Token listing returned 0 tokens, so the expiry check had nothing to flag. It needs admin rights to see other users' tokens.
 - The job runs as the deploying user, who is a workspace admin. Run it as a service principal in a real deployment and grant that principal read access to the system tables.
 - The ledger records what the job saw. It does not alert; add a SQL alert on `status = 'flagged'` if you need one.

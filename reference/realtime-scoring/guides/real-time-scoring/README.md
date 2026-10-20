@@ -110,4 +110,4 @@ flowchart LR
 - The reference run does not record whether the first request hit a cold start; see the note above.
 - The model uses four features and no demographics, so its holdout AUC (0.752) is modest. It shows the serving path, not a production credit model.
 - The endpoint name is fixed per workspace, so two bundle deployments in one workspace share it. Set the `endpoint_name` job parameter to separate them.
-- Next: turn on route optimization with a JWT-capable identity, add AI Gateway rate limits and inference tables, and compare `Small` against `Medium` under the same load.
+- Next: turn on route optimization with a JWT-capable identity, add Unity Gateway rate limits and inference tables, and compare `Small` against `Medium` under the same load.

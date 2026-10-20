@@ -26,7 +26,7 @@ flowchart LR
   end
   batch --> silver[(transactions_silver)]
   stream --> files[/landing/events/]
-  subgraph LDP[Lakeflow Declarative Pipeline, serverless]
+  subgraph LDP[Lakeflow Spark Declarative Pipeline, serverless]
     files --> bronze[(events_bronze<br/>Auto Loader)]
     bronze --> esilver[(events_silver<br/>expectations)]
     esilver --> lat[(ingestion_latency_by_minute)]
@@ -67,7 +67,7 @@ flowchart LR
 
 ## Reference run
 
-One job runs both paths. The batch path is the configuration-driven framework writing `transactions_silver`. The real-time path is a serverless Lakeflow Declarative Pipeline: Auto Loader picks up new event files incrementally, expectations validate them, and a materialized view tracks latency and throughput per minute. A final task records the run's metrics in a table.
+One job runs both paths. The batch path is the configuration-driven framework writing `transactions_silver`. The real-time path is a serverless Lakeflow Spark Declarative Pipeline: Auto Loader picks up new event files incrementally, expectations validate them, and a materialized view tracks latency and throughput per minute. A final task records the run's metrics in a table.
 
 Artifacts:
 

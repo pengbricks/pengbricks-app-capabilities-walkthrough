@@ -37,7 +37,7 @@ export const walkthrough: Walkthrough = {
       id: 'flow',
       heading: 'From source to gold',
       prose:
-        'A Lakeflow Declarative Pipeline is the usual way to build the layers: streaming tables for bronze and silver, materialized views for gold. The pipeline tracks dependencies and only processes new data.',
+        'A Lakeflow Spark Declarative Pipeline is the usual way to build the layers: streaming tables for bronze and silver, materialized views for gold. The pipeline tracks dependencies and only processes new data.',
       diagram: {
         type: 'flow',
         title: 'Bronze, silver, gold',
@@ -128,7 +128,7 @@ export const walkthrough: Walkthrough = {
       id: 'pipeline',
       heading: 'The three layers in SQL',
       prose:
-        'Each layer is a few lines in a Lakeflow Declarative Pipeline. The pipeline reads the definitions, builds the graph, and refreshes only what changed.',
+        'Each layer is a few lines in a Lakeflow Spark Declarative Pipeline. The pipeline reads the definitions, builds the graph, and refreshes only what changed.',
       examples: [
         {
           label: 'Bronze, silver, and gold in one pipeline',

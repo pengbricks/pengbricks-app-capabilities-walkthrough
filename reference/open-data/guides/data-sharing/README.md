@@ -72,7 +72,7 @@ All code is in `reference/open-data/`.
 ## Limitations and next steps
 
 - Creating a share needs `CREATE SHARE` and `CREATE RECIPIENT` on the metastore. In the run linked from this guide the job identity had neither, so only the `BLOCKED` path ran. The `sharing_audit_events` table shows the denied `createShare` call (status 403).
-- The replication row in that run comes from how Delta Sharing works (the recipient gets pre-signed URLs to the provider's files). The storage-path check that verifies it only runs once the share exists.
-- A view is shared, not a row filter: Delta Sharing does not share tables with row filters or column masks, so the view carries the restriction.
+- The replication row in that run comes from how OpenSharing works (the recipient gets pre-signed URLs to the provider's files). The storage-path check that verifies it only runs once the share exists.
+- A view is shared, not a row filter: OpenSharing does not share tables with row filters or column masks, so the view carries the restriction.
 - Open sharing uses a bearer token. For recipients on Databricks, a Databricks-to-Databricks recipient avoids the token and adds recipient-side Unity Catalog governance.
 - `system.access.audit` lags events by minutes. The audit task waits up to `sharing.audit_wait_seconds` in the spec.

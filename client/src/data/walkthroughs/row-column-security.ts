@@ -187,7 +187,7 @@ ALTER TABLE main.sales.orders DROP ROW FILTER;`,
         },
         {
           strong: 'Sharing.',
-          text: 'Delta Sharing skips tables that have row filters or column masks. Share a view of the rows and columns the recipient should see.',
+          text: 'OpenSharing skips tables that have row filters or column masks. Share a view of the rows and columns the recipient should see.',
         },
       ],
       links: [

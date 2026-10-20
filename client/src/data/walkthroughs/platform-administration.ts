@@ -25,7 +25,7 @@ export const walkthrough: Walkthrough = {
     },
     {
       title: 'Serverless first; policies for classic.',
-      body: 'Govern serverless with budget policies, base environments, and egress rules. Use cluster policies only where classic compute remains. Put it all in Terraform or bundles.',
+      body: 'Govern serverless with serverless usage policies, base environments, and egress rules. Use cluster policies only where classic compute remains. Put it all in Terraform or bundles.',
     },
   ],
   sections: [
@@ -191,7 +191,7 @@ export const walkthrough: Walkthrough = {
       heading: 'Govern serverless first, and classic only where it remains',
       points: [
         {
-          strong: 'Serverless budget policies.',
+          strong: 'Serverless usage policies.',
           text: 'A policy carries tags that Databricks writes to billing records for serverless notebooks, jobs, pipelines, apps, and serving endpoints. Assign policies to groups and service principals so spend is attributable without the user doing anything. The docs now call these serverless usage policies, and the billing column is usage_policy_id.',
         },
         {

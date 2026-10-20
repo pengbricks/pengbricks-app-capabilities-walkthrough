@@ -23,7 +23,7 @@ flowchart LR
     gen --> csv[/source_landing/multi_source/files/]
     api[authenticated API client] --> json[/source_landing/multi_source/api/]
   end
-  subgraph LDP[combine_sources: one Lakeflow Declarative Pipeline]
+  subgraph LDP[combine_sources: one Lakeflow Spark Declarative Pipeline]
     dbt --> sdb[stg_db_customers<br/>materialized view]
     csv --> sf[stg_files_customers<br/>streaming table]
     json --> sa[stg_api_users<br/>streaming table]
@@ -63,7 +63,7 @@ flowchart LR
 
 ## Reference run
 
-One Lakeflow Declarative Pipeline reads three sources in three shapes: a database extract (a Delta table), landed CSV files, and API pages landed as JSON lines. Each source maps its own column names into one shape and tags every row with a `source_system` value. The result is one conformed `customers_conformed` table with 260 rows: 120 from the database, 80 from files, and 60 from the API.
+One Lakeflow Spark Declarative Pipeline reads three sources in three shapes: a database extract (a Delta table), landed CSV files, and API pages landed as JSON lines. Each source maps its own column names into one shape and tags every row with a `source_system` value. The result is one conformed `customers_conformed` table with 260 rows: 120 from the database, 80 from files, and 60 from the API.
 
 Artifacts:
 
