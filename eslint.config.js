@@ -17,6 +17,8 @@ export default tseslint.config(
       'client/dist/**',
       'client/runtime/**',
       '**.databricks/**',
+      // Agent and tool worktrees (git worktree add .claude/worktrees/...) hold whole repo copies.
+      '.claude/**',
     ],
   },
 
