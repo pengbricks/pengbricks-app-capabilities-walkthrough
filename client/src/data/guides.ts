@@ -157,6 +157,20 @@ export const guides: readonly Guide[] = [
     ],
   },
   {
+    slug: 'environment-workspaces-catalogs',
+    title: 'Workspaces and catalogs across dev, test, stage, and prod',
+    category: 'CI/CD & Version Control Guides',
+    difficulty: 3,
+    summary: 'Lay out workspaces, catalogs, bindings, and identities for four environments, and audit a real catalog against the layout.',
+    acceptanceCriteria:
+      'Three catalog layouts are compared side by side, with the three-level table name each one gives. A bundle deploys dev, test, stage, and prod targets, and a job reads the catalog\'s isolation mode, workspace bindings, owner, and grants and reports what a layout check finds. The four-catalog setup is shown as SQL and CLI commands.',
+    evidence: [
+      'Workspace and catalog layout comparison with bundle variable mapping',
+      'Audit run with isolation, binding, ownership, and grant findings',
+      'Setup commands for catalogs, bindings, and grants',
+    ],
+  },
+  {
     slug: 'versioning',
     title: 'Data contract versioning',
     category: 'CI/CD & Version Control Guides',

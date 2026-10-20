@@ -1196,6 +1196,112 @@
       }
     }
   ],
+  "environment-workspaces-catalogs": [
+    {
+      "path": "reference/environments/src/layout_lib.py",
+      "symbol": "classify_layout",
+      "startLine": 75,
+      "endLine": 83,
+      "language": "py",
+      "code": "def classify_layout(catalog: str, schema_names: list[str]) -> str:\n    \"\"\"'a' when the catalog is named for an environment, 'b' when it is <env>_<domain>, 'c' when its schemas are.\"\"\"\n    if catalog.lower() in ENVIRONMENTS:\n        return \"a\"\n    if environment_of(catalog):\n        return \"b\"\n    if any(environment_of(s) for s in schema_names if s != \"information_schema\"):\n        return \"c\"\n    return \"unknown\"",
+      "functions": {
+        "classify_layout": "'a' when the catalog is named for an environment, 'b' when it is <env>_<domain>, 'c' when its schemas are.",
+        "environment_of": "The environment a catalog or schema name stands for: its first or last word, if that is dev/test/stage/prod."
+      }
+    },
+    {
+      "path": "reference/environments/src/layout_lib.py",
+      "symbol": "three_level_name",
+      "startLine": 86,
+      "endLine": 94,
+      "language": "py",
+      "code": "def three_level_name(layout: str, env: str, table: str = \"daily_revenue\", domain: str = \"sales\") -> str:\n    \"\"\"The catalog.schema.table a sales table gets in each layout.\"\"\"\n    if layout == \"a\":\n        return f\"{env}.{domain}.{table}\"\n    if layout == \"b\":\n        return f\"{env}_{domain}.reporting.{table}\"\n    if layout == \"c\":\n        return f\"analytics.{env}_{domain}.{table}\"\n    raise ValueError(f\"unknown layout {layout!r}\")",
+      "functions": {
+        "three_level_name": "The catalog.schema.table a sales table gets in each layout."
+      }
+    },
+    {
+      "path": "reference/environments/setup/02_credentials_and_bindings.sh",
+      "symbol": null,
+      "startLine": 19,
+      "endLine": 33,
+      "language": "sh",
+      "code": "# 2. Isolate each catalog, then bind it to its own workspace. OPEN is the default; a binding is only\n#    consulted once the catalog is ISOLATED.\nbind() {  # catalog workspace-id [binding-type]\n  databricks catalogs update \"$1\" --isolation-mode ISOLATED --profile \"$PROFILE\"\n  databricks workspace-bindings update-bindings catalog \"$1\" --profile \"$PROFILE\" \\\n    --json \"{\\\"add\\\": [{\\\"workspace_id\\\": $2, \\\"binding_type\\\": \\\"${3:-BINDING_TYPE_READ_WRITE}\\\"}]}\"\n}\nbind dev   \"$DEV_WS\"\nbind test  \"$TEST_WS\"\nbind stage \"$STAGE_WS\"\nbind prod  \"$PROD_WS\"\n\n# 3. Optional: bind prod into stage read-only, for parity checks. Stage can read prod and cannot write to it.\ndatabricks workspace-bindings update-bindings catalog prod --profile \"$PROFILE\" \\\n  --json \"{\\\"add\\\": [{\\\"workspace_id\\\": ${STAGE_WS}, \\\"binding_type\\\": \\\"BINDING_TYPE_READ_ONLY\\\"}]}\"",
+      "functions": {}
+    },
+    {
+      "path": "reference/environments/databricks.yml",
+      "symbol": null,
+      "startLine": 36,
+      "endLine": 45,
+      "language": "yml",
+      "code": "  # Development mode is the default target. The schema becomes dev_<you>_envdemo: your personal sandbox.\n  dev:\n    default: true\n    mode: development\n    variables:\n      environment: dev\n    presets:\n      tags:\n        environment: dev\n        release: ${var.release}",
+      "functions": {}
+    },
+    {
+      "path": "reference/environments/setup/02_credentials_and_bindings.sh",
+      "symbol": null,
+      "startLine": 12,
+      "endLine": 17,
+      "language": "sh",
+      "code": "# 1. One storage credential per environment, each on its own cloud role (AWS shown; Azure and GCP use\n#    azure_managed_identity and databricks_gcp_service_account in the same JSON slot).\nfor env in dev test stage prod; do\n  databricks storage-credentials create \"${env}_storage\" --profile \"$PROFILE\" \\\n    --json \"{\\\"aws_iam_role\\\": {\\\"role_arn\\\": \\\"arn:aws:iam::${ACCOUNT_ID}:role/${env}-unity-storage\\\"}}\"\ndone",
+      "functions": {}
+    },
+    {
+      "path": "reference/environments/setup/01_catalogs.sql",
+      "symbol": null,
+      "startLine": 6,
+      "endLine": 25,
+      "language": "sql",
+      "code": "-- One external location per environment, on that environment's own bucket or container.\nCREATE EXTERNAL LOCATION IF NOT EXISTS dev_managed   URL 's3://<dev-bucket>/unity'   WITH (STORAGE CREDENTIAL dev_storage);\nCREATE EXTERNAL LOCATION IF NOT EXISTS test_managed  URL 's3://<test-bucket>/unity'  WITH (STORAGE CREDENTIAL test_storage);\nCREATE EXTERNAL LOCATION IF NOT EXISTS stage_managed URL 's3://<stage-bucket>/unity' WITH (STORAGE CREDENTIAL stage_storage);\nCREATE EXTERNAL LOCATION IF NOT EXISTS prod_managed  URL 's3://<prod-bucket>/unity'  WITH (STORAGE CREDENTIAL prod_storage);\n\n-- The catalog creator needs CREATE CATALOG on the metastore and CREATE MANAGED STORAGE on the location.\nGRANT CREATE MANAGED STORAGE ON EXTERNAL LOCATION prod_managed TO `platform-admins`;\n\n-- One catalog per environment. MANAGED LOCATION must sit inside the matching external location.\nCREATE CATALOG IF NOT EXISTS dev   MANAGED LOCATION 's3://<dev-bucket>/unity/dev'     COMMENT 'dev environment';\nCREATE CATALOG IF NOT EXISTS test  MANAGED LOCATION 's3://<test-bucket>/unity/test'   COMMENT 'test environment';\nCREATE CATALOG IF NOT EXISTS stage MANAGED LOCATION 's3://<stage-bucket>/unity/stage' COMMENT 'stage environment';\nCREATE CATALOG IF NOT EXISTS prod  MANAGED LOCATION 's3://<prod-bucket>/unity/prod'   COMMENT 'prod environment';\n\n-- Domain schemas inside each catalog. The bundle's schema variable points at one of these.\nCREATE SCHEMA IF NOT EXISTS dev.sales;\nCREATE SCHEMA IF NOT EXISTS test.sales;\nCREATE SCHEMA IF NOT EXISTS stage.sales;\nCREATE SCHEMA IF NOT EXISTS prod.sales;",
+      "functions": {}
+    },
+    {
+      "path": "reference/environments/setup/03_grants.sql",
+      "symbol": null,
+      "startLine": 4,
+      "endLine": 20,
+      "language": "sql",
+      "code": "-- dev: engineers build freely, including a schema of their own for a sandbox.\nGRANT ALL PRIVILEGES ON CATALOG dev TO `dev-engineers`;\n\n-- test and stage: engineers read and the environment's service principal writes.\nALTER CATALOG test  OWNER TO `<test-run-as-service-principal-application-id>`;\nALTER CATALOG stage OWNER TO `<stage-run-as-service-principal-application-id>`;\nGRANT USE CATALOG, USE SCHEMA, SELECT ON CATALOG test  TO `dev-engineers`;\nGRANT USE CATALOG, USE SCHEMA, SELECT ON CATALOG stage TO `dev-engineers`;\n\n-- prod: people read, only the service principal writes. The owner has every privilege, so make\n-- the run-as service principal the owner and nobody else needs write grants.\nALTER CATALOG prod OWNER TO `<prod-run-as-service-principal-application-id>`;\nGRANT USE CATALOG, USE SCHEMA, SELECT ON CATALOG prod TO `prod-analysts`;\nGRANT USE CATALOG, USE SCHEMA, SELECT ON CATALOG prod TO `dev-engineers`;\n\n-- The deploy service principal creates schemas and the jobs that fill them. It does not need the data.\nGRANT USE CATALOG, CREATE SCHEMA ON CATALOG prod TO `<prod-deploy-service-principal-application-id>`;",
+      "functions": {}
+    },
+    {
+      "path": "reference/environments/setup/databricks.four-workspaces.yml.example",
+      "symbol": null,
+      "startLine": 20,
+      "endLine": 48,
+      "language": "yml",
+      "code": "targets:\n  # Developers deploy here from their IDE. Development mode gives each person dev_<you>_ schemas.\n  dev:\n    default: true\n    mode: development\n    workspace:\n      host: https://<dev-workspace-host>\n    variables:\n      catalog: dev\n    presets:\n      tags:\n        environment: dev\n        release: ${var.release}\n\n  # test, stage, and prod deploy only from CI, signed in as that environment's deploy service principal.\n  # run_as is a different service principal: the identity the jobs and pipelines run under.\n  test:\n    mode: production\n    workspace:\n      host: https://<test-workspace-host>\n      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}\n    run_as:\n      service_principal_name: <test-run-as-service-principal-application-id>\n    variables:\n      catalog: test\n    presets:\n      tags:\n        environment: test\n        release: ${var.release}",
+      "functions": {}
+    },
+    {
+      "path": "reference/environments/setup/databricks.four-workspaces.yml.example",
+      "symbol": null,
+      "startLine": 64,
+      "endLine": 79,
+      "language": "yml",
+      "code": "  prod:\n    mode: production\n    workspace:\n      host: https://<prod-workspace-host>\n      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}\n    # Refuse to deploy from any branch except main.\n    git:\n      branch: main\n    run_as:\n      service_principal_name: <prod-run-as-service-principal-application-id>\n    variables:\n      catalog: prod\n    presets:\n      tags:\n        environment: prod\n        release: ${var.release}",
+      "functions": {}
+    },
+    {
+      "path": "reference/environments/guides/environment-workspaces-catalogs/02_audit_layout.py",
+      "symbol": null,
+      "startLine": 49,
+      "endLine": 80,
+      "language": "py",
+      "code": "info = w.catalogs.get(catalog)\ntry:\n    bindings = [(b.workspace_id, value(b.binding_type) or \"BINDING_TYPE_READ_WRITE\") for b in w.workspace_bindings.get_bindings(\"catalog\", catalog)]\nexcept DatabricksError as error:\n    print(f\"Could not read bindings: {error}\")\n    bindings = None\n\ntry:\n    grants = {a.principal: [value(p) for p in a.privileges or []] for a in w.grants.get(\"schema\", f\"{catalog}.{schema}\").privilege_assignments or []}\nexcept DatabricksError as error:\n    print(f\"Could not read grants: {error}\")\n    grants = None\n\nschema_names = [r.schema_name for r in spark.sql(f\"SELECT schema_name FROM `{catalog}`.information_schema.schemata\").collect()]\ntags = spark.sql(\n    f\"SELECT tag_value FROM `{catalog}`.information_schema.schema_tags WHERE schema_name = '{schema}' AND tag_name = 'environment'\"\n).collect()\n\nfacts = Facts(\n    environment=environment,\n    catalog=catalog,\n    schema=schema,\n    schema_names=schema_names,\n    user_name=w.current_user.me().user_name,\n    isolation_mode=value(info.isolation_mode),\n    owner=info.owner,\n    has_managed_location=bool(info.storage_root),\n    bindings=bindings,\n    workspace_id=w.get_workspace_id(),\n    schema_tag=tags[0].tag_value if tags else None,\n    schema_grants=grants,\n    schema_owner=w.schemas.get(f\"{catalog}.{schema}\").owner,",
+      "functions": {}
+    },
+    {
+      "path": "reference/environments/resources/environments.job.yml",
+      "symbol": null,
+      "startLine": 1,
+      "endLine": 36,
+      "language": "yml",
+      "code": "# Seeds the environment schema, audits the layout, then summarizes the findings on a SQL warehouse.\nresources:\n  jobs:\n    capability_guides_environments:\n      name: capability-guides-environments\n      description: Tags the environment schema and loads sample orders outside prod, then reads the catalog's isolation mode, workspace bindings, owner, and grants and writes pass, warn, and info findings about the layout.\n      tags:\n        capability_guide_job: capability_guides_environments\n      max_concurrent_runs: 1\n      timeout_seconds: 1800\n      parameters:\n        - name: catalog\n          default: ${var.catalog}\n        - name: schema\n          default: ${resources.schemas.environment.name}\n        - name: environment\n          default: ${var.environment}\n      tasks:\n        - task_key: seed_environment\n          notebook_task:\n            notebook_path: ../guides/environment-workspaces-catalogs/01_seed_environment.py\n\n        - task_key: audit_layout\n          depends_on: [{task_key: seed_environment}]\n          notebook_task:\n            notebook_path: ../guides/environment-workspaces-catalogs/02_audit_layout.py\n\n        - task_key: audit_summary\n          depends_on: [{task_key: audit_layout}]\n          sql_task:\n            warehouse_id: ${var.warehouse_id}\n            file:\n              path: ../guides/environment-workspaces-catalogs/03_audit_summary.sql\n            parameters:\n              catalog: ${var.catalog}\n              schema: ${resources.schemas.environment.name}",
+      "functions": {}
+    }
+  ],
   "experiment-tracking": [
     {
       "path": "reference/ml-lifecycle/guides/experiment-tracking/01_tracked_run.py",
