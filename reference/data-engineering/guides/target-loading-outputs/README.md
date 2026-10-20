@@ -61,3 +61,12 @@ flowchart LR
 - Files are written from a pandas frame, so this suits exports of thousands of rows, not millions. For large exports use Spark's CSV or JSON writers, which produce a folder of part files.
 - openpyxl needs a local file, because the volume's file system does not support the zip seeks it makes. The job builds the workbook in a temporary folder and copies it.
 - The JSON output is one array. Use `lines=True` for newline-delimited JSON.
+
+## Reference run
+
+Numbers from the recorded run of the bundle job.
+
+- `prepare_target` creates `accounts_target` (1,000 rows) and `accounts_source_batch` (250 change rows).
+- The MERGE applies 60 inserts, 150 updates, and 40 deletes. The target goes from 1,000 to 1,020 rows. The job reads the metrics from Delta history and fails if they differ from the batch or the final count is not 1,020.
+- The four files each hold the same 1,020 rows: `accounts_export.csv` and `accounts_export.txt` 78,931 bytes, `accounts_export.xlsx` 42,418 bytes, `accounts_export.json` 195,159 bytes. Names and sizes are recorded in `target_output_files`.
+- Workbook formatting: bold white header on a dark fill, frozen header row, `#,##0.00` on balance, and column widths from `column_widths` in `de_common/files.py` (minimum 8, maximum 50 characters, unit tested).

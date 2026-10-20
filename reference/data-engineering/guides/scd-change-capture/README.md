@@ -59,3 +59,12 @@ flowchart LR
 - The feed is a Delta table with an op column. A source that only provides full snapshots needs `create_auto_cdc_from_snapshot_flow` in Python.
 - Both tables track history for all columns. `TRACK HISTORY ON` limits type 2 versioning to chosen columns.
 - A real feed needs a sequence column that never goes backwards for a key. Here `change_seq` is 1 or 2.
+
+## Reference run
+
+Numbers from the recorded run of the bundle job.
+
+- Sequence 1 is an initial snapshot of 1,000 accounts. Sequence 2 is a change batch of 60 inserts, 150 updates, and 40 deletes.
+- The first pipeline update uses a full refresh on the initial snapshot. The second runs with `full_refresh: false`, so AUTO CDC applies only the new feed rows.
+- `scd_run_counts` after the change batch: current rows 1,020 in both tables; history rows 1,020 (type 1) and 1,210 (type 2); keys with more than one row 0 and 150; deleted keys 40 in both. Type 2 arithmetic: 1,020 current + 150 superseded versions + 40 closed deleted keys = 1,210.
+- Before the change batch: 1,000 current and 1,000 history rows in both tables.

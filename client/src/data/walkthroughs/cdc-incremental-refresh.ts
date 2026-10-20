@@ -5,27 +5,27 @@ export const walkthrough: Walkthrough = {
   area: 'Data Engineering Guides',
   title: 'CDC and incremental refresh in pipelines',
   intro:
-    'One serverless pipeline loads change data from three kinds of source with AUTO CDC: Debezium-style change files, the Delta change data feed of an operational table, and a snapshot table that is replaced each run. The job runs a full refresh, an incremental update, and a selective full refresh, and records what each one did from the pipeline event log.',
+    'Lakeflow Spark Declarative Pipelines load change data with AUTO CDC from three kinds of source: Debezium-style change files, the Delta change data feed of an operational table, and periodic snapshots. After the first load, run normal incremental updates. Use a full refresh only when logic or history needs rebuilding. This page covers how each source tracks what is new, what a refresh clears, and how to choose.',
   shortVersion: [
     {
-      title: 'Three sources, one pipeline.',
-      body: 'Change files go through Auto Loader to a type 1 table. The change data feed of a Delta table feeds a type 2 table. A snapshot table feeds a second type 2 table.',
+      title: 'Match the source to the flow.',
+      body: 'Change files go through Auto Loader to a type 1 table. A Delta change data feed feeds a type 2 table. A snapshot table feeds AUTO CDC FROM SNAPSHOT.',
     },
     {
       title: 'Each part tracks "new" its own way.',
       body: 'Auto Loader remembers files, Delta streams remember a table version, AUTO CDC uses keys and a sequence column, and snapshots are compared by key.',
     },
     {
-      title: 'An incremental update reads only new input.',
-      body: 'In the reference run the second update read 201 new events, not the 500 orders, and each flow started where the first update stopped.',
+      title: 'Incremental is the default.',
+      body: 'An incremental update reads only new input, and each flow resumes from its checkpoint. Run it on serverless so materialized views can refresh incrementally too.',
     },
     {
-      title: 'A full refresh rebuilds from what the source holds.',
-      body: 'It clears tables and checkpoints. A table with pipelines.reset.allowed = false is kept, so bronze survives.',
+      title: 'A full refresh clears state, so protect what you cannot rebuild.',
+      body: 'It truncates streaming tables and resets checkpoints. Set pipelines.reset.allowed = false on raw tables such as bronze, and prefer a selective refresh of one table.',
     },
     {
-      title: 'The materialized view refreshes incrementally when it can.',
-      body: 'The incremental update chose GROUP_AGGREGATE. The full and selective refreshes chose COMPLETE_RECOMPUTE.',
+      title: 'Validate the feed before you apply it.',
+      body: 'Expectations on bronze catch null keys and missing sequence values. For databases, Lakeflow Connect gives you managed CDC ingestion instead of a hand-built feed.',
     },
   ],
   sections: [
@@ -33,7 +33,7 @@ export const walkthrough: Walkthrough = {
       id: 'flow',
       heading: 'Three sources, one pipeline',
       prose:
-        'Each source needs a different way to read changes. All three end in an AUTO CDC target, and a materialized view sits on the type 1 table.',
+        'Each source needs a different way to read changes. All three end in an AUTO CDC target, and a materialized view can sit on the result.',
       diagram: {
         type: 'flow',
         title: 'Sources, flows, and targets',
@@ -71,7 +71,7 @@ export const walkthrough: Walkthrough = {
       id: 'autoloader',
       heading: 'Auto Loader: files it has already seen',
       prose:
-        'Auto Loader records the files it has processed in the flow checkpoint. The pipeline manages the checkpoint and schema locations, so you set neither. A file with a new name is read once. A file rewritten under a name it already processed is not read again, unless cloudFiles.allowOverwrites is on. This guide uses fixed file names, so the job deletes the old files first and drops bronze to start clean.',
+        'Auto Loader records the files it has processed in the flow checkpoint. The pipeline manages the checkpoint and schema locations, so you set neither. A file with a new name is read once. A file rewritten under a name it already processed is not read again, unless cloudFiles.allowOverwrites is on, so give each batch a new file name.',
       diagram: {
         type: 'flow',
         title: 'How Auto Loader finds new files',
@@ -110,7 +110,7 @@ export const walkthrough: Walkthrough = {
       id: 'delta-feed',
       heading: 'Delta streams and the change data feed',
       prose:
-        'A streaming read of a Delta table stores the last table version it processed in the flow checkpoint. With readChangeFeed each row also carries _change_type, _commit_version and _commit_timestamp. With row tracking on, Automatic change data feed computes them at query time. cdc_orders_source has only delta.enableRowTracking set, and the flow works on serverless without delta.enableChangeDataFeed.',
+        'A streaming read of a Delta table stores the last table version it processed in the flow checkpoint. With readChangeFeed each row also carries _change_type, _commit_version and _commit_timestamp. With row tracking on, Automatic change data feed computes them at query time. With row tracking on the source table, Automatic change data feed works on serverless without delta.enableChangeDataFeed.',
       diagram: {
         type: 'flow',
         title: 'How a Delta stream finds new changes',
@@ -148,7 +148,7 @@ export const walkthrough: Walkthrough = {
       id: 'autocdc',
       heading: 'AUTO CDC: key, order, and deletes',
       prose:
-        'keys identify the row. sequence_by orders the events, so a late event with a lower LSN loses to one already applied; batch 2 includes such a stale event on purpose. apply_as_deletes marks the delete events. The flow name is its checkpoint identity: rename a flow or its table and it starts from a fresh checkpoint.',
+        'keys identify the row. sequence_by orders the events, so a late event with a lower LSN loses to one already applied. apply_as_deletes marks the delete events. The flow name is its checkpoint identity: rename a flow or its table and it starts from a fresh checkpoint.',
       diagram: {
         type: 'flow',
         title: 'What each AUTO CDC argument decides',
@@ -187,7 +187,7 @@ export const walkthrough: Walkthrough = {
       id: 'snapshot',
       heading: 'Snapshot CDC: compare with the last snapshot',
       prose:
-        'A snapshot has no change column. create_auto_cdc_from_snapshot_flow compares each new snapshot with the previous one by key and derives the inserts, updates and deletes. It reports no row metrics, so the guide shows its duration and final counts.',
+        'A snapshot has no change column. create_auto_cdc_from_snapshot_flow compares each new snapshot with the previous one by key and derives the inserts, updates and deletes. It reports no row metrics, so check its duration and final counts.',
       diagram: {
         type: 'flow',
         title: 'How the snapshot flow finds changes',
@@ -251,7 +251,7 @@ export const walkthrough: Walkthrough = {
         description:
           'A full refresh truncates streaming tables and recomputes materialized views, clears every flow checkpoint, then reprocesses what the sources still hold. cdc_orders_bronze has pipelines.reset.allowed false, so it is skipped and keeps its rows.',
         nodes: [
-          { id: 'fr', label: 'Full refresh', sub: 'pipeline_initial', col: 0, row: 1, kind: 'highlight' },
+          { id: 'fr', label: 'Full refresh', sub: 'run on purpose', col: 0, row: 1, kind: 'highlight' },
           { id: 'tr', label: 'Clear tables', sub: 'streaming tables and MVs', col: 1, row: 0, kind: 'box' },
           { id: 'ck', label: 'Clear checkpoints', sub: 'every flow', col: 1, row: 1, kind: 'box' },
           { id: 'br', label: 'cdc_orders_bronze', mono: true, sub: 'reset.allowed = false', col: 1, row: 2, kind: 'gate' },
@@ -280,119 +280,18 @@ export const walkthrough: Walkthrough = {
       ],
     },
     {
-      id: 'settings',
-      heading: 'Where each identifier and setting lives',
-      prose:
-        'Everything that decides what is new, who a row is and what a refresh clears is set in four places: the pipeline code, its table properties, the pipeline YAML, and the job YAML.',
-      diagram: {
-        type: 'matrix',
-        title: 'Settings, where they live, and what they control',
-        description:
-          'AUTO CDC arguments are in pipeline/cdc_orders.py. Table properties reset.allowed and row tracking are in the same file. Auto Loader options are on the bronze table. Pipeline configuration keys are in cdc.pipeline.yml and read with spark.conf.get. full_refresh and full_refresh_selection are in cdc.job.yml. Flow and table names are the checkpoint identity.',
-        corner: 'Setting ↓ · Detail →',
-        columns: ['Where it lives', 'What it controls'],
-        rows: [
-          {
-            label: 'keys, sequence_by',
-            sub: 'apply_as_deletes',
-            cells: [{ state: 'own', text: 'cdc_orders.py, AUTO CDC calls' }, { state: 'own', text: 'Row identity, order, deletes' }],
-          },
-          {
-            label: 'stored_as_scd_type',
-            sub: 'track_history_column_list',
-            cells: [{ state: 'own', text: 'Same calls' }, { state: 'own', text: 'Type 1 or 2, versioned columns' }],
-          },
-          {
-            label: 'pipelines.reset.allowed',
-            sub: 'delta.enableRowTracking',
-            cells: [{ state: 'own', text: 'Table properties in the pipeline' }, { state: 'own', text: 'What a refresh may clear' }],
-          },
-          {
-            label: 'cloudFiles options',
-            sub: 'format, schemaHints',
-            cells: [{ state: 'own', text: 'cdc_orders_bronze' }, { state: 'own', text: 'How files are read and typed' }],
-          },
-          {
-            label: 'cdc_landing_path',
-            sub: 'source and snapshot tables',
-            cells: [{ state: 'own', text: 'cdc.pipeline.yml configuration' }, { state: 'own', text: 'Where the pipeline reads' }],
-          },
-          {
-            label: 'full_refresh',
-            sub: 'full_refresh_selection',
-            cells: [{ state: 'own', text: 'cdc.job.yml pipeline_task' }, { state: 'own', text: 'Which update clears what' }],
-          },
-          {
-            label: 'Flow and table names',
-            cells: [{ state: 'optional', text: 'name= arguments' }, { state: 'optional', text: 'Checkpoint identity' }],
-          },
-        ],
-        legend: [
-          { state: 'own', label: 'Set in this bundle' },
-          { state: 'optional', label: 'Changing it resets state' },
-        ],
-      },
-    },
-    {
-      id: 'measured',
-      heading: 'What each update did',
-      prose:
-        'The inspect notebooks read the event log after each update. Rows written come from flow_progress metrics. The materialized view maintenance type comes from planning_information. The snapshot flow reports no row metric.',
-      diagram: {
-        type: 'matrix',
-        title: 'Dataset by refresh mode, from the reference run',
-        description:
-          'The full refresh loaded 500 rows into each streaming table and recomputed the view. The incremental update read 201 new events, wrote 170 upserts and 30 deletes to the type 1 table, 280 rows to the change data feed table, and refreshed the view with GROUP_AGGREGATE. The selective full refresh only recomputed cdc_orders_daily.',
-        corner: 'Dataset ↓ · Update →',
-        columns: ['Full refresh', 'Incremental', 'Selective refresh'],
-        rows: [
-          {
-            label: 'Bronze table',
-            sub: 'Auto Loader',
-            cells: [{ state: 'own', text: '500 events' }, { state: 'own', text: '201 new events' }, { state: 'none', text: 'not in update' }],
-          },
-          {
-            label: 'SCD 1 target',
-            sub: 'change files',
-            cells: [{ state: 'own', text: '500 rows' }, { state: 'own', text: '170 upserted, 30 deleted' }, { state: 'none', text: 'not in update' }],
-          },
-          {
-            label: 'SCD 2 target',
-            sub: 'change data feed',
-            cells: [{ state: 'own', text: '500 rows' }, { state: 'own', text: '280 rows written' }, { state: 'none', text: 'not in update' }],
-          },
-          {
-            label: 'SCD 2 target',
-            sub: 'snapshot',
-            cells: [{ state: 'optional', text: 'rebuilt, no metric' }, { state: 'optional', text: 'diffed, no metric' }, { state: 'none', text: 'not in update' }],
-          },
-          {
-            label: 'Materialized view',
-            sub: 'cdc_orders_daily',
-            cells: [{ state: 'own', text: 'COMPLETE_RECOMPUTE' }, { state: 'own', text: 'GROUP_AGGREGATE' }, { state: 'own', text: 'COMPLETE_RECOMPUTE' }],
-          },
-        ],
-        legend: [
-          { state: 'own', label: 'Measured in the event log' },
-          { state: 'optional', label: 'No row metric reported' },
-          { state: 'none', label: 'Left alone' },
-        ],
-        caption: 'The late event is the 201st: bronze keeps it, AUTO CDC drops it because a later LSN is already applied.',
-      },
-    },
-    {
       id: 'eventlog',
       heading: 'How the second update knew where to start',
       prose:
-        'The event log shows it. stream_progress events carry the start and end offset of each streaming flow. The incremental update started Auto Loader at the file-queue position where the first update ended, and started the Delta flows at the table version where it ended.',
+        'The pipeline event log shows it. Each streaming flow resumes at the offset where its previous update ended: the file-queue position for Auto Loader, the table version for a Delta source. Query the log to confirm an update read only new input and to see which refresh technique a materialized view used.',
       steps: [
         {
           title: 'Read the events',
-          body: 'read_events pulls the event types the guide uses from event_log for the pipeline.',
+          body: 'Query event_log for the pipeline. flow_progress carries rows written and expectation counts, and planning_information carries the refresh technique of a materialized view.',
         },
         {
-          title: 'Turn offsets into words',
-          body: 'describe_offsets reads a Delta source as table versions and Auto Loader as a file-queue position with the files in the batch.',
+          title: 'Read the offsets',
+          body: 'stream_progress shows where each streaming flow started and stopped: table versions for Delta sources, a file-queue position for Auto Loader.',
         },
       ],
       examples: [
@@ -400,6 +299,46 @@ export const walkthrough: Walkthrough = {
           label: 'Maintenance type of a materialized view update',
           language: 'sql',
           code: "SELECT origin.update_id, timestamp,\n       details:planning_information.technique_information\nFROM event_log(TABLE(main.cdc.cdc_orders_daily))\nWHERE event_type = 'planning_information'\nORDER BY timestamp DESC;",
+        },
+      ],
+    },
+    {
+      id: 'defaults',
+      heading: 'Production defaults',
+      points: [
+        {
+          strong: 'Validate bronze with expectations.',
+          text: 'A null key or a null sequence value breaks ordering. Drop or fail those rows before AUTO CDC sees them.',
+        },
+        {
+          strong: 'Ingest databases with Lakeflow Connect.',
+          text: 'Managed connectors read change data from supported databases, such as SQL Server, into streaming tables, so you skip the Debezium and file landing layer.',
+        },
+        {
+          strong: 'Use serverless pipelines.',
+          text: 'Serverless is required for incremental materialized view refresh and removes autoscaling tuning. Use enhanced autoscaling only if you must stay on classic compute.',
+        },
+        {
+          strong: 'Cluster and maintain the targets.',
+          text: 'Use CLUSTER BY AUTO on large AUTO CDC targets and leave maintenance to predictive optimization.',
+        },
+        {
+          strong: 'Use file events for large landing folders.',
+          text: 'cloudFiles.useManagedFileEvents avoids listing the whole folder on every update.',
+        },
+      ],
+      links: [
+        {
+          label: 'AUTO CDC in Lakeflow Spark Declarative Pipelines',
+          url: 'https://docs.databricks.com/aws/en/ldp/cdc',
+        },
+        {
+          label: 'Auto Loader',
+          url: 'https://docs.databricks.com/aws/en/ingestion/cloud-object-storage/auto-loader/',
+        },
+        {
+          label: 'Pipeline event log',
+          url: 'https://docs.databricks.com/aws/en/ldp/monitor-event-logs',
         },
       ],
     },
