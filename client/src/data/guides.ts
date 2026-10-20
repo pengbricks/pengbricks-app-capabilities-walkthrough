@@ -234,11 +234,11 @@ export const guides: readonly Guide[] = [
     summary:
       'Classify, extract, mask, translate, and parse documents from SQL, and know when to build your own instead.',
     acceptanceCriteria:
-      'Pick the right AI Function for a task, run it once over a table and keep the result, and check the models, permissions, data residency, and compliance settings that apply before it touches regulated data.',
+      'Pick the right AI Function for a task, run it once in a pipeline or job and keep the result, return structured output, evaluate it against labeled rows, and check the models, permissions, data residency, and compliance settings before it touches regulated data.',
     evidence: [
-      'Use cases with the function and SQL for each',
-      'Decision table: task function, ai_query, or hand-built',
-      'Model, permission, residency, and compliance checklist',
+      'Task function, ai_query, or hand-built, chosen for each job',
+      'Structured output, error handling, and evaluation against labeled rows',
+      'Model, permission, residency, and compliance checks before regulated data',
     ],
   },
   {

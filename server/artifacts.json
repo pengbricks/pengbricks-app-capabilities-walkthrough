@@ -6175,7 +6175,7 @@
           "section": "use-cases",
           "notes": [
             "Classify, sentiment, and summary in one pass, saved to a table.",
-            "Category 24 of 24 correct; sentiment 20 of 24."
+            "Write the result once; query the table, not the function."
           ]
         },
         {
@@ -6188,7 +6188,7 @@
           "section": "use-cases",
           "notes": [
             "noul returns a probability; score returns a weighted score.",
-            "Needs the AI Decide preview; the reference workspace has it off, so the step records that and moves on."
+            "Beta. A workspace admin turns on the AI Decide preview first."
           ]
         },
         {
@@ -6214,7 +6214,7 @@
           "section": "use-cases",
           "notes": [
             "Type, confidence, text, figure description, and the box in page-image pixels.",
-            "41 elements on 5 scanned pages. The scan fields are extracted only from elements at 0.8 confidence and above."
+            "Extract only from elements above a confidence threshold you set from a labeled sample."
           ]
         },
         {
@@ -6226,7 +6226,8 @@
           ],
           "section": "use-cases",
           "notes": [
-            "30 pairs scored. At 0.85: 5 of 6 true matches, no false ones."
+            "Block the join, then score each pair once and filter on the saved score.",
+            "Review a middle band of scores by hand."
           ]
         },
         {
@@ -6239,7 +6240,7 @@
           "section": "models",
           "notes": [
             "The struct fields are result and errorMessage.",
-            "Llama 3.3 70B accepted batch calls; Claude Haiku 5.5 did not."
+            "Test a one-row query against a model before you build on it; not every endpoint accepts batch calls."
           ]
         },
         {
@@ -6251,8 +6252,8 @@
           ],
           "section": "flow",
           "notes": [
-            "Backtest error 0.72% (east) and 0.78% (west) on September 2026.",
-            "Serverless notebook compute rejected ai_forecast as a disabled preview."
+            "Runs on the compute that submits it, with no separate inference charge.",
+            "Run it on a Pro or serverless SQL warehouse."
           ]
         },
         {
@@ -6261,7 +6262,8 @@
           "symbol": "leaked",
           "section": "governance",
           "notes": [
-            "Every planted value is searched for in the masked output; 0 of 15 survived."
+            "Search the masked output for known sensitive values on a labeled sample.",
+            "ai_mask is model-based; a column mask is the control."
           ]
         },
         {
