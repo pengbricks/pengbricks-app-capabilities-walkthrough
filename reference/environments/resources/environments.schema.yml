@@ -1,0 +1,7 @@
+# The environment's schema. In layout (c) the environment lives in a schema, not a catalog.
+resources:
+  schemas:
+    environment:
+      name: ${var.schema}
+      catalog_name: ${var.catalog}
+      comment: Environment schema for the environment layout guide. bundle destroy drops it.

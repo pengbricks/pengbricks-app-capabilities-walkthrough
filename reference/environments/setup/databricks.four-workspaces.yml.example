@@ -1,0 +1,79 @@
+# Targets for four workspaces, with one catalog per environment (layout a). Not deployed by this repo:
+# replace every <placeholder>, then keep this file as databricks.yml in your own bundle.
+#
+# Other layouts only change the two variables each target sets:
+#   layout (b) catalog per environment and domain:  catalog: prod_sales   schema: reporting
+#   layout (c) one catalog, environment schemas:    catalog: analytics     schema: prod_sales
+bundle:
+  name: sales-pipelines
+
+variables:
+  catalog:
+    description: Catalog for the environment. Each target sets it. Never hard-code it in resource files
+  schema:
+    description: Schema inside that catalog
+    default: sales
+  release:
+    description: Release identifier recorded in resource tags. CI passes the commit SHA
+    default: local
+
+targets:
+  # Developers deploy here from their IDE. Development mode gives each person dev_<you>_ schemas.
+  dev:
+    default: true
+    mode: development
+    workspace:
+      host: https://<dev-workspace-host>
+    variables:
+      catalog: dev
+    presets:
+      tags:
+        environment: dev
+        release: ${var.release}
+
+  # test, stage, and prod deploy only from CI, signed in as that environment's deploy service principal.
+  # run_as is a different service principal: the identity the jobs and pipelines run under.
+  test:
+    mode: production
+    workspace:
+      host: https://<test-workspace-host>
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+    run_as:
+      service_principal_name: <test-run-as-service-principal-application-id>
+    variables:
+      catalog: test
+    presets:
+      tags:
+        environment: test
+        release: ${var.release}
+
+  stage:
+    mode: production
+    workspace:
+      host: https://<stage-workspace-host>
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+    run_as:
+      service_principal_name: <stage-run-as-service-principal-application-id>
+    variables:
+      catalog: stage
+    presets:
+      tags:
+        environment: stage
+        release: ${var.release}
+
+  prod:
+    mode: production
+    workspace:
+      host: https://<prod-workspace-host>
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+    # Refuse to deploy from any branch except main.
+    git:
+      branch: main
+    run_as:
+      service_principal_name: <prod-run-as-service-principal-application-id>
+    variables:
+      catalog: prod
+    presets:
+      tags:
+        environment: prod
+        release: ${var.release}
