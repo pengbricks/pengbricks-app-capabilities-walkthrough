@@ -6299,6 +6299,10 @@
           "label": "Ingest and silver schedule (paused)"
         }
       ],
+      "gatewayControl": {
+        "jobKey": "capability_guides_lakeflow_connect",
+        "pipelineParameter": "gateway_pipeline_id"
+      },
       "recordedRuns": [],
       "docs": [
         {

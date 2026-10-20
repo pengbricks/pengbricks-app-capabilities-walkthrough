@@ -81,6 +81,7 @@ databricks secrets put-secret lakeflow_connect_demo sqlserver_app_password --pro
 
 ## Demo steps
 
+0. **Turn the gateway on.** In the app, open this guide's **Run it** tab and use **Ingestion gateway cluster > Turn on** a few minutes before the demo; the classic cluster takes a while to start. Use **Turn off** afterwards, within the source's CDC and Change Tracking retention. The app's service principal needs `CAN_RUN` on the gateway pipeline, which the bundle's top-level permissions grant.
 1. **Their questions first.** Open the walkthrough's questions section and answer the customer's list before showing anything.
 2. **Connection.** Catalog Explorer, **Connect > Connections**: open the connection. Host, port, and login are visible; the password is not.
 3. **Ingestion wizard.** **Data ingestion > SQL Server**, pick the connection, name the gateway and its staging schema, select tables, and set history tracking per table. Then open the bundle's `sqlserver.pipelines.yml` and show the same choices as code.

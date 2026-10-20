@@ -153,3 +153,65 @@ def test_workspace_links_point_at_the_deployed_code_and_pipelines(monkeypatch) -
     assert links["startHere"]["url"] == "https://workspace.example.com/editor/notebooks/14"
     assert links["files"] and all(item["url"] == "https://workspace.example.com/editor/files/12" for item in links["files"])
     assert links["pipelines"] == [{"label": "streaming pipeline", "url": "https://workspace.example.com/pipelines/p1"}]
+
+
+def fake_gateway_workspace(state: str, update_state: str | None, calls: list[str]):
+    """A workspace with the Lakeflow Connect job deployed and a gateway pipeline in the given state."""
+    job = SimpleNamespace(job_id=11, settings=SimpleNamespace(name="lfc", tags={"capability_guide_job": "capability_guides_lakeflow_connect"}))
+    parameters = [SimpleNamespace(name="catalog", default="main"), SimpleNamespace(name="gateway_pipeline_id", default="gw1")]
+    status = {"state": state}
+
+    def get_pipeline(pipeline_id):
+        latest = [SimpleNamespace(state=SimpleNamespace(value=update_state))] if update_state else []
+        return SimpleNamespace(name="lfc-gateway", state=SimpleNamespace(value=status["state"]), latest_updates=latest)
+
+    def start_update(pipeline_id):
+        calls.append(f"start {pipeline_id}")
+        status["state"] = "STARTING"
+
+    def stop(pipeline_id):
+        calls.append(f"stop {pipeline_id}")
+        status["state"] = "STOPPING"
+
+    return SimpleNamespace(
+        config=SimpleNamespace(host="https://workspace.example.com"),
+        jobs=SimpleNamespace(list=lambda **_: [job], get=lambda job_id: SimpleNamespace(settings=SimpleNamespace(parameters=parameters))),
+        pipelines=SimpleNamespace(get=get_pipeline, start_update=start_update, stop=stop),
+    )
+
+
+def test_gateway_control_is_only_offered_where_configured() -> None:
+    assert client.get("/api/capability-guides/artifacts/monitoring/gateway").status_code == 404
+
+
+def test_gateway_turns_on_and_off(monkeypatch) -> None:
+    calls: list[str] = []
+    monkeypatch.setattr(artifacts, "workspace_client", lambda: fake_gateway_workspace("IDLE", None, calls))
+    monkeypatch.setattr(artifacts, "directory", artifacts.JobDirectory())
+    url = "/api/capability-guides/artifacts/sqlserver-lakeflow-connect/gateway"
+
+    off = client.get(url).json()
+    assert off["on"] is False and off["pipelineUrl"] == "https://workspace.example.com/pipelines/gw1"
+
+    on = client.post(url, json={"action": "start"}).json()
+    assert calls == ["start gw1"] and on["on"] is True and on["transitioning"] is True
+
+
+def test_gateway_stop_is_a_no_op_when_already_off(monkeypatch) -> None:
+    calls: list[str] = []
+    monkeypatch.setattr(artifacts, "workspace_client", lambda: fake_gateway_workspace("IDLE", "CANCELED", calls))
+    monkeypatch.setattr(artifacts, "directory", artifacts.JobDirectory())
+    url = "/api/capability-guides/artifacts/sqlserver-lakeflow-connect/gateway"
+
+    assert client.post(url, json={"action": "stop"}).json()["on"] is False
+    assert calls == []
+    assert client.post(url, json={"action": "reboot"}).status_code == 400
+
+
+def test_gateway_stop_turns_a_running_gateway_off(monkeypatch) -> None:
+    calls: list[str] = []
+    monkeypatch.setattr(artifacts, "workspace_client", lambda: fake_gateway_workspace("RUNNING", "RUNNING", calls))
+    monkeypatch.setattr(artifacts, "directory", artifacts.JobDirectory())
+
+    body = client.post("/api/capability-guides/artifacts/sqlserver-lakeflow-connect/gateway", json={"action": "stop"}).json()
+    assert calls == ["stop gw1"] and body["state"] == "STOPPING" and body["transitioning"] is True

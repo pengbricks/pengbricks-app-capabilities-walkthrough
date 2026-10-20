@@ -219,6 +219,7 @@ def get_artifacts(slug: str) -> dict[str, Any]:
         "docs": entry.get("docs", []),
         "tools": entry.get("tools", []),
         "autoLoaderDrop": bool(entry.get("autoLoaderDrop")),
+        "gatewayControl": bool(entry.get("gatewayControl")),
         "walkthroughs": [
             {"label": item["label"], "url": repo_url(item["path"]), "route": item.get("route")}
             for item in entry.get("walkthroughs", [])
@@ -449,3 +450,79 @@ def drop_status(slug: str, update_id: str) -> dict[str, Any]:
         except Exception as error:
             logger.warning("Pipeline event lookup failed for %s: %s", update_id, error)
     return response
+
+
+# --- Gateway control: turn a guide's classic-compute pipeline (a Lakeflow Connect gateway) on and off ---
+
+# Pipeline states while the gateway's cluster is up or coming up, and update states before it runs.
+GATEWAY_ON_STATES = {"DEPLOYING", "STARTING", "RECOVERING", "RESETTING", "RUNNING"}
+GATEWAY_STARTING_UPDATES = {"CREATED", "QUEUED", "INITIALIZING", "WAITING_FOR_RESOURCES", "SETTING_UP_TABLES", "RESETTING"}
+
+
+def gateway_config(slug: str) -> dict[str, Any]:
+    config = guide_entry(slug).get("gatewayControl")
+    if not config:
+        raise HTTPException(status_code=404, detail="This guide has no gateway control")
+    return config
+
+
+def gateway_for(w, config: dict[str, Any]) -> str:
+    """The gateway pipeline ID, from the deployed job's parameter that names it."""
+    found = directory.jobs(w).get(config["jobKey"])
+    if not found:
+        raise HTTPException(status_code=404, detail="The reference job is not deployed in this workspace")
+    parameters = w.jobs.get(job_id=found["jobId"]).settings.parameters or []
+    pipeline_id = next((p.default for p in parameters if p.name == config["pipelineParameter"]), None)
+    if not pipeline_id:
+        raise HTTPException(status_code=404, detail=f"The job has no {config['pipelineParameter']} parameter")
+    return pipeline_id
+
+
+def gateway_state(w, pipeline_id: str) -> dict[str, Any]:
+    pipeline = w.pipelines.get(pipeline_id=pipeline_id)
+    state = pipeline.state.value if pipeline.state else "IDLE"
+    latest = (pipeline.latest_updates or [None])[0]
+    update_state = latest.state.value if latest and latest.state else None
+    starting = state in GATEWAY_ON_STATES - {"RUNNING"} or (state != "RUNNING" and update_state in GATEWAY_STARTING_UPDATES)
+    host = w.config.host.rstrip("/")
+    return {
+        "pipelineId": pipeline_id,
+        "name": pipeline.name,
+        "state": state,
+        "updateState": update_state,
+        "on": state in GATEWAY_ON_STATES or starting,
+        "transitioning": starting or state == "STOPPING",
+        "pipelineUrl": f"{host}/pipelines/{pipeline_id}",
+    }
+
+
+@router.get("/artifacts/{slug}/gateway")
+def get_gateway(slug: str) -> dict[str, Any]:
+    config = gateway_config(slug)
+    w = workspace_client()
+    return gateway_state(w, gateway_for(w, config))
+
+
+class GatewayRequest(BaseModel):
+    action: str
+
+
+@router.post("/artifacts/{slug}/gateway")
+def set_gateway(slug: str, request: GatewayRequest) -> dict[str, Any]:
+    if request.action not in {"start", "stop"}:
+        raise HTTPException(status_code=400, detail="action must be start or stop")
+    config = gateway_config(slug)
+    w = workspace_client()
+    pipeline_id = gateway_for(w, config)
+    current = gateway_state(w, pipeline_id)
+    try:
+        if request.action == "start" and not current["on"]:
+            w.pipelines.start_update(pipeline_id=pipeline_id)
+        elif request.action == "stop" and current["on"]:
+            w.pipelines.stop(pipeline_id=pipeline_id)  # returns at once; the page polls until the cluster is released
+    except Exception as error:
+        logger.warning("Gateway %s failed for %s: %s", request.action, slug, error)
+        raise HTTPException(
+            status_code=502, detail=f"Could not {request.action} the gateway. Check the app's run permission on the pipeline."
+        ) from error
+    return gateway_state(w, pipeline_id)

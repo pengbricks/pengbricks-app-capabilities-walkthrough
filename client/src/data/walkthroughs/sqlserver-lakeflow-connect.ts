@@ -159,6 +159,10 @@ export const walkthrough: Walkthrough = {
           text: "If it is down longer than the source's CDC or Change Tracking retention, changes age out of SQL Server and the affected tables need a full refresh.",
         },
         {
+          strong: 'Turn it on and off from the guide.',
+          text: 'The Run it tab has a gateway button: turn the classic cluster on before a demo and off after, as long as it stays off for less than the source retention.',
+        },
+        {
           strong: 'Limits.',
           text: 'One gateway per ingestion pipeline, up to 250 tables per pipeline, and staged change data is purged after 30 days.',
         },

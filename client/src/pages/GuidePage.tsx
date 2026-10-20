@@ -29,6 +29,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router';
 import { AutoLoaderDrop } from '../components/AutoLoaderDrop.tsx';
+import { GatewayControl } from '../components/GatewayControl.tsx';
 import { CodeExcerpt } from '../components/CodeExcerpt.tsx';
 import { DifficultyStars } from '../components/DifficultyStars.tsx';
 import { getGuide } from '../data/guides.ts';
@@ -130,6 +131,7 @@ export function GuidePage() {
                     : 'Loading runs…')}
             </p>
           )}
+          {artifacts?.gatewayControl && artifacts.live && <GatewayControl slug={guide.slug} />}
           {artifacts?.autoLoaderDrop && <AutoLoaderDrop slug={guide.slug} />}
         </TabsContent>
 

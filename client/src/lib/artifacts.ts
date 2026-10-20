@@ -63,6 +63,7 @@ export type GuideArtifacts = {
   tools: ToolLink[];
   walkthroughs: (ArtifactLink & { route: string | null })[];
   autoLoaderDrop: boolean;
+  gatewayControl: boolean;
   highlights: CodeHighlight[];
   jobs: GuideJob[];
   workspace?: WorkspaceLinks;
@@ -171,4 +172,32 @@ export async function dropStatus(slug: string, updateId: string): Promise<DropSt
   const response = await fetch(`${API}/${slug}/drop/updates/${updateId}`);
   if (!response.ok) throw new Error(await errorDetail(response, 'Status is unavailable'));
   return (await response.json()) as DropStatus;
+}
+
+export type GatewayState = {
+  pipelineId: string;
+  name: string;
+  /** Pipeline state, for example IDLE, STARTING, RUNNING, or STOPPING. */
+  state: string;
+  updateState: string | null;
+  /** True while the gateway's classic cluster is up or coming up. */
+  on: boolean;
+  transitioning: boolean;
+  pipelineUrl: string;
+};
+
+export async function loadGateway(slug: string): Promise<GatewayState> {
+  const response = await fetch(`${API}/${slug}/gateway`);
+  if (!response.ok) throw new Error(await errorDetail(response, 'Gateway status is unavailable'));
+  return (await response.json()) as GatewayState;
+}
+
+export async function setGateway(slug: string, action: 'start' | 'stop'): Promise<GatewayState> {
+  const response = await fetch(`${API}/${slug}/gateway`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action }),
+  });
+  if (!response.ok) throw new Error(await errorDetail(response, `Gateway ${action} failed`));
+  return (await response.json()) as GatewayState;
 }
