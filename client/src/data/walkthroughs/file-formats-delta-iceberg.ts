@@ -174,7 +174,7 @@ export const walkthrough: Walkthrough = {
         },
         {
           strong: 'Size and speed come from encoding and skipping.',
-          text: 'Columnar, compressed formats are many times smaller than text. Delta and Iceberg read only the files whose statistics match a filter. Benchmark on your data: small tables hide the difference.',
+          text: 'Columnar, compressed formats are many times smaller than text. Delta and Iceberg read only the files whose statistics match a filter. Benchmark on your own data, because small tables hide the difference.',
         },
         {
           strong: 'Only tables change rows safely.',

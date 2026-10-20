@@ -75,7 +75,7 @@ export const walkthrough: Walkthrough = {
       id: 'use-cases',
       heading: 'Example use cases',
       prose:
-        'Each example writes its result to a table once. Filter out null inputs first: a null input returns null and still costs a call. Try a few hundred rows before the full table.',
+        'Each example writes its result to a table once. Filter out null inputs first, because a null input returns null and still costs a call. Try a few hundred rows before the full table.',
       examples: [
         {
           label: 'Triage support tickets',
