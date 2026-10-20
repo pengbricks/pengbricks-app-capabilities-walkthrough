@@ -1133,19 +1133,21 @@
           "label": "Classify legacy constructs",
           "path": "reference/legacy-conversion/src/lc_helpers.py",
           "notes": [
-            "Regex rules pick the main construct and the feature tags for each step."
+            "Regex rules pick the main construct and the feature tags for each step.",
+            "A teaching stand-in for the Lakebridge Analyzer on one script."
           ],
           "symbol": "classify",
-          "section": "status"
+          "section": "lakebridge"
         },
         {
           "label": "Transpile T-SQL to Databricks SQL",
           "path": "reference/legacy-conversion/src/lc_helpers.py",
           "notes": [
-            "sqlglot does the transpile. Status is manual, warning, or clean."
+            "sqlglot does the transpile. Status is manual, warning, or clean.",
+            "For real estates use a Lakebridge transpiler or the agentic code converter."
           ],
           "symbol": "convert_statement",
-          "section": "status"
+          "section": "convert"
         },
         {
           "label": "Role-based effort model",
@@ -1166,7 +1168,7 @@
             16,
             31
           ],
-          "section": "flow"
+          "section": "phases"
         },
         {
           "label": "Run each converted step",
@@ -1184,7 +1186,8 @@
           "label": "Compare one output table with the reference",
           "path": "reference/legacy-conversion/src/lc_expected.py",
           "notes": [
-            "Row counts, key sets, and column sums."
+            "Row counts, key sets, and column sums against a reference.",
+            "In a real migration the reference is the legacy system output."
           ],
           "symbol": "reconcile_table",
           "section": "reconcile"

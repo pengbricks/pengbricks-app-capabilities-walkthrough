@@ -424,13 +424,13 @@ export const guides: readonly Guide[] = [
     title: 'Legacy workload migration',
     category: 'General Guides',
     difficulty: 5,
-    summary: 'Assess conversion coverage and the remaining human effort.',
+    summary: 'Migrate with Lakebridge: assess, convert, and reconcile against the legacy system, in phases.',
     acceptanceCriteria:
-      'Assess one legacy workload, convert it automatically where possible, reconcile the results, and estimate the remaining effort by role.',
+      'One legacy workload is assessed, converted with automated tooling, reconciled against the legacy system’s own output, and landed on set-based SQL and Lakeflow patterns, with an effort estimate by role and a phased plan.',
     evidence: [
-      'Representative workload assessment',
-      'Automated coverage and remediation log',
-      'Test results and role-based effort estimate',
+      'Assessment from the Profiler and Analyzer, with a prioritized inventory',
+      'Converted code, flagged constructs, and the remediation log',
+      'Reconciliation against legacy output and a phase plan through decommission',
     ],
   },
   {

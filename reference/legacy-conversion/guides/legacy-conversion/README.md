@@ -29,7 +29,9 @@ databricks labs lakebridge transpile --transpiler-config-path <path> --input-sou
 
 How this bundle maps to Lakebridge: `01_assess` stands in for Analyzer on one workload, `02_convert` (sqlglot) stands in for a transpiler, and `03_reconcile` stands in for Reconciler. Use this bundle to explain the loop and its artifacts. Use Lakebridge for a real estate.
 
-## What this shows
+## Reference run
+
+Results from the sqlglot reference bundle on one generated workload. The guide page teaches the Lakebridge path; this bundle is a teaching stand-in.
 
 | Success criterion | Artifact |
 |---|---|
