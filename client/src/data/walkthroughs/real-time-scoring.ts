@@ -5,197 +5,101 @@ export const walkthrough: Walkthrough = {
   area: 'ML Guides',
   title: 'Online model scoring',
   intro:
-    'A job trains a credit default model on real card-holder data, deploys it to a Model Serving endpoint that scales to zero, and scores it with an OAuth token from the SDK. The question the endpoint answers is: will this card holder default next month? The job times 71 requests and sends four bad ones. A second job deletes the endpoint.',
+    'Online scoring is a model behind an authenticated HTTPS endpoint with a latency target. Databricks Model Serving hosts the model, scales it, and logs its traffic. Around it you decide who may call it, how much they may call, where features come from at request time, and how you will know when it slows or fails. This page covers those decisions and a repeatable way to load-test the result.',
   shortVersion: [
     {
-      title: 'The model comes from a spec and public data.',
-      body: 'The use-case file names four features, each read from a column of UCI Default of Credit Card Clients (30,000 card holders, CC BY 4.0). The trained model scores a holdout AUC of 0.752 and is registered in Unity Catalog.',
+      title: 'Secure callers with OAuth and CAN QUERY.',
+      body: 'Grant CAN QUERY to the users or service principals that call the endpoint. Callers authenticate with OAuth tokens, using M2M or workload identity federation, not personal access tokens.',
     },
     {
-      title: 'The endpoint is small and idle-free.',
-      body: 'Workload size Small with scale-to-zero on, so it costs nothing while nobody calls it.',
+      title: 'Size for concurrency, not just traffic.',
+      body: 'Provisioned concurrency is roughly queries per second times latency in seconds. Scale-to-zero saves cost and adds a cold start.',
     },
     {
-      title: 'Requests carry an OAuth token.',
-      body: 'The SDK supplies the bearer header. There is no PAT and no secret in the code.',
+      title: 'Limit and log at the gateway.',
+      body: 'Unity Gateway applies rate limits per endpoint, user, or group, and inference tables record requests and responses for debugging and monitoring.',
     },
     {
-      title: 'Latency is recorded per request.',
-      body: 'In the reference run, 50 sequential requests had p50 74.2 ms and p95 141.7 ms.',
+      title: 'Serve features by key.',
+      body: 'Materialize Feature Views to an online store backed by Lakebase, and let the endpoint look features up so callers send only keys and request-time values.',
     },
     {
-      title: 'Bad requests fail cleanly.',
-      body: 'Malformed JSON and a missing credit_limit return 400. A missing last_payment is scored with the training median.',
+      title: 'Load-test before launch, monitor after.',
+      body: 'Ramp realistic traffic against a staging endpoint, read p50, p95, and p99 and the error rate, and keep endpoint metrics and alerts on in production.',
     },
   ],
   sections: [
     {
       id: 'flow',
-      heading: 'From spec to measured endpoint',
+      heading: 'The request path',
       prose:
-        'Three tasks run in order. The last one writes two tables. A separate teardown job deletes the endpoint, so a run leaves nothing serving.',
+        'Every online request crosses the same layers. Each layer is a place to secure, limit, or measure it.',
       diagram: {
         type: 'flow',
-        title: 'Scoring job and teardown',
+        title: 'From caller to prediction',
         description:
-          'The use-case spec feeds train_register, which registers a Unity Catalog model. deploy_endpoint creates or updates a Small scale-to-zero serving endpoint from that model. score_and_measure sends OAuth-authenticated requests to the endpoint and writes scoring_latency and scoring_errors. A separate teardown job deletes the endpoint.',
-        lanes: [
-          { label: 'Lakeflow job', fromRow: 0, toRow: 0 },
-          { label: 'Serving and tables', fromRow: 1, toRow: 2 },
-        ],
+          'A caller presents an OAuth token. Unity Gateway checks permission and rate limits and logs the request to an inference table. The serving endpoint runs the model. For feature-backed models, the endpoint first looks up features by key in the online store. The response returns to the caller.',
         nodes: [
-          { id: 'train', label: 'train_register', mono: true, sub: 'card data + sklearn', col: 0, row: 0 },
-          { id: 'deploy', label: 'deploy_endpoint', mono: true, sub: 'Small, scale to zero', col: 1, row: 0 },
-          {
-            id: 'score',
-            label: 'score_and_measure',
-            mono: true,
-            sub: 'OAuth bearer header',
-            col: 2,
-            row: 0,
-            kind: 'highlight',
-          },
-          {
-            id: 'model',
-            label: 'account_risk_model',
-            mono: true,
-            sub: 'Unity Catalog model',
-            col: 0,
-            row: 1,
-            kind: 'store',
-          },
-          { id: 'endpoint', label: 'Serving endpoint', sub: 'capability-guides-...', col: 1, row: 1, kind: 'surface' },
-          { id: 'latency', label: 'scoring_latency', mono: true, sub: '71 rows', col: 2, row: 1, kind: 'store' },
-          { id: 'teardown', label: 'Teardown job', sub: 'deletes the endpoint', col: 1, row: 2 },
-          { id: 'errors', label: 'scoring_errors', mono: true, sub: '4 rows', col: 2, row: 2, kind: 'store' },
+          { id: 'cli', label: 'Caller', sub: 'OAuth token, CAN QUERY', col: 0, row: 0 },
+          { id: 'gw', label: 'Unity Gateway', sub: 'rate limits, logging', col: 1, row: 0, kind: 'gate' },
+          { id: 'ep', label: 'Serving endpoint', sub: 'model, autoscaling', col: 2, row: 0, kind: 'highlight' },
+          { id: 'on', label: 'Online store', sub: 'Lakebase feature lookup', col: 2, row: 1, kind: 'store' },
+          { id: 'inf', label: 'Inference table', sub: 'requests and responses', col: 1, row: 1, kind: 'store' },
+          { id: 'mon', label: 'Monitoring', sub: 'metrics, quality, alerts', col: 0, row: 1, kind: 'surface' },
         ],
         edges: [
-          { from: 'train', to: 'model' },
-          { from: 'model', to: 'deploy', label: 'alias + version' },
-          { from: 'deploy', to: 'endpoint' },
-          { from: 'score', to: 'endpoint', label: 'HTTPS' },
-          { from: 'score', to: 'latency' },
-          { from: 'score', to: 'errors' },
-          { from: 'teardown', to: 'endpoint', dashed: true, label: 'delete' },
+          { from: 'cli', to: 'gw' },
+          { from: 'gw', to: 'ep' },
+          { from: 'ep', to: 'on', label: 'lookup by key' },
+          { from: 'gw', to: 'inf', dashed: true },
+          { from: 'inf', to: 'mon', dashed: true },
         ],
         legend: [
-          { kind: 'highlight', label: 'Measures and records' },
-          { kind: 'surface', label: 'Model Serving endpoint' },
-          { kind: 'store', label: 'Unity Catalog model or table' },
-          { kind: 'dashed', label: 'Cleanup' },
+          { kind: 'gate', label: 'Auth and limits' },
+          { kind: 'store', label: 'Stored state' },
+          { kind: 'surface', label: 'Observability' },
         ],
+        caption:
+          'The model signature rejects malformed bodies and missing required inputs with a 400. Mark a feature optional only if the model can handle its absence.',
       },
     },
     {
-      id: 'latency',
-      heading: 'What the requests measured',
-      examples: [
+      id: 'security',
+      heading: 'Secure the endpoint',
+      points: [
         {
-          label: 'Query the endpoint from the CLI',
-          language: 'sh',
-          code: 'databricks serving-endpoints query capability-guides-realtime-scoring \\\n  --json \'{"dataframe_records": [{"credit_limit": 50000, "repayment_status": 0, "bill_amount": 12000}]}\'',
-          notes: ['last_payment is left out on purpose. The endpoint fills it with the training median.'],
+          strong: 'CAN QUERY for callers.',
+          text: 'Grant it to groups or service principals, not to everyone. Keep CAN MANAGE to the owning team and the deployment service principal.',
+        },
+        {
+          strong: 'OAuth tokens.',
+          text: 'Applications use OAuth M2M with a service principal, or workload identity federation when the caller runs in a cloud or CI that can present its own identity. Users call with their own OAuth login. Avoid personal access tokens.',
+        },
+        {
+          strong: 'Route optimization.',
+          text: 'It speeds up the request path and requires a JWT OAuth token scoped to the endpoint, which a caller gets by exchanging its OAuth token. Plan the token exchange before you turn it on.',
+        },
+        {
+          strong: 'Private paths.',
+          text: 'For regulated workloads, front the workspace with Private Link and restrict ingress, so the endpoint is reachable only from your network.',
         },
       ],
-      prose:
-        'The job sends one request, then 50 one at a time, then 20 through five workers. A cold start appears when a request reaches an endpoint that scaled to zero after sitting idle, so the first request is the one to watch. Rerun score_and_measure after an idle period to see it in the first_request row.',
-      diagram: {
-        type: 'matrix',
-        title: 'Latency by phase, reference run',
-        description:
-          'First request: 1 request, 150.4 ms. Warm sequential: 50 requests, p50 74.2 ms, p95 141.7 ms, max 250.7 ms. Concurrent with five workers: 20 requests, p50 201.1 ms, p95 272.8 ms.',
-        corner: 'Phase ↓ · Measure →',
-        columns: ['Requests', 'p50', 'p95'],
-        rows: [
-          {
-            label: 'first_request',
-            sub: 'after deploy',
-            cells: [
-              { state: 'optional', text: '1' },
-              { state: 'optional', text: '150.4 ms' },
-              { state: 'none', text: 'n/a' },
-            ],
-          },
-          {
-            label: 'warm',
-            sub: 'sequential',
-            cells: [
-              { state: 'own', text: '50' },
-              { state: 'own', text: '74.2 ms' },
-              { state: 'own', text: '141.7 ms' },
-            ],
-          },
-          {
-            label: 'concurrent',
-            sub: '5 workers',
-            cells: [
-              { state: 'own', text: '20' },
-              { state: 'own', text: '201.1 ms' },
-              { state: 'own', text: '272.8 ms' },
-            ],
-          },
-        ],
-        legend: [
-          { state: 'own', label: 'Percentile from many requests' },
-          { state: 'optional', label: 'Single request' },
-          { state: 'none', label: 'Not defined for one request' },
-        ],
-        caption:
-          'All 71 requests returned 200. Rows are in scoring_latency, one per request. Concurrent requests queue behind each other, which is why their latency is higher than the warm sequential run.',
-      },
-    },
-    {
-      id: 'failures',
-      heading: 'What happens on a bad request',
-      prose:
-        'Each scenario is sent on purpose. The job records the status and message in scoring_errors and marks whether the status matched what the guide expects. The run fails if any scenario behaves differently.',
-      diagram: {
-        type: 'flow',
-        title: 'Four failure scenarios',
-        description:
-          'A malformed JSON body and a body with an unknown top-level key both return 400. A request that omits credit_limit returns 400 with a message naming the missing input. A request that omits last_payment is scored, because the model fills the training median. All four outcomes are written to scoring_errors.',
-        nodes: [
-          { id: 'bad', label: 'Malformed JSON', sub: 'truncated body', col: 0, row: 0 },
-          { id: 'shape', label: 'Unknown top-level key', sub: 'rows instead of records', col: 0, row: 1 },
-          { id: 'req', label: 'Required feature gone', sub: 'credit_limit omitted', col: 0, row: 2 },
-          { id: 'opt', label: 'Optional feature gone', sub: 'last_payment omitted', col: 0, row: 3 },
-          { id: 'gate', label: 'Schema check', sub: 'MLflow signature', col: 1, row: 1, kind: 'gate' },
-          { id: 'reject', label: '400 and error text', sub: 'request rejected', col: 2, row: 1 },
-          { id: 'impute', label: 'Median imputed', sub: 'model still scores', col: 2, row: 3, kind: 'highlight' },
-          { id: 'ok', label: '200 and prediction', col: 3, row: 3 },
-          {
-            id: 'table',
-            label: 'scoring_errors',
-            mono: true,
-            sub: 'status, message, outcome',
-            col: 3,
-            row: 1,
-            kind: 'store',
-          },
-        ],
-        edges: [
-          { from: 'bad', to: 'gate' },
-          { from: 'shape', to: 'gate' },
-          { from: 'req', to: 'gate' },
-          { from: 'gate', to: 'reject', label: 'fails' },
-          { from: 'opt', to: 'impute', label: 'allowed' },
-          { from: 'impute', to: 'ok' },
-          { from: 'reject', to: 'table' },
-          { from: 'ok', to: 'table', dashed: true },
-        ],
-        legend: [
-          { kind: 'gate', label: 'Request validation' },
-          { kind: 'highlight', label: 'Handled in the model' },
-          { kind: 'store', label: 'Unity Catalog table' },
-        ],
-        caption:
-          'The signature marks last_payment optional, and the first pipeline step adds it as NaN for the imputer.',
-      },
+      links: [
+        {
+          label: 'Manage serving endpoint permissions',
+          url: 'https://docs.databricks.com/aws/en/machine-learning/model-serving/manage-serving-endpoints',
+        },
+        {
+          label: 'Route optimization',
+          url: 'https://docs.databricks.com/aws/en/machine-learning/model-serving/route-optimization',
+        },
+      ],
     },
     {
       id: 'scaling',
       heading: 'How it scales',
-      prose: 'The endpoint is Small with scale-to-zero on. These are the levers that change its cost and latency.',
+      prose:
+        'These levers change cost and latency. Choose them from your latency target and traffic shape, then confirm with a load test.',
       table: {
         columns: ['Lever', 'What it does'],
         rows: [
@@ -209,26 +113,188 @@ export const walkthrough: Walkthrough = {
           ],
           [
             'Route optimization',
-            'A faster request path that needs a JWT OAuth token scoped to the endpoint. The job code does the token exchange; the serverless job token is not a JWT, so the reference run leaves it off.',
+            'A faster request path that needs a JWT OAuth token scoped to the endpoint. The caller does the token exchange.',
           ],
           [
             'Provisioned throughput',
-            'Reserves tokens per second for foundation models. It does not apply to this scikit-learn model.',
+            'Reserves tokens per second for foundation models. It applies to LLM endpoints, not to classic models.',
           ],
         ],
       },
-    },
-    {
-      id: 'cleanup',
-      heading: 'Clean up',
-      steps: [
+      points: [
         {
-          title: 'Run the teardown job',
-          body: 'capability_guides_realtime_scoring_teardown deletes the endpoint and polls the endpoint list until the name is gone. A missing endpoint is not an error, so it is safe to rerun.',
+          strong: 'Estimate concurrency.',
+          text: 'Required concurrency is target QPS times average latency in seconds. A 100 QPS target at 200 ms needs about 20 concurrent requests.',
         },
         {
-          title: 'Keep the measurements',
-          body: 'The model, scoring_latency, and scoring_errors stay in Unity Catalog, so the numbers survive the endpoint.',
+          strong: 'Leave headroom.',
+          text: 'Size above the estimate for bursts, and watch queue depth and p95 when traffic changes.',
+        },
+      ],
+      links: [
+        {
+          label: 'Optimize serving for production',
+          url: 'https://docs.databricks.com/aws/en/machine-learning/model-serving/production-optimization',
+        },
+        {
+          label: 'Model Serving limits',
+          url: 'https://docs.databricks.com/aws/en/machine-learning/model-serving/model-serving-limits',
+        },
+      ],
+    },
+    {
+      id: 'features',
+      heading: 'Online features',
+      prose:
+        'A request should carry the key and anything only the caller knows. The endpoint can fetch the rest.',
+      points: [
+        {
+          strong: 'Feature Views feed the online store.',
+          text: 'Define features once as Feature Views, then materialize them to an online store. Feature Views are generally available.',
+        },
+        {
+          strong: 'Lakebase online store.',
+          text: 'The online store runs on Lakebase and serves features at low latency and high scale, with values kept in sync with the offline tables.',
+        },
+        {
+          strong: 'Automatic lookup.',
+          text: 'A model logged with its feature definitions looks features up by key at the endpoint. Callers do not rebuild the feature logic, which avoids training-serving skew.',
+        },
+        {
+          strong: 'Request-time features.',
+          text: 'Values that exist only at call time, such as the current cart, come in the request and join the looked-up features.',
+        },
+      ],
+      links: [
+        {
+          label: 'Online Feature Stores',
+          url: 'https://docs.databricks.com/aws/en/machine-learning/feature-store/online-feature-store',
+        },
+        {
+          label: 'Feature Views',
+          url: 'https://docs.databricks.com/aws/en/machine-learning/feature-store/feature-views',
+        },
+      ],
+    },
+    {
+      id: 'guardrails',
+      heading: 'Rate limits, inference tables, and traffic splits',
+      points: [
+        {
+          strong: 'Rate limits.',
+          text: 'Unity Gateway limits queries per minute for the whole endpoint, per user, or per group. One noisy client then cannot use the full capacity. Token-based limits do not apply to custom model endpoints.',
+        },
+        {
+          strong: 'Inference tables.',
+          text: 'Request and response payloads land in a Unity Catalog table. Use them to debug an odd prediction, to build test sets from real traffic, and as the input to data quality monitoring.',
+        },
+        {
+          strong: 'Traffic split.',
+          text: 'Serve two versions on one endpoint and route a share of traffic to the new one for a canary or an A/B test.',
+        },
+      ],
+      examples: [
+        {
+          label: 'Enable rate limits and inference tables on an endpoint',
+          language: 'python',
+          code: `from databricks.sdk import WorkspaceClient
+from databricks.sdk.service.serving import (
+    AiGatewayRateLimit, AiGatewayRateLimitKey, AiGatewayRateLimitRenewalPeriod,
+    AiGatewayInferenceTableConfig,
+)
+
+w = WorkspaceClient()
+w.serving_endpoints.put_ai_gateway(
+    name="churn-scoring",
+    rate_limits=[
+        AiGatewayRateLimit(calls=600, key=AiGatewayRateLimitKey.USER,
+                           renewal_period=AiGatewayRateLimitRenewalPeriod.MINUTE),
+    ],
+    inference_table_config=AiGatewayInferenceTableConfig(
+        enabled=True, catalog_name="main", schema_name="serving_logs", table_name_prefix="churn"),
+)`,
+          notes: ['Check the SDK version you use for the exact class names, and apply the same settings from your bundle in production.'],
+        },
+      ],
+      links: [
+        {
+          label: 'Unity Gateway rate limits',
+          url: 'https://docs.databricks.com/aws/en/ai-gateway/configure-ai-gateway-endpoints',
+        },
+        {
+          label: 'Inference tables',
+          url: 'https://docs.databricks.com/aws/en/ai-gateway/inference-tables',
+        },
+        {
+          label: 'Traffic split between served models',
+          url: 'https://docs.databricks.com/aws/en/machine-learning/model-serving/serve-multiple-models-to-serving-endpoint',
+        },
+      ],
+    },
+    {
+      id: 'monitor',
+      heading: 'Monitor the endpoint',
+      points: [
+        {
+          strong: 'Health metrics.',
+          text: 'The Serving page charts latency, request rate, error rate, CPU, and memory. Export the same metrics to Prometheus or Datadog if your team already alerts there.',
+        },
+        {
+          strong: 'Logs.',
+          text: 'Service and build logs show why a container failed to start or why a request errored.',
+        },
+        {
+          strong: 'Model quality.',
+          text: 'Point data quality monitoring at the inference table to track input drift and prediction quality over time.',
+        },
+        {
+          strong: 'Alerts.',
+          text: 'Alert on error rate, p95 latency, and queue depth. Page when the endpoint breaks your SLA, and send quality drift to the model owner.',
+        },
+      ],
+      links: [
+        {
+          label: 'Monitor model quality and endpoint health',
+          url: 'https://docs.databricks.com/aws/en/machine-learning/model-serving/monitor-diagnose-endpoints',
+        },
+        {
+          label: 'Export serving metrics',
+          url: 'https://docs.databricks.com/aws/en/machine-learning/model-serving/metrics-export-serving-endpoint',
+        },
+      ],
+    },
+    {
+      id: 'loadtest',
+      heading: 'How to load-test an endpoint',
+      prose:
+        'A load test answers one question: at the traffic you expect, does the endpoint meet its latency and error targets, and what breaks first?',
+      steps: [
+        {
+          title: 'Test a staging endpoint with the production configuration',
+          body: 'Use the same model version, workload size, and scale settings. Run the client in the same region as the endpoint so network time does not blur the result.',
+        },
+        {
+          title: 'Use realistic payloads',
+          body: 'Replay requests sampled from an inference table, including edge cases and a mix of batch sizes. Identical synthetic requests flatter the numbers.',
+        },
+        {
+          title: 'Warm up, then ramp',
+          body: 'Send a few requests to start replicas. Raise concurrency in steps and hold each level for a few minutes. Measure the cold start separately, after the endpoint has scaled to zero.',
+        },
+        {
+          title: 'Record the right numbers',
+          body: 'Capture p50, p95, and p99 latency, throughput, and error rate at each step. Find the level where p95 bends upward or errors start. That is the capacity at the current size.',
+        },
+        {
+          title: 'Change one thing and repeat',
+          body: 'Raise the size, turn on route optimization, or add replicas, then run the same test. Keep the results beside the configuration that produced them.',
+        },
+      ],
+      links: [
+        {
+          label: 'Optimize serving for production',
+          url: 'https://docs.databricks.com/aws/en/machine-learning/model-serving/production-optimization',
+          note: 'Concurrency sizing and load testing guidance.',
         },
       ],
     },

@@ -5,219 +5,296 @@ export const walkthrough: Walkthrough = {
   area: 'ML Guides',
   title: 'Model quality and drift',
   intro:
-    'A job scores nine monthly batches of real retail customers (UCI Online Retail II, CC BY 4.0) with a registered model and records operational and model metrics in tables. The customer base ages, so PSI flags tenure_months from batch 1. AUC holds at 0.75 to 0.77 while the model under-predicts churn. A SQL alert emails the owner, and a challenger model is trained for review.',
+    'A deployed model degrades in two ways: its inputs change, and its predictions stop matching outcomes. Databricks data quality monitoring tracks both. You attach an inference profile to a table of model requests, and it computes profile and drift metrics over time windows, builds a dashboard, and feeds SQL alerts. This page covers the setup, how to join delayed labels, what should trigger retraining, and how to promote a retrained model with a human decision.',
   shortVersion: [
     {
-      title: 'Two metric tables.',
-      body: 'ops_metrics holds rows, scoring time, and null rate. model_metrics holds AUC, accuracy, and positive rates, per batch.',
+      title: 'Start with an inference profile.',
+      body: 'Attach data quality monitoring to a table with one row per request: timestamp, model inputs, prediction, and an optional label. It writes a profile metrics table, a drift metrics table, and a dashboard.',
     },
     {
-      title: 'The drift is real.',
-      body: 'Each batch is the whole customer base at a later monthly snapshot, from 2010-10-01 to 2011-06-01, with the churn label that followed. Nothing is shifted by hand.',
+      title: 'Feed it from inference logging.',
+      body: 'Inference tables on a serving endpoint capture requests and responses. Unpack them into a flat table, or write batch scores to one, and monitor that table.',
     },
     {
-      title: 'PSI and mean shift detect it.',
-      body: 'tenure_months breaches from batch 1, days_since_purchase from batch 4, and order_gap_days from batch 7 on mean shift alone. monthly_spend, products_per_order, and returns never breach.',
+      title: 'Join labels when they arrive.',
+      body: 'Ground truth often lands days or weeks after the prediction. Join it by request ID, leave the label null until then, and read quality metrics only for windows old enough to be labeled.',
     },
     {
-      title: 'The owner gets an email.',
-      body: 'A SQL alert reads the newest batch hourly and emails notification_email when PSI passes 0.2.',
+      title: 'Alert on the metric tables.',
+      body: 'A SQL alert on the drift or profile table notifies the model owner. A Lakeflow Jobs alert task can run the check on a schedule and branch on the result.',
     },
     {
-      title: 'Retraining is a reviewed step.',
-      body: 'On a breach the job registers a challenger. A person promotes it by moving the prod alias.',
+      title: 'Retrain on a trigger, promote by review.',
+      body: 'A breach starts a retraining job that registers a challenger. A person compares it with the champion and moves the alias.',
     },
   ],
   sections: [
     {
-      id: 'flow',
-      heading: 'Score, measure, detect, route',
+      id: 'monitor',
+      heading: 'Monitor the model with an inference profile',
       prose:
-        'Each run rewrites the metric tables for its batches. The drift check compares each batch with the training data the model was fit on.',
+        'The monitor is a managed pipeline. It reads the table you point it at on a schedule, computes metrics per time window and per model version, and writes the results to Unity Catalog tables you can query.',
       diagram: {
         type: 'flow',
-        title: 'The drift job',
+        title: 'From requests to an alert',
         description:
-          'train_baseline registers the model with alias prod, trained on the 2010-09-01 snapshot. score_batches scores nine monthly batches and writes ops_metrics, model_metrics, and batch_scores. detect_drift compares each batch with the training data and writes drift_metrics. breach_check runs retrain_candidate only on a breach, which registers a challenger and writes retraining_log. A SQL alert reads drift_metrics and emails the owner.',
-        lanes: [
-          { label: 'Lakeflow job', fromRow: 0, toRow: 1 },
-          { label: 'Tables and routing', fromRow: 2, toRow: 3 },
-        ],
+          'The serving endpoint writes requests and responses to an inference table. A job unpacks them into a flat monitored table and joins labels when they arrive. Data quality monitoring computes profile metrics and drift metrics into two tables and generates a dashboard. A SQL alert on those tables notifies the owner, and a breach starts a retraining job.',
         nodes: [
-          { id: 'tb', label: 'train_baseline', mono: true, sub: 'register as prod', col: 0, row: 0 },
-          { id: 'sb', label: 'score_batches', mono: true, sub: '9 monthly batches', col: 1, row: 0 },
-          { id: 'dd', label: 'detect_drift', mono: true, sub: 'PSI and mean shift', col: 2, row: 0, kind: 'highlight' },
-          { id: 'bc', label: 'breach_check', mono: true, col: 3, row: 0, kind: 'gate' },
-          { id: 'rc', label: 'retrain_candidate', mono: true, sub: 'only on a breach', col: 3, row: 1 },
-          { id: 'ops', label: 'ops_metrics', mono: true, col: 0, row: 2, kind: 'store' },
-          { id: 'mm', label: 'model_metrics', mono: true, col: 1, row: 2, kind: 'store' },
-          { id: 'dm', label: 'drift_metrics', mono: true, col: 2, row: 2, kind: 'store' },
-          { id: 'ch', label: 'challenger alias', sub: 'awaiting review', col: 3, row: 2, kind: 'store' },
-          { id: 'al', label: 'SQL alert', sub: 'max PSI > 0.2, hourly', col: 2, row: 3, kind: 'surface' },
-          { id: 'own', label: 'Owner email', sub: 'notification_email', col: 3, row: 3 },
+          { id: 'ep', label: 'Serving endpoint', sub: 'inference logging on', col: 0, row: 0 },
+          { id: 'flat', label: 'Monitored table', sub: 'inputs, prediction, label', col: 1, row: 0, kind: 'store' },
+          { id: 'lbl', label: 'Ground truth', sub: 'arrives later', col: 1, row: 1, kind: 'surface' },
+          { id: 'mon', label: 'Inference profile', sub: 'data quality monitoring', col: 2, row: 0, kind: 'highlight' },
+          { id: 'met', label: 'Metric tables', sub: 'profile and drift', col: 3, row: 0, kind: 'store' },
+          { id: 'dash', label: 'Dashboard', sub: 'generated for you', col: 3, row: 1 },
+          { id: 'alert', label: 'SQL alert', sub: 'notifies the owner', col: 4, row: 0, kind: 'gate' },
+          { id: 'retrain', label: 'Retraining job', sub: 'registers a challenger', col: 4, row: 1 },
         ],
         edges: [
-          { from: 'tb', to: 'sb' },
-          { from: 'sb', to: 'dd' },
-          { from: 'dd', to: 'bc' },
-          { from: 'bc', to: 'rc', label: 'true' },
-          { from: 'sb', to: 'ops' },
-          { from: 'sb', to: 'mm' },
-          { from: 'dd', to: 'dm' },
-          { from: 'rc', to: 'ch' },
-          { from: 'dm', to: 'al' },
-          { from: 'al', to: 'own' },
+          { from: 'ep', to: 'flat' },
+          { from: 'lbl', to: 'flat', label: 'join by request ID' },
+          { from: 'flat', to: 'mon' },
+          { from: 'mon', to: 'met' },
+          { from: 'met', to: 'dash', dashed: true },
+          { from: 'met', to: 'alert' },
+          { from: 'alert', to: 'retrain', label: 'on breach' },
         ],
         legend: [
-          { kind: 'highlight', label: 'Drift detection' },
-          { kind: 'gate', label: 'Condition task' },
-          { kind: 'surface', label: 'SQL alert' },
-          { kind: 'store', label: 'Unity Catalog object' },
+          { kind: 'highlight', label: 'Managed by Databricks' },
+          { kind: 'store', label: 'Unity Catalog table' },
+          { kind: 'gate', label: 'Threshold check' },
         ],
-        caption: 'The alert runs on its own hourly schedule, so the email can arrive up to an hour after the job.',
       },
+      points: [
+        {
+          strong: 'Inference profile.',
+          text: 'Set the problem type, classification or regression, plus the timestamp, prediction, model ID, and label columns. Metrics come out per window and per model version, so you can compare a canary with the champion.',
+        },
+        {
+          strong: 'Profile metrics.',
+          text: 'Summary statistics per column and window, such as null rate, distinct counts, and mean. With labels, model accuracy metrics: accuracy and related measures for classification, error measures for regression.',
+        },
+        {
+          strong: 'Drift metrics.',
+          text: 'Changes in distribution, compared with the previous window or with a baseline table you supply. Built-in measures include population stability index and Wasserstein distance for numeric columns.',
+        },
+        {
+          strong: 'Dashboard.',
+          text: 'The profile generates a dashboard over both tables. Customize it or build your own on the same tables.',
+        },
+        {
+          strong: 'Baseline.',
+          text: 'Use the training data, or a window you trust, as the baseline. A baseline makes drift mean "different from what the model learned", not just "different from last week".',
+        },
+      ],
+      examples: [
+        {
+          label: 'Create the profile with the SDK',
+          language: 'python',
+          code: `from databricks.sdk import WorkspaceClient
+from databricks.sdk.service.catalog import MonitorInferenceLog, MonitorInferenceLogProblemType
+
+w = WorkspaceClient()
+w.quality_monitors.create(
+    table_name="main.ml.churn_requests",
+    assets_dir="/Workspace/Shared/monitors/churn",
+    output_schema_name="main.ml_monitoring",
+    inference_log=MonitorInferenceLog(
+        problem_type=MonitorInferenceLogProblemType.PROBLEM_TYPE_CLASSIFICATION,
+        timestamp_col="request_time",
+        granularities=["1 day"],
+        model_id_col="model_version",
+        prediction_col="prediction",
+        label_col="churned",
+    ),
+    baseline_table_name="main.ml.churn_training_baseline",
+)`,
+          notes: ['Check the SDK version you use for current class names. The UI creates the same profile.'],
+        },
+      ],
+      links: [
+        {
+          label: 'Data quality monitoring: data profiling',
+          url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/data-quality-monitoring/data-profiling',
+        },
+        {
+          label: 'Profile metrics and drift metrics tables',
+          url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/data-quality-monitoring/data-profiling/monitor-output',
+        },
+        {
+          label: 'The generated dashboard',
+          url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/data-quality-monitoring/data-profiling/monitor-dashboard',
+        },
+      ],
     },
     {
-      id: 'metrics',
-      heading: 'Metrics per batch',
+      id: 'feed',
+      heading: 'Feed the monitor from inference logs',
       prose:
-        'Operational metrics describe the scoring job. Model metrics use the labels that followed each snapshot. AUC stays flat while predicted churn sits well below actual churn, so the model under-predicts. tenure_months breaches first because the customer base ages: the data starts 2009-12-01, so nobody in the baseline has more than 9 months of tenure.',
-      diagram: {
-        type: 'matrix',
-        title: 'Holdout quality and drift by batch',
-        description:
-          'AUC stays between 0.7538 and 0.7746 in all nine batches. The actual churn rate runs from 0.391 to 0.537 while the predicted rate stays between 0.254 and 0.304. tenure_months breaches from batch 1, days_since_purchase joins from batch 4, and order_gap_days joins from batch 7.',
-        corner: 'Batch ↓',
-        columns: ['AUC', 'Actual churn', 'Predicted churn', 'Breached features'],
-        rows: [
-          {
-            label: 'Batch 1',
-            sub: '2010-10-01',
-            cells: [
-              { state: 'none', text: '0.7586' },
-              { state: 'none', text: '0.391' },
-              { state: 'none', text: '0.304' },
-              { state: 'none', text: '1 feature', sub: 'tenure_months' },
-            ],
-          },
-          {
-            label: 'Batch 2',
-            sub: '2010-11-01',
-            cells: [
-              { state: 'none', text: '0.7538' },
-              { state: 'none', text: '0.447' },
-              { state: 'none', text: '0.288' },
-              { state: 'none', text: '1 feature', sub: 'tenure_months' },
-            ],
-          },
-          {
-            label: 'Batch 3',
-            sub: '2010-12-01',
-            cells: [
-              { state: 'none', text: '0.7631' },
-              { state: 'none', text: '0.519' },
-              { state: 'none', text: '0.265' },
-              { state: 'none', text: '1 feature', sub: 'tenure_months' },
-            ],
-          },
-          {
-            label: 'Batch 4',
-            sub: '2011-01-01',
-            cells: [
-              { state: 'none', text: '0.7663' },
-              { state: 'none', text: '0.534' },
-              { state: 'none', text: '0.254' },
-              { state: 'optional', text: '2 features', sub: '+ days_since_purchase' },
-            ],
-          },
-          {
-            label: 'Batch 5',
-            sub: '2011-02-01',
-            cells: [
-              { state: 'none', text: '0.7644' },
-              { state: 'none', text: '0.535' },
-              { state: 'none', text: '0.262' },
-              { state: 'optional', text: '2 features', sub: '+ days_since_purchase' },
-            ],
-          },
-          {
-            label: 'Batch 6',
-            sub: '2011-03-01',
-            cells: [
-              { state: 'none', text: '0.7677' },
-              { state: 'none', text: '0.537' },
-              { state: 'none', text: '0.273' },
-              { state: 'optional', text: '2 features', sub: '+ days_since_purchase' },
-            ],
-          },
-          {
-            label: 'Batch 7',
-            sub: '2011-04-01',
-            cells: [
-              { state: 'none', text: '0.7632' },
-              { state: 'none', text: '0.529' },
-              { state: 'none', text: '0.301' },
-              { state: 'own', text: '3 features', sub: '+ order_gap_days' },
-            ],
-          },
-          {
-            label: 'Batch 8',
-            sub: '2011-05-01',
-            cells: [
-              { state: 'none', text: '0.7746' },
-              { state: 'none', text: '0.508' },
-              { state: 'none', text: '0.298' },
-              { state: 'own', text: '3 features', sub: '+ order_gap_days' },
-            ],
-          },
-          {
-            label: 'Batch 9',
-            sub: '2011-06-01',
-            cells: [
-              { state: 'none', text: '0.7663' },
-              { state: 'none', text: '0.482' },
-              { state: 'none', text: '0.298' },
-              { state: 'own', text: '3 features', sub: '+ order_gap_days' },
-            ],
-          },
-        ],
-        legend: [
-          { state: 'none', label: 'tenure_months only' },
-          { state: 'optional', label: 'Plus days_since_purchase' },
-          { state: 'own', label: 'Plus order_gap_days' },
-        ],
-        caption:
-          'AUC did not fall. Predicted churn (0.25 to 0.30) sits well below actual churn (0.39 to 0.54). Drift metrics and calibration catch this; AUC alone would not.',
-      },
+        'The monitored table should have one flat row per request. Real-time and batch scoring get there differently.',
+      points: [
+        {
+          strong: 'Real-time endpoints.',
+          text: 'Turn on inference tables for the endpoint. The raw table stores JSON request and response payloads. A scheduled job parses them into columns, one per input and one for the prediction, and writes the monitored table.',
+        },
+        {
+          strong: 'Batch scoring.',
+          text: 'Write the inputs, prediction, model version, and scoring timestamp to a Delta table at scoring time. Monitor that table directly.',
+        },
+        {
+          strong: 'Keep a request ID.',
+          text: 'You need a stable key to join labels later. Generate one at the caller or in the scoring job and carry it through.',
+        },
+      ],
+      links: [
+        {
+          label: 'Inference tables',
+          url: 'https://docs.databricks.com/aws/en/ai-gateway/inference-tables',
+        },
+      ],
+    },
+    {
+      id: 'labels',
+      heading: 'Join ground truth that arrives late',
+      prose:
+        'A churn label is known months after the prediction. Quality metrics are only valid for windows whose labels are mostly in.',
+      steps: [
+        {
+          title: 'Store predictions with a null label',
+          body: 'Write the row at scoring time with the label column empty. Drift metrics work from the first day.',
+        },
+        {
+          title: 'MERGE labels when they land',
+          body: 'A scheduled job joins the outcome table to the monitored table by request ID and updates the label column. Because the join is a MERGE, it is safe to rerun.',
+          code: `MERGE INTO main.ml.churn_requests AS r
+USING main.ml.churn_outcomes AS o
+  ON r.request_id = o.request_id
+WHEN MATCHED AND r.churned IS NULL THEN UPDATE SET r.churned = o.churned;`,
+        },
+        {
+          title: 'Read quality for mature windows only',
+          body: 'Decide the label delay, for example 30 days. Treat quality metrics older than that as final, and show recent windows as incomplete. A drop in label coverage is a data problem to alert on too.',
+        },
+        {
+          title: 'Use drift as the early signal',
+          body: 'Input and prediction drift appear immediately. Quality metrics confirm later. Alert on drift to investigate early, and retrain on confirmed quality loss.',
+        },
+      ],
+    },
+    {
+      id: 'alerts',
+      heading: 'Alert the owner',
+      prose:
+        'The metric tables are ordinary Unity Catalog tables, so alerts are ordinary SQL alerts.',
+      points: [
+        {
+          strong: 'SQL alert on a metric table.',
+          text: 'Write a query over the drift table, such as the maximum drift statistic for the latest window of a key feature, and set the threshold. Choose the notification destination and schedule in the alert.',
+        },
+        {
+          strong: 'Alert task in Lakeflow Jobs.',
+          text: 'Add the alert as a task, so the check runs inside a job and downstream tasks depend on its result. That is how a breach starts retraining.',
+        },
+        {
+          strong: 'Pick thresholds from history.',
+          text: 'Start with common PSI guides of about 0.1 for a small shift and 0.25 for a large one, then tune from the metric history so the alert fires on real change rather than noise.',
+        },
+        {
+          strong: 'Send each alert to someone who can act.',
+          text: 'Quality drops go to the model owner. Pipeline or null-rate problems go to the data owner.',
+        },
+      ],
+      examples: [
+        {
+          label: 'A query for a drift alert',
+          language: 'sql',
+          code: `SELECT max(population_stability_index) AS max_psi
+FROM main.ml_monitoring.churn_requests_drift_metrics
+WHERE drift_type = 'BASELINE'
+  AND column_name IN ('tenure_months', 'days_since_purchase', 'prediction')
+  AND window.start >= current_date() - INTERVAL 2 DAYS;`,
+          notes: ['Alert when max_psi is above your threshold. Check the metric names in the drift table of your profile.'],
+        },
+      ],
+      links: [
+        {
+          label: 'Profile alerts',
+          url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/data-quality-monitoring/data-profiling/monitor-alerts',
+        },
+        {
+          label: 'Alert task in Lakeflow Jobs',
+          url: 'https://docs.databricks.com/aws/en/jobs/tasks/alert',
+        },
+      ],
     },
     {
       id: 'retrain',
-      heading: 'Retraining workflow',
+      heading: 'Retrain on a trigger, promote on review',
       prose:
-        'The job never promotes a model. It prepares one and records the comparison. In the reference run the challenger scored 0.8147 on batch 9 against 0.7663 for prod.',
-      steps: [
+        'Retraining should be a decision with a trail. Automate the candidate, and keep the promotion with a person.',
+      points: [
         {
-          title: 'Alert',
-          body: 'The SQL alert emails the owner. A failed run emails the same address.',
+          strong: 'Triggers.',
+          text: 'Common ones: drift above a threshold on key features, confirmed quality loss on mature windows, a fixed schedule, or enough new labeled data. Combine them, and avoid retraining on every blip.',
         },
         {
-          title: 'Locate',
-          body: 'drift_metrics shows the feature and the first breached batch.',
-          code: 'SELECT batch_id, feature, psi, mean_shift_sd FROM drift_metrics WHERE breached;',
+          strong: 'Challenger.',
+          text: 'The retraining job trains on current data, registers a new Unity Catalog version, and sets the challenger alias. It never touches the champion alias.',
         },
         {
-          title: 'Review the challenger',
-          body: 'retraining_log lists prod AUC and challenger AUC on the newest batch. The challenger trained on the baseline data plus batches 1 to 8.',
+          strong: 'Compare on the same data.',
+          text: 'Score the champion and the challenger on a recent labeled window and report the metrics side by side. A traffic split or shadow endpoint gives a live comparison.',
         },
         {
-          title: 'Promote or reject',
-          body: 'Move the prod alias to the challenger version with set_registered_model_alias. Scoring loads models:/<name>@prod, so the next run uses it.',
+          strong: 'Human-reviewed promotion.',
+          text: 'The owner reviews the comparison and, if it holds up, moves the champion alias through the release pipeline with its approval step. If the shift came from a data fault, they fix the source and leave the champion in place.',
+        },
+        {
+          strong: 'Record the decision.',
+          text: 'Keep the trigger, the comparison, the approver, and the outcome with the model version.',
+        },
+      ],
+      links: [
+        {
+          label: 'Models in Unity Catalog',
+          url: 'https://docs.databricks.com/aws/en/machine-learning/manage-model-lifecycle',
+        },
+      ],
+    },
+    {
+      id: 'custom',
+      heading: 'When you need your own metric: a PSI job',
+      prose:
+        'Built-in drift metrics cover most cases. Write your own when you need a different binning, a metric across several columns, or a result outside a monitored table. Custom metrics in the profile are one way. A small job is another.',
+      examples: [
+        {
+          label: 'Population stability index with baseline quantile bins',
+          language: 'python',
+          code: `import numpy as np
+
+def psi(baseline, current, bins=10, eps=1e-6):
+    edges = np.unique(np.quantile(baseline, np.linspace(0, 1, bins + 1)))
+    edges[0], edges[-1] = -np.inf, np.inf
+    b = np.histogram(baseline, edges)[0] / len(baseline)
+    c = np.histogram(current, edges)[0] / len(current)
+    b, c = np.clip(b, eps, None), np.clip(c, eps, None)
+    return float(np.sum((c - b) * np.log(c / b)))`,
+          notes: [
+            'Write the result to a table per window and feature, and alert on it like any other metric.',
+            'Quantile bins from the baseline keep each bin populated, so the index does not blow up on empty bins.',
+          ],
+        },
+      ],
+      links: [
+        {
+          label: 'Custom metrics in data profiling',
+          url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/data-quality-monitoring/data-profiling/custom-metrics',
         },
       ],
     },
   ],
   related: [
-    { slug: 'experiment-tracking', title: 'Reproducible experiments' },
+    { slug: 'real-time-scoring', title: 'Online model scoring' },
     { slug: 'model-deployment-cicd', title: 'Model release pipeline' },
+    { slug: 'experiment-tracking', title: 'Reproducible experiments' },
   ],
 };
