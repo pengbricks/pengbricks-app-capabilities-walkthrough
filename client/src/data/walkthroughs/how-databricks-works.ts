@@ -9,7 +9,7 @@ export const walkthrough: Walkthrough = {
   shortVersion: [
     {
       title: 'Data lives in object storage.',
-      body: 'Tables are Delta or Iceberg: Parquet data files plus a transaction log, stored in ADLS, S3, or GCS. Nothing about the table is locked inside a running cluster.',
+      body: 'Tables are Delta or Iceberg: Parquet data files plus table metadata (a transaction log for Delta, metadata files for Iceberg), stored in ADLS, S3, or GCS. Nothing about the table is locked inside a running cluster.',
     },
     {
       title: 'Compute is separate and disposable.',
@@ -24,8 +24,12 @@ export const walkthrough: Walkthrough = {
       body: 'Databricks hosts the web UI, job scheduler, and Unity Catalog. Your data is processed on the compute plane, serverless or in your own cloud account.',
     },
     {
-      title: 'You pay for each separately.',
-      body: 'Compute is billed in DBUs only while it runs. Storage is billed by the cloud provider for the bytes kept.',
+      title: 'Default to managed tables and serverless.',
+      body: 'Unity Catalog managed tables get predictive optimization, which runs OPTIMIZE, VACUUM, and ANALYZE for you. Serverless compute needs no cluster sizing or runtime upgrades.',
+    },
+    {
+      title: 'You pay for each separately, so tag the spend.',
+      body: 'Compute is billed in DBUs only while it runs. Storage is billed by the cloud provider. Attach serverless budget policies and tags to workloads, then report from system.billing.usage.',
     },
   ],
   sections: [
@@ -93,7 +97,7 @@ export const walkthrough: Walkthrough = {
         },
         {
           strong: 'Warehouse guarantees.',
-          text: 'ACID transactions, schemas, time travel, and fast SQL come from the table format’s transaction log, not from a separate database.',
+          text: 'ACID transactions, schemas, time travel, and fast SQL come from the table format’s metadata layer (the Delta transaction log, or Iceberg metadata files), not from a separate database.',
         },
         {
           strong: 'One governance layer.',
@@ -120,7 +124,7 @@ export const walkthrough: Walkthrough = {
             cells: [
               { state: 'own', text: 'Primary' },
               { state: 'optional', text: 'SQL tasks' },
-              { state: 'none', text: 'No' },
+              { state: 'optional', text: 'MVs, streaming tables' },
             ],
           },
           {
@@ -148,6 +152,34 @@ export const walkthrough: Walkthrough = {
           { state: 'none', label: 'Not used' },
         ],
       },
+    },
+    {
+      id: 'defaults',
+      heading: 'Defaults to start with',
+      prose: 'These choices remove most day-to-day tuning and make cost visible from the first workload.',
+      points: [
+        {
+          strong: 'Managed tables.',
+          text: 'Let Unity Catalog own the storage layout. Managed tables get predictive optimization (automatic OPTIMIZE, VACUUM, and ANALYZE) and liquid clustering in place of manual partitioning and file compaction. Use external tables only when another system must own the files.',
+        },
+        {
+          strong: 'Serverless first.',
+          text: 'Run SQL warehouses, jobs, notebooks, and pipelines on serverless compute. Fall back to classic clusters only for a library, instance type, or network path serverless does not support.',
+        },
+        {
+          strong: 'Attribute cost on day one.',
+          text: 'Apply serverless budget policies so serverless usage carries a tag, add custom tags to classic compute and warehouses, and query system.billing.usage by those tags for chargeback.',
+        },
+        {
+          strong: 'One metastore per region, many workspaces.',
+          text: 'Separate dev, staging, and prod with catalogs bound to workspaces, not with separate copies of the data layer.',
+        },
+      ],
+      links: [
+        { label: 'Predictive optimization', url: 'https://docs.databricks.com/aws/en/optimizations/predictive-optimization' },
+        { label: 'Serverless budget policies', url: 'https://docs.databricks.com/aws/en/admin/usage/budget-policies' },
+        { label: 'Billable usage system table', url: 'https://docs.databricks.com/aws/en/admin/system-tables/billing' },
+      ],
     },
     {
       id: 'try-it',

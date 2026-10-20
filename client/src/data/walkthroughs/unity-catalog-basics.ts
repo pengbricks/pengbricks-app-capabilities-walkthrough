@@ -24,8 +24,20 @@ export const walkthrough: Walkthrough = {
       body: 'Add people to account-level groups and grant the group. Access changes become group membership changes.',
     },
     {
-      title: 'Lineage and audit come free.',
-      body: 'Unity Catalog records which tables and columns fed each table and who read what, with no extra setup.',
+      title: 'Manage tables and volumes in Unity Catalog.',
+      body: 'Prefer managed tables and managed volumes. Use external ones only when another system owns the files. Replace DBFS mounts and hive_metastore with volumes and Unity Catalog tables.',
+    },
+    {
+      title: 'Own with groups, grant the least.',
+      body: 'Make a group or service principal the owner of shared objects, not a person. Grant the narrowest privilege that works and avoid ALL PRIVILEGES.',
+    },
+    {
+      title: 'Scale policy with tags.',
+      body: 'Attribute-based access control (ABAC) applies row filters and column masks by governed tag, so one policy covers every tagged column.',
+    },
+    {
+      title: 'Lineage and audit are built in.',
+      body: 'On Unity Catalog compute, lineage and audit are recorded automatically and exposed through Catalog Explorer and the system.access tables.',
     },
   ],
   sections: [
@@ -141,12 +153,51 @@ SHOW GRANTS \`analysts\` ON SCHEMA prod.sales;`,
       ],
     },
     {
+      id: 'practices',
+      heading: 'Practices that scale',
+      points: [
+        {
+          strong: 'Catalog per environment, bound to workspaces.',
+          text: 'Use dev, staging, and prod catalogs and bind each to the workspaces that should see it (workspace bindings). Production data then cannot be read from a dev workspace, even by users with a grant.',
+        },
+        {
+          strong: 'Managed over external.',
+          text: 'Managed tables and volumes get predictive optimization, lifecycle handling, and one governed storage path. Create external tables and volumes through an external location and storage credential only when files must stay where they are.',
+        },
+        {
+          strong: 'Volumes, not DBFS mounts or hive_metastore.',
+          text: 'Volumes give governed path access to files at /Volumes/catalog/schema/volume. Migrate legacy hive_metastore tables with the Unity Catalog upgrade tooling (SYNC, or UCX for larger estates).',
+        },
+        {
+          strong: 'Own with groups or service principals.',
+          text: 'An object owned by a departed employee becomes an orphan. Make an account group or service principal the owner, and run pipelines and jobs as a service principal.',
+        },
+        {
+          strong: 'Least privilege.',
+          text: 'Grant SELECT to readers and MODIFY only to writers. Reserve MANAGE and ALL PRIVILEGES for owners. Grant at the schema level so new tables inherit access.',
+        },
+        {
+          strong: 'ABAC with governed tags.',
+          text: 'Tag columns (for example class = pii) with governed tags and write one policy that masks or filters by tag, instead of a mask function on every column. See the row and column security guide.',
+        },
+        {
+          strong: 'Audit with system tables.',
+          text: 'system.access.audit records who did what, system.access.table_lineage and column_lineage record data flow, and system.billing.usage records spend. Query them with SQL or build dashboards.',
+        },
+      ],
+      links: [
+        { label: 'Unity Catalog best practices', url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/best-practices' },
+        { label: 'Limit catalog access to specific workspaces', url: 'https://docs.databricks.com/aws/en/catalogs/binding' },
+        { label: 'System tables', url: 'https://docs.databricks.com/aws/en/admin/system-tables/' },
+      ],
+    },
+    {
       id: 'try-it',
       heading: 'Try it',
       steps: [
         {
           title: 'Create a catalog and schema',
-          body: 'Use a catalog you can create in, or ask an admin for one.',
+          body: 'CREATE CATALOG without a managed location works only when the workspace has default storage or the metastore has a root storage location. Otherwise add MANAGED LOCATION, or ask an admin for a catalog.',
           code: 'CREATE CATALOG IF NOT EXISTS sandbox;\nCREATE SCHEMA IF NOT EXISTS sandbox.getting_started;',
         },
         {

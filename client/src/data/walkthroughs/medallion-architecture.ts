@@ -13,7 +13,7 @@ export const walkthrough: Walkthrough = {
     },
     {
       title: 'Silver is clean and conformed.',
-      body: 'Types are cast, duplicates removed, bad rows quarantined, and keys standardized. Silver is where tables from different sources join.',
+      body: 'Types are cast, duplicates removed, bad rows dropped or routed to a quarantine table, and keys standardized. Silver is where tables from different sources join.',
     },
     {
       title: 'Gold is shaped for use.',
@@ -21,7 +21,11 @@ export const walkthrough: Walkthrough = {
     },
     {
       title: 'Quality improves at each hop.',
-      body: 'Expectations between layers decide what moves forward, what is dropped, and what is held for review.',
+      body: 'Expectations between layers decide what moves forward. Choose an action per rule: warn keeps the row and records the metric, drop discards it, fail stops the update. Hold rows for review in a quarantine table.',
+    },
+    {
+      title: 'Pick the gold object by how it is read.',
+      body: 'Views for light logic, materialized views for precomputed aggregates, metric views for governed measures that many tools query by dimension.',
     },
     {
       title: 'Layers are schemas or catalogs.',
@@ -38,7 +42,7 @@ export const walkthrough: Walkthrough = {
         type: 'flow',
         title: 'Bronze, silver, gold',
         description:
-          'Files, databases, and APIs land in bronze tables as raw records with ingestion metadata, using Auto Loader or Lakeflow Connect. Expectations check the records; failing rows go to a quarantine table and the rest are typed, deduplicated, and joined into silver tables. Gold materialized views aggregate silver into tables read by dashboards, Genie, and ML models.',
+          'Files, databases, and APIs land in bronze tables as raw records with ingestion metadata, using Auto Loader or Lakeflow Connect. Expectations check the records; failing rows are dropped or, if they need review, written to a quarantine table, and the rest are typed, deduplicated, and joined into silver tables. Gold materialized views aggregate silver into tables read by dashboards, Genie, and ML models.',
         lanes: [
           { label: 'Sources', fromRow: 0, toRow: 0 },
           { label: 'Lakehouse', fromRow: 1, toRow: 2 },
@@ -57,7 +61,7 @@ export const walkthrough: Walkthrough = {
           { id: 'checks', label: 'Expectations', sub: 'types, keys, rules', col: 1, row: 1, kind: 'gate' },
           { id: 'silver', label: 'Silver', sub: 'clean, deduplicated', col: 2, row: 1, kind: 'store' },
           { id: 'gold', label: 'Gold', sub: 'aggregates, models', col: 3, row: 1, kind: 'highlight' },
-          { id: 'quarantine', label: 'Quarantine', sub: 'rows held for review', col: 1, row: 2 },
+          { id: 'quarantine', label: 'Quarantine', sub: 'optional, for review', col: 1, row: 2 },
           { id: 'use', label: 'Dashboards, Genie, ML', sub: 'read gold tables', col: 3, row: 3, kind: 'surface' },
         ],
         edges: [
@@ -134,7 +138,7 @@ CREATE OR REFRESH STREAMING TABLE orders_bronze AS
 SELECT *, _metadata.file_path AS source_file, current_timestamp() AS loaded_at
 FROM STREAM read_files('/Volumes/main/sales/landing/orders', format => 'json');
 
--- Silver: typed and checked; rows without an order_id are dropped
+-- Silver: typed and checked; rows without an order_id are dropped (quarantine pattern below)
 CREATE OR REFRESH STREAMING TABLE orders_silver (
   CONSTRAINT has_id EXPECT (order_id IS NOT NULL) ON VIOLATION DROP ROW
 ) AS
@@ -152,6 +156,81 @@ GROUP BY order_date, region;`,
             'Put each layer in its own schema when different teams own or read them.',
           ],
         },
+      ],
+    },
+    {
+      id: 'quality',
+      heading: 'Choosing an expectation action',
+      table: {
+        caption: 'Expectation actions in Lakeflow Spark Declarative Pipelines',
+        columns: ['Action', 'Use it when'],
+        rows: [
+          ['Warn (default)', 'The rule is advisory or you are still learning the data. Rows pass, and the violation count goes to the event log.'],
+          ['DROP ROW', 'A bad row is safe to discard and nobody needs to see it. Dropped rows are counted but not stored.'],
+          ['FAIL UPDATE', 'A violation means the source or the logic is broken, such as a null primary key. The update stops before bad data lands.'],
+          ['Quarantine table', 'Someone must review or repair rejected rows. Write the inverse of the rule to a second table.'],
+        ],
+      },
+      examples: [
+        {
+          label: 'Quarantine rows that fail a rule',
+          language: 'sql',
+          code: `CREATE OR REFRESH STREAMING TABLE orders_silver (
+  CONSTRAINT has_id EXPECT (order_id IS NOT NULL) ON VIOLATION DROP ROW
+) AS SELECT * FROM STREAM orders_bronze;
+
+CREATE OR REFRESH STREAMING TABLE orders_quarantine AS
+SELECT *, current_timestamp() AS quarantined_at
+FROM STREAM orders_bronze
+WHERE NOT (order_id IS NOT NULL);`,
+          notes: [
+            'Derive both predicates from one rule so the two tables never disagree. In Python, build the quarantine filter from the same expectations dictionary.',
+          ],
+        },
+        {
+          label: 'Apply updates with AUTO CDC',
+          language: 'sql',
+          code: `CREATE OR REFRESH STREAMING TABLE customers_silver;
+
+CREATE FLOW customers_cdc AS AUTO CDC INTO customers_silver
+FROM STREAM customers_bronze
+KEYS (customer_id)
+SEQUENCE BY updated_at
+STORED AS SCD TYPE 1;`,
+          notes: [
+            'AUTO CDC handles out-of-order events and deletes. Use it instead of a hand-written MERGE or ROW_NUMBER dedupe in a pipeline.',
+          ],
+        },
+      ],
+      links: [
+        { label: 'Manage data quality with pipeline expectations', url: 'https://docs.databricks.com/aws/en/ldp/expectations' },
+        { label: 'AUTO CDC', url: 'https://docs.databricks.com/aws/en/ldp/cdc' },
+      ],
+    },
+    {
+      id: 'physical',
+      heading: 'Layout and gold objects',
+      points: [
+        {
+          strong: 'Liquid clustering.',
+          text: 'Cluster large silver and gold tables with CLUSTER BY on the columns you filter and join on, or CLUSTER BY AUTO to let predictive optimization choose. It replaces partitioning and ZORDER for new tables.',
+        },
+        {
+          strong: 'View.',
+          text: 'Pick a view when the logic is cheap and the result must always be current. Nothing is stored.',
+        },
+        {
+          strong: 'Materialized view.',
+          text: 'Pick a materialized view for aggregates and joins that dashboards read often. The pipeline refreshes it incrementally where it can.',
+        },
+        {
+          strong: 'Metric view.',
+          text: 'Pick a metric view to define measures, dimensions, and filters once in Unity Catalog, so dashboards, Genie, and SQL return the same revenue number.',
+        },
+      ],
+      links: [
+        { label: 'Liquid clustering', url: 'https://docs.databricks.com/aws/en/delta/clustering' },
+        { label: 'Unity Catalog metric views', url: 'https://docs.databricks.com/aws/en/metric-views/' },
       ],
     },
     {
