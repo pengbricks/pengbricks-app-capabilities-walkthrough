@@ -5,171 +5,313 @@ export const walkthrough: Walkthrough = {
   area: 'Governance/Monitoring',
   title: 'Support and recovery',
   intro:
-    'A job fails one task on purpose, triages every failed capability guide run, classifies each error, and routes it to an owner from an on_call table. A second job repairs the failed run through the Jobs API repair endpoint and records the outcome in support_incidents.',
+    'Support starts before an incident: tasks that retry safely, runs that clean up after a failure, streams that restart on their own, and a recovery plan for a lost region. After that come alerts that reach the right person, a severity scale people agree on, and runbooks. This page covers the current Databricks features for each layer and how to combine them.',
   shortVersion: [
     {
-      title: 'One task fails by design.',
-      body: 'fragile_step raises on the original run. The job ends as succeeded with one failed task, which is the state a support engineer inherits.',
+      title: 'Make tasks safe to run twice.',
+      body: 'Retries and repair runs rerun work. Idempotent writes, such as a keyed MERGE, make that harmless.',
     },
     {
-      title: 'Triage reads two sources.',
-      body: 'The Jobs API gives the failed task and its error text. system.lakeflow.job_run_timeline cross-checks the run-level result.',
+      title: 'Retry first, then repair.',
+      body: 'Task retries absorb transient errors. A repair run reruns only the failed tasks and their dependents after you fix the cause, and keeps the work that already succeeded.',
     },
     {
-      title: 'Errors get a class and a route.',
-      body: 'Regular expressions in the spec map each error to a class and severity. The job tag then picks an on_call row.',
+      title: 'Use run_if for cleanup and notification.',
+      body: 'A task with run_if ALL_DONE runs whether upstream tasks pass or fail, so it can release resources and report.',
     },
     {
-      title: 'Repair reruns only what failed.',
-      body: 'support_repair calls repair_run with the failed task keys. The same run ID finishes as SUCCESS.',
+      title: 'Choose managed disaster recovery for cross-region needs.',
+      body: 'Set RPO and RTO per workload tier. Databricks recommends managed disaster recovery on AWS and Azure; keep Delta time travel or backups for corruption, which replication copies to both regions.',
     },
     {
-      title: 'Retries recover the rest.',
-      body: 'write_with_retry fails once, passes on the retry, and writes its rows with a MERGE, so the retry adds no duplicates.',
+      title: 'Define severities, owners, and runbooks.',
+      body: 'A short severity scale decides who is paged and how fast. Each alert links to a runbook that names the owner and the next step.',
     },
   ],
   sections: [
     {
-      id: 'flow',
-      heading: 'Fail, triage, repair',
+      id: 'resiliency',
+      heading: 'Retries, run_if, and repair runs',
       prose:
-        'The support job runs once and leaves a failed run behind. The repair job finds that run, reruns the failed task, and updates the incident that triage opened.',
+        'Lakeflow Jobs gives you three tools that work together. Retries handle failures that clear on their own. run_if decides which tasks run after something fails. Repair finishes a run once the cause is fixed.',
       diagram: {
         type: 'flow',
-        title: 'From failure to a recorded repair',
+        title: 'What happens when a task fails',
         description:
-          'The operational support job writes on_call, then runs write_with_retry and fragile_step. fragile_step fails on the original run. triage runs after both tasks, reads failed runs from the Jobs API and system tables, classifies each error, routes it using on_call, and writes support_incidents. The support repair job calls the repair endpoint on the failed run and updates the incident.',
-        lanes: [
-          { label: 'Support job', fromRow: 0, toRow: 1 },
-          { label: 'Repair job', fromRow: 2, toRow: 2 },
-          { label: 'Tables', fromRow: 3, toRow: 3 },
-        ],
+          'A task fails and is retried according to its retry policy. If retries are exhausted, downstream tasks with the default ALL_SUCCESS condition are skipped, while a cleanup or notify task with run_if ALL_DONE still runs. An on-call engineer fixes the cause and starts a repair run, which reruns only the failed and skipped tasks.',
         nodes: [
-          { id: 'setup', label: 'setup_on_call', mono: true, sub: 'writes the owner map', col: 0, row: 0 },
-          { id: 'retry', label: 'write_with_retry', mono: true, sub: 'fails once, then passes', col: 1, row: 0 },
-          { id: 'fragile', label: 'fragile_step', mono: true, sub: 'fails by design', col: 2, row: 0, kind: 'gate' },
-          { id: 'triage', label: 'triage', mono: true, sub: 'runs after both tasks', col: 1, row: 1, kind: 'highlight' },
-          { id: 'api', label: 'Jobs API', sub: 'tasks and errors', col: 2, row: 1, kind: 'surface' },
-          { id: 'sys', label: 'System tables', sub: 'job_run_timeline', col: 3, row: 1, kind: 'surface' },
-          { id: 'repair', label: 'repair_failed_run', mono: true, sub: 'repair_run endpoint', col: 1, row: 2, kind: 'highlight' },
-          { id: 'oncall', label: 'on_call', mono: true, sub: 'owner and escalation', col: 0, row: 3, kind: 'store' },
-          { id: 'inc', label: 'support_incidents', mono: true, sub: 'one row per failure', col: 1, row: 3, kind: 'store' },
+          { id: 'task', label: 'Task fails', sub: 'transient or real', col: 0, row: 0 },
+          { id: 'retry', label: 'Retry policy', sub: 'max_retries, interval', col: 1, row: 0, kind: 'highlight' },
+          { id: 'down', label: 'Downstream tasks', sub: 'skipped on ALL_SUCCESS', col: 2, row: 0 },
+          { id: 'clean', label: 'Cleanup or notify', sub: 'run_if ALL_DONE', col: 2, row: 1, kind: 'surface' },
+          { id: 'fix', label: 'Fix the cause', sub: 'data, config, access', col: 1, row: 1, kind: 'gate' },
+          { id: 'repair', label: 'Repair run', sub: 'failed tasks only', col: 0, row: 1, kind: 'highlight' },
         ],
         edges: [
-          { from: 'setup', to: 'retry' },
-          { from: 'retry', to: 'triage' },
-          { from: 'fragile', to: 'triage', label: 'ALL_DONE' },
-          { from: 'api', to: 'triage', dashed: true },
-          { from: 'sys', to: 'triage', dashed: true },
-          { from: 'triage', to: 'repair', label: 'failed run' },
-          { from: 'oncall', to: 'inc', label: 'routes' },
-          { from: 'repair', to: 'inc', label: 'outcome' },
+          { from: 'task', to: 'retry' },
+          { from: 'retry', to: 'down', label: 'exhausted' },
+          { from: 'retry', to: 'clean', dashed: true },
+          { from: 'clean', to: 'fix' },
+          { from: 'fix', to: 'repair' },
         ],
         legend: [
-          { kind: 'gate', label: 'Fails on purpose' },
-          { kind: 'highlight', label: 'Support action' },
-          { kind: 'store', label: 'Delta table' },
-        ],
-        caption: 'Reference run: fragile_step failed, the repair job reran it as repair 305177685386087, and the original run finished as SUCCESS.',
-      },
-    },
-    {
-      id: 'routing',
-      heading: 'How an error reaches a person',
-      prose:
-        'Classification uses the first matching pattern in the spec. Routing uses the job tag, then the use-case tag, then a wildcard row. High severity also pages the escalation contact.',
-      diagram: {
-        type: 'matrix',
-        title: 'Error class, severity, and route',
-        description:
-          'Examples from the reference triage. A TransientSourceError from the support job is class transient, severity low, and notifies platform-support with escalation after 30 minutes. A PERMISSION_DENIED error from another guide job is class permission, severity high, and pages the owner and the escalation contact immediately. A Delta metadata change is class concurrency, severity low.',
-        corner: 'Example error ↓ · Result →',
-        columns: ['Class', 'Severity', 'Route'],
-        rows: [
-          {
-            label: 'TransientSourceError',
-            sub: 'fragile_step',
-            cells: [
-              { state: 'own', text: 'transient' },
-              { state: 'none', text: 'low' },
-              { state: 'own', text: 'Notify owner', sub: 'escalate after 30 min' },
-            ],
-          },
-          {
-            label: 'PERMISSION_DENIED',
-            sub: 'a data sharing guide run',
-            cells: [
-              { state: 'own', text: 'permission' },
-              { state: 'optional', text: 'high' },
-              { state: 'optional', text: 'Page owner and lead', sub: 'no wait' },
-            ],
-          },
-          {
-            label: 'DELTA_METADATA_CHANGED',
-            sub: 'an external run',
-            cells: [
-              { state: 'own', text: 'concurrency' },
-              { state: 'none', text: 'low' },
-              { state: 'own', text: 'Notify owner', sub: 'wildcard or tag row' },
-            ],
-          },
-          {
-            label: 'TypeError',
-            sub: 'a code defect in a guide',
-            cells: [
-              { state: 'own', text: 'code_error' },
-              { state: 'own', text: 'medium' },
-              { state: 'own', text: 'Notify owner', sub: 'escalate after 120 min' },
-            ],
-          },
-        ],
-        legend: [
-          { state: 'own', label: 'Standard handling' },
-          { state: 'optional', label: 'Pages the escalation contact' },
-          { state: 'none', label: 'Low severity' },
+          { kind: 'highlight', label: 'Job setting' },
+          { kind: 'surface', label: 'Always runs' },
+          { kind: 'gate', label: 'Human step' },
         ],
       },
-    },
-    {
-      id: 'resiliency',
-      heading: 'Resiliency settings',
-      prose: 'Each setting answers a different failure. The job uses all of them, and the guide documents when to change them.',
       table: {
-        columns: ['Setting', 'What it does here'],
+        columns: ['Setting', 'Use it when'],
         rows: [
-          ['max_retries: 2, 10 s interval', 'write_with_retry fails on execution 1 and passes on execution 2.'],
-          ['timeout_seconds: 600', 'A hung task stops after 10 minutes instead of holding the job.'],
-          ['retry_on_timeout: true', 'A timed-out attempt counts as retryable.'],
-          ['MERGE keyed by item id', 'Re-running the write leaves 25 rows. The retry never appends duplicates.'],
-          ['No retries on fragile_step', 'The failure stays visible so a person or the repair job handles it.'],
-          ['Repair, not rerun', 'repair_run reruns only failed tasks and keeps the successful ones.'],
+          [
+            'max_retries with min_retry_interval_millis',
+            'The failure is likely transient, such as an upstream outage or a throttled API.',
+          ],
+          [
+            'timeout_seconds',
+            'A task can hang. Add retry_on_timeout only if a second attempt is safe. A timeout applies to each retry.',
+          ],
+          [
+            'Idempotent writes (keyed MERGE, or INSERT ... WHERE NOT EXISTS)',
+            'Always, for tasks that retry or can be repaired. Delta commits are atomic, so a failed write leaves the table unchanged.',
+          ],
+          [
+            'run_if ALL_DONE, or AT_LEAST_ONE_FAILED',
+            'A cleanup, triage, or notification task must run even when upstream tasks fail.',
+          ],
+          [
+            'Repair run',
+            'The cause is fixed and you want to rerun only failed and skipped tasks, keeping successful results.',
+          ],
+          ['max_concurrent_runs = 1', 'Two overlapping runs would write the same table.'],
         ],
       },
-    },
-    {
-      id: 'steps',
-      heading: 'Run the exercise',
-      steps: [
+      links: [
+        { label: 'Configure task dependencies and run_if', url: 'https://docs.databricks.com/aws/en/jobs/run-if' },
         {
-          title: 'Run the support job',
-          body: 'It finishes as succeeded with one failed task. Open the run and note the fragile_step error.',
-          code: 'databricks bundle run capability_guides_operational_support --target dev',
+          label: 'Troubleshoot and repair job failures',
+          url: 'https://docs.databricks.com/aws/en/jobs/repair-job-failures',
         },
         {
-          title: 'Read the incident',
-          body: 'triage wrote the class, severity, owner, and route for the failed task.',
-          code: "SELECT run_id, task_key, error_class, severity, route, status\nFROM <catalog>.<schema>.support_incidents\nORDER BY detected_at DESC;",
-        },
-        {
-          title: 'Repair the run',
-          body: 'The repair job calls the repair endpoint, waits, and sets the incident to repaired with the repair ID.',
-          code: 'databricks bundle run capability_guides_support_repair --target dev',
+          label: 'Configure and edit tasks (retries, timeouts)',
+          url: 'https://docs.databricks.com/aws/en/jobs/configure-task',
         },
       ],
     },
+    {
+      id: 'streaming',
+      heading: 'Restart streaming workloads automatically',
+      prose:
+        'Do not rely on someone noticing a stopped stream. Let the platform restart it and let the checkpoint decide where to resume.',
+      points: [
+        {
+          strong: 'Use continuous jobs.',
+          text: 'A continuous trigger keeps exactly one run active and restarts it after it ends or fails. Failed tasks retry with exponential backoff, and Task retry mode defaults to On failure. This replaces the older advice to set unlimited retries and one concurrent run.',
+        },
+        {
+          strong: 'Keep the checkpoint.',
+          text: 'Structured Streaming resumes from its checkpoint, so a restart does not reprocess data. Give each query its own checkpoint location and do not delete it to fix an error.',
+        },
+        {
+          strong: 'Prefer pipelines for managed streaming.',
+          text: 'Lakeflow Spark Declarative Pipelines handle retries and restarts of flows for you. Run them in continuous mode when you need low latency.',
+        },
+        {
+          strong: 'Alert on backlog.',
+          text: 'Set a streaming backlog threshold on the task. Databricks notifies when the 10-minute average backlog passes the threshold, then repeats every 30 minutes while it stays high.',
+        },
+      ],
+      links: [
+        { label: 'Run jobs continuously', url: 'https://docs.databricks.com/aws/en/jobs/continuous' },
+        {
+          label: 'Structured Streaming checkpoints',
+          url: 'https://docs.databricks.com/aws/en/structured-streaming/checkpoints',
+        },
+      ],
+    },
+    {
+      id: 'notifications',
+      heading: 'Notifications, health rules, and destinations',
+      prose: 'Notify on the events that need a decision, and send them where people already respond.',
+      points: [
+        {
+          strong: 'Events.',
+          text: 'Jobs and tasks can notify on start, success, failure, a duration threshold, and a streaming backlog threshold. Continuous jobs can also notify on maintenance windows.',
+        },
+        {
+          strong: 'Health rules.',
+          text: 'Set an expected duration, or a streaming backlog threshold, on the job or task. Crossing it triggers the Duration warning or Streaming backlog notification.',
+        },
+        {
+          strong: 'Destinations.',
+          text: 'Email, or system destinations an admin sets up once: Slack, Microsoft Teams, PagerDuty, and webhooks. Each job or task can use up to three system destinations per event type. Page from PagerDuty or a webhook for high severity, and send the rest to chat.',
+        },
+        {
+          strong: 'Task or job level.',
+          text: 'Job-level failure notifications are not sent for failed tasks that are retried. Add task-level notifications if you want to know about each failed attempt.',
+        },
+        {
+          strong: 'Succeeded with failures.',
+          text: 'A run that ends in the Succeeded with failures state counts as successful. Select the Success event if you want to be notified about it.',
+        },
+      ],
+      links: [{ label: 'Add notifications on a job', url: 'https://docs.databricks.com/aws/en/jobs/notifications' }],
+    },
+    {
+      id: 'severity',
+      heading: 'A severity taxonomy',
+      prose:
+        'Four levels are enough. Define them by business impact, not by error text, and attach a first response and an escalation to each. The examples are a starting point; set the time targets from your SLAs.',
+      diagram: {
+        type: 'matrix',
+        title: 'Severity, first response, and escalation',
+        description:
+          'Sev 1 is an outage or data loss affecting production consumers and pages the on-call engineer immediately. Sev 2 is a degraded or late critical pipeline and notifies on-call within the hour. Sev 3 is a non-critical failure with a workaround and goes to the owning team queue. Sev 4 is a warning or a request and is handled in normal planning.',
+        corner: 'Severity ↓ · Response →',
+        columns: ['Meaning', 'First response', 'Escalate to'],
+        rows: [
+          {
+            label: 'Sev 1',
+            sub: 'outage or data loss',
+            cells: [
+              { state: 'own', text: 'Production blocked', sub: 'or wrong data published' },
+              { state: 'own', text: 'Page on-call now' },
+              { state: 'own', text: 'Platform lead, then Databricks support' },
+            ],
+          },
+          {
+            label: 'Sev 2',
+            sub: 'degraded or late',
+            cells: [
+              { state: 'own', text: 'Critical job missed its SLA' },
+              { state: 'own', text: 'Notify on-call' },
+              { state: 'optional', text: 'Platform lead if not fixed in 2 hours' },
+            ],
+          },
+          {
+            label: 'Sev 3',
+            sub: 'workaround exists',
+            cells: [
+              { state: 'optional', text: 'Non-critical task failed' },
+              { state: 'optional', text: 'Ticket to owning team' },
+              { state: 'none', text: 'Only if it repeats' },
+            ],
+          },
+          {
+            label: 'Sev 4',
+            sub: 'warning or request',
+            cells: [
+              { state: 'none', text: 'Slow run, cost warning, question' },
+              { state: 'none', text: 'Backlog item' },
+              { state: 'none', text: 'None' },
+            ],
+          },
+        ],
+        legend: [
+          { state: 'own', label: 'Immediate' },
+          { state: 'optional', label: 'Same day' },
+          { state: 'none', label: 'Planned' },
+        ],
+      },
+      points: [
+        {
+          strong: 'Tag jobs with severity and owner.',
+          text: 'Put the tier and the owning team in job tags. Alert routing and dashboards read the same tags.',
+        },
+        {
+          strong: 'Classify by impact first.',
+          text: 'An error class (permission, quota, data quality, transient) helps diagnosis. The severity comes from what the failure blocks.',
+        },
+      ],
+    },
+    {
+      id: 'dr',
+      heading: 'Disaster recovery: RPO, RTO, and what to replicate',
+      prose:
+        'Start with the objectives. RPO is how much change you can afford to lose, and RTO is how long you can be down. Different workloads get different tiers, and the tier decides the design.',
+      table: {
+        columns: ['Layer', 'Approach'],
+        rows: [
+          [
+            'Within a region',
+            'Databricks spreads the control plane across zones and recovers from a zone failure in about 15 minutes. You choose zone-redundant storage and pools that span zones.',
+          ],
+          [
+            'Across regions',
+            'Use managed disaster recovery on AWS and Azure. It replicates Unity Catalog metadata, managed table data, and workspace assets continuously, gives a stable URL, and fails over from the account console. Replication state is in system.replication.states.',
+          ],
+          [
+            'Resources managed DR does not cover, or active-active',
+            'Replicate yourself. Delta deep clone copies tables to a second region and can run incrementally. Redeploy jobs, pipelines, and policies from code in Git with bundles or Terraform.',
+          ],
+          [
+            'Corruption and bad deletes',
+            'Replication copies mistakes to both regions. Use Delta time travel and RESTORE for recent changes, and keep object-store versioning or backups for external storage.',
+          ],
+          [
+            'Unity Catalog and workspace configuration',
+            'Keep grants, tags, catalogs, and workspace settings in Terraform or bundles so you can rebuild them, and export what is not code.',
+          ],
+          ['Cross-cloud', 'Not covered by managed DR. Plan it as a separate project.'],
+        ],
+      },
+      points: [
+        {
+          strong: 'Test it.',
+          text: 'Run a failover exercise on a schedule and record the measured RTO. An untested plan is a guess.',
+        },
+        {
+          strong: 'Mind the egress.',
+          text: 'Copying tables across regions or clouds incurs cloud data-transfer charges. Include them in the tier decision.',
+        },
+        {
+          strong: 'Cover the dependencies.',
+          text: 'Sources, ingestion tools, BI tools, and schedulers also have to fail over, or the Databricks side recovers to nothing.',
+        },
+      ],
+      links: [
+        { label: 'Disaster recovery', url: 'https://docs.databricks.com/aws/en/admin/disaster-recovery' },
+        { label: 'Clone a table', url: 'https://docs.databricks.com/aws/en/delta/clone' },
+        { label: 'Work with table history', url: 'https://docs.databricks.com/aws/en/delta/history' },
+        {
+          label: 'Best practices for reliability',
+          url: 'https://docs.databricks.com/aws/en/lakehouse-architecture/reliability/best-practices',
+        },
+      ],
+    },
+    {
+      id: 'runbooks',
+      heading: 'Runbooks, on-call, and the escalation path',
+      prose:
+        'A page without a runbook sends the on-call engineer to search. Write the runbook when you create the alert.',
+      steps: [
+        {
+          title: 'Own every alert',
+          body: "Each alert names one owning team and one on-call rotation. Store the mapping in job tags or a small table, not in people's heads.",
+        },
+        {
+          title: 'Write a short runbook per alert class',
+          body: 'State the symptom, the first check (run page, task error, system.lakeflow tables), the usual causes, the fix, and when to repair or rerun. Link it from the notification.',
+        },
+        {
+          title: 'Define the escalation path',
+          body: 'Owning team on-call, then the platform team, then Databricks support. Escalate on time or severity, whichever comes first.',
+        },
+        {
+          title: 'Open a Databricks support case with evidence',
+          body: 'Include the workspace ID, job and run IDs, the error text, the time window, and what you already tried. Check status.databricks.com first for a known incident.',
+        },
+        {
+          title: 'Close the loop',
+          body: 'After each Sev 1 or Sev 2, write down the cause and the change that prevents it: a retry setting, a health rule, a quota, or a runbook edit.',
+        },
+      ],
+      links: [{ label: 'Databricks status', url: 'https://status.databricks.com' }],
+    },
   ],
   related: [
+    { slug: 'monitoring', title: 'Platform observability' },
+    { slug: 'orchestration-patterns', title: 'Orchestration patterns' },
     { slug: 'platform-administration', title: 'Workspace and account administration' },
-    { slug: 'dataops', title: 'Pipeline operations' },
   ],
 };
