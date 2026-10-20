@@ -17,7 +17,7 @@ APP_PREFIX = "/capability-guides"
 API_PREFIX = "/api/capability-guides"
 
 app = FastAPI(
-    title="Capability Atlas API",
+    title="Databricks Capability Atlas API",
     description="FastAPI backend for the public Databricks capability guide walkthrough.",
     version="1.0.0",
 )

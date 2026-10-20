@@ -177,6 +177,8 @@ body,
 .walkthrough .t-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
 .walkthrough .t-m { font-size: 12px; fill: var(--muted-foreground); }
 .walkthrough .t-c { text-anchor: middle; }
+.walkthrough .t-halo { paint-order: stroke; stroke: var(--background); stroke-width: 5px; stroke-linejoin: round; }
+.walkthrough .t-halo-lane { paint-order: stroke; stroke: var(--muted); stroke-width: 5px; stroke-linejoin: round; }
 .walkthrough .t-inv { font-size: 14px; font-weight: 600; fill: var(--primary-foreground); }
 .walkthrough .t-inv-m { font-size: 12px; fill: color-mix(in oklab, var(--primary-foreground) 78%, transparent); }
 .walkthrough .t-label { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; fill: var(--muted-foreground); }

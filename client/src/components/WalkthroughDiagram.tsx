@@ -1,57 +1,41 @@
 import type { FlowDiagram, FlowNode, MatrixDiagram } from '../data/walkthroughs/types.ts';
+import {
+  box,
+  CHAR_W,
+  COL_W,
+  BOTTOM,
+  GATE,
+  gateLabelArea,
+  layoutFor,
+  PAD,
+  placeGateLabel,
+  ROW_H,
+  route,
+  SIDE,
+  textWidth,
+  type GatePlacement,
+  type Layout,
+} from './diagramLayout.ts';
 
-// Grid layout for flow diagrams: nodes sit in columns and rows; edges route between ports.
-const COL_W = 196;
-const COL_GAP = 56;
-const ROW_H = 64;
-const ROW_GAP = 56;
-const TOP = 48;
-const SIDE = 24;
-const GATE = 22; // half-diagonal of an approval gate
 
-const colX = (col: number) => SIDE + col * (COL_W + COL_GAP);
-const rowY = (row: number) => TOP + row * (ROW_H + ROW_GAP);
-
-type Box = { left: number; right: number; top: number; bottom: number; cx: number; cy: number };
-
-function box(node: FlowNode): Box {
-  const x = colX(node.col);
-  const y = rowY(node.row);
-  if (node.kind === 'gate') {
-    const cx = x + COL_W / 2;
-    const cy = y + GATE;
-    return { left: cx - GATE, right: cx + GATE, top: cy - GATE, bottom: cy + GATE, cx, cy };
-  }
-  return { left: x, right: x + COL_W, top: y, bottom: y + ROW_H, cx: x + COL_W / 2, cy: y + ROW_H / 2 };
+// Text that would overflow its node is condensed to fit rather than spilling over the outline.
+function fit(text: string, perChar: number, max: number) {
+  return textWidth(text, perChar) > max ? { textLength: max, lengthAdjust: 'spacingAndGlyphs' as const } : {};
 }
 
-function edgePath(a: Box, b: Box): { d: string; mid: [number, number] } {
-  if (Math.abs(a.cx - b.cx) < 1) {
-    const down = b.cy > a.cy;
-    const y1 = down ? a.bottom : a.top;
-    const y2 = down ? b.top - 2 : b.bottom + 2;
-    return { d: `M${a.cx} ${y1}V${y2}`, mid: [a.cx + 6, (y1 + y2) / 2] };
-  }
-  const forward = b.cx > a.cx;
-  const x1 = forward ? a.right : a.left;
-  const x2 = forward ? b.left - 2 : b.right + 2;
-  if (Math.abs(a.cy - b.cy) < 1) return { d: `M${x1} ${a.cy}H${x2}`, mid: [(x1 + x2) / 2, a.cy - 8] };
-  const xm = (x1 + x2) / 2;
-  return { d: `M${x1} ${a.cy}H${xm}V${b.cy}H${x2}`, mid: [xm + 6, (a.cy + b.cy) / 2] };
-}
-
-function NodeShape({ node }: { node: FlowNode }) {
-  const b = box(node);
+function NodeShape({ node, L, placement }: { node: FlowNode; L: Layout; placement?: GatePlacement }) {
+  const b = box(node, L);
   const labelClass = `t t-c t-strong${node.mono ? ' t-mono' : ''}`;
   if (node.kind === 'gate') {
+    const at = gateLabelArea(node, L, placement ?? 'above');
     return (
       <g>
         <path className="d-gate" d={`M${b.cx} ${b.top}l${GATE} ${GATE}-${GATE} ${GATE}-${GATE}-${GATE}z`} />
-        <text className="t-m t-c" x={b.cx} y={node.sub ? b.top - 22 : b.top - 8}>
+        <text className="t-m t-halo" textAnchor={at.anchor} x={at.x} y={at.y}>
           {node.label}
         </text>
         {node.sub && (
-          <text className="t-m t-c" x={b.cx} y={b.top - 8}>
+          <text className="t-m t-halo" textAnchor={at.anchor} x={at.x} y={at.y + 14}>
             {node.sub}
           </text>
         )}
@@ -60,6 +44,7 @@ function NodeShape({ node }: { node: FlowNode }) {
   }
   const shapeClass = node.kind === 'highlight' ? 'd-box d-prod' : node.kind === 'surface' ? 'd-surface-box' : 'd-box';
   const labelY = node.sub ? b.cy - 4 : b.cy + 5;
+  const inner = COL_W - PAD * 2;
   return (
     <g>
       {node.kind === 'store' ? (
@@ -70,11 +55,11 @@ function NodeShape({ node }: { node: FlowNode }) {
       ) : (
         <rect className={shapeClass} x={b.left} y={b.top} width={COL_W} height={ROW_H} rx={8} />
       )}
-      <text className={labelClass} x={b.cx} y={labelY}>
+      <text className={labelClass} x={b.cx} y={labelY} {...fit(node.label, node.mono ? CHAR_W.labelMono : CHAR_W.label, inner)}>
         {node.label}
       </text>
       {node.sub && (
-        <text className="t-m t-c t-mono" x={b.cx} y={b.cy + 16}>
+        <text className="t-m t-c" x={b.cx} y={b.cy + 16} {...fit(node.sub, CHAR_W.sub, inner)}>
           {node.sub}
         </text>
       )}
@@ -83,12 +68,19 @@ function NodeShape({ node }: { node: FlowNode }) {
 }
 
 export function FlowDiagramView({ diagram, id }: { diagram: FlowDiagram; id: string }) {
+  const L = layoutFor(diagram);
   const nodes = new Map(diagram.nodes.map((node) => [node.id, node]));
+  const occupied = new Set(diagram.nodes.map((node) => `${node.col},${node.row}`));
   const cols = Math.max(...diagram.nodes.map((node) => node.col)) + 1;
   const rows = Math.max(...diagram.nodes.map((node) => node.row)) + 1;
-  const width = colX(cols - 1) + COL_W + SIDE;
-  const height = rowY(rows - 1) + ROW_H + 40;
+  const width = L.colX(cols - 1) + COL_W + SIDE;
+  const height = L.rowY(rows - 1) + ROW_H + BOTTOM;
   const marker = `${id}-arrow`;
+  const paths = diagram.edges.flatMap((edge) => {
+    const from = nodes.get(edge.from);
+    const to = nodes.get(edge.to);
+    return from && to ? [route(from, to, L, occupied).d] : [];
+  });
 
   return (
     <svg
@@ -114,46 +106,62 @@ export function FlowDiagramView({ diagram, id }: { diagram: FlowDiagram; id: str
         </marker>
       </defs>
       {diagram.lanes?.map((lane) => {
-        const top = rowY(lane.fromRow) - 36;
-        const bottom = rowY(lane.toRow) + ROW_H + 18;
-        return (
-          <g key={lane.label}>
-            <rect className="d-lane" x={8} y={top} width={width - 16} height={bottom - top} rx={8} />
-            <text className="t-label" x={20} y={top + 18}>
-              {lane.label.toUpperCase()}
-            </text>
-          </g>
-        );
+        const top = L.rowY(lane.fromRow) - 36;
+        const bottom = L.rowY(lane.toRow) + ROW_H + 18;
+        return <rect key={lane.label} className="d-lane" x={8} y={top} width={width - 16} height={bottom - top} rx={8} />;
       })}
       {diagram.edges.map((edge) => {
         const from = nodes.get(edge.from);
         const to = nodes.get(edge.to);
         if (!from || !to) return null;
-        const { d, mid } = edgePath(box(from), box(to));
+        const { d } = route(from, to, L, occupied);
         return (
-          <g key={`${edge.from}-${edge.to}`}>
-            <path
-              className={edge.dashed ? 'd-dash' : 'd-line'}
-              d={d}
-              markerEnd={edge.dashed ? undefined : `url(#${marker})`}
-            />
-            {edge.label && (
-              <text className="t-m" x={mid[0]} y={mid[1]}>
-                {edge.label}
-              </text>
-            )}
-          </g>
+          <path
+            key={`${edge.from}-${edge.to}`}
+            className={edge.dashed ? 'd-dash' : 'd-line'}
+            d={d}
+            markerEnd={edge.dashed ? undefined : `url(#${marker})`}
+          />
         );
       })}
       {diagram.nodes.map((node) => (
-        <NodeShape key={node.id} node={node} />
+        <NodeShape
+          key={node.id}
+          node={node}
+          L={L}
+          placement={node.kind === 'gate' ? placeGateLabel(node, L, paths) : undefined}
+        />
       ))}
+      {/* Labels go last, with a halo, so no line runs through their text. */}
+      {diagram.lanes?.map((lane) => (
+        <text key={`${lane.label}-label`} className="t-label t-halo-lane" x={20} y={L.rowY(lane.fromRow) - 18}>
+          {lane.label.toUpperCase()}
+        </text>
+      ))}
+      {diagram.edges.map((edge) => {
+        const from = nodes.get(edge.from);
+        const to = nodes.get(edge.to);
+        if (!edge.label || !from || !to) return null;
+        const { label, anchor = 'middle' } = route(from, to, L, occupied);
+        return (
+          <text
+            key={`${edge.from}-${edge.to}-label`}
+            className="t-m t-halo"
+            textAnchor={anchor}
+            x={label[0]}
+            y={label[1]}
+          >
+            {edge.label}
+          </text>
+        );
+      })}
     </svg>
   );
 }
 
 const M_LABEL_W = 210;
-const M_COL_W = 150;
+const M_COL_W = 176;
+const M_PAD = 12;
 const M_ROW_H = 60;
 
 export function MatrixDiagramView({ diagram, id }: { diagram: MatrixDiagram; id: string }) {
@@ -198,11 +206,16 @@ export function MatrixDiagramView({ diagram, id }: { diagram: MatrixDiagram; id:
               return (
                 <g key={`${row.label}-${diagram.columns[c]}`}>
                   <rect className={cls} x={x} y={y} width={M_COL_W} height={M_ROW_H} rx={6} />
-                  <text className={text} x={x + M_COL_W / 2} y={y + (cell.sub ? 26 : 35)}>
+                  <text
+                    className={text}
+                    x={x + M_COL_W / 2}
+                    y={y + (cell.sub ? 26 : 35)}
+                    {...fit(cell.text, cell.state === 'none' ? CHAR_W.sub : CHAR_W.label, M_COL_W - M_PAD * 2)}
+                  >
                     {cell.text}
                   </text>
                   {cell.sub && (
-                    <text className={sub} x={x + M_COL_W / 2} y={y + 44}>
+                    <text className={sub} x={x + M_COL_W / 2} y={y + 44} {...fit(cell.sub, CHAR_W.sub, M_COL_W - M_PAD * 2)}>
                       {cell.sub}
                     </text>
                   )}

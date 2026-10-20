@@ -1,1 +1,1 @@
-"""FastAPI backend for Capability Atlas."""
+"""FastAPI backend for Databricks Capability Atlas."""
