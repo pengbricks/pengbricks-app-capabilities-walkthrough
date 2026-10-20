@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 5. Translate with ai_query
 # MAGIC
-# MAGIC `ai_translate` does not cover Japanese, so this step calls `ai_query` with a pay-per-token model from the spec. Not every pay-per-token endpoint accepts batch calls: in the reference workspace `databricks-claude-haiku-5-5` and `databricks-claude-sonnet-5-5` returned "not supported for batch inference", and Llama 3.3 70B, GPT OSS 120B, Claude Sonnet 4.6, and GPT-5 mini worked. `failOnError => false` returns a struct with `result` and `errorMessage`, so one bad row does not fail the batch.
+# MAGIC `ai_translate` does not cover Japanese, so this step calls `ai_query` with a pay-per-token model from the spec. Not every pay-per-token endpoint accepts batch calls: in the reference workspace `databricks-claude-haiku-5-5` and `databricks-claude-sonnet-5-5` returned "not supported for batch inference", and Llama 3.3 70B, GPT OSS 120B, Claude Sonnet 4.6, and GPT-5 mini worked. `failOnError => false` returns a struct with `result` and `errorMessage`, so one bad row does not fail the batch. Safe to rerun: the table is replaced and the step's rows in `aif_results` are swapped, not added.
 
 # COMMAND ----------
 

@@ -6131,12 +6131,17 @@
       ],
       "recordedRuns": [
         {
-          "label": "AI Functions run (triage, extract, mask, match, translate, forecast)",
-          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/574547457715842/runs/830898905768337",
+          "label": "AI Functions run (triage, OCR and extract, mask, match, translate, forecast)",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/574547457715842/runs/76477396975723",
           "workspace": "Reference workspace",
-          "recordedAt": "2026-10-20T17:05:00Z"
+          "recordedAt": "2026-10-20T19:01:35Z"
         }
       ],
+      "recordedFolder": {
+        "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/browse/folders/3060122440270508",
+        "startHereUrl": "https://fevm-rpeng-demobricks.cloud.databricks.com/editor/notebooks/3060122440270532",
+        "workspace": "Reference workspace"
+      },
       "docs": [
         {
           "label": "AI Functions",
@@ -6177,7 +6182,7 @@
           "label": "ai_decide: probability and score per ticket",
           "path": "reference/ai-functions/guides/ai-functions/02_triage_tickets.py",
           "lines": [
-            70,
+            71,
             77
           ],
           "section": "use-cases",
@@ -6187,24 +6192,37 @@
           ]
         },
         {
-          "label": "Parse PDFs, then extract fields",
+          "label": "Parse invoices and scans once, with page images",
           "path": "reference/ai-functions/guides/ai-functions/03_extract_invoices.py",
           "lines": [
-            35,
-            51
+            53,
+            65
           ],
           "section": "use-cases",
           "notes": [
             "Count error_status entries instead of testing doc:error_status IS NULL; a VARIANT null is a value, not SQL NULL.",
-            "24 of 24 invoice fields correct."
+            "imageOutputPath saves every page as an image; descriptionElementTypes adds a description of each figure."
+          ]
+        },
+        {
+          "label": "One row per element OCR found",
+          "path": "reference/ai-functions/guides/ai-functions/03_extract_invoices.py",
+          "lines": [
+            68,
+            74
+          ],
+          "section": "use-cases",
+          "notes": [
+            "Type, confidence, text, figure description, and the box in page-image pixels.",
+            "41 elements on 5 scanned pages. The scan fields are extracted only from elements at 0.8 confidence and above."
           ]
         },
         {
           "label": "Score name pairs once, within country",
           "path": "reference/ai-functions/guides/ai-functions/04_mask_and_match.py",
           "lines": [
-            56,
-            61
+            59,
+            64
           ],
           "section": "use-cases",
           "notes": [
@@ -6228,8 +6246,8 @@
           "label": "ai_forecast on a SQL warehouse",
           "path": "reference/ai-functions/guides/ai-functions/06_forecast.sql",
           "lines": [
-            13,
-            26
+            24,
+            37
           ],
           "section": "flow",
           "notes": [

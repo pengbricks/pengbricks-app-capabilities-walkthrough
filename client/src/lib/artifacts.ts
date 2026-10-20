@@ -36,6 +36,8 @@ export type GuideJob = {
 };
 
 export type RecordedRun = { label: string; url: string; workspace: string; recordedAt: string };
+/** The guide's notebook folder in the reference workspace, shown where the guide is not deployed. */
+export type RecordedFolder = { url: string; startHereUrl?: string; workspace: string };
 
 export type HistoryRow = {
   run_id: number;
@@ -72,6 +74,7 @@ export type GuideArtifacts = {
   jobs: GuideJob[];
   workspace?: WorkspaceLinks;
   recordedRuns: RecordedRun[];
+  recordedFolder?: RecordedFolder | null;
   live: boolean;
   liveError?: string;
   tracking: 'lakebase' | 'jobs-api';

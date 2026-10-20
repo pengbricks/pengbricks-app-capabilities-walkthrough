@@ -104,6 +104,18 @@ def test_artifacts_fall_back_to_static_links_without_workspace(monkeypatch) -> N
     assert body["docs"] and body["highlights"][0]["code"]
 
 
+def test_recorded_folder_is_offered_without_workspace(monkeypatch) -> None:
+    def unavailable():
+        raise RuntimeError("no credentials")
+
+    monkeypatch.setattr(artifacts, "workspace_client", unavailable)
+    body = client.get("/api/capability-guides/artifacts/ai-functions").json()
+
+    assert body["live"] is False
+    assert body["recordedFolder"]["url"].startswith("https://fevm-rpeng-demobricks.cloud.databricks.com/browse/folders/")
+    assert "/editor/notebooks/" in body["recordedFolder"]["startHereUrl"]
+
+
 def test_live_runs_are_found_by_tag(monkeypatch) -> None:
     job = SimpleNamespace(job_id=42, settings=SimpleNamespace(name="ingest", tags={"capability_guide_job": "capability_guides_ingestion_framework"}))
     run = SimpleNamespace(

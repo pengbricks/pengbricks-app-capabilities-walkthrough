@@ -10,7 +10,9 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 1. Land the sample data
 # MAGIC
-# MAGIC Writes the sample tables from the use-case spec: support tickets, call notes with made-up personal details, two lists of company names, product reviews, and daily orders. It also renders six invoice PDFs into the `aif_documents` volume. Every sample carries the answer a person would give, so later steps can be scored. Tables are overwritten and PDFs replaced, so a rerun gives the same data.
+# MAGIC Writes the sample tables from the use-case spec: support tickets, call notes with made-up personal details, two lists of company names, product reviews, and daily orders. It renders six invoice PDFs into the `aif_documents` volume and downloads two real scans for OCR. Every sample carries the answer a person would give, so later steps can be scored.
+# MAGIC
+# MAGIC Safe to rerun: the schema and volume are created only if missing, tables are overwritten, the invoice PDFs are replaced, and a scan whose checksum already matches is not downloaded again. Each table is shown below, so you can read exactly what the AI Functions get as input.
 
 # COMMAND ----------
 
@@ -23,6 +25,10 @@ catalog, schema = params["catalog"], params["schema"]
 import aif_lib as a
 spec = a.load_spec(str(bundle_root() / "use_cases" / f"{params['use_case']}.yml"))
 T = {key: a.fq(catalog, schema, name) for key, name in spec["tables"].items()}
+
+# The bundle creates these; creating them here too lets the folder run by hand in a fresh schema.
+spark.sql(f"CREATE SCHEMA IF NOT EXISTS `{catalog}`.`{schema}`")
+spark.sql(f"CREATE VOLUME IF NOT EXISTS {a.fq(catalog, schema, spec['volume'])}")
 
 # COMMAND ----------
 
@@ -43,7 +49,49 @@ spark.sql(a.daily_orders_sql(spec)).write.mode("overwrite").option("overwriteSch
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC The invoice PDFs are rendered with fpdf2. The answer key, `aif_invoice_truth`, holds the number, vendor, date, and total of each.
+# MAGIC ## What goes in
+# MAGIC
+# MAGIC **Support tickets** for `ai_classify`, `ai_analyze_sentiment`, `ai_summarize`, and `ai_decide`. The `expected_` columns are the answer key; the functions only see `body`.
+
+# COMMAND ----------
+
+display(spark.table(T["tickets"]).orderBy("ticket_id"))
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC **Call notes** for `ai_mask`. `planted` lists every made-up name, email, and phone number in the note; step 4 checks that none of them survive.
+
+# COMMAND ----------
+
+display(spark.table(T["call_notes"]).orderBy("note_id"))
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC **Accounts and vendors** for `ai_similarity`: the same company is often spelled differently in two systems.
+
+# COMMAND ----------
+
+display(spark.table(T["accounts"]).orderBy("account_id"))
+display(spark.table(T["vendors"]).orderBy("vendor_id"))
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC **Product reviews** for `ai_query` translation, and **daily orders** for `ai_forecast` (chart it with the + button on the result).
+
+# COMMAND ----------
+
+display(spark.table(T["reviews"]).orderBy("review_id"))
+display(spark.table(T["daily_orders"]).orderBy("order_date", "region"))
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Documents
+# MAGIC
+# MAGIC The invoice PDFs are rendered with fpdf2; the answer key, `aif_invoice_truth`, holds the number, vendor, date, and total of each. The two scans come from public archives (links below). They have no reliable text layer, so step 3 has to read them with OCR.
 
 # COMMAND ----------
 
@@ -55,7 +103,27 @@ for invoice in spec["invoices"]:
     a.render_invoice_pdf(invoice, f"{folder}/{invoice['number']}.pdf")
 overwrite([(i["number"], i["vendor"], i["date"], a.invoice_total(i), f"{folder}/{i['number']}.pdf") for i in spec["invoices"]],
           "invoice_number string, vendor string, invoice_date string, total double, path string", T["invoices_truth"])
+display(spark.table(T["invoices_truth"]).orderBy("invoice_number"))
+
+# COMMAND ----------
+
+import html
+
+scan_folder = f"/Volumes/{catalog}/{schema}/{spec['volume']}/public"
+rows = []
+for doc in spec["scans"]["documents"]:
+    path, downloaded = a.fetch_document(doc, scan_folder)
+    rows.append((doc["file"], doc["title"], doc["shows"], doc["rights"], doc["source"], str(path), os.path.getsize(path), downloaded))
+overwrite(rows, "file string, title string, shows string, rights string, source string, path string, bytes long, downloaded_this_run boolean",
+          a.fq(catalog, schema, "aif_scans"))
+displayHTML("<ul style='font:14px sans-serif'>" + "".join(
+    f"<li><b>{html.escape(title)}</b>: {html.escape(shows)}. {html.escape(rights)}. "
+    f"<a href='{html.escape(source)}' target='_blank'>Source and download</a> · {size // 1024} KB at <code>{html.escape(path)}</code>"
+    f"{' (downloaded now)' if new else ' (already there, checksum verified)'}</li>"
+    for _, title, shows, rights, source, path, size, new in rows) + "</ul>")
+
+# COMMAND ----------
 
 counts = {key: spark.table(T[key]).count() for key in ["tickets", "call_notes", "accounts", "vendors", "reviews", "daily_orders", "invoices_truth"]}
 print(json.dumps(counts))
-print(f"{len(os.listdir(folder))} invoice PDFs in {folder}")
+print(f"{len(os.listdir(folder))} invoice PDFs in {folder}; {len(rows)} scans in {scan_folder}")

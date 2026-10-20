@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 4. Mask personal data, then match company names
 # MAGIC
-# MAGIC `ai_mask` replaces names, emails, and phone numbers in free-text call notes and saves the result to `aif_call_notes_masked`. The check looks for every planted value in the masked text. `ai_similarity` then scores account names against vendor names within the same country, saves every scored pair to `aif_account_vendor_scores`, and counts a pair as a match above the threshold. Precision and recall come from the known matches in the spec.
+# MAGIC `ai_mask` replaces names, emails, and phone numbers in free-text call notes and saves the result to `aif_call_notes_masked`. The check looks for every planted value in the masked text. `ai_similarity` then scores account names against vendor names within the same country, saves every scored pair to `aif_account_vendor_scores`, and counts a pair as a match above the threshold. Precision and recall come from the known matches in the spec. Safe to rerun: both tables are replaced and the step's rows in `aif_results` are swapped, not added.
 
 # COMMAND ----------
 
@@ -34,14 +34,17 @@ labels = "array(" + ", ".join(a.sql_string(label) for label in spec["mask"]["lab
 start = time.perf_counter()
 spark.sql(f"""
 CREATE OR REPLACE TABLE {masked_table} AS
-SELECT note_id, ai_mask(note, {labels}) AS note, planted
+SELECT note_id, note AS original, ai_mask(note, {labels}) AS note, planted
 FROM {T['call_notes']}
 """)
 mask_seconds = time.perf_counter() - start
 masked = spark.table(masked_table).collect()
-display(spark.table(masked_table).select("note_id", "note"))
-
 leaks = {r.note_id: a.leaked(r.note, list(r.planted)) for r in masked}
+# Before and after, with the planted values and any that survived masking.
+display(spark.createDataFrame(
+    [(r.note_id, r.original, r.note, list(r.planted), leaks[r.note_id]) for r in sorted(masked, key=lambda r: r.note_id)],
+    "note_id int, original string, masked string, planted array<string>, leaked array<string>"))
+
 planted = sum(len(r.planted) for r in masked)
 leaked_values = [f"{note}:{value}" for note, values in leaks.items() for value in values]
 
@@ -65,7 +68,11 @@ scored = spark.table(scores_table).collect()
 predicted = {(r.account_id, r.vendor_id) for r in scored if r.score > threshold}
 expected = {tuple(pair) for pair in spec["matches"]}
 scores = a.match_scores(predicted, expected)
-display(spark.table(scores_table).orderBy("account_id", "score"))
+# Every scored pair, with whether it is a true match and whether it cleared the threshold.
+display(spark.createDataFrame(
+    [(r.account_name, r.vendor_name, round(r.score, 3), (r.account_id, r.vendor_id) in expected, r.score > threshold)
+     for r in sorted(scored, key=lambda r: -r.score)],
+    "account_name string, vendor_name string, score double, true_match boolean, above_threshold boolean"))
 
 a.write_results(spark, T["results"], "mask", [
     ("notes", len(masked), ""),

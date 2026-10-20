@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 2. Triage support tickets
 # MAGIC
-# MAGIC One query classifies each ticket, scores its sentiment, and writes a short summary, then saves the result to `aif_tickets_triaged`. A second query asks `ai_decide` two questions per ticket: a yes/no probability that the service is down, and an urgency score. The scoring cell compares the category and sentiment with the expected values in the spec and records the accuracy in `aif_results`. Downstream reports read the saved table, so each ticket costs one set of calls.
+# MAGIC One query classifies each ticket, scores its sentiment, and writes a short summary, then saves the result to `aif_tickets_triaged`. A second query asks `ai_decide` two questions per ticket: a yes/no probability that the service is down, and an urgency score. The scoring cell compares the category and sentiment with the expected values in the spec and records the accuracy in `aif_results`. Downstream reports read the saved table, so each ticket costs one set of calls. Safe to rerun: both tables are replaced and the step's rows in `aif_results` are swapped, not added.
 
 # COMMAND ----------
 
@@ -41,7 +41,8 @@ FROM {T['tickets']}
 WHERE body IS NOT NULL
 """)
 seconds = time.perf_counter() - start
-display(spark.table(triaged).select("ticket_id", "category", "expected_category", "sentiment", "expected_sentiment", "summary"))
+# Input text next to each output, with the answer key, so every call can be checked by eye.
+display(spark.table(triaged).select("ticket_id", "body", "category", "expected_category", "sentiment", "expected_sentiment", "summary").orderBy("ticket_id"))
 
 # COMMAND ----------
 

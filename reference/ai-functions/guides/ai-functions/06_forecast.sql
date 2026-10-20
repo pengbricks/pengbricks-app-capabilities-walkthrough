@@ -6,7 +6,18 @@
 -- MAGIC
 -- MAGIC The backtest hides September 2026, forecasts it from the months before, and compares the forecast with the real orders (mean absolute percentage error). The forward forecast uses all the data. The dates here match the `forecast` block of `use_cases/general.yml`; a test checks that they agree.
 -- MAGIC
--- MAGIC The job passes `catalog`, `schema`, and `run_id` as named parameters (`:catalog`). Run by hand: attach a SQL warehouse and fill in the parameter boxes that appear for each marker.
+-- MAGIC The job passes `catalog`, `schema`, and `run_id` as named parameters (`:catalog`). Run by hand: attach a SQL warehouse and fill in the parameter boxes that appear for each marker. Safe to rerun: both tables are replaced and the step's rows in `aif_results` are swapped, not added.
+
+-- COMMAND ----------
+
+-- MAGIC %md
+-- MAGIC What goes in: daily orders per region from 2025-01-01 to 2026-09-30. Use the + button on the result to chart it.
+
+-- COMMAND ----------
+
+SELECT order_date, region, orders
+FROM IDENTIFIER(:catalog || '.' || :schema || '.aif_daily_orders')
+ORDER BY order_date, region;
 
 -- COMMAND ----------
 
@@ -24,6 +35,18 @@ FROM ai_forecast(
 ) fc
 JOIN IDENTIFIER(:catalog || '.' || :schema || '.aif_daily_orders') o
   ON o.order_date = fc.order_date AND o.region = fc.region;
+
+-- COMMAND ----------
+
+-- MAGIC %md
+-- MAGIC The backtest next to what really happened in September 2026, with the forecast's lower and upper bounds.
+
+-- COMMAND ----------
+
+SELECT order_date, region, orders AS actual, round(orders_forecast, 1) AS forecast,
+       round(orders_lower, 1) AS lower, round(orders_upper, 1) AS upper
+FROM IDENTIFIER(:catalog || '.' || :schema || '.aif_forecast_backtest')
+ORDER BY order_date, region;
 
 -- COMMAND ----------
 

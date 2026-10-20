@@ -12,7 +12,7 @@ tables:
   invoices_truth: aif_invoice_truth
   daily_orders: aif_daily_orders
   results: aif_results
-volume: aif_documents   # invoice PDFs land here
+volume: aif_documents   # invoice PDFs, the public scans, and parsed page images land here
 
 # Step 2: ticket triage
 triage:
@@ -108,6 +108,50 @@ invoices:
 extract:
   schema: '{"invoice_number": {"type": "string"}, "vendor": {"type": "string"}, "invoice_date": {"type": "string", "description": "ISO date, YYYY-MM-DD"}, "total": {"type": "number"}}'
   total_tolerance: 0.01
+
+# Step 3: real scans for OCR. Both are public domain in the US. 01_land_samples downloads each once into
+# <volume>/public/, checks the SHA-256, and skips the download when the verified file is already there.
+# `expected` is the answer key: `date` must match exactly (YYYY-MM-DD); every other field must contain
+# the text, ignoring case, spaces, and punctuation.
+scans:
+  # Extraction reads only elements at or above this OCR confidence, and skips signatures, whose
+  # "text" is a guess at handwriting. Every element is still shown and saved in aif_document_elements.
+  min_confidence: 0.8
+  schema: >-
+    {"document_type": {"type": "string", "description": "One word: letter, patent, invoice, form, or other"},
+     "document_date": {"type": "string", "description": "Date the document was written or issued, YYYY-MM-DD"},
+     "sender": {"type": "string", "description": "Person or office that wrote or signed it"},
+     "recipient": {"type": "string", "description": "Person it is addressed to, if any"},
+     "title": {"type": "string", "description": "Title or subject, if any"},
+     "patent_number": {"type": "string", "description": "Patent number, if this is a patent"},
+     "handwritten_note": {"type": "string", "description": "Any handwritten note added to the typed text"}}
+  documents:
+    - file: truman-letter-1947.pdf
+      title: Letter from Harry S. Truman to Eleanor Roosevelt, June 30, 1947
+      url: https://upload.wikimedia.org/wikipedia/commons/0/06/Letter_from_Harry_S._Truman_to_Eleanor_Roosevelt_-_DPLA_-_49b1c8f89d84a70ed20acf75b97ae3bf.pdf
+      sha256: 1beb22ad1ebd32ce0b9d20afb71807d4cb6d8b97219f22f07812b059162f4dff
+      source: https://commons.wikimedia.org/wiki/File:Letter_from_Harry_S._Truman_to_Eleanor_Roosevelt_-_DPLA_-_49b1c8f89d84a70ed20acf75b97ae3bf.pdf
+      rights: Public domain in the US (National Archives, via the Digital Public Library of America)
+      shows: One scanned page with no text layer, typed text, a signature, and a handwritten postscript
+      expected:
+        document_type: letter
+        document_date: "1947-06-30"
+        recipient: Roosevelt
+        handwritten_note: enjoyed your visit
+        sender: Truman   # only in the handwritten signature and the letterhead
+    - file: edison-lamp-patent-1880.pdf
+      title: "US Patent 223,898, Electric-Lamp, Thomas A. Edison, January 27, 1880"
+      url: https://patentimages.storage.googleapis.com/d4/9b/62/aac68f7e65536c/US223898.pdf
+      sha256: e6f4d7747a8af8451d81aa3d5fe564aed5c8091091cb408c752b8a3cd7c28764
+      source: https://patents.google.com/patent/US223898A/en
+      rights: US patents are not subject to copyright
+      shows: Four scanned pages from 1880, figure drawings, signatures, and a faded specification page
+      expected:
+        document_type: patent
+        document_date: "1880-01-27"
+        sender: Edison
+        title: lamp
+        patent_number: "223898"
 
 # Step 5: forecasting. Daily orders per region: a weekly cycle on a slow trend, no randomness.
 forecast:

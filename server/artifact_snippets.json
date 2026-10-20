@@ -225,26 +225,35 @@
     {
       "path": "reference/ai-functions/guides/ai-functions/02_triage_tickets.py",
       "symbol": null,
-      "startLine": 70,
+      "startLine": 71,
       "endLine": 77,
       "language": "py",
-      "code": "    spark.sql(f\"\"\"\n    CREATE OR REPLACE TABLE {decided} AS\n    SELECT ticket_id, body,\n           r:response:answers:service_down:probability::DOUBLE AS service_down_probability,\n           r:response:answers:urgency:score::DOUBLE AS urgency_score,\n           r:error_message::STRING AS decide_error\n    FROM (SELECT ticket_id, body, ai_decide(body, {questions}, map('version', '1.0')) AS r FROM {T['tickets']})\n    \"\"\")",
+      "code": "    spark.sql(f\"\"\"\n    CREATE OR REPLACE TABLE {decided} AS\n    SELECT ticket_id, body,\n           r:response:answers:service_down:probability::DOUBLE AS service_down_probability,\n           r:response:answers:urgency:score::DOUBLE AS urgency_score,\n           r:error_message::STRING AS decide_error\n    FROM (SELECT ticket_id, body, ai_decide(body, {questions}, map('version', '1.0')) AS r FROM {T['tickets']})",
       "functions": {}
     },
     {
       "path": "reference/ai-functions/guides/ai-functions/03_extract_invoices.py",
       "symbol": null,
-      "startLine": 35,
-      "endLine": 51,
+      "startLine": 53,
+      "endLine": 65,
       "language": "py",
-      "code": "spark.sql(f\"\"\"\nCREATE OR REPLACE TABLE {extracted} AS\nWITH parsed AS (\n  SELECT path, coalesce(array_size(try_variant_get(doc, '$.error_status', 'ARRAY<VARIANT>')), 0) AS parse_errors,  -- doc:error_status IS NULL never matches: a VARIANT null is a value\n         concat_ws('\\\\n', transform(cast(doc:document:elements AS ARRAY<VARIANT>), e -> e:content::STRING)) AS text\n  FROM (SELECT path, ai_parse_document(content, map('version', '2.0')) AS doc\n        FROM read_files('{folder}', format => 'binaryFile'))\n)\nSELECT path, parse_errors,\n       r:response:invoice_number::STRING AS invoice_number,\n       r:response:vendor::STRING AS vendor,\n       r:response:invoice_date::STRING AS invoice_date,\n       r:response:total::DOUBLE AS total,\n       r:error_message::STRING AS extract_error\nFROM (SELECT path, parse_errors, ai_extract(text, {schema_json}, map('version', '2.0')) AS r\n      FROM parsed WHERE parse_errors = 0)\n\"\"\")",
+      "code": "spark.sql(f\"\"\"\nCREATE OR REPLACE TABLE {parsed} AS\nSELECT path, kind, doc,\n       coalesce(array_size(try_variant_get(doc, '$.error_status', 'ARRAY<VARIANT>')), 0) AS parse_errors,  -- doc:error_status IS NULL never matches: a VARIANT null is a value\n       array_size(cast(doc:document:pages AS ARRAY<VARIANT>)) AS pages,\n       concat_ws('\\\\n', transform(cast(doc:document:elements AS ARRAY<VARIANT>), e -> e:content::STRING)) AS text\nFROM (\n  SELECT path, kind, ai_parse_document(content, {options}) AS doc\n  FROM (SELECT path, content, 'invoice' AS kind FROM read_files('{volume}/invoices/', format => 'binaryFile')\n        UNION ALL\n        SELECT path, content, 'scan' AS kind FROM read_files('{volume}/public/', format => 'binaryFile', pathGlobFilter => '*.pdf'))\n)\n\"\"\")",
+      "functions": {}
+    },
+    {
+      "path": "reference/ai-functions/guides/ai-functions/03_extract_invoices.py",
+      "symbol": null,
+      "startLine": 68,
+      "endLine": 74,
+      "language": "py",
+      "code": "spark.sql(f\"\"\"\nCREATE OR REPLACE TABLE {elements} AS\nSELECT path, kind, e:bbox[0]:page_id::INT AS page, e:id::INT AS element_id, e:type::STRING AS type,\n       round(e:confidence::DOUBLE, 3) AS confidence, e:content::STRING AS content, e:description::STRING AS description,\n       cast(e:bbox[0]:coord AS ARRAY<DOUBLE>) AS coord\nFROM {parsed} LATERAL VIEW explode(cast(doc:document:elements AS ARRAY<VARIANT>)) AS e\n\"\"\")",
       "functions": {}
     },
     {
       "path": "reference/ai-functions/guides/ai-functions/04_mask_and_match.py",
       "symbol": null,
-      "startLine": 56,
-      "endLine": 61,
+      "startLine": 59,
+      "endLine": 64,
       "language": "py",
       "code": "spark.sql(f\"\"\"\nCREATE OR REPLACE TABLE {scores_table} AS\nSELECT a.account_id, a.name AS account_name, v.vendor_id, v.name AS vendor_name,\n       ai_similarity(a.name, v.name) AS score\nFROM {T['accounts']} a JOIN {T['vendors']} v ON a.country = v.country\n\"\"\")",
       "functions": {}
@@ -263,8 +272,8 @@
     {
       "path": "reference/ai-functions/guides/ai-functions/06_forecast.sql",
       "symbol": null,
-      "startLine": 13,
-      "endLine": 26,
+      "startLine": 24,
+      "endLine": 37,
       "language": "sql",
       "code": "CREATE OR REPLACE TABLE IDENTIFIER(:catalog || '.' || :schema || '.aif_forecast_backtest') AS\nSELECT fc.order_date, fc.region, fc.orders_forecast, fc.orders_lower, fc.orders_upper, o.orders\nFROM ai_forecast(\n  observed => TABLE(\n    SELECT order_date, region, orders\n    FROM IDENTIFIER(:catalog || '.' || :schema || '.aif_daily_orders')\n    WHERE order_date < DATE'2026-09-01'),\n  horizon => DATE'2026-09-30',\n  time_col => 'order_date',\n  value_col => 'orders',\n  group_col => 'region'\n) fc\nJOIN IDENTIFIER(:catalog || '.' || :schema || '.aif_daily_orders') o\n  ON o.order_date = fc.order_date AND o.region = fc.region;",
       "functions": {}
@@ -272,8 +281,8 @@
     {
       "path": "reference/ai-functions/src/aif_lib.py",
       "symbol": "leaked",
-      "startLine": 97,
-      "endLine": 100,
+      "startLine": 240,
+      "endLine": 243,
       "language": "py",
       "code": "def leaked(masked: str | None, planted: list[str]) -> list[str]:\n    \"\"\"Planted personal values that are still in the masked text.\"\"\"\n    text = masked or \"\"\n    return [value for value in planted if value.lower() in text.lower()]",
       "functions": {

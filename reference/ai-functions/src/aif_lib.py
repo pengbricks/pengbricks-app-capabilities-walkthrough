@@ -2,8 +2,13 @@
 
 from __future__ import annotations
 
+import base64
+import hashlib
+import html
 import json
 import re
+import shutil
+import urllib.request
 from pathlib import Path
 from typing import Any
 
@@ -42,6 +47,17 @@ def validate_spec(spec: dict[str, Any]) -> None:
         missing = [value for value in note["planted"] if value not in note["note"]]
         if missing:
             raise ValueError(f"Call note {note['id']} does not contain its planted values: {missing}")
+    if not 0 <= float(spec["scans"]["min_confidence"]) <= 1:
+        raise ValueError("scans.min_confidence must be between 0 and 1")
+    scan_fields = set(json.loads(spec["scans"]["schema"]))
+    for doc in spec["scans"]["documents"]:
+        if not re.match(r"^[a-z0-9][a-z0-9.-]*\.pdf$", doc["file"]):
+            raise ValueError(f"Scan file names are lowercase, dot or dash, and end in .pdf: {doc['file']}")
+        if not re.match(r"^[0-9a-f]{64}$", doc["sha256"]):
+            raise ValueError(f"{doc['file']}: sha256 must be 64 hex characters")
+        unknown_fields = set(doc["expected"]) - scan_fields
+        if unknown_fields:
+            raise ValueError(f"{doc['file']}: expected fields not in the scan schema: {sorted(unknown_fields)}")
     accounts = {a["id"] for a in spec["accounts"]}
     vendors = {v["id"] for v in spec["vendors"]}
     for account, vendor in spec["matches"]:
@@ -91,6 +107,133 @@ def render_invoice_pdf(invoice: dict[str, Any], path: str | Path) -> None:
     pdf.cell(155, 10, "Total due (USD)", align="R")
     pdf.cell(35, 10, f"{invoice_total(invoice):,.2f}", align="R")
     pdf.output(str(path))
+
+
+# --- public scans -------------------------------------------------------------------------------
+USER_AGENT = "databricks-capability-guides/1.0 (AI Functions guide; https://github.com/pengbricks/pengbricks-app-capabilities-walkthrough)"
+
+
+def sha256_of(path: str | Path) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for block in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def fetch_document(doc: dict[str, Any], folder: str | Path) -> tuple[Path, bool]:
+    """Download a pinned scan into `folder` once and verify it. Returns (path, downloaded).
+
+    A verified file already in place is kept and nothing is downloaded, so reruns are cheap and
+    give the same bytes. A file with the wrong hash is replaced; a bad download is deleted, never kept.
+    """
+    folder = Path(folder)
+    folder.mkdir(parents=True, exist_ok=True)
+    target = folder / doc["file"]
+    if target.exists() and sha256_of(target) == doc["sha256"]:
+        return target, False
+    partial = folder / (doc["file"] + ".partial")
+    request = urllib.request.Request(doc["url"], headers={"User-Agent": USER_AGENT})
+    with urllib.request.urlopen(request, timeout=120) as response, open(partial, "wb") as handle:
+        shutil.copyfileobj(response, handle)
+    actual = sha256_of(partial)
+    if actual != doc["sha256"]:
+        partial.unlink()
+        raise RuntimeError(f"{doc['file']}: downloaded SHA-256 {actual} does not match the pinned {doc['sha256']}")
+    partial.replace(target)
+    return target, True
+
+
+def _squash(value: Any) -> str:
+    return re.sub(r"[^a-z0-9]", "", str(value).lower())
+
+
+def field_matches(field: str, expected: str, actual: Any) -> bool:
+    """`*date` fields must be the same ISO date; any other field must contain the expected text,
+    ignoring case, spaces, and punctuation (so 223,898 matches 223898)."""
+    if actual is None or str(actual).strip() == "":
+        return False
+    if field.endswith("date"):
+        return str(actual).strip()[:10] == str(expected)
+    return _squash(expected) in _squash(actual)
+
+
+def jpeg_size(data: bytes) -> tuple[int, int]:
+    """(width, height) from a JPEG's frame header, without an imaging library."""
+    if data[:2] != b"\xff\xd8":
+        raise ValueError("Not a JPEG")
+    i = 2
+    while i + 9 < len(data):
+        if data[i] != 0xFF:
+            i += 1
+            continue
+        marker = data[i + 1]
+        if marker in (0xD8, 0x01) or 0xD0 <= marker <= 0xD7:
+            i += 2
+            continue
+        length = int.from_bytes(data[i + 2 : i + 4], "big")
+        if 0xC0 <= marker <= 0xCF and marker not in (0xC4, 0xC8, 0xCC):
+            return int.from_bytes(data[i + 7 : i + 9], "big"), int.from_bytes(data[i + 5 : i + 7], "big")
+        i += 2 + length
+    raise ValueError("No JPEG frame header found")
+
+
+# Element types ai_parse_document returns, with the outline color used in the page view.
+ELEMENT_COLORS = {
+    "title": "#d62728", "section_header": "#d62728", "text": "#1f77b4", "table": "#2ca02c",
+    "figure": "#9467bd", "caption": "#8c564b", "signature": "#ff7f0e", "page_header": "#7f7f7f",
+    "page_footer": "#7f7f7f", "page_number": "#7f7f7f",
+}
+
+
+def page_overlay_html(image: bytes, width_px: int, elements: list[dict[str, Any]], show_px: int = 560) -> str:
+    """One page image with a box around every element ai_parse_document found on it.
+
+    `elements` are dicts with type, confidence, content, and coord ([x0, y0, x1, y1] in the page
+    image's pixels). Hovering a box shows the element's type, confidence, and text.
+    """
+    image = shrink_jpeg(image, show_px)
+    scale = show_px / width_px
+    boxes = []
+    for e in elements:
+        x0, y0, x1, y1 = (float(c) * scale for c in e["coord"])
+        color = ELEMENT_COLORS.get(e["type"], "#17becf")
+        tip = html.escape(f"{e['type']} ({float(e['confidence'] or 0):.2f}): {(e['content'] or '')[:300]}")
+        boxes.append(
+            f'<div title="{tip}" style="position:absolute;left:{x0:.0f}px;top:{y0:.0f}px;width:{x1 - x0:.0f}px;'
+            f'height:{y1 - y0:.0f}px;border:2px solid {color};background:{color}14"></div>'
+        )
+    src = "data:image/jpeg;base64," + base64.b64encode(image).decode()
+    return (
+        f'<div style="position:relative;display:inline-block;width:{show_px}px;vertical-align:top;margin:0 12px 12px 0;'
+        f'border:1px solid #ddd"><img src="{src}" style="width:{show_px}px;display:block">{"".join(boxes)}</div>'
+    )
+
+
+def shrink_jpeg(image: bytes, width_px: int, quality: int = 75) -> bytes:
+    """The page image resized to the width it is shown at. Full-size scans run to hundreds of KB
+    each, and a notebook drops a cell's output past its size limit, so every page is shrunk first."""
+    import io
+
+    from PIL import Image
+
+    with Image.open(io.BytesIO(image)) as page:
+        if page.width <= width_px:
+            return image
+        small = page.convert("RGB").resize((width_px, round(page.height * width_px / page.width)), Image.LANCZOS)
+        out = io.BytesIO()
+        small.save(out, "JPEG", quality=quality, optimize=True)
+        return out.getvalue()
+
+
+def legend_html() -> str:
+    items = "".join(
+        f'<span style="margin-right:12px"><span style="display:inline-block;width:10px;height:10px;'
+        f'border:2px solid {color};margin-right:4px"></span>{name}</span>'
+        for name, color in ELEMENT_COLORS.items()
+        if name not in ("page_footer", "page_number", "section_header")
+    )
+    return f'<p style="font:13px sans-serif">{items} Hover a box for its type, confidence, and text.</p>'
 
 
 # --- scoring ------------------------------------------------------------------------------------

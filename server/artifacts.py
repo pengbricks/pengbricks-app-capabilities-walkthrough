@@ -253,6 +253,8 @@ def get_artifacts(slug: str) -> dict[str, Any]:
         ],
         "highlights": highlights(slug, entry),
         "recordedRuns": entry.get("recordedRuns", []),
+        # The notebook folder in the reference workspace, for workspaces where the guide is not deployed.
+        "recordedFolder": entry.get("recordedFolder"),
         "jobs": [],
         "live": False,
         "tracking": "lakebase" if store.enabled else "jobs-api",

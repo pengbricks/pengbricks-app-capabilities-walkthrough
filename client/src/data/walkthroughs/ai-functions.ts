@@ -136,6 +136,28 @@ FROM (SELECT path, ai_extract(text,
           ],
         },
         {
+          label: 'Read a scanned document with OCR',
+          language: 'sql',
+          code: `-- One row per element OCR found: type, confidence, text, and where it is on the page.
+CREATE OR REPLACE TABLE archive.scan_elements AS
+SELECT path, e:bbox[0]:page_id::INT AS page, e:type::STRING AS type,
+       e:confidence::DOUBLE AS confidence, e:content::STRING AS content,
+       e:description::STRING AS description, cast(e:bbox[0]:coord AS ARRAY<DOUBLE>) AS coord
+FROM (SELECT path, ai_parse_document(content, map(
+        'version', '2.0',
+        'imageOutputPath', '/Volumes/archive/scans/page_images/',
+        'descriptionElementTypes', '*')) AS doc
+      FROM read_files('/Volumes/archive/scans/inbox/', format => 'binaryFile'))
+LATERAL VIEW explode(cast(doc:document:elements AS ARRAY<VARIANT>)) AS e;`,
+          notes: [
+            'Scans with no text layer work: on a typed 1947 letter it read the body, the address block, and the handwritten postscript, and labeled both signatures.',
+            'imageOutputPath saves one image per page, and coord is in that image’s pixels, so you can draw each box on the page to check what was read.',
+            'descriptionElementTypes adds a written description of each figure. On an 1880 patent it described all three drawings.',
+            'Check confidence before you extract. On a faded page it read the patent number as 223,996 (confidence 0.70); the cover page says 223,898 (0.86). Extracting from every element picked the misread value in one of three runs; keeping elements at 0.8 and above got it right in all four.',
+            'Results vary between runs, so score a labeled sample more than once before you rely on a field.',
+          ],
+        },
+        {
           label: 'Mask personal data before sharing',
           language: 'sql',
           code: `CREATE OR REPLACE TABLE shared.call_notes_masked AS
@@ -223,6 +245,10 @@ WHERE churned IS NULL;`,
             'Not run: the AI Decide preview is off in the reference workspace, so the step records that and moves on.',
           ],
           ['Extract 6 invoice PDFs', 'All parsed; 24 of 24 fields correct (number, vendor, date, total).'],
+          [
+            'Read 2 public-domain scans (5 pages)',
+            '41 elements found and all 3 figures described. Extraction scored 8 or 9 of 10 fields across four runs: the letter’s sender, whose name is only in the handwritten signature, was wrong every time.',
+          ],
           ['Mask 6 call notes', '0 of 15 planted names, emails, and phone numbers left in the output.'],
           ['Match 8 accounts to 8 vendors', 'At 0.85: 5 of 6 true matches, no false ones.'],
           ['Translate 5 reviews to Japanese', '5 of 5 with ai_query and Llama 3.3 70B, no errors.'],

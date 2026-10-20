@@ -372,10 +372,26 @@ function RunsCard({ slug, artifacts, onChange }: { slug: string; artifacts: Guid
           </div>
         ) : null}
 
-        {(!artifacts.live || !anyDeployed) && artifacts.recordedRuns.length > 0 && (
+        {(!artifacts.live || !anyDeployed) && (artifacts.recordedFolder || artifacts.recordedRuns.length > 0) && (
           <div className="space-y-2">
             <p className="text-xs text-muted-foreground">Reference workspace</p>
             <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+              {artifacts.recordedFolder?.startHereUrl && (
+                <ArtifactAnchor
+                  icon={NotebookPen}
+                  title="Start here"
+                  description={`${artifacts.recordedFolder.workspace} · 00_start_here`}
+                  url={artifacts.recordedFolder.startHereUrl}
+                />
+              )}
+              {artifacts.recordedFolder && (
+                <ArtifactAnchor
+                  icon={FolderOpen}
+                  title="Guide folder"
+                  description={`${artifacts.recordedFolder.workspace} · run the notebooks in order`}
+                  url={artifacts.recordedFolder.url}
+                />
+              )}
               {artifacts.recordedRuns.map((run) => (
                 <ArtifactAnchor
                   key={run.url}
