@@ -8,7 +8,7 @@ export const walkthrough: Walkthrough = {
     'Lakeflow Connect ingests SQL Server tables into Unity Catalog with two managed pipelines and no extract code. The ingestion gateway runs on classic compute in your workspace network and reads CDC or Change Tracking from SQL Server. The ingestion pipeline runs on serverless compute and applies the staged changes to bronze tables. Credentials live in a Unity Catalog connection. This page covers the questions customers ask, the source setup, the connection, the wizard, live changes, day-two operations, silver with lineage and Genie, and the same pipeline as a bundle in Git. The gateway needs classic compute, so run it in a workspace that allows classic compute.',
   businessValue: {
     summary:
-      'Lakeflow Connect replicates SQL Server tables into Unity Catalog with managed pipelines and no extract code. Reporting moves off the production database, and the DBA setup sets the schedule.',
+      'Lakeflow Connect replicates SQL Server tables into Unity Catalog with managed pipelines and no extract code. Reports read from the lakehouse instead of the production database, and the DBA setup on the source is the longest lead-time item.',
     outcomes: [
       {
         title: 'No extract code to maintain',
