@@ -5,89 +5,49 @@ export const walkthrough: Walkthrough = {
   area: 'CI/CD & Version Control Guides',
   title: 'Data contract versioning',
   intro:
-    'The release job treats the customers schema as a versioned contract. A nonbreaking change (v1.1.0) alters the table in place. A breaking change (v2.0.0) becomes a new table, and the old name stays alive as a deprecated view until 2027-03-31. A gate fails the job when the semantic version bump does not match the change.',
+    'A table schema is a contract with every reader. Databricks gives you the pieces to change it safely: Delta table features that evolve a schema in place, constraints that protect it, views that give readers a stable interface, Unity Catalog tags and lineage to run a deprecation, and OpenSharing for readers outside your workspace. This page shows which tool fits which change, and where a custom compatibility check in CI is worth adding.',
   shortVersion: [
     {
-      title: 'The contract is a YAML file per version.',
-      body: 'contracts/customers holds v1.0.0, v1.1.0, and v2.0.0 with columns, types, nullability, and renamed_from.',
+      title: 'Evolve in place when readers are unaffected.',
+      body: 'Adding a nullable column, widening a type, and renaming or dropping a column with column mapping are metadata-only changes. Delta handles them without rewriting data.',
     },
     {
-      title: 'A gate checks the bump.',
-      body: 'compatibility.py classifies each change as breaking or nonbreaking and requires a major, minor, or patch bump to match.',
+      title: 'Guard the contract with constraints.',
+      body: 'NOT NULL and CHECK constraints reject bad rows at write time, so a producer cannot break the contract by accident.',
     },
     {
-      title: 'Nonbreaking changes alter in place.',
-      body: 'v1.1.0 adds a nullable loyalty_tier with ALTER TABLE ADD COLUMN. The table is never recreated.',
+      title: 'Give readers a view, not the table.',
+      body: 'A view is the interface. Behind it you can swap tables, rename columns, and keep the old shape alive while readers move.',
     },
     {
-      title: 'Breaking changes get a new table.',
-      body: 'v2.0.0 publishes customers_v2. customers_v1 becomes a view with the old column names, tagged deprecated.',
+      title: 'Run deprecation from the catalog.',
+      body: 'Tag the old object as deprecated, find who still reads it with table lineage and query history, tell them, and drop it on the schedule you announced.',
     },
     {
-      title: 'Every release leaves a record.',
-      body: 'contract_registry, Delta history, Unity Catalog tags, and consumer_notifications show what changed, when, and who must act.',
+      title: 'Share outside the workspace with OpenSharing.',
+      body: 'Recipients get a governed copy of a table or view. Check that their readers support the table features you enable.',
     },
   ],
   sections: [
     {
-      id: 'flow',
-      heading: 'The release flow',
-      prose:
-        'One serverless job runs six tasks in order. The gate runs before any table changes, so a mislabeled contract stops the job with the data untouched.',
-      diagram: {
-        type: 'flow',
-        title: 'From contract files to notified consumers',
-        description:
-          'generate_data seeds sample rows. The compatibility_gate task reads the contract files and classifies changes and checks the semantic version. apply_v1 creates v1.0.0 and alters it to v1.1.0. apply_v2 publishes customers_v2 and the customers_v1 view. Both apply tasks write rows to contract_registry. show_traceability prints Delta history and tags. notify_consumers writes one row per consumer to consumer_notifications.',
-        nodes: [
-          { id: 'gen', label: 'generate_data', sub: 'generated data, fixed seed', mono: true, col: 0, row: 0 },
-          { id: 'gate', label: 'compatibility_gate', sub: 'classify and check semver', mono: true, col: 1, row: 0, kind: 'highlight' },
-          { id: 'v1', label: 'apply_v1', sub: 'v1.0.0, ALTER to v1.1.0', mono: true, col: 2, row: 0 },
-          { id: 'v2', label: 'apply_v2', sub: 'customers_v2 plus view', mono: true, col: 3, row: 0 },
-          { id: 'trace', label: 'show_traceability', sub: 'history and tags', mono: true, col: 4, row: 0 },
-          { id: 'contracts', label: 'contracts/customers', sub: 'v1.0.0, v1.1.0, v2.0.0', col: 1, row: 1, kind: 'surface' },
-          { id: 'reg', label: 'contract_registry', mono: true, sub: 'version, type, tag', col: 3, row: 1, kind: 'store' },
-          { id: 'notify', label: 'notify_consumers', mono: true, sub: 'one row per consumer', col: 4, row: 1 },
-          { id: 'cn', label: 'consumer_notifications', mono: true, col: 4, row: 2, kind: 'store' },
-        ],
-        edges: [
-          { from: 'gen', to: 'gate' },
-          { from: 'contracts', to: 'gate' },
-          { from: 'gate', to: 'v1', label: 'pass' },
-          { from: 'v1', to: 'v2' },
-          { from: 'v2', to: 'trace' },
-          { from: 'trace', to: 'notify' },
-          { from: 'v2', to: 'reg' },
-          { from: 'v1', to: 'reg' },
-          { from: 'notify', to: 'cn' },
-        ],
-        legend: [
-          { kind: 'highlight', label: 'Blocks the release on a mislabeled bump' },
-          { kind: 'surface', label: 'Contract files in Git' },
-          { kind: 'store', label: 'Unity Catalog table' },
-        ],
-        caption: 'The job also sends its on_success email. Sunset is recorded as a tag, not enforced by a scheduled drop.',
-      },
-    },
-    {
       id: 'changes',
-      heading: 'What counts as breaking',
+      heading: 'Which change needs which tool',
       prose:
-        'compatibility.py compares two contracts column by column. A change that can break a reader needs a major bump. A change readers can ignore needs a minor bump. No schema change needs a patch.',
+        'Classify the change by what it does to a reader that has not changed. A reader that selects columns by name breaks when a column disappears or changes meaning, and survives when one is added.',
       diagram: {
         type: 'matrix',
-        title: 'Change types, classification, and required bump',
+        title: 'Change types and the platform feature for each',
         description:
-          'Adding a nullable column is nonbreaking and needs a minor bump. Widening a type, such as int to bigint, is nonbreaking and needs a minor bump. Renaming a column is breaking and needs a major bump. Narrowing a type is breaking and needs a major bump. Dropping a column is breaking and needs a major bump.',
+          'Adding a nullable column is nonbreaking and uses schema evolution or ALTER TABLE ADD COLUMN. Widening a type is nonbreaking and uses Delta type widening. Renaming a column is breaking for readers and uses column mapping plus a compatibility view. Dropping a column is breaking and uses column mapping plus a deprecation period. Narrowing a type or changing what a value means is breaking and needs a new table version behind a view.',
         corner: 'Change ↓ · Result →',
-        columns: ['Classification', 'Required bump', 'In this guide'],
+        columns: ['For readers', 'Platform feature', 'Rollout'],
         rows: [
           {
             label: 'Add a nullable column',
             cells: [
               { state: 'own', text: 'Nonbreaking' },
-              { state: 'own', text: 'Minor' },
-              { state: 'own', text: 'v1.1.0', sub: 'loyalty_tier' },
+              { state: 'own', text: 'Schema evolution, ADD COLUMN' },
+              { state: 'own', text: 'In place' },
             ],
           },
           {
@@ -95,140 +55,313 @@ export const walkthrough: Walkthrough = {
             sub: 'for example int to bigint',
             cells: [
               { state: 'own', text: 'Nonbreaking' },
-              { state: 'own', text: 'Minor' },
-              { state: 'none', text: 'Unit tests only' },
+              { state: 'own', text: 'Type widening' },
+              { state: 'own', text: 'In place' },
             ],
           },
           {
             label: 'Rename a column',
-            sub: 'needs renamed_from',
             cells: [
               { state: 'none', text: 'Breaking' },
-              { state: 'none', text: 'Major' },
-              { state: 'none', text: 'v2.0.0', sub: 'full_name to display_name' },
-            ],
-          },
-          {
-            label: 'Narrow a type',
-            cells: [
-              { state: 'none', text: 'Breaking' },
-              { state: 'none', text: 'Major' },
-              { state: 'none', text: 'v2.0.0', sub: 'bigint to decimal(18,2)' },
+              { state: 'optional', text: 'Column mapping, view' },
+              { state: 'optional', text: 'Old name via view' },
             ],
           },
           {
             label: 'Drop a column',
             cells: [
               { state: 'none', text: 'Breaking' },
-              { state: 'none', text: 'Major' },
-              { state: 'none', text: 'Unit tests only' },
+              { state: 'optional', text: 'Column mapping' },
+              { state: 'optional', text: 'Deprecate, then drop' },
+            ],
+          },
+          {
+            label: 'Narrow a type or change meaning',
+            cells: [
+              { state: 'none', text: 'Breaking' },
+              { state: 'none', text: 'New table version' },
+              { state: 'none', text: 'Behind a view' },
             ],
           },
         ],
         legend: [
-          { state: 'own', label: 'Nonbreaking, minor bump' },
-          { state: 'none', label: 'Breaking, major bump, or not exercised in the job' },
+          { state: 'own', label: 'Nonbreaking, in place' },
+          { state: 'optional', label: 'Metadata-only, but readers notice' },
+          { state: 'none', label: 'Needs a new version' },
         ],
         caption:
-          'Also nonbreaking: a new or changed comment and relaxed nullability. Also breaking: tightened nullability and a new NOT NULL column. Without renamed_from, a rename reads as a drop plus an add.',
+          'Tightening nullability and adding a NOT NULL column are also breaking for writers. A comment-only change is nonbreaking.',
       },
     },
     {
-      id: 'v2',
-      heading: 'The v1 to v2 consumer path',
+      id: 'evolve',
+      heading: 'Evolve tables in place',
       prose:
-        'v2.0.0 renames two columns and narrows lifetime_value from bigint to decimal(18,2). apply_v2 writes the data to customers_v2 and rebuilds customers_v1 as a view that selects v2 data under the v1.1.0 column names. Existing readers keep working until the sunset date.',
+        'Delta table features make common changes metadata-only. Enable them once per table, then run ordinary ALTER statements.',
+      points: [
+        {
+          strong: 'Type widening.',
+          text: 'Widen a column, such as int to bigint or float to double, without rewriting files. Enable the table property, then ALTER COLUMN TYPE. Streaming reads and Databricks-to-Databricks sharing work across a widened column. Change data feed reads need to be split at the type change.',
+        },
+        {
+          strong: 'Column mapping.',
+          text: 'Rename and drop columns as metadata-only changes. It also allows spaces and other characters in column names. A rename or drop can break streaming readers, so restart the stream or use schema tracking.',
+        },
+        {
+          strong: 'Schema evolution modes.',
+          text: 'Pick how new columns arrive instead of letting them surprise you. Auto Loader offers addNewColumns, rescue, failOnNewColumns, and none. MERGE and writes evolve with schema evolution turned on, and Lakeflow Spark Declarative Pipelines handle new columns in streaming tables.',
+        },
+        {
+          strong: 'Prefer explicit over automatic in the gold layer.',
+          text: 'Let bronze absorb new source columns with rescue or addNewColumns. Promote a column to silver and gold on purpose, through a reviewed change.',
+        },
+      ],
+      examples: [
+        {
+          label: 'Widen a type, rename a column, drop a column',
+          language: 'sql',
+          code: `-- Widen in place
+ALTER TABLE main.sales.customers SET TBLPROPERTIES ('delta.enableTypeWidening' = 'true');
+ALTER TABLE main.sales.customers ALTER COLUMN lifetime_value TYPE BIGINT;
+
+-- Rename and drop need column mapping
+ALTER TABLE main.sales.customers SET TBLPROPERTIES (
+  'delta.columnMapping.mode' = 'name',
+  'delta.minReaderVersion' = '2',
+  'delta.minWriterVersion' = '5');
+ALTER TABLE main.sales.customers RENAME COLUMN full_name TO display_name;
+ALTER TABLE main.sales.customers DROP COLUMN legacy_flag;`,
+          notes: ['Column mapping raises the minimum reader version. Confirm every reader and sharing recipient supports it first.'],
+        },
+        {
+          label: 'Choose how Auto Loader treats new columns',
+          language: 'python',
+          code: `(spark.readStream.format("cloudFiles")
+  .option("cloudFiles.format", "json")
+  .option("cloudFiles.schemaLocation", "/Volumes/main/raw/_schemas/customers")
+  .option("cloudFiles.schemaEvolutionMode", "rescue")   # or addNewColumns, failOnNewColumns, none
+  .load("/Volumes/main/raw/customers/"))`,
+          notes: ['rescue keeps unexpected fields in _rescued_data, so nothing is lost and the schema does not move.'],
+        },
+      ],
+      links: [
+        {
+          label: 'Delta type widening',
+          url: 'https://docs.databricks.com/aws/en/tables/features/type-widening',
+        },
+        {
+          label: 'Rename and drop columns with column mapping',
+          url: 'https://docs.databricks.com/aws/en/tables/features/column-mapping',
+        },
+        {
+          label: 'Update table schema',
+          url: 'https://docs.databricks.com/aws/en/tables/update-schema',
+          note: 'ALTER TABLE and schema evolution on writes.',
+        },
+        {
+          label: 'Auto Loader schema evolution',
+          url: 'https://docs.databricks.com/aws/en/ingestion/cloud-object-storage/auto-loader/schema',
+        },
+      ],
+    },
+    {
+      id: 'guard',
+      heading: 'Enforce the contract at write time',
+      prose:
+        'A contract that is only documented gets broken. Constraints turn the rules into write-time checks, so a bad row fails the producer instead of surprising a reader.',
+      points: [
+        {
+          strong: 'NOT NULL',
+          text: 'for keys and columns every reader relies on. Loosening it later is nonbreaking. Tightening it is breaking.',
+        },
+        {
+          strong: 'CHECK constraints',
+          text: 'for value rules, such as ranges, allowed codes, and cross-column logic. A write that violates one fails the whole transaction.',
+        },
+        {
+          strong: 'Expectations in pipelines.',
+          text: 'In Lakeflow Spark Declarative Pipelines, expectations can drop or quarantine bad rows instead of failing, which fits ingestion layers.',
+        },
+      ],
+      examples: [
+        {
+          label: 'Add constraints to a table',
+          language: 'sql',
+          code: `ALTER TABLE main.sales.customers ALTER COLUMN customer_id SET NOT NULL;
+ALTER TABLE main.sales.customers
+  ADD CONSTRAINT valid_tier CHECK (loyalty_tier IN ('bronze', 'silver', 'gold'));`,
+          notes: ['Adding a constraint checks existing rows and fails if any violate it, so fix the data first.'],
+        },
+      ],
+      links: [
+        {
+          label: 'Constraints on Databricks',
+          url: 'https://docs.databricks.com/aws/en/tables/constraints',
+        },
+      ],
+    },
+    {
+      id: 'interface',
+      heading: 'Give readers a view as the interface',
+      prose:
+        'Readers who query a view do not care which table sits under it. That lets you ship a breaking change as a new table version and keep the old column names working until readers move.',
       diagram: {
         type: 'flow',
-        title: 'Consumers during the deprecation window',
+        title: 'Readers on a stable view during a breaking change',
         description:
-          'Three consumers, finance-reporting, marketing-campaigns, and support-portal, read the customers_v1 compatibility view. The view selects from customers_v2 with the old column names. customers_v2 sits beside customers_v1_archive, which holds the deprecated physical v1.1.0 data. Only finance-reporting uses columns that changed.',
+          'Dashboards, jobs, and external recipients read a stable view. During a breaking change the old view keeps the previous column names and selects from the new table version. A new view exposes the new names. The previous table stays as an archive until the sunset.',
         nodes: [
-          { id: 'fin', label: 'finance-reporting', sub: 'reads renamed columns', col: 0, row: 0 },
-          { id: 'mkt', label: 'marketing-campaigns', sub: 'no changed columns', col: 0, row: 1 },
-          { id: 'sup', label: 'support-portal', sub: 'no changed columns', col: 0, row: 2 },
-          { id: 'view', label: 'customers_v1', sub: 'view, deprecated=true', mono: true, col: 2, row: 1, kind: 'surface' },
-          { id: 'v2', label: 'customers_v2', sub: 'contract_version 2.0.0', mono: true, col: 4, row: 1, kind: 'highlight' },
-          { id: 'arch', label: 'customers_v1_archive', sub: 'old v1.1.0 data', mono: true, col: 4, row: 2, kind: 'store' },
+          { id: 'dash', label: 'Dashboards', sub: 'BI and Genie', col: 0, row: 0 },
+          { id: 'jobs', label: 'Downstream jobs', sub: 'Lakeflow Jobs', col: 0, row: 1 },
+          { id: 'ext', label: 'External recipients', sub: 'OpenSharing', col: 0, row: 2 },
+          { id: 'old', label: 'Deprecated view', sub: 'old column names', col: 2, row: 0, kind: 'surface' },
+          { id: 'new', label: 'Current view', sub: 'new column names', col: 2, row: 2, kind: 'highlight' },
+          { id: 'tbl', label: 'Versioned table', sub: 'current schema', col: 4, row: 1, kind: 'store' },
+          { id: 'arch', label: 'Archived table', sub: 'previous schema', col: 4, row: 2, kind: 'store' },
         ],
         edges: [
-          { from: 'fin', to: 'view' },
-          { from: 'mkt', to: 'view' },
-          { from: 'sup', to: 'view' },
-          { from: 'view', to: 'v2', label: 'old names over new data' },
-          { from: 'v2', to: 'arch', dashed: true, label: 'kept, deprecated' },
+          { from: 'dash', to: 'old' },
+          { from: 'jobs', to: 'old' },
+          { from: 'ext', to: 'new' },
+          { from: 'old', to: 'tbl', label: 'aliases old names' },
+          { from: 'new', to: 'tbl' },
+          { from: 'tbl', to: 'arch', dashed: true, label: 'kept until sunset' },
         ],
         legend: [
-          { kind: 'surface', label: 'Deprecated compatibility view' },
-          { kind: 'highlight', label: 'Current contract' },
-          { kind: 'store', label: 'Archived data' },
+          { kind: 'surface', label: 'Deprecated, tagged' },
+          { kind: 'highlight', label: 'Current interface' },
+          { kind: 'store', label: 'Unity Catalog table' },
         ],
       },
       points: [
         {
-          strong: 'Deprecation tags.',
-          text: 'customers_v1 and customers_v1_archive carry contract_version 1.1.0, deprecated true, and sunset_date 2027-03-31. A COMMENT names customers_v2 as the migration target. customers_v2 is tagged contract_version 2.0.0 and deprecated false.',
+          strong: 'Expose views, keep tables private.',
+          text: 'Grant readers SELECT on the views schema and keep the base tables in a schema only producers can read.',
         },
         {
-          strong: 'Who must act.',
-          text: 'Only finance-reporting reads changed columns. Its notification row says to move reads to customers_v2 and update full_name and lifetime_value before the sunset date. The other two consumers get an optional move.',
+          strong: 'Alias, cast, and default.',
+          text: 'A compatibility view can rename columns back, cast a narrowed type to the old type, and supply a default for a new required column.',
         },
         {
-          strong: 'Sunset is recorded.',
-          text: 'Nothing drops customers_v1 on 2027-03-31 yet. A scheduled job that does is the next step. Lineage on the view shows who still reads the old name.',
+          strong: 'Version the name only on a breaking change.',
+          text: 'Nonbreaking changes keep the same object. A breaking one publishes a new versioned object and leaves the old interface in place as deprecated.',
+        },
+      ],
+      links: [
+        {
+          label: 'Views',
+          url: 'https://docs.databricks.com/aws/en/views',
+        },
+      ],
+    },
+    {
+      id: 'deprecate',
+      heading: 'Deprecate with tags and find the consumers',
+      prose:
+        'Deprecation is a process with an owner and a date. Unity Catalog stores the markers, and its lineage and query history tell you who is still affected.',
+      steps: [
+        {
+          title: 'Mark the old object',
+          body: 'Set tags for the status, the replacement, and the sunset date, and put the migration target in the comment so it shows in Catalog Explorer.',
+          code: `ALTER VIEW main.sales.customers_v1 SET TAGS ('deprecated' = 'true', 'sunset_date' = '<yyyy-mm-dd>', 'replaced_by' = 'main.sales.customers');
+COMMENT ON VIEW main.sales.customers_v1 IS 'Deprecated. Use main.sales.customers.';`,
+        },
+        {
+          title: 'Find consumers from lineage',
+          body: 'Table lineage lists the jobs, notebooks, dashboards, and downstream tables that read an object. It reports the entities, so you can contact their owners.',
+          code: `SELECT DISTINCT entity_type, entity_id, created_by, target_table_full_name
+FROM system.access.table_lineage
+WHERE source_table_full_name = 'main.sales.customers_v1'
+  AND event_time >= current_date() - INTERVAL 90 DAYS;`,
+        },
+        {
+          title: 'Find ad hoc readers from query history',
+          body: 'Lineage names the jobs, notebooks, and dashboards that read an object. Query history adds the user and statement for ad hoc SQL warehouse queries that lineage does not attribute to a person.',
+          code: `SELECT executed_by, count(*) AS queries, max(start_time) AS last_query
+FROM system.query.history
+WHERE statement_text ILIKE '%customers_v1%'
+  AND start_time >= current_date() - INTERVAL 90 DAYS
+GROUP BY executed_by
+ORDER BY queries DESC;`,
+        },
+        {
+          title: 'Notify, then enforce the date',
+          body: 'Send each owner what changed, what to do, and the deadline. Re-run the lineage query before the sunset. When no reader is left, or the date passes, drop the object with a scheduled job.',
+        },
+      ],
+      links: [
+        {
+          label: 'Tags in Unity Catalog',
+          url: 'https://docs.databricks.com/aws/en/database-objects/tags',
+        },
+        {
+          label: 'Lineage system tables',
+          url: 'https://docs.databricks.com/aws/en/admin/system-tables/lineage',
+        },
+        {
+          label: 'Query history system table',
+          url: 'https://docs.databricks.com/aws/en/admin/system-tables/query-history',
+        },
+      ],
+    },
+    {
+      id: 'share',
+      heading: 'Version what you share outside',
+      prose:
+        'Readers outside your workspace are not visible in your lineage, so the contract matters more. OpenSharing gives them governed access to a table or view without a copy to maintain.',
+      points: [
+        {
+          strong: 'Share the interface.',
+          text: 'Add the stable view to the share, not the base table, so you can change what is under it.',
+        },
+        {
+          strong: 'Check recipient support first.',
+          text: 'Features such as column mapping and type widening raise reader requirements. Confirm that each recipient client supports them before you enable them on a shared table.',
+        },
+        {
+          strong: 'Announce changes through the recipient list.',
+          text: 'Recipients are named objects with owners. Use them as the notification list for a deprecation, and revoke access on the sunset date.',
+        },
+      ],
+      links: [
+        {
+          label: 'OpenSharing',
+          url: 'https://docs.databricks.com/aws/en/opensharing',
         },
       ],
     },
     {
       id: 'gate',
-      heading: 'The gate rejects a mislabeled release',
+      heading: 'Optional: a compatibility gate in CI',
       prose:
-        'The gate runs over all published contract versions. It then repeats the v2 change under the label 1.2.0 as a dry run. The change renames columns, so it needs a major bump, and a minor bump fails. The job log prints the DRY RUN line with REJECTED. Unit tests in tests/test_compatibility.py cover the same case.',
+        'If many teams publish tables, a check in CI can enforce that the version label matches the change. This is custom code. The platform does not require it, and the previous sections work without it.',
       diagram: {
         type: 'flow',
-        title: 'Same change, two labels',
+        title: 'A semantic-version check on a pull request',
         description:
-          'The contract change from v1.1.0 to v2.0.0 renames columns and narrows a type, so diff_contracts classifies it as breaking and the required bump is major. Labeled 2.0.0, the gate accepts it and the job applies it. Labeled 1.2.0, the gate rejects it with an error and no table changes.',
+          'A pull request changes a contract file. A check compares the old and new contract, classifies each change as breaking or nonbreaking, and compares the result to the version bump. A mismatch fails the check. A match lets the bundle deploy the change.',
         nodes: [
-          { id: 'change', label: 'v1.1.0 to v2 change', sub: 'renames, narrows type', col: 0, row: 0 },
-          { id: 'diff', label: 'diff_contracts', sub: 'classify each change', mono: true, col: 1, row: 0 },
-          { id: 'req', label: 'Required bump: major', sub: 'any breaking change', col: 2, row: 0, kind: 'highlight' },
-          { id: 'match', label: 'Label matches?', col: 3, row: 0, kind: 'gate' },
-          { id: 'ok', label: 'Accept 2.0.0', sub: 'apply_v2 runs', col: 4, row: 0, kind: 'store' },
-          { id: 'bad', label: 'Reject 1.2.0', sub: 'DRY RUN ... REJECTED', col: 3, row: 1, kind: 'surface' },
+          { id: 'pr', label: 'Pull request', sub: 'contract file changed', col: 0, row: 0 },
+          { id: 'diff', label: 'Diff the contracts', sub: 'old versus new', col: 1, row: 0 },
+          { id: 'cls', label: 'Classify changes', sub: 'breaking or not', col: 2, row: 0, kind: 'highlight' },
+          { id: 'bump', label: 'Bump matches?', sub: 'major or minor', col: 3, row: 0, kind: 'gate' },
+          { id: 'ok', label: 'Deploy', sub: 'bundle deploy', col: 4, row: 0, kind: 'store' },
+          { id: 'bad', label: 'Fail the check', sub: 'label the change', col: 3, row: 1, kind: 'surface' },
         ],
         edges: [
-          { from: 'change', to: 'diff' },
-          { from: 'diff', to: 'req' },
-          { from: 'req', to: 'match' },
-          { from: 'match', to: 'ok', label: '2.0.0' },
-          { from: 'match', to: 'bad', label: '1.2.0' },
+          { from: 'pr', to: 'diff' },
+          { from: 'diff', to: 'cls' },
+          { from: 'cls', to: 'bump' },
+          { from: 'bump', to: 'ok', label: 'yes' },
+          { from: 'bump', to: 'bad', label: 'no' },
         ],
         legend: [
-          { kind: 'gate', label: 'Version check' },
-          { kind: 'surface', label: 'Rejected, no table touched' },
+          { kind: 'gate', label: 'Custom check' },
+          { kind: 'surface', label: 'Merge blocked' },
         ],
+        caption:
+          'Rules to encode: a breaking change needs a major bump, a nonbreaking addition needs a minor bump, and a rename needs an explicit marker or it reads as a drop plus an add.',
       },
-    },
-    {
-      id: 'trace',
-      heading: 'Tracing a release afterward',
-      steps: [
-        {
-          title: 'Registry',
-          body: 'One row per applied version: dataset, version, change type, release tag, applied time, and Delta table version.',
-          code: 'SELECT * FROM <catalog>.<schema>.contract_registry ORDER BY applied_at;',
-        },
-        {
-          title: 'Delta history and tags',
-          body: 'show_traceability prints DESCRIBE HISTORY and the tag listing in the task log. Catalog Explorer shows the deprecation comment and tags on customers_v1.',
-        },
-        {
-          title: 'Consumer notifications',
-          body: 'One row per consumer in the use-case spec, with message, action required, and deadline.',
-          code: 'SELECT consumer, impacted_columns, action_required, deadline\nFROM <catalog>.<schema>.consumer_notifications;',
-        },
-      ],
     },
   ],
   related: [

@@ -119,13 +119,13 @@ export const guides: readonly Guide[] = [
     title: 'Developer workflow in the IDE',
     category: 'CI/CD & Version Control Guides',
     difficulty: 3,
-    summary: 'Capture a representative author, debug, and test workflow.',
+    summary: 'Develop, test, and package Databricks code from your IDE, with the same checks in CI.',
     acceptanceCriteria:
-      'Write a transform in VS Code, debug its edge case with Databricks Connect, and run the same tests locally and on serverless before deploying with a bundle.',
+      'Code runs against serverless compute through Databricks Connect, logic lives in plain functions covered by pytest, shared code ships as a wheel in a bundle, and lint plus the same tests gate every pull request.',
     evidence: [
-      'Local and workspace development workflow',
-      'Debug and test transcript',
-      'Developer setup and dependency notes',
+      'Databricks Connect against serverless with a pytest suite on plain functions',
+      'Shared code packaged as a wheel with pyproject, from the default-python bundle template',
+      'Git folders, lint and pre-commit, and the same tests running in CI',
     ],
   },
   {
@@ -161,13 +161,13 @@ export const guides: readonly Guide[] = [
     title: 'Data contract versioning',
     category: 'CI/CD & Version Control Guides',
     difficulty: 4,
-    summary: 'Show compatible evolution and governed breaking-change handling.',
+    summary: 'Change a table schema without breaking readers, and retire old versions on a schedule.',
     acceptanceCriteria:
-      'A data contract moves from v1 to v2. Nonbreaking changes evolve the table in place; the breaking change ships as a new version with a deprecated compatibility view, and consumers are notified.',
+      'Nonbreaking changes use Delta type widening, column mapping, and schema evolution in place. NOT NULL and CHECK constraints protect the contract, views give readers a stable interface, Unity Catalog tags mark deprecations, and lineage and query history find the consumers.',
     evidence: [
-      'Compatible and breaking change examples',
-      'Consumer impact and notification record',
-      'Deprecation timeline and traceability',
+      'Schema changes applied in place with type widening and column mapping',
+      'Constraints and a view-based consumer interface, with OpenSharing for external readers',
+      'Deprecation tags and consumer discovery from lineage and query history',
     ],
   },
   {
@@ -175,13 +175,13 @@ export const guides: readonly Guide[] = [
     title: 'Model release pipeline',
     category: 'ML Guides',
     difficulty: 5,
-    summary: 'Release an approved model through an auditable automated path.',
+    summary: 'Release models through test gates, approval, and an auditable alias change.',
     acceptanceCriteria:
-      'A model is trained, tested against the current champion, approved, and served from a Model Serving endpoint. Every release is recorded.',
+      'A new model version passes test gates, gets approval in a protected environment, and is promoted by Unity Catalog alias or copy_model_version into the production catalog. Rollout uses a traffic split with Unity Gateway limits and inference tables, rollback is an alias move, and CI authenticates with GitHub OIDC.',
     evidence: [
-      'Model approval and automated quality gates',
-      'Environment-specific deployment configuration',
-      'Serving release and audit history',
+      'Test gates, including MLflow 3 GenAI evaluation for LLM apps',
+      'Approval through a protected environment and a catalog per environment',
+      'Canary rollout, rollback by alias, and a release record',
     ],
   },
   {
@@ -189,13 +189,13 @@ export const guides: readonly Guide[] = [
     title: 'Pipeline operations',
     category: 'CI/CD & Version Control Guides',
     difficulty: 3,
-    summary: 'Exercise day-two controls across isolated environments.',
+    summary: 'Run pipelines with safe retries, targeted alerts, and tested recovery.',
     acceptanceCriteria:
-      'One job shows retries, failure and duration alerts, run history, an audit trail, and a rollback to an earlier table version.',
+      'Tasks are idempotent, so retries and repair runs are safe. Failures and slow runs notify the owner through Slack, PagerDuty, or a webhook, system tables and SQL alerts track trends, concurrency and timeouts limit overlap, and recovery uses RESTORE within retention plus deep clone backups.',
     evidence: [
-      'Development and test environment boundaries',
-      'Failure, alert, and recovery run',
-      'Rollback or redeployment evidence',
+      'Idempotent writes with retry and repair settings',
+      'Notification destinations, health rules, and system table alerts',
+      'Concurrency and timeout limits, recovery with RESTORE and deep clone, and a runbook',
     ],
   },
   {
@@ -316,13 +316,13 @@ export const guides: readonly Guide[] = [
     title: 'Training and bringing existing models',
     category: 'ML Guides',
     difficulty: 3,
-    summary: 'Reproduce baseline model behavior in the target runtime.',
+    summary: 'Log models that others can load, validate, and reproduce in Unity Catalog.',
     acceptanceCriteria:
-      'Train a model or bring an existing one, reproduce its baseline, and record what changed in code, libraries, and runtime.',
+      'Models are logged with a signature, input example, and pinned requirements, validated with mlflow.models.predict, and saved in a format that does not run code on load where possible. They register with aliases, and Feature Views keep training and serving features the same.',
     evidence: [
-      'Training or model-load run',
-      'Baseline comparison within tolerance',
-      'Runtime, library, and portability change log',
+      'Signature, input example, and pinned requirements on every logged model',
+      'Pre-registration validation and a baseline comparison',
+      'Safer formats, workspace registry migration, and Feature Views',
     ],
   },
   {
@@ -330,13 +330,13 @@ export const guides: readonly Guide[] = [
     title: 'Reproducible experiments',
     category: 'ML Guides',
     difficulty: 3,
-    summary: 'Replay a recorded experiment from tracked inputs.',
+    summary: 'Record the data, code, and environment behind each run so it can be replayed.',
     acceptanceCriteria:
-      'Rerun a tracked experiment from its recorded data, code, and environment and get the same result within tolerance.',
+      'Each run logs its dataset with mlflow.data and mlflow.log_input, plus the Git commit, parameters, seed, and pinned environment. A rerun built from that record matches the original metric within a tolerance, as long as Delta retention keeps the data version.',
     evidence: [
-      'Tracked experiment and environment references',
-      'Reproduction run',
-      'Tolerance comparison and variance notes',
+      'Dataset lineage from mlflow.log_input, not tags',
+      'Git commit, autologging, seeds, and pinned requirements',
+      'Tolerance comparison and Delta retention settings',
     ],
   },
   {
@@ -344,13 +344,13 @@ export const guides: readonly Guide[] = [
     title: 'Online model scoring',
     category: 'ML Guides',
     difficulty: 4,
-    summary: 'Measure a secured online inference path under normal and failure conditions.',
+    summary: 'Serve a model online with secured access, limits, and a measured scaling plan.',
     acceptanceCriteria:
-      'Send a secured scoring request, measure latency, and see how the endpoint scales and handles failures.',
+      'Callers use OAuth with CAN QUERY, Unity Gateway sets rate limits and logs requests to inference tables, features come from an online store, and the endpoint is sized from a load test and watched with metrics and alerts.',
     evidence: [
-      'Authenticated request and response',
-      'Latency and scaling measurements',
-      'Failure-mode behavior and recovery',
+      'OAuth access and CAN QUERY permissions',
+      'Scaling choices, rate limits, and traffic split',
+      'Load-test method and endpoint monitoring',
     ],
   },
   {
@@ -358,13 +358,13 @@ export const guides: readonly Guide[] = [
     title: 'Model quality and drift',
     category: 'ML Guides',
     difficulty: 4,
-    summary: 'Detect a simulated breach and route action to the owner.',
+    summary: 'Detect input drift and quality loss with data quality monitoring, and act on it.',
     acceptanceCriteria:
-      'Track operational and model metrics, simulate drift, alert the owner, and follow the retraining workflow.',
+      'An inference profile tracks drift and quality over time windows, labels join with their delay, and SQL alerts notify the owner. A breach starts retraining that registers a challenger, and a person reviews it before promotion.',
     evidence: [
-      'Operational and model metric view',
-      'Simulated breach and owner alert',
-      'Review or retraining workflow',
+      'Inference profile with profile and drift tables and a generated dashboard',
+      'Late label join and a SQL alert in Lakeflow Jobs',
+      'Retraining trigger and reviewed champion promotion',
     ],
   },
   {

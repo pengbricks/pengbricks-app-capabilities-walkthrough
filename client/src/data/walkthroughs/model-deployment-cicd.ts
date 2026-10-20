@@ -5,269 +5,326 @@ export const walkthrough: Walkthrough = {
   area: 'ML Guides',
   title: 'Model release pipeline',
   intro:
-    'One serverless job takes a churn model from training to a live endpoint. It trains on real invoice lines from UCI Online Retail II (CC BY 4.0). The job registers the model in Unity Catalog, tests it, promotes it only when someone has approved, serves it, and appends a row to a release history table. GitHub Actions runs the same job in dev and test, and the GitHub test environment approval supplies the approver.',
+    'A model release should be a repeatable path with checks, a human approval, and a record, not a manual alias change. On Databricks the pieces are Unity Catalog model versions and aliases, automated test gates, a protected CI environment for approval, a catalog per environment, Model Serving for rollout, and Unity Gateway for limits and logging. This page describes the pattern and why each part is there.',
   shortVersion: [
     {
-      title: 'Five tasks, one job.',
-      body: 'train_and_register, run_tests, approval_gate, deploy_endpoint, and record_release run in order in a single job.',
+      title: 'Aliases are the release pointer.',
+      body: 'Unity Catalog model versions are immutable. Serving and batch jobs load models:/name@champion, so a release is moving one alias and a rollback is moving it back. Stages are gone.',
     },
     {
-      title: 'Tests set @challenger.',
-      body: 'A version becomes @challenger only after the signature check, a prediction smoke test, an AUC threshold, and a comparison with the current @champion.',
+      title: 'Gate before you promote.',
+      body: 'Check the signature, run a prediction smoke test, and compare against the current champion. For LLM apps, run an MLflow 3 GenAI evaluation with scorers as the gate.',
     },
     {
-      title: 'Approval sets @champion.',
-      body: 'The gate moves @challenger to @champion only when approved_by is set. Without it the run ends green with the model unpromoted.',
+      title: 'Approval is an environment rule.',
+      body: 'Require reviewers on a protected CI environment. The job runs only after they approve, and it records who did.',
     },
     {
-      title: 'Config differs by target.',
-      body: 'dev and test use different AUC thresholds, endpoint names, and approval sources. Alias names and serving size are bundle variables.',
+      title: 'Separate environments by catalog.',
+      body: 'Dev, staging, and prod each get a catalog. Train once and promote the version with copy_model_version, or retrain from the same code in each environment.',
     },
     {
-      title: 'History is queryable.',
-      body: 'model_release_history, version tags, and the MLflow run record who approved which version and when.',
+      title: 'Roll out gradually, then watch.',
+      body: 'Split traffic between the current and new version, set Unity Gateway rate limits, and log requests to inference tables. Authenticate CI with GitHub OIDC, not a stored token.',
     },
   ],
   sections: [
     {
       id: 'flow',
-      heading: 'From training to a live endpoint',
+      heading: 'The release pattern',
       prose:
-        'Each task reads the model version from the one before it. The top row ends at the approval gate. The bottom row runs only on a promoted version, and the endpoint task leaves serving untouched when promoted is false.',
+        'Each step produces an input for the next, and any failed gate leaves the champion alias where it was.',
       diagram: {
         type: 'flow',
-        title: 'The release job',
+        title: 'From a trained version to a live endpoint',
         description:
-          'train_and_register trains a scikit-learn model and registers it in Unity Catalog. run_tests checks the signature, a prediction smoke test, the AUC threshold, and the current champion, then sets the challenger alias. approval_gate moves challenger to champion if an approver is given. deploy_endpoint serves the champion version on a Model Serving endpoint and waits for READY. record_release appends a row to model_release_history.',
-        lanes: [
-          { label: 'Train and test', fromRow: 0, toRow: 0 },
-          { label: 'Promote and serve', fromRow: 1, toRow: 1 },
-        ],
+          'Training logs a model version to Unity Catalog and sets the challenger alias. Test gates check the signature, a smoke test, and the metric against the champion. A protected environment holds the approval. After approval the champion alias moves, or the version is copied to the production catalog. The endpoint deploys the champion, traffic shifts gradually, and a release record is written.',
         nodes: [
-          { id: 'train', label: 'train_and_register', sub: 'MLflow 3, Online Retail II', mono: true, col: 0, row: 0 },
-          {
-            id: 'uc',
-            label: 'retail_churn_classifier',
-            sub: 'UC model version',
-            mono: true,
-            col: 1,
-            row: 0,
-            kind: 'store',
-          },
-          {
-            id: 'tests',
-            label: 'run_tests',
-            sub: 'AUC, signature, champion',
-            mono: true,
-            col: 2,
-            row: 0,
-            kind: 'highlight',
-          },
-          {
-            id: 'chal',
-            label: '@challenger',
-            sub: 'alias on tested version',
-            mono: true,
-            col: 3,
-            row: 0,
-            kind: 'store',
-          },
-          { id: 'gate', label: 'approval_gate', sub: 'approved_by set?', mono: true, col: 4, row: 0, kind: 'gate' },
-          { id: 'champ', label: '@champion', sub: 'approved version', mono: true, col: 4, row: 1, kind: 'store' },
-          {
-            id: 'ep',
-            label: 'deploy_endpoint',
-            sub: 'Model Serving, waits READY',
-            mono: true,
-            col: 3,
-            row: 1,
-            kind: 'surface',
-          },
-          { id: 'rec', label: 'record_release', sub: 'append one row', mono: true, col: 2, row: 1 },
-          { id: 'hist', label: 'model_release_history', mono: true, col: 1, row: 1, kind: 'store' },
+          { id: 'train', label: 'Train and log', sub: 'new UC model version', col: 0, row: 0 },
+          { id: 'chal', label: '@challenger', sub: 'alias on the new version', mono: true, col: 1, row: 0, kind: 'store' },
+          { id: 'gates', label: 'Test gates', sub: 'signature, smoke, metric', col: 2, row: 0, kind: 'gate' },
+          { id: 'appr', label: 'Approval', sub: 'protected environment', col: 3, row: 0, kind: 'gate' },
+          { id: 'champ', label: '@champion', sub: 'or copy to prod catalog', mono: true, col: 3, row: 1, kind: 'highlight' },
+          { id: 'ep', label: 'Serving endpoint', sub: 'traffic split, canary', col: 2, row: 1 },
+          { id: 'gw', label: 'Unity Gateway', sub: 'rate limits, inference log', col: 1, row: 1, kind: 'surface' },
+          { id: 'rec', label: 'Release record', sub: 'who, what, when', col: 0, row: 1, kind: 'store' },
         ],
         edges: [
-          { from: 'train', to: 'uc' },
-          { from: 'uc', to: 'tests' },
-          { from: 'tests', to: 'chal', label: 'pass' },
-          { from: 'chal', to: 'gate' },
-          { from: 'gate', to: 'champ', label: 'approved' },
+          { from: 'train', to: 'chal' },
+          { from: 'chal', to: 'gates' },
+          { from: 'gates', to: 'appr', label: 'pass' },
+          { from: 'appr', to: 'champ', label: 'approved' },
           { from: 'champ', to: 'ep' },
-          { from: 'ep', to: 'rec' },
-          { from: 'rec', to: 'hist' },
+          { from: 'ep', to: 'gw' },
+          { from: 'gw', to: 'rec' },
         ],
         legend: [
-          { kind: 'highlight', label: 'Automated quality gates' },
-          { kind: 'gate', label: 'Approval' },
-          { kind: 'surface', label: 'Serving endpoint' },
-          { kind: 'store', label: 'Model alias or table' },
+          { kind: 'gate', label: 'Stops the release on failure' },
+          { kind: 'highlight', label: 'Production pointer' },
+          { kind: 'store', label: 'Unity Catalog record' },
         ],
-        caption:
-          'Without approval, approval_gate reports promoted=false, deploy_endpoint changes nothing, and the run succeeds with no endpoint touched.',
+        caption: 'Rollback is the same step in reverse: point @champion at the previous version and redeploy.',
       },
     },
     {
-      id: 'ci',
-      heading: 'How CI supplies the approval',
+      id: 'aliases',
+      heading: 'Aliases and one catalog per environment',
       prose:
-        'model-deployment-cicd.yml tests the release logic on pull requests. On a merge to main it deploys dev and runs the job with no approver, so dev stops at the gate. After the test environment reviewers approve, it deploys test and runs the job with approved_by set to the approving GitHub actor. The deploy jobs run only when REFERENCE_CICD_ENABLED is true. See the GitHub-based CI/CD guide for the setup.',
-      diagram: {
-        type: 'flow',
-        title: 'Dev stops at the gate, test passes it',
-        description:
-          'A merge to main deploys dev and runs the release job with no approver, so the model reaches the challenger alias and stops. A reviewer approves the test GitHub environment. The deploy-test job then runs the release job with approved_by set to the GitHub actor, so the model becomes champion and the endpoint is deployed.',
-        nodes: [
-          { id: 'main', label: 'Merge to main', col: 0, row: 0 },
-          { id: 'dev', label: 'deploy-dev', sub: 'approved_by empty', mono: true, col: 1, row: 0, kind: 'highlight' },
-          { id: 'rev', label: 'Reviewer approves', sub: 'test environment', col: 2, row: 0, kind: 'gate' },
-          {
-            id: 'tst',
-            label: 'deploy-test',
-            sub: 'approved_by = actor',
-            mono: true,
-            col: 3,
-            row: 0,
-            kind: 'highlight',
-          },
-          { id: 'devout', label: '@challenger only', sub: 'no endpoint change', col: 1, row: 1, kind: 'store' },
-          { id: 'tstout', label: '@champion and endpoint', sub: 'history row written', col: 3, row: 1, kind: 'store' },
-        ],
-        edges: [
-          { from: 'main', to: 'dev' },
-          { from: 'dev', to: 'rev' },
-          { from: 'rev', to: 'tst', label: 'approved' },
-          { from: 'dev', to: 'devout' },
-          { from: 'tst', to: 'tstout' },
-        ],
-        legend: [
-          { kind: 'highlight', label: 'Runs the release job' },
-          { kind: 'gate', label: 'Required reviewers' },
-        ],
-      },
-    },
-    {
-      id: 'config',
-      heading: 'Configuration that changes by environment',
-      examples: [
-        {
-          label: 'Approve by hand, or change a threshold for one deploy',
-          language: 'sh',
-          code: '# Approve a release without CI: pass the approver as a job parameter.\ndatabricks bundle run capability_guides_model_release -t dev \\\n  --params approved_by=<your-name>\n\n# Raise the AUC floor for one deploy without editing databricks.yml.\ndatabricks bundle deploy -t dev --var min_auc=0.8',
-          notes: ['The reference run takes the approver from GitHub Actions instead.'],
-        },
-      ],
-      prose:
-        'The bundle sets thresholds per target in databricks.yml. test is stricter than dev: a higher AUC floor and no allowed regression against the champion. Both floors sit low because real churn is hard to predict: the model scores about 0.72 on Online Retail II, where the earlier synthetic data scored about 0.98. Approval also comes from a different place.',
-      diagram: {
-        type: 'matrix',
-        title: 'dev vs test',
-        description:
-          'dev requires a minimum AUC of 0.65 and allows an AUC regression of 0.02 against the champion. test requires 0.70 and allows 0.0. The dev endpoint is capability-guides-model-dev and the test endpoint is capability-guides-model-test. In dev, approval is the approved_by job parameter, empty in CI. In test, approval is the GitHub test environment reviewers.',
-        corner: 'Setting ↓ · Target →',
-        columns: ['dev', 'test'],
-        rows: [
-          {
-            label: 'min_auc',
-            sub: 'floor to become @challenger',
-            cells: [
-              { state: 'optional', text: '0.65' },
-              { state: 'own', text: '0.70' },
-            ],
-          },
-          {
-            label: 'max_auc_regression',
-            sub: 'allowed drop vs @champion',
-            cells: [
-              { state: 'optional', text: '0.02' },
-              { state: 'own', text: '0.0' },
-            ],
-          },
-          {
-            label: 'Endpoint name',
-            sub: 'capability-guides-model-<target>',
-            cells: [
-              { state: 'optional', text: 'capability-guides-model-dev' },
-              { state: 'own', text: 'capability-guides-model-test' },
-            ],
-          },
-          {
-            label: 'Approval source',
-            cells: [
-              { state: 'optional', text: 'approved_by parameter', sub: 'Empty in CI, set by hand to promote' },
-              { state: 'own', text: 'test environment reviewers', sub: 'Approving GitHub actor' },
-            ],
-          },
-          {
-            label: 'Names and tags',
-            cells: [
-              { state: 'optional', text: 'Development mode', sub: 'release tag' },
-              { state: 'own', text: '[test] prefix', sub: 'environment and release tags' },
-            ],
-          },
-        ],
-        legend: [
-          { state: 'optional', label: 'dev setting' },
-          { state: 'own', label: 'test setting, stricter' },
-        ],
-        caption: 'Serving workload size is Small in both targets, and scale-to-zero is on.',
-      },
-    },
-    {
-      id: 'run',
-      heading: 'The reference run',
-      prose:
-        'The recorded run is the second release of retail_churn_classifier. It trained version 2 on the 2010-09-01 snapshot (3,321 customers, 35.5% churned) and scored a holdout AUC of 0.7167. The champion, version 1, scores the same 0.7167 on that holdout, so the comparison passes with a regression of 0.0000 (dev allows 0.02). All four tests passed, approval moved @champion to version 2, and the job redeployed the endpoint. Scoring took 106.3 ms.',
-      table: {
-        caption: 'Reference run results',
-        columns: ['Item', 'Value'],
-        rows: [
-          ['Model', 'retail_churn_classifier, version 2'],
-          ['Holdout AUC', '0.7167 (champion version 1: 0.7167)'],
-          ['Champion comparison', 'Regression 0.0000, allowed 0.02 in dev'],
-          [
-            'Tests',
-            'schema_and_signature, prediction_smoke_test, quality_threshold (0.7167 >= 0.65), champion_comparison',
-          ],
-          ['Endpoint', 'capability-guides-model-dev'],
-          ['Scoring latency', '106.3 ms'],
-          ['Approval', 'approved_by recorded in model_release_history and on the version tags'],
-        ],
-      },
+        'Unity Catalog replaces workspace registry stages with aliases, which are mutable names on immutable versions. Pair them with a catalog per environment so access control follows the environment.',
       points: [
         {
-          strong: 'A tie passes.',
-          text: 'The first release had no champion, so champion_comparison passed with no current champion. The second release retrained the same commit on the same pinned data, so it got the identical AUC and tied. Retraining on changed data would move the number.',
+          strong: 'Aliases carry the state.',
+          text: 'Use challenger for a candidate under test and champion for the version in production. Consumers always load by alias, so they pick up a move on the next load.',
         },
         {
-          strong: 'The bundle does not own the endpoint.',
-          text: 'The job creates the endpoint, not the bundle, so deleting the bundle leaves it running. Delete it when you are done. A rerun with approved_by set recreates it.',
+          strong: 'Catalogs carry the environment.',
+          text: 'Keep dev, staging, and prod in separate catalogs with separate grants. Only the CI service principal can write to the production catalog.',
         },
         {
-          strong: 'First request is slower.',
-          text: 'The endpoint scales to zero, so the first request after idle includes a cold start. The task output records a first and a second request.',
+          strong: 'Pick a promotion pattern on purpose.',
+          text: 'Deploy code trains the model in each environment from the same code and is the recommended default, since production data stays in production. Deploy models trains once in dev and copies the version up with copy_model_version. Use it when production data is not reachable from dev, or a validated artifact must move unchanged.',
         },
         {
-          strong: 'Approval is a name.',
-          text: 'approved_by is a string, not an identity check. Limit who can trigger the job and who reviews the test environment.',
+          strong: 'Tag every version.',
+          text: 'Record the Git commit, the CI run, the training run, and test results as version tags. They are your audit trail inside Unity Catalog.',
+        },
+      ],
+      examples: [
+        {
+          label: 'Promote across catalogs, then move the alias',
+          language: 'python',
+          code: `import mlflow
+from mlflow import MlflowClient
+
+mlflow.set_registry_uri("databricks-uc")
+client = MlflowClient()
+
+# Copy the tested version into the production catalog
+copied = client.copy_model_version(
+    src_model_uri="models:/staging.churn.classifier/7",
+    dst_name="prod.churn.classifier",
+)
+
+# Point production consumers at it
+client.set_registered_model_alias("prod.churn.classifier", "champion", copied.version)`,
+          notes: ['The copy keeps the artifacts and signature. Tag the new version with the source version and the approver.'],
+        },
+      ],
+      links: [
+        {
+          label: 'Models in Unity Catalog',
+          url: 'https://docs.databricks.com/aws/en/machine-learning/manage-model-lifecycle',
+        },
+        {
+          label: 'Upgrade workflows from the workspace registry',
+          url: 'https://docs.databricks.com/aws/en/machine-learning/manage-model-lifecycle/upgrade-workflows',
+          note: 'Replace stages with aliases and promote across environments.',
+        },
+        {
+          label: 'MLOps deployment patterns',
+          url: 'https://docs.databricks.com/aws/en/machine-learning/mlops/deployment-patterns',
         },
       ],
     },
     {
-      id: 'audit',
-      heading: 'Where the release history lives',
+      id: 'gates',
+      heading: 'Gates that decide a promotion',
+      prose:
+        'Put the checks in code, run them on every candidate, and let a failure stop the job before an alias moves.',
+      points: [
+        {
+          strong: 'Contract checks.',
+          text: 'The model has a signature, accepts a sample input, and returns the expected output shape.',
+        },
+        {
+          strong: 'Quality bar.',
+          text: 'The candidate meets a minimum on a held-out set that production data cannot leak into. Keep the bar in bundle variables so each environment can set its own.',
+        },
+        {
+          strong: 'Champion comparison.',
+          text: 'The candidate beats, or stays within an allowed margin of, the current champion on the same data.',
+        },
+        {
+          strong: 'LLM apps use MLflow 3 evaluation.',
+          text: 'Run mlflow.genai.evaluate with an evaluation dataset and scorers, such as correctness, safety, and custom checks. Fail the gate on a score below your bar. The same scorers can monitor production traffic afterward.',
+        },
+      ],
+      examples: [
+        {
+          label: 'A GenAI evaluation as a CI gate',
+          language: 'python',
+          code: `import mlflow
+from mlflow.genai.scorers import Correctness, Safety
+
+results = mlflow.genai.evaluate(
+    data=eval_dataset,
+    predict_fn=app.predict,
+    scorers=[Correctness(), Safety()],
+)
+
+passed = results.metrics["correctness/mean"] >= 0.85 and results.metrics["safety/mean"] >= 0.99
+if not passed:
+    raise SystemExit("Evaluation gate failed; the champion alias is unchanged.")`,
+          notes: ['Check the metric names your scorers emit and set the bar from a baseline run, not a guess.'],
+        },
+      ],
+      links: [
+        {
+          label: 'Evaluate and improve quality with MLflow 3',
+          url: 'https://docs.databricks.com/aws/en/mlflow3/genai/eval-monitor',
+        },
+      ],
+    },
+    {
+      id: 'approval',
+      heading: 'Approval in a protected environment, and OIDC for CI',
+      prose:
+        'Approval should be a rule the system enforces, not a parameter someone types. Use the environment protection of your CI system.',
       steps: [
         {
-          title: 'Version tags',
-          body: 'Each model version carries release, git_sha, approved_by, job_run_id, training_run_url, and the test_* and tests_passed results.',
+          title: 'Run gates on every pull request',
+          body: 'Unit tests and bundle validation run before merge. A candidate model is trained and gated in dev after merge.',
         },
         {
-          title: 'Release history table',
-          body: 'One row per run with the approver, status, endpoint, served version, and serving latency.',
-          code: 'SELECT * FROM <catalog>.<schema>.model_release_history ORDER BY deployed_at DESC;',
+          title: 'Hold the promotion at a protected environment',
+          body: 'In GitHub, create an environment with required reviewers and use it on the job that promotes to staging or production. The job waits until a reviewer approves, and the approving actor is available to record.',
         },
         {
-          title: 'Rollback',
-          body: 'Re-run with the previous version behind the alias. There is no automatic rollback on a failed smoke test.',
+          title: 'Authenticate with GitHub OIDC',
+          body: 'Create a service principal with a federation policy that trusts the repository and environment. The workflow gets a short-lived token, so there is no Databricks secret to rotate or leak.',
+          code: `jobs:
+  promote:
+    runs-on: ubuntu-latest
+    environment: production        # required reviewers approve here
+    permissions:
+      id-token: write              # lets the job request an OIDC token
+      contents: read
+    env:
+      DATABRICKS_HOST: \${{ vars.DATABRICKS_HOST }}
+      DATABRICKS_CLIENT_ID: \${{ vars.DATABRICKS_CLIENT_ID }}
+      DATABRICKS_AUTH_TYPE: github-oidc
+    steps:
+      - uses: actions/checkout@v4
+      - uses: databricks/setup-cli@main
+      - run: databricks bundle run model_release --target prod --params approved_by=\${{ github.actor }}`,
+        },
+        {
+          title: 'Limit who can change the alias',
+          body: 'Only the CI service principal should own the production model or hold privileges to set its alias. Humans propose through pull requests.',
+        },
+      ],
+      links: [
+        {
+          label: 'Workload identity federation for GitHub Actions',
+          url: 'https://docs.databricks.com/aws/en/dev-tools/auth/provider-github',
+        },
+        {
+          label: 'GitHub Actions with Databricks',
+          url: 'https://docs.databricks.com/aws/en/dev-tools/ci-cd/github',
+        },
+      ],
+    },
+    {
+      id: 'rollout',
+      heading: 'Roll out, split traffic, and roll back',
+      prose:
+        'An alias move changes what a deployment loads. A serving endpoint can also hold two versions at once and divide traffic between them.',
+      points: [
+        {
+          strong: 'Canary with a traffic split.',
+          text: 'Serve the current and new versions as two served entities on one endpoint, send a small share to the new one, and widen it as metrics hold. The same mechanism supports A/B tests.',
+        },
+        {
+          strong: 'Wait for READY.',
+          text: 'Deployment is asynchronous. Poll the endpoint until the config update finishes, then send a test request before you shift traffic.',
+        },
+        {
+          strong: 'Roll back by alias.',
+          text: 'Set @champion back to the previous version and update the endpoint. Because versions are immutable, the old model is exactly what it was.',
+        },
+        {
+          strong: 'Keep a fast path for incidents.',
+          text: 'Document who can roll back and the single command or workflow that does it. Do not wait for a full release run.',
+        },
+      ],
+      examples: [
+        {
+          label: 'A 90/10 canary on one endpoint',
+          language: 'json',
+          code: `{
+  "served_entities": [
+    {"name": "current", "entity_name": "prod.churn.classifier", "entity_version": "6",
+     "workload_size": "Small", "scale_to_zero_enabled": false},
+    {"name": "canary", "entity_name": "prod.churn.classifier", "entity_version": "7",
+     "workload_size": "Small", "scale_to_zero_enabled": false}
+  ],
+  "traffic_config": {"routes": [
+    {"served_model_name": "current", "traffic_percentage": 90},
+    {"served_model_name": "canary", "traffic_percentage": 10}
+  ]}
+}`,
+          notes: ['Apply with the endpoint config update API. Move to 100 and remove the old entity when the canary holds.'],
+        },
+      ],
+      links: [
+        {
+          label: 'Serve multiple models on one endpoint',
+          url: 'https://docs.databricks.com/aws/en/machine-learning/model-serving/serve-multiple-models-to-serving-endpoint',
+          note: 'Traffic split.',
+        },
+        {
+          label: 'Create and manage serving endpoints',
+          url: 'https://docs.databricks.com/aws/en/machine-learning/model-serving/create-manage-serving-endpoints',
+        },
+      ],
+    },
+    {
+      id: 'guardrails',
+      heading: 'Limits and logging at the endpoint',
+      prose:
+        'Unity Gateway sits in front of serving endpoints. Turn it on for every production endpoint so a release comes with limits and a request log.',
+      points: [
+        {
+          strong: 'Rate limits.',
+          text: 'Cap queries per minute for the endpoint, per user, or per group, so one client cannot starve others. Token-based limits do not apply to custom model endpoints.',
+        },
+        {
+          strong: 'Inference tables.',
+          text: 'Log requests and responses to a Unity Catalog table. Use it to debug a bad release, to compare versions during a canary, and as the input to quality monitoring.',
+        },
+        {
+          strong: 'Permissions.',
+          text: 'Grant callers CAN QUERY on the endpoint and keep CAN MANAGE to the CI service principal and the owning team.',
+        },
+      ],
+      links: [
+        {
+          label: 'Unity Gateway rate limits',
+          url: 'https://docs.databricks.com/aws/en/ai-gateway/configure-ai-gateway-endpoints',
+        },
+        {
+          label: 'Inference tables',
+          url: 'https://docs.databricks.com/aws/en/ai-gateway/inference-tables',
+        },
+      ],
+    },
+    {
+      id: 'record',
+      heading: 'Keep a release record',
+      prose:
+        'A release record answers who shipped which version, when, with what evidence. Write it as the last step of the job, and make it queryable.',
+      points: [
+        {
+          strong: 'What to store.',
+          text: 'Model name and version, aliases moved, git commit, CI run, approver, target environment, endpoint, and the gate results.',
+        },
+        {
+          strong: 'Where.',
+          text: 'Version tags in Unity Catalog and an append-only Delta table for history across versions. Unity Catalog audit logs add who changed an alias.',
+        },
+        {
+          strong: 'Why it matters.',
+          text: 'The record makes a rollback decision fast and gives an auditor one table to read.',
         },
       ],
     },
@@ -275,5 +332,6 @@ export const walkthrough: Walkthrough = {
   related: [
     { slug: 'github-cicd', title: 'GitHub-based CI/CD' },
     { slug: 'real-time-scoring', title: 'Online model scoring' },
+    { slug: 'model-performance-drift', title: 'Model quality and drift' },
   ],
 };

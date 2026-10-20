@@ -5,168 +5,207 @@ export const walkthrough: Walkthrough = {
   area: 'ML Guides',
   title: 'Reproducible experiments',
   intro:
-    'A tracked run records its data version, code reference, and environment. A second run reads only those records and trains again. The data is UCI Online Retail II (CC BY 4.0): a customer snapshot at 2010-09-01. In the reference run both runs scored the same AUC, 0.716529, even though the table had grown by then.',
+    'An experiment is reproducible when its run records the data, code, and environment that produced the result, and when that record is enough to run it again. MLflow tracking holds those records. This page covers the pattern: log the dataset version with mlflow.data and mlflow.log_input, capture the Git commit and a pinned environment, fix the sources of randomness, and keep the old data version alive long enough to replay.',
   shortVersion: [
     {
-      title: 'The run carries its inputs.',
-      body: 'Tags hold the table name, Delta version, git SHA, code hash, and library versions.',
+      title: 'Log the dataset as an input.',
+      body: 'mlflow.data.load_delta reads a Delta table at a version, and mlflow.log_input attaches that dataset to the run. The run then records the table, version, and schema as lineage, not as a loose tag.',
     },
     {
-      title: 'The data moves on.',
-      body: 'A task appends the 945 customers who are new by the 2010-12-01 snapshot, so the latest table no longer matches what the run used.',
+      title: 'Capture the code with the Git commit.',
+      body: 'MLflow records the commit for runs launched from a Git-backed source. Add the commit to the run explicitly when a job or CI launches the run.',
     },
     {
-      title: 'The rerun reads the record.',
-      body: 'It queries VERSION AS OF the recorded version, not the latest one.',
+      title: 'Pin the environment.',
+      body: 'Log exact requirements with the model, and record Python and library versions. Autologging captures parameters, metrics, and models so nothing depends on memory.',
     },
     {
-      title: 'The assertion is explicit.',
-      body: 'The task fails if the AUC differs by more than 0.001 or the code hash changed.',
+      title: 'Fix seeds, then compare within a tolerance.',
+      body: 'Set the seed for every library that uses randomness. Even then, threads and hardware can shift a metric slightly, so compare with a tolerance, not equality.',
     },
     {
-      title: 'A control shows why it matters.',
-      body: 'Training on the latest data scored 0.720565, so skipping the version would have given a different number.',
+      title: 'Retention limits replay.',
+      body: 'Time travel works only while Delta keeps the old files. Set retention longer than your replay window or snapshot the table.',
     },
   ],
   sections: [
     {
-      id: 'job',
-      heading: 'Track, change the data, rerun',
+      id: 'data',
+      heading: 'Version the data with mlflow.data',
       prose:
-        'Three tasks run in order. The middle one exists to make the table change, which is what a real team hits between an experiment and its replay.',
-      diagram: {
-        type: 'flow',
-        title: 'The reproduction job',
-        description:
-          'tracked_run writes experiment_data at version 12 (the 2010-09-01 snapshot, 3,321 customers) and logs an MLflow run with data_version, git_sha, code_hash, and environment tags. append_new_data adds 945 customers and moves the table to version 13 (4,266 rows). rerun_and_compare reads the tags, reads experiment_data VERSION AS OF 12, trains again, logs a rerun, and writes experiment_reproductions.',
-        lanes: [
-          { label: 'Lakeflow job', fromRow: 0, toRow: 0 },
-          { label: 'Records', fromRow: 1, toRow: 2 },
-        ],
-        nodes: [
-          { id: 'track', label: 'tracked_run', mono: true, sub: 'train and log', col: 0, row: 0, kind: 'highlight' },
-          { id: 'app', label: 'append_new_data', mono: true, sub: '+945 new customers', col: 1, row: 0 },
-          {
-            id: 'rerun',
-            label: 'rerun_and_compare',
-            mono: true,
-            sub: 'assert within 0.001',
-            col: 2,
-            row: 0,
-            kind: 'highlight',
-          },
-          { id: 'run1', label: 'MLflow run', sub: 'tags: data, code, env', col: 0, row: 1, kind: 'surface' },
-          { id: 'tbl', label: 'experiment_data', mono: true, sub: 'two Delta versions', col: 1, row: 1, kind: 'store' },
-          { id: 'run2', label: 'MLflow rerun', sub: 'reproduces_run_id', col: 2, row: 1, kind: 'surface' },
-          { id: 'res', label: 'experiment_reproductions', mono: true, col: 2, row: 2, kind: 'store' },
-        ],
-        edges: [
-          { from: 'track', to: 'app' },
-          { from: 'app', to: 'rerun' },
-          { from: 'track', to: 'run1' },
-          { from: 'track', to: 'tbl' },
-          { from: 'app', to: 'tbl' },
-          { from: 'run1', to: 'rerun', label: 'read tags' },
-          { from: 'tbl', to: 'rerun', dashed: true, label: 'VERSION AS OF' },
-          { from: 'rerun', to: 'run2' },
-          { from: 'rerun', to: 'res' },
-        ],
-        legend: [
-          { kind: 'highlight', label: 'Trains the model' },
-          { kind: 'surface', label: 'MLflow run' },
-          { kind: 'store', label: 'Unity Catalog table' },
-        ],
-      },
-    },
-    {
-      id: 'refs',
-      heading: 'What the run records',
+        'A tag with a version number is a note. A logged dataset is a typed input: MLflow stores its source, a digest, and its schema, and the run page and API list it under inputs. Make that the primary record, and add tags only for context.',
       examples: [
         {
-          label: 'Log the table version as a run input',
-          language: 'py',
-          code: 'import mlflow\n\n# Pin the Delta version, then attach it to the run as a dataset input.\ndataset = mlflow.data.load_delta(\n    table_name="<catalog>.<schema>.experiment_data",\n    version="12",\n)\nwith mlflow.start_run():\n    mlflow.log_input(dataset, context="training")\n    train_df = dataset.df  # Spark DataFrame at that version',
+          label: 'Read a Delta table at a version and log it as the training input',
+          language: 'python',
+          code: `import mlflow
+import mlflow.data
+
+dataset = mlflow.data.load_delta(table_name="main.ml.customers", version="12")
+df = dataset.df.toPandas()
+
+with mlflow.start_run():
+    mlflow.log_input(dataset, context="training")
+    # Optional context that is not in the dataset record
+    mlflow.set_tag("data_snapshot", "month-end")`,
           notes: [
-            "The reference code stores the version as a tag instead. log_input shows the same version under the run's dataset inputs.",
+            'Read once through the dataset object, so the version you log is the version you trained on.',
+            'Log the validation and test sets the same way, with their own context values.',
           ],
         },
       ],
-      prose: 'Each reference answers one question about where the result came from.',
+      points: [
+        {
+          strong: 'Pin by version or timestamp.',
+          text: 'Reading the latest table logs a moving target. Read a Delta version, then log it.',
+        },
+        {
+          strong: 'Feature tables count.',
+          text: 'If the training set joins feature tables, log the label table version and the feature definitions or table versions with the run.',
+        },
+        {
+          strong: 'Query by dataset.',
+          text: 'Search runs that used a given dataset digest to find every model trained on the same data.',
+        },
+      ],
+      links: [
+        {
+          label: 'MLflow tracking on Databricks',
+          url: 'https://docs.databricks.com/aws/en/mlflow/tracking',
+        },
+        {
+          label: 'Experiments and runs',
+          url: 'https://docs.databricks.com/aws/en/mlflow/experiments',
+        },
+      ],
+    },
+    {
+      id: 'code-env',
+      heading: 'Capture code, parameters, and environment',
+      points: [
+        {
+          strong: 'Git commit.',
+          text: 'Run from a Git folder or a job with a Git source and MLflow stores the commit on the run. When CI launches the run, pass the commit SHA as a parameter and set it as the mlflow.source.git.commit tag.',
+        },
+        {
+          strong: 'Autologging.',
+          text: 'Call mlflow.autolog() so supported libraries log parameters, metrics, and the model without extra code. Add manual log calls for anything specific to your problem.',
+        },
+        {
+          strong: 'Pinned environment.',
+          text: 'Log the model with exact pip requirements, and store the Python version. Better still, run the job in a bundle or serverless environment version that pins the base libraries.',
+        },
+        {
+          strong: 'MLflow 3 LoggedModels.',
+          text: 'In MLflow 3 a model is a first-class entity, a LoggedModel, with its own ID. It links to the runs that produced it and the evaluations that scored it, so you can trace a registered version to the code, data, and metrics behind it.',
+        },
+        {
+          strong: 'Seeds.',
+          text: 'Set the seed in numpy, the framework, the data split, and the estimator. Log it as a parameter.',
+        },
+      ],
+      examples: [
+        {
+          label: 'A tracked run that records what it needs to replay',
+          language: 'python',
+          code: `import random, numpy as np, mlflow
+
+SEED = 42
+random.seed(SEED); np.random.seed(SEED)
+
+mlflow.autolog()
+with mlflow.start_run() as run:
+    mlflow.log_param("seed", SEED)
+    mlflow.set_tag("mlflow.source.git.commit", git_sha)   # passed in by CI
+    mlflow.log_input(dataset, context="training")
+    model = train(df, seed=SEED)
+    mlflow.sklearn.log_model(
+        sk_model=model, name="model",
+        pip_requirements=["scikit-learn==1.5.2", "pandas==2.2.3"],
+    )`,
+          notes: ['One run now holds the data, code, seed, environment, and model needed to rerun it.'],
+        },
+      ],
+      links: [
+        {
+          label: 'Databricks autologging',
+          url: 'https://docs.databricks.com/aws/en/mlflow/databricks-autologging',
+        },
+      ],
+    },
+    {
+      id: 'rerun',
+      heading: 'Replay a run from its record',
+      prose:
+        'A reproduction reads only what the original run recorded. If it needs anything else, the record is incomplete.',
       diagram: {
-        type: 'matrix',
-        title: 'Recorded references and how the rerun uses them',
+        type: 'flow',
+        title: 'Reproduce a tracked run',
         description:
-          'Data version is a Delta version and the rerun reads VERSION AS OF it. Code is a git SHA and a hash of the training functions, and the rerun fails if the hash differs. Environment is a JSON of library versions, and the rerun reports differences.',
-        corner: 'Reference ↓',
-        columns: ['Recorded as', 'Rerun action'],
-        rows: [
-          {
-            label: 'Data',
-            sub: 'what rows',
-            cells: [
-              { state: 'own', text: 'data_version', sub: 'Delta version' },
-              { state: 'own', text: 'VERSION AS OF' },
-            ],
-          },
-          {
-            label: 'Code',
-            sub: 'what logic',
-            cells: [
-              { state: 'own', text: 'git_sha, code_hash' },
-              { state: 'own', text: 'fail on hash change' },
-            ],
-          },
-          {
-            label: 'Environment',
-            sub: 'what libraries',
-            cells: [
-              { state: 'own', text: 'environment JSON' },
-              { state: 'optional', text: 'report differences' },
-            ],
-          },
+          'A tracked run records its dataset input, Git commit, parameters, seed, and environment. The rerun reads those records, loads the Delta table at the recorded version, checks out the commit, builds the same environment, trains, and compares its metric to the original within a tolerance.',
+        nodes: [
+          { id: 'run', label: 'Tracked run', sub: 'inputs, tags, params', col: 0, row: 0 },
+          { id: 'data', label: 'Dataset input', sub: 'Delta table and version', col: 1, row: 0, kind: 'store' },
+          { id: 'code', label: 'Git commit', sub: 'code at that SHA', col: 1, row: 1, kind: 'surface' },
+          { id: 'env', label: 'Pinned environment', sub: 'requirements, seed', col: 1, row: 2, kind: 'surface' },
+          { id: 're', label: 'Rerun', sub: 'reads only the record', col: 2, row: 1, kind: 'highlight' },
+          { id: 'cmp', label: 'Compare', sub: 'metric within tolerance', col: 3, row: 1, kind: 'gate' },
+        ],
+        edges: [
+          { from: 'run', to: 'data' },
+          { from: 'run', to: 'code' },
+          { from: 'run', to: 'env' },
+          { from: 'data', to: 're' },
+          { from: 'code', to: 're' },
+          { from: 'env', to: 're' },
+          { from: 're', to: 'cmp' },
         ],
         legend: [
-          { state: 'own', label: 'Enforced' },
-          { state: 'optional', label: 'Reported only' },
-        ],
-        caption:
-          'The git SHA is the release job parameter; this run used the default, local. CI sets it to the commit SHA.',
-      },
-    },
-    {
-      id: 'result',
-      heading: 'The comparison',
-      prose:
-        'experiment_reproductions holds one row per rerun. The latest-data AUC is a control, not a pass condition.',
-      table: {
-        caption: 'Reference run: 3,321 customers at version 12, 4,266 at version 13',
-        columns: ['Field', 'Value'],
-        rows: [
-          ['Original AUC', '0.716529'],
-          ['Rerun AUC', '0.716529'],
-          ['Difference, tolerance', '0.0, 0.001'],
-          ['Data version used', '12 (table was at 13)'],
-          ['Code hash match, environment changes', 'true, none'],
-          ['AUC on latest data (control)', '0.720565'],
+          { kind: 'store', label: 'Delta data version' },
+          { kind: 'gate', label: 'Pass or fail check' },
         ],
       },
+      points: [
+        {
+          strong: 'Pick a tolerance from evidence.',
+          text: 'Run the same job a few times and measure the spread. Set the tolerance above that spread, and treat larger gaps as a change in data, code, or environment.',
+        },
+        {
+          strong: 'Add a control run.',
+          text: 'Train once on the latest data as well. A difference from the replay shows the version pin mattered.',
+        },
+        {
+          strong: 'Record the comparison.',
+          text: 'Write the original and rerun metrics, the difference, and the tolerance to a table or as tags on the rerun, and link the rerun to the original run ID.',
+        },
+      ],
     },
     {
-      id: 'check',
-      heading: 'Check it yourself',
-      steps: [
+      id: 'limits',
+      heading: 'Where reproducibility stops',
+      prose: 'Delta retention is the limit people hit first, followed by environment drift and hardware.',
+      points: [
         {
-          title: 'Read the tags',
-          body: 'Open the tracked-run run in the experiment and read data_version, git_sha, code_hash, and environment.',
+          strong: 'Delta retention.',
+          text: 'Time travel reads old versions only while their data files exist. VACUUM removes files older than delta.deletedFileRetentionDuration (7 days by default), and log retention defaults to 30 days. Raise both beyond your replay window for tables behind important models.',
         },
         {
-          title: 'Compare the table history',
-          body: 'DESCRIBE HISTORY experiment_data shows the append after the tracked run.',
-          code: 'SELECT * FROM experiment_reproductions ORDER BY checked_at DESC;',
+          strong: 'Snapshots for the long term.',
+          text: 'For a model you must reproduce years later, copy the training set with a deep clone or write it to a versioned volume, and log that location as the input.',
         },
         {
-          title: 'Change the code',
-          body: 'Edit make_pipeline in src/ml_common.py, redeploy, and rerun rerun_and_compare alone with the earlier run ID. It fails on the code hash.',
+          strong: 'Environment drift.',
+          text: 'A library upgrade can shift results. Pinned requirements limit this, and a recorded environment tells you what changed when results differ.',
+        },
+        {
+          strong: 'Nondeterminism.',
+          text: 'Multithreaded training, GPUs, and some algorithms vary run to run. Fix what you can and size the tolerance for the rest.',
+        },
+      ],
+      links: [
+        {
+          label: 'Table history and retention',
+          url: 'https://docs.databricks.com/aws/en/tables/history',
         },
       ],
     },

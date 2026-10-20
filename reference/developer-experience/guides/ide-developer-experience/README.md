@@ -2,6 +2,8 @@
 
 ## Overview
 
+Best practice: run code against serverless compute with Databricks Connect, keep logic in plain functions covered by pytest, package shared code as a wheel in a bundle, and run the same lint and tests in CI. This README covers the reference bundle that follows that pattern. The guide page in the app explains the practice.
+
 This guide covers one author, debug, test loop: write PySpark in an IDE, step through it with a breakpoint, run the same tests locally and on serverless, and ship the result as a bundle job whose run anyone can open.
 
 Success criterion: complete a representative author-debug-test workflow using supported SQL, Python, notebook, or pipeline tooling.

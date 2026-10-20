@@ -2,6 +2,8 @@
 
 ## Overview
 
+Best practice: grant callers CAN QUERY and authenticate them with OAuth, size the endpoint from expected concurrency, set Unity Gateway rate limits, log requests to inference tables, serve features from an online store, and load-test before launch. The guide page in the app explains the practice. This README covers the reference job.
+
 One job trains a credit default model on UCI Default of Credit Card Clients (30,000 Taiwanese card holders, April to September 2005, CC BY 4.0), registers it in Unity Catalog, deploys it to a Model Serving endpoint, and scores it over HTTPS with an OAuth token from the Databricks SDK. It times every request and records how the endpoint answers bad requests. A second job deletes the endpoint, so nothing keeps running after the demo.
 
 ## What this shows

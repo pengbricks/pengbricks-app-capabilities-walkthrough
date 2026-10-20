@@ -2,6 +2,10 @@
 
 ## Overview
 
+Best practice: log models with a signature, input example, and pinned requirements, validate them with `mlflow.models.predict`, prefer native flavors, ONNX, or skops over pickle, register in Unity Catalog with aliases, and use Feature Views for training-serving consistency. The guide page in the app explains the practice. This README covers the reference job.
+
+## Reference run
+
 One job covers both paths. It trains a scikit-learn model with MLflow and registers it in Unity Catalog. It also takes a model pickled outside MLflow, wraps it as a pyfunc, registers it, and checks that its recorded baseline metric reproduces. Both train on churn labels built from a public retail dataset. Job key: `capability_guides_model_training`.
 
 ## Data source

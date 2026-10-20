@@ -2,6 +2,10 @@
 
 ## Overview
 
+Best practice: attach data quality monitoring (an inference profile) to a table of model requests, join delayed labels, alert on the drift and profile tables, and retrain into a challenger that a person reviews before promotion. The reference job computes PSI itself as a custom example and does not use data quality monitoring. The guide page in the app explains the practice.
+
+## Reference run
+
 A job trains a model on a 2010-09-01 customer snapshot, scores nine later monthly snapshots, and records operational and model metrics in Unity Catalog tables. The drift is real: the customer base changes from month to month. The job detects it with PSI and mean shift, a SQL alert emails the owner, and a conditional task trains a challenger model for review. Job key: `capability_guides_model_drift`.
 
 Data: UCI Online Retail II (CC BY 4.0), invoice lines from a UK online retailer, 2009-12-01 to 2011-12-09. Chen, D. (2012). Online Retail II [Dataset]. UCI Machine Learning Repository. https://doi.org/10.24432/C5CG6D. The job downloads the zip into a Unity Catalog volume and checks its SHA-256. Metrics are computed in the job; Lakehouse Monitoring was not used.

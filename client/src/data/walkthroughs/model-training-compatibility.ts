@@ -5,162 +5,226 @@ export const walkthrough: Walkthrough = {
   area: 'ML Guides',
   title: 'Training and bringing existing models',
   intro:
-    'One job trains a scikit-learn model with MLflow on a real retail churn snapshot and also brings in a model pickled outside MLflow. The imported model is logged as a pyfunc, registered in Unity Catalog, and scored against its recorded baseline. Library and runtime versions are written down for both.',
+    'A model is reproducible when someone else can load it, call it with the right inputs, and get the same answers in a different runtime. That takes a logged signature, pinned requirements, a serialization format you can trust, and a check that the registered model matches its baseline. This page covers how to log models into Unity Catalog that way, how to move models in from elsewhere, and how Feature Views keep training and serving features the same.',
   shortVersion: [
     {
-      title: 'Training logs everything MLflow needs.',
-      body: 'train_native records params, holdout AUC, signature, and library versions, then registers churn_classifier.',
+      title: 'Log a signature and an input example.',
+      body: 'The signature defines the schema a caller must send. The input example gives serving and tests a real request to try. Unity Catalog requires a signature.',
     },
     {
-      title: 'The existing model is a plain pickle.',
-      body: 'export_legacy_model writes a pickle and a JSON sidecar to a Unity Catalog volume. MLflow is not involved.',
+      title: 'Pin the environment.',
+      body: 'Log pip requirements with exact versions so serving rebuilds the environment you trained in. Record Python and library versions with the run.',
     },
     {
-      title: 'A pyfunc wrapper brings it in.',
-      body: 'legacy_pyfunc.py loads the pickle as an artifact. The wrapper is logged from code, so the class is never pickled.',
+      title: 'Validate before you register.',
+      body: 'mlflow.models.predict loads the model in an isolated environment built from its requirements and runs the input example. A failure here would have been a failed deployment.',
     },
     {
-      title: 'The baseline reproduces.',
-      body: 'Recorded AUC 0.716529 and reproduced AUC 0.716529 on the same holdout, against a tolerance of 0.001. No published churn AUC exists for this dataset, so the recorded one is the baseline.',
+      title: 'Prefer formats that do not run code.',
+      body: 'Use the MLflow flavor for your framework, or ONNX or skops. Pickle executes code on load, so confine it to trusted files and wrap it as a pyfunc model.',
     },
     {
-      title: 'Versions are recorded.',
-      body: 'model_compatibility_log lists each library as recorded versus current. This run showed no package changes across python, scikit-learn, numpy, pandas, mlflow, and scipy.',
+      title: 'Use Feature Views to keep features the same.',
+      body: 'Define a feature once, train on it with point-in-time joins, and serve with a lookup of the same definition. That removes the most common source of training-serving skew.',
     },
   ],
   sections: [
     {
-      id: 'paths',
-      heading: 'Two ways in, one registry',
+      id: 'log',
+      heading: 'Log a model that others can run',
       prose:
-        'Both models end up as Unity Catalog model versions with aliases. They share one training table and one holdout split. The training table is the 2010-09-01 snapshot of UCI Online Retail II (CC BY 4.0): 3,321 customers, labeled churned when they place no order in the next 6 months. export_legacy_model downloads the file, checks its pinned SHA-256, and builds the table.',
+        'Logging is the contract between training and everything downstream. A model logged without a signature or pinned versions works on your cluster and fails on the endpoint.',
       diagram: {
         type: 'flow',
-        title: 'Native training and model import',
+        title: 'From training to a registered, validated model',
         description:
-          'export_legacy_model downloads and verifies the public dataset, writes model_training_data, and writes a pickle plus sidecar to the legacy_models volume. train_native trains from the table and registers churn_classifier with alias trained. import_legacy_model reads the pickle and sidecar, logs a pyfunc, registers churn_classifier_imported with alias imported, and writes model_compatibility_log.',
-        lanes: [
-          { label: 'Inputs', fromRow: 0, toRow: 0 },
-          { label: 'Lakeflow job tasks', fromRow: 1, toRow: 1 },
-          { label: 'Unity Catalog outputs', fromRow: 2, toRow: 2 },
-        ],
+          'Training produces a fitted model. Logging stores it with a signature, input example, and pinned requirements. A validation step loads the logged model in an isolated environment and runs the input example. A passing model registers in Unity Catalog with an alias.',
         nodes: [
-          { id: 'tbl', label: 'model_training_data', mono: true, col: 0, row: 0, kind: 'store' },
-          {
-            id: 'vol',
-            label: 'legacy_model.pkl',
-            mono: true,
-            sub: 'volume + JSON sidecar',
-            col: 2,
-            row: 0,
-            kind: 'store',
-          },
-          { id: 'exp', label: 'export_legacy_model', mono: true, sub: 'download, plain pickle', col: 1, row: 1 },
-          { id: 'nat', label: 'train_native', mono: true, sub: 'mlflow.sklearn', col: 0, row: 1, kind: 'highlight' },
-          {
-            id: 'imp',
-            label: 'import_legacy_model',
-            mono: true,
-            sub: 'mlflow.pyfunc',
-            col: 2,
-            row: 1,
-            kind: 'highlight',
-          },
-          { id: 'm1', label: 'Trained model', sub: 'churn_classifier', col: 0, row: 2, kind: 'store' },
-          { id: 'm2', label: 'Imported model', sub: 'churn_classifier_imported', col: 2, row: 2, kind: 'store' },
-          { id: 'log', label: 'model_compatibility_log', mono: true, col: 3, row: 2, kind: 'store' },
+          { id: 'fit', label: 'Train', sub: 'fitted model, metrics', col: 0, row: 0 },
+          { id: 'log', label: 'log_model', sub: 'signature and example', mono: true, col: 1, row: 0, kind: 'highlight' },
+          { id: 'req', label: 'Pinned requirements', sub: 'exact versions', col: 1, row: 1, kind: 'surface' },
+          { id: 'val', label: 'Validate', sub: 'mlflow.models.predict', mono: true, col: 2, row: 0, kind: 'gate' },
+          { id: 'reg', label: 'Unity Catalog', sub: 'version plus alias', col: 3, row: 0, kind: 'store' },
+          { id: 'srv', label: 'Serve or batch score', sub: 'load by alias', col: 4, row: 0 },
         ],
         edges: [
-          { from: 'exp', to: 'tbl' },
-          { from: 'exp', to: 'vol' },
-          { from: 'tbl', to: 'nat' },
-          { from: 'vol', to: 'imp' },
-          { from: 'exp', to: 'nat', label: 'then' },
-          { from: 'nat', to: 'm1' },
-          { from: 'imp', to: 'm2' },
-          { from: 'imp', to: 'log' },
+          { from: 'fit', to: 'log' },
+          { from: 'req', to: 'log' },
+          { from: 'log', to: 'val' },
+          { from: 'val', to: 'reg', label: 'pass' },
+          { from: 'reg', to: 'srv' },
         ],
         legend: [
-          { kind: 'highlight', label: 'MLflow logging and registration' },
-          { kind: 'store', label: 'Unity Catalog object' },
+          { kind: 'gate', label: 'Fails before registration' },
+          { kind: 'store', label: 'Unity Catalog model version' },
         ],
       },
-    },
-    {
-      id: 'setup',
-      heading: 'Set it up',
-      prose:
-        'The ml-lifecycle bundle creates the Unity Catalog volume that holds the pickle, and the job takes its name as a parameter. The model, features, and tolerance come from the model block of use_cases/general.yml.',
-      steps: [
+      examples: [
         {
-          title: 'Deploy the bundle',
-          body: 'The bundle also declares the legacy_models volume and the MLflow experiment.',
-          code: 'cd reference/ml-lifecycle\ndatabricks bundle deploy -t dev \\\n  --var catalog=<catalog> --var warehouse_id=<warehouse-id> \\\n  --var app_service_principal=<app-sp-application-id> \\\n  --var notification_email=<email>',
+          label: 'Log with a signature, input example, and pinned requirements',
+          language: 'python',
+          code: `import mlflow
+from mlflow.models import infer_signature
+
+mlflow.set_registry_uri("databricks-uc")
+
+signature = infer_signature(X_train, model.predict_proba(X_train)[:, 1])
+
+with mlflow.start_run():
+    mlflow.log_params(params)
+    mlflow.log_metric("holdout_auc", auc)
+    mlflow.sklearn.log_model(
+        sk_model=model,
+        name="model",
+        signature=signature,
+        input_example=X_train.head(5),
+        pip_requirements=["scikit-learn==1.5.2", "pandas==2.2.3", "numpy==1.26.4"],
+        registered_model_name="main.ml.churn_classifier",
+    )`,
+          notes: [
+            'Use the versions you trained with. Letting MLflow infer requirements is a fine start, but review them before you register.',
+            'Set an alias on the new version in a later step, after the gates pass.',
+          ],
+        },
+      ],
+      links: [
+        {
+          label: 'MLflow models on Databricks',
+          url: 'https://docs.databricks.com/aws/en/mlflow/models',
         },
         {
-          title: 'Run the job',
-          body: 'export_legacy_model runs first. train_native and import_legacy_model run after it, side by side.',
-          code: 'databricks bundle run capability_guides_model_training -t dev',
+          label: 'Custom model serving requirements',
+          url: 'https://docs.databricks.com/aws/en/machine-learning/model-serving/custom-models',
+          note: 'Signatures, input examples, and pre-deployment validation.',
         },
       ],
     },
     {
-      id: 'baseline',
-      heading: 'Reproducing the baseline',
+      id: 'validate',
+      heading: 'Validate the logged model before registering it',
       prose:
-        'The sidecar records the holdout AUC and the Delta version of the training table. The import task reads that table version, rebuilds the same holdout, scores it through the registered pyfunc, and fails if the difference exceeds the tolerance in the spec.',
-      diagram: {
-        type: 'matrix',
-        title: 'Baseline versus reproduced metric',
-        description:
-          'The recorded baseline holdout AUC was 0.716529. The registered pyfunc scored 0.716529 on the same holdout. The difference was 0 against a tolerance of 0.001.',
-        corner: 'Measure ↓',
-        columns: ['Value'],
-        rows: [
-          { label: 'Recorded baseline', sub: 'sidecar JSON', cells: [{ state: 'own', text: '0.716529' }] },
-          { label: 'Reproduced', sub: 'registered pyfunc', cells: [{ state: 'own', text: '0.716529' }] },
-          { label: 'Difference', sub: 'tolerance 0.001', cells: [{ state: 'none', text: '0' }] },
-        ],
-        legend: [
-          { state: 'own', label: 'Holdout AUC' },
-          { state: 'none', label: 'Within tolerance' },
-        ],
-        caption:
-          'The baseline is the AUC this job recorded, because no published churn AUC exists for the dataset. The model trains on the same rows with the same library versions, so it reproduces exactly.',
-      },
+        'The check that matters is the one that matches serving. mlflow.models.predict builds a fresh environment from the model requirements, loads the logged artifact, and scores an input. It catches missing packages, bad pins, and signature mismatches in seconds rather than after a deployment attempt.',
+      examples: [
+        {
+          label: 'Run the logged model in its own environment',
+          language: 'python',
+          code: `import mlflow
+
+mlflow.models.predict(
+    model_uri=f"runs:/{run_id}/model",
+    input_data=X_validation.head(20),
+    env_manager="uv",
+)`,
+          notes: [
+            'Use input data that includes edge cases: missing optional fields, the extremes of each feature, and a batch of more than one row.',
+          ],
+        },
+      ],
+      points: [
+        {
+          strong: 'Compare to a baseline.',
+          text: 'When you move a model or change a runtime, score the same held-out data and compare with the recorded metric inside a tolerance. A small drift from a library upgrade is expected. A large one is a bug.',
+        },
+        {
+          strong: 'Record the environment.',
+          text: 'Store Python and package versions as run tags. When results differ later, you can see what changed.',
+        },
+        {
+          strong: 'Run it in CI.',
+          text: 'Make validation a gate in the release job, so no version gets an alias without passing it.',
+        },
+      ],
     },
     {
-      id: 'versions',
-      heading: 'What the change log records',
+      id: 'formats',
+      heading: 'Choose a format that is safe and portable',
       prose:
-        'The log compares the versions stored with the pickle against the runtime that loaded it. The import task also pins those versions in the pyfunc requirements. Every row has a changed flag.',
+        'How a model is serialized decides what loading it can do. Pickle runs arbitrary code from the file, so loading an untrusted file is a security risk, and pickles also break across library versions.',
       table: {
-        caption: 'model_compatibility_log columns',
-        columns: ['Column', 'Content'],
+        columns: ['Format', 'When to use it'],
         rows: [
-          ['item', 'python, scikit-learn, numpy, pandas, mlflow, scipy, or holdout_auc'],
-          ['recorded / current', 'the value in the sidecar and the value in the importing runtime'],
-          ['changed', 'true when the two differ (for AUC, when the gap exceeds the tolerance)'],
-          ['model, model_version', 'the registered imported model and version'],
-          ['mlflow_run_id', 'the import run, which also carries env_* and legacy_env_* tags'],
+          ['MLflow native flavor (sklearn, xgboost, lightgbm, pytorch, transformers)', 'The default. The flavor handles serialization, versions, and the signature'],
+          ['ONNX', 'Portable across frameworks and runtimes, and fast for inference. Convert once, then serve anywhere ONNX Runtime runs'],
+          ['skops', 'scikit-learn models when you want a format that loads only types you list as trusted, instead of arbitrary code'],
+          ['Pickle or cloudpickle', 'Last resort for a model you cannot retrain. Load only files from a source you control, and pin the library versions'],
         ],
       },
+      points: [
+        {
+          strong: 'Wrap what you cannot convert.',
+          text: 'An existing pickled pipeline can be logged as a pyfunc model with the pickle as an artifact and the wrapper loaded from code. The model then carries a signature and requirements like any other.',
+        },
+        {
+          strong: 'Retrain when you can.',
+          text: 'If the data and code exist, retraining in the target runtime beats carrying a binary across versions.',
+        },
+        {
+          strong: 'Keep the training data reference.',
+          text: 'A model whose training data is gone cannot be retrained or audited. Log the data source or table version with the run.',
+        },
+      ],
     },
     {
-      id: 'check',
-      heading: 'Check it yourself',
+      id: 'migrate',
+      heading: 'Move models from the workspace registry to Unity Catalog',
+      prose:
+        'The workspace model registry is the legacy path. Unity Catalog models add cross-workspace access, lineage, and grants, and use aliases instead of stages.',
       steps: [
         {
-          title: 'Open the volume',
-          body: 'legacy_models holds legacy_model.pkl and legacy_model.json with the recorded AUC and versions.',
+          title: 'Inventory models and consumers',
+          body: 'List registered models, their stage assignments, and the jobs and endpoints that load them by stage.',
         },
         {
-          title: 'Open the import run',
-          body: 'import-legacy-pickle logs baseline_auc, reproduced_auc, and auc_difference.',
+          title: 'Copy or re-register versions',
+          body: 'Register each version you need under a three-level name in a catalog and schema. Copy tested versions across with the MLflow client as the upgrade guide describes, and retrain where a copy is not possible.',
         },
         {
-          title: 'Break the baseline',
-          body: 'Edit baseline_holdout_auc in the sidecar and rerun import_legacy_model. The task fails on the tolerance check.',
+          title: 'Replace stages with aliases',
+          body: 'A model in Production becomes a version with the champion alias. Update consumers from models:/name/Production to models:/catalog.schema.name@champion.',
+        },
+        {
+          title: 'Set grants and retire the old model',
+          body: 'Grant EXECUTE on the model to the groups that need it, repoint serving endpoints, and archive the workspace copy once nothing reads it.',
+        },
+      ],
+      links: [
+        {
+          label: 'Upgrade ML workflows to Unity Catalog',
+          url: 'https://docs.databricks.com/aws/en/machine-learning/manage-model-lifecycle/upgrade-workflows',
+        },
+      ],
+    },
+    {
+      id: 'features',
+      heading: 'Keep training and serving features the same',
+      prose:
+        'Training-serving skew happens when the feature code at serving differs from the code that built the training set. Feature Views, generally available since October 2026, make the definition the single source for both.',
+      points: [
+        {
+          strong: 'Define the feature once.',
+          text: 'A Feature View declares a feature from a Delta table, a stream, or request-time data, with the computation, such as an aggregation over a time window.',
+        },
+        {
+          strong: 'Train with point-in-time joins.',
+          text: 'Build the training set from the label table and the feature definitions. The join uses each row timestamp, so a feature never contains information from after the label time.',
+        },
+        {
+          strong: 'Log the model with its features.',
+          text: 'A model logged with its training set carries the feature references. A serving endpoint then looks the features up by key and applies the same definitions.',
+        },
+        {
+          strong: 'Materialize for latency.',
+          text: 'Materialize features to an offline table for batch scoring and to an online store for low-latency lookup.',
+        },
+      ],
+      links: [
+        {
+          label: 'Feature Views',
+          url: 'https://docs.databricks.com/aws/en/machine-learning/feature-store/feature-views',
+        },
+        {
+          label: 'Train models with feature tables',
+          url: 'https://docs.databricks.com/aws/en/machine-learning/feature-store/train-models-with-feature-store',
         },
       ],
     },
