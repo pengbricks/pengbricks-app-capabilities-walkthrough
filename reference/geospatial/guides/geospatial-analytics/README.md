@@ -31,7 +31,7 @@ Results from one run in the reference workspace, on serverless job compute. They
 | Step | Functions | Result in the reference run |
 |---|---|---|
 | Load | `ST_GeomFromGeoJSON`, `ST_GeomFromText`, `ST_Point`, `ST_Transform`, `ST_IsValid`, `ST_EstimateSRID` | 4 zones, 108 pipes, 484 meters, 168 events, 12 sensors loaded; 0 invalid geometries; 1 SRID per table. |
-| Containers | `ST_GeomFromWKB` after GDAL (`pyogrio`) | GeoPackage, Shapefile, and KML all read back with 4 zones equal to the GeoJSON load. |
+| Containers | `ST_GeomFromWKB` after GDAL (`pyogrio`) | GeoPackage, Shapefile, and KML all read back with 4 zones equal to the GeoJSON load. A GeoParquet file (WKB binary column) and a newline-delimited GeoJSON file did too, through `read_files` and `ST_GeomFromWKB` / `ST_GeomFromGeoJSON`. |
 | Membership | `ST_Contains` | 400 of 484 meters in a zone (100 per zone), 84 outside every zone, 0 wrong against the key, 0 duplicates. |
 | H3 prefilter | `H3_CoverAsH3`, then `ST_Contains` | 576 pairs tested instead of 1,936, and the same rows as the exact join. Cell-center polyfill alone put 42 meters in a wrong zone and missed 20. |
 | Break impact | `ST_DWithin` on EPSG:32610, `ST_Distance`, `ST_Buffer`, `H3_KRing` | 17 meters and 9 pipes within 260 m of the three breaks (6, 6, and 5 meters), 0 differences from the key. The buffer polygon holds the same meters. The UTM distance and `ST_DistanceSpheroid` differ by at most 0.1 m. |
@@ -53,7 +53,7 @@ Results from one run in the reference workspace, on serverless job compute. They
 
 ## Not covered
 
-- GeoParquet, newline-delimited GeoJSON, File Geodatabase (.gdb), KMZ, and raster (GeoTIFF, COG) were not run. The guide says what the docs support and marks the rest as practical guidance.
+- File Geodatabase (.gdb), KMZ, and raster (GeoTIFF, COG) were not run. The guide says what the docs support and marks the rest as practical guidance.
 - Photos were not run. `ai_query` accepts JPEG or PNG through its `files` argument, but which model reads a pipe photo well is not tested here.
 - Time and scale. The tables hold hundreds of rows, so the H3 prefilter and liquid clustering are described, not timed.
 - Sedona and GeoPandas were not run.

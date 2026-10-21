@@ -265,7 +265,7 @@ export const walkthrough: Walkthrough = {
       id: 'file-formats',
       heading: 'Common GIS file formats',
       prose:
-        'Built in means a Databricks SQL function or reader named in the docs. read_files lists no GIS container format, and the ST_ functions import GeoJSON, WKT, EWKT, and WKB. Everything else needs a library such as GDAL. The format facts (sidecar files, size limits) come from the format specifications, not from Databricks docs. The "ran" notes say what the reference job did; "not run" means the route comes from the docs or general GIS practice.',
+        'Built in means a Databricks SQL function or reader named in the docs. read_files lists no GIS container format, and the ST_ functions import GeoJSON, WKT, EWKT, and WKB. Everything else needs a library such as GDAL. The format facts (sidecar files, size limits) come from the format specifications, not from Databricks docs. The "ran" notes say what the reference job did; "not run" means the route comes from the docs or general GIS practice. Native GeoParquet support is not documented.',
       options: {
         caption: 'Format, how to read it on Databricks, and what to watch for',
         rows: [
@@ -277,7 +277,7 @@ export const walkthrough: Walkthrough = {
           },
           {
             option: 'GeoJSON and newline-delimited GeoJSON (vector; web services and open data portals)',
-            when: 'Built in. read_files as text, then ST_GeomFromGeoJSON, which returns SRID 4326. Newline-delimited files have one Feature per line, so read as text and parse each line the same way. Ran for GeoJSON; the line-delimited form was not run.',
+            when: 'Built in. read_files as text, then ST_GeomFromGeoJSON, which returns SRID 4326. Newline-delimited files have one Feature per line, so read as text and parse each line the same way. Ran for both: the line-delimited file read back four zones equal to the GeoJSON load.',
             tradeoffs:
               'Coordinates are longitude then latitude in WGS 84. A single large FeatureCollection is one document to parse, so prefer the line-delimited form or split files for big layers.',
           },
@@ -295,9 +295,9 @@ export const walkthrough: Walkthrough = {
           },
           {
             option: 'GeoParquet (vector; columnar, for large layers)',
-            when: 'No GeoParquet reader is described in the docs or release notes. A GeoParquet file is Parquet with a WKB binary column, so read_files with parquet should return bytes that ST_GeomFromWKB converts. Not run here.',
+            when: 'No GeoParquet reader is described in the docs or release notes. A GeoParquet file is Parquet with a WKB binary column, so read_files with parquet returns the column as binary and ST_GeomFromWKB converts it. Ran: four zones read back equal to the GeoJSON load.',
             tradeoffs:
-              'The geo metadata (CRS, geometry types) would not be applied for you, so set the SRID yourself. Test a file before relying on this route; it is practical guidance, not a docs statement.',
+              'The geo metadata (CRS, geometry types) is not applied for you, so set the SRID yourself. This route is practical guidance, not a documented reader, so test your own files.',
           },
           {
             option: 'Esri File Geodatabase, .gdb (vector and raster; ArcGIS)',

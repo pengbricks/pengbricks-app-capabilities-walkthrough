@@ -153,6 +153,47 @@ display(spark.createDataFrame([(k, *v) for k, v in format_results.items()], "for
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ## GeoParquet and newline-delimited GeoJSON
+# MAGIC
+# MAGIC Neither has a documented built-in geometry reader, so this cell checks what the plain readers do. A GeoParquet file is Parquet with a WKB `BINARY` column and a `geo` metadata entry; `read_files` returns the column as binary, and `ST_GeomFromWKB` turns it into GEOMETRY. A newline-delimited GeoJSON file has one Feature per line; read it as text, parse each line, and use `ST_GeomFromGeoJSON`. Both are compared with the GeoJSON load.
+
+# COMMAND ----------
+
+import json, pyarrow as pa, pyarrow.parquet as pq
+
+COMPARE = """WHERE NOT (st_npoints(c.g) = st_npoints(z.geom) AND st_distance(st_centroid(c.g), st_centroid(z.geom)) < 1e-5)"""
+extra = {}
+scratch = tempfile.mkdtemp()
+try:
+    table = pa.table({"zone_id": [z.zone_id for z in zones], "geometry": pa.array([bytes(z.wkb) for z in zones], type=pa.binary())})
+    geo = {"version": "1.0.0", "primary_column": "geometry", "columns": {"geometry": {"encoding": "WKB", "geometry_types": ["Polygon"]}}}
+    pq.write_table(table.replace_schema_metadata({"geo": json.dumps(geo)}), f"{scratch}/zones.parquet")
+    shutil.copy(f"{scratch}/zones.parquet", f"{keep}/zones.parquet")
+    column_type = spark.sql(f"SELECT * FROM read_files('{keep}/zones.parquet', format => 'parquet')").schema["geometry"].dataType.simpleString()
+    bad = spark.sql(f"""
+        SELECT count(*) FROM (SELECT zone_id, st_setsrid(st_geomfromwkb(geometry), 4326) AS g FROM read_files('{keep}/zones.parquet', format => 'parquet')) c
+        JOIN {T('geo_zones')} z USING (zone_id) {COMPARE}""").first()[0]
+    extra["GeoParquet"] = (len(zones), bad, f"read_files returns the geometry column as {column_type}; ST_GeomFromWKB converts it")
+except Exception as error:
+    extra["GeoParquet"] = (0, -1, str(error).splitlines()[0][:160])
+try:
+    features = json.loads(spark.sql(f"SELECT value FROM read_files('{root}/gis/zones.geojson', format => 'text', wholeText => true)").first()[0])["features"]
+    with open(f"{scratch}/zones.ndjson", "w") as handle:
+        handle.write("\n".join(json.dumps(f) for f in features) + "\n")
+    shutil.copy(f"{scratch}/zones.ndjson", f"{keep}/zones.ndjson")
+    bad = spark.sql(f"""
+        SELECT count(*) FROM (SELECT f:properties:zone_id::STRING AS zone_id, st_geomfromgeojson(f:geometry::STRING) AS g
+                              FROM (SELECT parse_json(value) AS f FROM read_files('{keep}/zones.ndjson', format => 'text'))) c
+        JOIN {T('geo_zones')} z USING (zone_id) {COMPARE}""").first()[0]
+    extra["NDJSON"] = (len(features), bad, "one Feature per line, read as text")
+except Exception as error:
+    extra["NDJSON"] = (0, -1, str(error).splitlines()[0][:160])
+display(spark.createDataFrame([(k, *v) for k, v in extra.items()], "format string, zones_read int, mismatches int, note string"))
+format_results.update(extra)
+
+# COMMAND ----------
+
 rows = [(f"rows_{t}", n, "") for t, n in counts.items()]
 rows += [("invalid_geometries", sum(r["invalid"] for r in checks), "ST_IsValid false across zones, pipes, meters, events"),
          ("srids_per_table_max", max(r["srids"] for r in checks), "")]
