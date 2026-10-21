@@ -118,9 +118,36 @@ export const walkthrough: Walkthrough = {
           text: 'For a bounded table-to-table load, a scheduled job or a materialized view is simpler than a stream. Use streaming tables when the input is append-only and you want incremental reads.',
         },
       ],
+      options: {
+        caption: 'What kind of object loads the table',
+        rows: [
+          {
+            option: 'Streaming table',
+            when: 'The input is append-only (files, a message bus, or change events) and each row should be processed once.',
+            tradeoffs:
+              'Reads only new data on each update, so cost tracks the volume of new rows. It does not revisit rows that changed upstream, so updates need AUTO CDC. A full refresh reprocesses the whole source, which matters when the source keeps only recent data.',
+          },
+          {
+            option: 'Materialized view',
+            when: 'A bounded table-to-table transformation, such as joins or aggregates, where the result should always match the source.',
+            tradeoffs:
+              'Written as a query, and results stay correct even when data arrives late or out of order. Databricks refreshes it incrementally when it can and recomputes otherwise, so the cost varies with the query shape. Freshness is the refresh interval.',
+          },
+          {
+            option: 'Scheduled batch job',
+            when: 'The logic does not fit a declarative query, such as custom MERGE steps or calls to outside systems.',
+            tradeoffs:
+              'Most control, since you write the load logic in a Lakeflow Job. You also own the incremental logic, state, and tests, so more code to maintain.',
+          },
+        ],
+        recommendation:
+          'Use a streaming table for append-only ingestion and a materialized view for transformations over bounded tables. Write a batch job only when the logic cannot be expressed declaratively.',
+      },
       links: [
         { label: 'Real-time mode concepts', url: 'https://docs.databricks.com/aws/en/structured-streaming/real-time/concepts' },
         { label: 'Triggered vs continuous pipeline mode', url: 'https://docs.databricks.com/aws/en/ldp/pipeline-mode' },
+        { label: 'Streaming tables', url: 'https://docs.databricks.com/aws/en/ldp/streaming-tables' },
+        { label: 'Materialized views', url: 'https://docs.databricks.com/aws/en/ldp/materialized-views' },
       ],
     },
     {
@@ -182,6 +209,31 @@ def orders_bronze():
           notes: ['Add authentication options for your broker. Event Hubs uses its Kafka-compatible endpoint with SASL.'],
         },
       ],
+      options: {
+        caption: 'How events reach Databricks',
+        rows: [
+          {
+            option: 'Files landed in cloud storage, read with Auto Loader',
+            when: 'Producers can write files, and minutes of latency are acceptable.',
+            tradeoffs:
+              'Cheap, replayable, and easy to debug, since the raw files stay as a record. Latency includes the time producers take to close a file. With file events, discovery stays fast as the folder grows.',
+          },
+          {
+            option: 'A message bus (Kafka, Kinesis, Event Hubs)',
+            when: 'Several consumers need the same events, you need replay from offsets, or the bus already exists.',
+            tradeoffs:
+              'Gives seconds-level latency in practice and supports fan-out and replay within topic retention. You run, size, and secure the bus, and manage offsets and retention.',
+          },
+          {
+            option: 'Zerobus Ingest',
+            when: 'Your own application or device fleet is the producer, and you do not need a bus for fan-out or replay.',
+            tradeoffs:
+              'Writes records straight to a Unity Catalog Delta table over gRPC with an SDK, so there is no bus to run. With no bus, there is no replay buffer, so producers must handle retries. Check the docs for the release stage of each SDK.',
+          },
+        ],
+        recommendation:
+          'Use Auto Loader on files when minutes of latency are fine. Use a message bus when it already exists or several consumers need the events. Use Zerobus Ingest for direct application writes with no bus.',
+      },
       links: [
         { label: 'Auto Loader file events', url: 'https://docs.databricks.com/aws/en/ingestion/cloud-object-storage/auto-loader/file-events-explained' },
         { label: 'Stream processing with Apache Kafka', url: 'https://docs.databricks.com/aws/en/connect/streaming/kafka' },

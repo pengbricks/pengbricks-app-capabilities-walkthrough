@@ -54,31 +54,38 @@ export const walkthrough: Walkthrough = {
     {
       id: 'options',
       heading: 'Choose how to ingest',
-      table: {
+      prose:
+        'For a small lookup or enrichment call, http_request in SQL through a Unity Catalog HTTP connection is enough. Do not use it for bulk extraction. For bulk loads, pick one of the four options below, listed in order of preference.',
+      options: {
         caption: 'Options in order of preference',
-        columns: ['Option', 'Use it when'],
         rows: [
-          [
-            'Managed Lakeflow Connect connector',
-            'The source is a supported SaaS application. Configure a connection and a pipeline; Databricks runs incremental sync on serverless compute.',
-          ],
-          [
-            'Custom Lakeflow Connect connector (Beta)',
-            'No managed connector exists and you want the managed pipeline model. Build from the Lakeflow Community Connectors repository, or use an existing community connector.',
-          ],
-          [
-            'Python data source API',
-            'You want the API to read like any Spark source, with partitioned reads and, if you implement it, streaming offsets. Works in notebooks, jobs, and pipelines.',
-          ],
-          [
-            'Land raw, then Auto Loader',
-            'You want the simplest design to debug and replay. A job writes each response as JSON to a volume, and a streaming table ingests the files with a checkpoint.',
-          ],
-          [
-            'http_request in SQL',
-            'You need a small lookup or enrichment call through a Unity Catalog HTTP connection. Do not use it for bulk extraction.',
-          ],
+          {
+            option: 'Managed Lakeflow Connect connector',
+            when: 'The source is a supported SaaS application. Configure a connection and a pipeline; Databricks runs incremental sync on serverless compute.',
+            tradeoffs:
+              'No client code to own, and authentication, incremental sync, and retries are handled for you. You get the objects and fields the connector exposes. Release stage varies by connector (several are Beta or Public Preview), so check it before you commit.',
+          },
+          {
+            option: 'Custom Lakeflow Connect connector (Beta)',
+            when: 'No managed connector exists and you want the managed pipeline model. Build from the Lakeflow Community Connectors repository, or use an existing community connector.',
+            tradeoffs:
+              'Keeps the pipeline experience for scheduling and incremental sync. You maintain the connector code, and the feature is in Beta, so it suits non-critical feeds first.',
+          },
+          {
+            option: 'Python data source API',
+            when: 'You want the API to read like any Spark source, with partitioned reads and, if you implement it, streaming offsets. Works in notebooks, jobs, and pipelines.',
+            tradeoffs:
+              'Parallel reads and a clean spark.read call. You write and test the client: paging, token refresh, rate limits, and state. Streaming support exists only if you implement offsets.',
+          },
+          {
+            option: 'Land raw, then Auto Loader',
+            when: 'You want the simplest design to debug and replay. A job writes each response as JSON to a volume, and a streaming table ingests the files with a checkpoint.',
+            tradeoffs:
+              'Easiest to operate: a raw copy lets you replay a parsing fix without calling the API again, which helps with rate limits and short retention. It takes two steps, uses extra storage, and you still write and run the extraction job.',
+          },
         ],
+        recommendation:
+          'Use a managed connector when one exists. Otherwise land raw responses and ingest them with Auto Loader, since it is the easiest to debug and replay. Choose a Python data source when you need parallel reads or a Spark-native source, and a custom connector when you accept Beta.',
       },
       links: [
         { label: 'Lakeflow Connect', url: 'https://docs.databricks.com/aws/en/ingestion/overview' },
@@ -89,19 +96,32 @@ export const walkthrough: Walkthrough = {
     {
       id: 'secrets',
       heading: 'Where credentials live',
+      options: {
+        caption: 'Where an API credential is stored',
+        rows: [
+          {
+            option: 'Unity Catalog HTTP connection',
+            when: 'The target is an HTTP API with a bearer token or OAuth credentials.',
+            tradeoffs:
+              'Access is governed with USE CONNECTION, and callers use the connection by name and never see the secret. The docs note region limits (regions where Model Serving is supported), and metastore-level connections are in Public Preview. Confirm that your client can call through the connection before you rely on it for bulk pulls.',
+          },
+          {
+            option: 'Unity Catalog service credential',
+            when: 'The API belongs to a cloud provider and a cloud identity can authenticate the call.',
+            tradeoffs:
+              'Code gets a short-lived cloud identity, so no key is stored at all. It only covers cloud-provider APIs.',
+          },
+          {
+            option: 'Secret scope',
+            when: 'Everything else, such as a client ID and secret for a third-party API called from Python.',
+            tradeoffs:
+              'Works anywhere, and values are redacted in notebook output. You manage rotation yourself, and scope ACLs are separate from Unity Catalog grants. Give the job’s service principal read access to that scope only.',
+          },
+        ],
+        recommendation:
+          'Use a Unity Catalog connection for HTTP APIs and a service credential for cloud-provider APIs. Use a secret scope for the rest, scoped to the job’s service principal.',
+      },
       points: [
-        {
-          strong: 'Unity Catalog connection.',
-          text: 'For HTTP APIs, a Unity Catalog HTTP connection stores the host and the bearer token or OAuth credentials, and access is governed with USE CONNECTION. Callers use the connection by name and never see the secret.',
-        },
-        {
-          strong: 'Service credential.',
-          text: 'For cloud-provider APIs, a Unity Catalog service credential gives code a short-lived cloud identity, so no key is stored at all.',
-        },
-        {
-          strong: 'Secret scope.',
-          text: 'For everything else, read the client ID and secret with dbutils.secrets.get from a scope. Secret values are redacted in notebook output. Give the job’s service principal read access to that scope only.',
-        },
         {
           strong: 'Run as a service principal.',
           text: 'Run the pull job as a service principal so credentials and schedules do not depend on one person.',
@@ -112,6 +132,7 @@ export const walkthrough: Walkthrough = {
         },
       ],
       links: [
+        { label: 'Connect to external HTTP services', url: 'https://docs.databricks.com/aws/en/query-federation/http' },
         { label: 'Secrets', url: 'https://docs.databricks.com/aws/en/security/secrets/' },
         { label: 'Service credentials', url: 'https://docs.databricks.com/aws/en/connect/unity-catalog/cloud-services/service-credentials' },
       ],

@@ -138,8 +138,34 @@ FROM read_files('/Volumes/main/ingest/docs/', format => 'binaryFile');`,
           notes: ['Use ai_parse_document output as input to ai_extract or AI Search indexing.'],
         },
       ],
+      options: {
+        caption: 'How Auto Loader finds new files',
+        rows: [
+          {
+            option: 'File events on a Unity Catalog external location',
+            when: 'The path is on a Unity Catalog external location, or a volume on one, where you can enable file events.',
+            tradeoffs:
+              'Learns about new files from storage events instead of listing, so discovery stays fast as the folder grows. The docs describe it as more performant and scalable than listing and recommend it for most workloads. It needs file events enabled on the external location, a one-time admin step.',
+          },
+          {
+            option: 'Directory listing',
+            when: 'Quick start, a small folder, or a path where file events are not available.',
+            tradeoffs:
+              'Needs no permissions beyond read access to the data. Each run lists the input directory, so cost and time grow with the number of files and folders. Auto Loader reduces listing calls when files arrive in lexical order.',
+          },
+          {
+            option: 'File notification mode without file events',
+            when: 'Legacy streams that already run on queue services you set up in your own cloud account.',
+            tradeoffs:
+              'Scales better than listing, but Auto Loader creates and manages notification and queue resources in your cloud account, which needs extra permissions. It is not supported for Unity Catalog volumes, so prefer file events for new work.',
+          },
+        ],
+        recommendation:
+          'Enable file events on the external location and use them. Fall back to directory listing for small folders or paths where file events are unavailable.',
+      },
       links: [
         { label: 'Auto Loader file events', url: 'https://docs.databricks.com/aws/en/ingestion/cloud-object-storage/auto-loader/file-events-explained' },
+        { label: 'Auto Loader file detection modes', url: 'https://docs.databricks.com/aws/en/ingestion/cloud-object-storage/auto-loader/file-detection-modes' },
         { label: 'Query variant data', url: 'https://docs.databricks.com/aws/en/semi-structured/variant' },
         { label: 'read_files table-valued function', url: 'https://docs.databricks.com/aws/en/sql/language-manual/functions/read_files' },
       ],
@@ -164,15 +190,36 @@ FROM read_files('/Volumes/main/ingest/docs/', format => 'binaryFile');`,
       heading: 'How schemas are managed',
       prose:
         'Three settings decide a table\'s columns. Inference reads a sample of the files and guesses names and types. schemaHints pins the types you care about and leaves the rest to inference. schemaEvolutionMode decides what happens when a later file brings a column the table does not have. Anything that does not fit lands in _rescued_data instead of being dropped.',
-      table: {
+      options: {
         caption: 'schemaEvolutionMode values for Auto Loader and read_files',
-        columns: ['Mode', 'When a new column shows up'],
         rows: [
-          ['addNewColumns', 'Default when you give no schema. The update stops once, the column is added to the stored schema, and the next attempt picks it up.'],
-          ['rescue', 'The schema never changes. The new column lands as JSON in _rescued_data and the stream keeps running.'],
-          ['failOnNewColumns', 'The update fails and stays failed until you change the schema or the files. Use it when a new column should block the load.'],
-          ['none', 'Default when you give a schema. New columns are ignored, and nothing is rescued unless you set rescuedDataColumn. Excel requires this mode.'],
+          {
+            option: 'addNewColumns',
+            when: 'Default when you give no schema. The source adds columns over time and you want them as real columns.',
+            tradeoffs:
+              'The update stops once, the column is added to the stored schema, and the next attempt picks it up, so a pipeline with retries recovers on its own. Downstream tables that select columns by name will not see the new column until you change them.',
+          },
+          {
+            option: 'rescue',
+            when: 'The schema must stay fixed, and the stream must keep running when the source changes.',
+            tradeoffs:
+              'The new column lands as JSON in _rescued_data and the stream keeps running, so there is no outage. Someone must watch _rescued_data and decide when to widen the schema, or the data stays buried in JSON.',
+          },
+          {
+            option: 'failOnNewColumns',
+            when: 'A new column should block the load until someone reviews it.',
+            tradeoffs:
+              'The update fails and stays failed until you change the schema or the files. The strictest control, at the cost of an outage whenever a sender changes a file.',
+          },
+          {
+            option: 'none',
+            when: 'Default when you give a schema. Also required for Excel.',
+            tradeoffs:
+              'New columns are ignored, and nothing is rescued unless you set rescuedDataColumn. Predictable, but data in new columns is lost unless you capture it.',
+          },
         ],
+        recommendation:
+          'Use addNewColumns for trusted internal sources, and rescue for partner files where the stream must not stop. Use failOnNewColumns where schema changes need approval. Set rescuedDataColumn whenever you use none.',
       },
       points: [
         {
@@ -231,6 +278,9 @@ FROM STREAM read_files('\${formats_path}/csv/', format => 'csv', header => true,
 FROM STREAM read_files('\${formats_path}/csv/', format => 'csv', header => true,
   inferColumnTypes => false)`,
         },
+      ],
+      links: [
+        { label: 'Configure schema inference and evolution in Auto Loader', url: 'https://docs.databricks.com/aws/en/ingestion/cloud-object-storage/auto-loader/schema' },
       ],
     },
     {

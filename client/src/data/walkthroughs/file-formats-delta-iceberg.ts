@@ -55,15 +55,36 @@ export const walkthrough: Walkthrough = {
       id: 'decide',
       heading: 'Which format to use',
       prose: 'Pick by who reads and writes the data, not by habit.',
-      table: {
-        columns: ['Format', 'Use it when'],
+      options: {
+        caption: 'Choosing a storage format',
         rows: [
-          ['Delta table', 'The default for tables that Databricks writes. Use it for bronze, silver, and gold layers, updates, and merges.'],
-          ['Delta + Iceberg reads', 'Databricks writes, but Snowflake, Trino, Flink, or another Iceberg client needs to read the same table'],
-          ['Managed Iceberg', 'Iceberg is the contract: external engines write to the table, or your platform standard is Iceberg'],
-          ['Parquet files', 'Exchange files with a system that expects Parquet, or land data before ingestion. Do not use as a table.'],
-          ['JSON and CSV files', 'Source formats from other systems. Ingest them into Delta rather than keeping them as the query layer.'],
+          {
+            option: 'Delta table',
+            when: 'The default for tables that Databricks writes: bronze, silver, and gold layers, updates, and merges.',
+            tradeoffs:
+              'The widest feature set on Databricks, including row-level changes, time travel, and automatic maintenance on managed tables. Other engines read it through connectors or Iceberg reads.',
+          },
+          {
+            option: 'Delta table with Iceberg reads',
+            when: 'Databricks writes, but Snowflake, Trino, Flink, or another Iceberg client needs to read the same table.',
+            tradeoffs:
+              'One copy of the data serves both kinds of reader, and Iceberg clients get read-only access. It needs column mapping and Unity Catalog, and deletion vectors cannot be enabled on the same table on v2 compatibility.',
+          },
+          {
+            option: 'Managed Iceberg table',
+            when: 'Iceberg is the contract: external engines write to the table, or your platform standard is Iceberg.',
+            tradeoffs:
+              'Open writes from any engine that speaks the Iceberg REST catalog, with Unity Catalog as the catalog of record. Create tables with SQL, and check feature coverage for your workload, since liquid clustering on Iceberg is in Public Preview.',
+          },
+          {
+            option: 'Raw files (Parquet, JSON, CSV)',
+            when: 'Exchange files with a system that expects them, or land data before ingestion.',
+            tradeoffs:
+              'Easy to produce and read anywhere. There are no transactions, updates, or time travel, and JSON and CSV carry no types. Ingest them into Delta rather than keeping them as the query layer.',
+          },
         ],
+        recommendation:
+          'Use Delta by default. Add Iceberg reads when another engine only needs to read, choose managed Iceberg when other engines must write, and keep raw files for exchange and landing only.',
       },
       links: [
         {
@@ -261,6 +282,31 @@ export const walkthrough: Walkthrough = {
           notes: ['Use CLUSTER BY AUTO to let Databricks choose and adjust the clustering keys.'],
         },
       ],
+      options: {
+        caption: 'Choosing a data layout for a new table',
+        rows: [
+          {
+            option: 'Liquid clustering with chosen keys (CLUSTER BY columns)',
+            when: 'You know which columns queries filter and join on, such as order_date and region.',
+            tradeoffs:
+              'Fast data skipping on the keys you pick, and you can change keys later without rewriting existing data. You pick the keys, and a poor choice means less skipping until you change them. Generally available for Delta, and in Public Preview for Iceberg tables.',
+          },
+          {
+            option: 'Automatic liquid clustering (CLUSTER BY AUTO)',
+            when: 'Query patterns are unknown or change often, and the table is a Unity Catalog managed table.',
+            tradeoffs:
+              'Databricks analyzes the query workload and picks and adapts keys, only when the predicted savings outweigh the clustering cost. It requires predictive optimization, works only on managed tables, runs asynchronously, and may not choose keys for small tables.',
+          },
+          {
+            option: 'Partitioning',
+            when: 'An outside tool needs a directory layout, or you are keeping an existing partitioned table that works.',
+            tradeoffs:
+              'The layout is fixed at creation and is hard to change. Choosing a high-cardinality column creates many small files. Databricks recommends liquid clustering for all new tables.',
+          },
+        ],
+        recommendation:
+          'Use CLUSTER BY AUTO on managed tables when you cannot name the filter columns, and explicit CLUSTER BY keys when you can. Keep partitioning only for compatibility with other tools.',
+      },
       links: [
         {
           label: 'Liquid clustering',

@@ -197,8 +197,29 @@ export const walkthrough: Walkthrough = {
           text: 'Separate dev, staging, and prod with catalogs bound to workspaces, not with separate copies of the data layer.',
         },
       ],
+      options: {
+        caption: 'Serverless or classic compute',
+        rows: [
+          {
+            option: 'Serverless compute',
+            when: 'New SQL warehouses, jobs, notebooks, and pipelines, and any workload with spiky or unpredictable demand.',
+            tradeoffs:
+              'Starts in seconds, scales on its own, and Databricks handles upgrades, so there is little to maintain. Idle time is not billed. The docs list limits: R and Spark RDD APIs are not supported, Maven coordinates are not supported, and external data sources must go through Unity Catalog. Reaching private sources uses a network connectivity configuration instead of your own VPC settings.',
+          },
+          {
+            option: 'Classic compute',
+            when: 'A workload needs R, RDD APIs, Maven libraries, a specific instance type or GPU, or a network path that your own VPC controls.',
+            tradeoffs:
+              'Full control over runtime, libraries, and instance types. You size the cluster, set auto-termination, and keep cluster policies, and startup takes longer than serverless. Cost attribution relies on cluster tags, so set them from day one.',
+          },
+        ],
+        recommendation:
+          'Start on serverless for SQL, jobs, notebooks, and pipelines. Move a single workload to classic only when it needs a library, API, instance type, or network path that serverless does not support.',
+      },
       links: [
         { label: 'Predictive optimization', url: 'https://docs.databricks.com/aws/en/optimizations/predictive-optimization' },
+        { label: 'Serverless compute', url: 'https://docs.databricks.com/aws/en/compute/serverless/' },
+        { label: 'Serverless compute limitations', url: 'https://docs.databricks.com/aws/en/compute/serverless/limitations' },
         { label: 'Serverless usage policies', url: 'https://docs.databricks.com/aws/en/admin/usage/budget-policies' },
         { label: 'Billable usage system table', url: 'https://docs.databricks.com/aws/en/admin/system-tables/billing' },
       ],

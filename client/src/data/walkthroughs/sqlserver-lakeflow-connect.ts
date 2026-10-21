@@ -231,6 +231,25 @@ export const walkthrough: Walkthrough = {
           text: 'Pick it when you want to avoid an always-on classic gateway and its cost, and a scheduled catch-up fits your freshness target. Pick the gateway for continuous capture.',
         },
       ],
+      options: {
+        caption: 'Gateway or integrated CDC pipeline',
+        rows: [
+          {
+            option: 'Gateway plus ingestion pipeline',
+            when: 'You need continuous capture, or you create pipelines in the UI.',
+            tradeoffs:
+              'The gateway reads changes around the clock, so bronze is as fresh as the ingestion schedule. It runs on classic compute all the time, which is a standing DBU cost, and it needs a network path to SQL Server. Do not stop it to save money, because changes can age out of the source. Limits are one gateway per pipeline and 250 tables per pipeline.',
+          },
+          {
+            option: 'Integrated CDC pipeline',
+            when: 'You want no always-on classic gateway, and a scheduled catch-up meets your freshness target.',
+            tradeoffs:
+              'One pipeline per source extracts changes on each update and stops when it catches up, so compute is billed per run. It can run on serverless, which then needs serverless network connectivity to the source. Freshness is bounded by the schedule. The feature is gated, so your account team must enable it, and it is API-only for now.',
+          },
+        ],
+        recommendation:
+          'Use the gateway when you need continuous capture or UI setup. Use the integrated pipeline when scheduled catch-up is enough and you want to avoid an always-on classic gateway, once it is enabled for your workspace.',
+      },
       links: [
         {
           label: 'Integrated CDC pipeline for SQL Server',
@@ -243,55 +262,24 @@ export const walkthrough: Walkthrough = {
       heading: 'Change Tracking or CDC, decided per table',
       prose:
         'Change Tracking is the default for tables with a primary key that only need the latest row. Use CDC for tables that need history or have no primary key.',
-      diagram: {
-        type: 'matrix',
-        title: 'Change Tracking against CDC',
-        description:
-          'Change Tracking needs a primary key, does not support SCD type 2, works on SQL Server 2012 or later, and its data is not replicated, so an Always On failover needs a full refresh. CDC works without a primary key, supports SCD type 2, needs 2012 SP1 CU3 or later and Enterprise edition before 2016, and resumes through the listener after a failover.',
-        corner: 'Per table',
-        columns: ['Change Tracking', 'CDC'],
+      options: {
+        caption: 'Change Tracking against CDC, per table',
         rows: [
           {
-            label: 'Use for',
-            cells: [
-              { state: 'own', text: 'Latest row only', sub: 'lighter on the source' },
-              { state: 'own', text: 'History or no key', sub: 'SCD type 2' },
-            ],
+            option: 'Change Tracking',
+            when: 'The table has a primary key and you only need the latest row (SCD type 1).',
+            tradeoffs:
+              'Lighter on the source than CDC and works on SQL Server 2012 or later. It requires a primary key and does not support SCD type 2. Its data is not replicated, so an Always On failover needs a full refresh of the table.',
           },
           {
-            label: 'Primary key',
-            cells: [
-              { state: 'none', text: 'Required' },
-              { state: 'own', text: 'Not required' },
-            ],
-          },
-          {
-            label: 'SCD type 2',
-            cells: [
-              { state: 'none', text: 'Not supported' },
-              { state: 'own', text: 'Supported' },
-            ],
-          },
-          {
-            label: 'SQL Server version',
-            cells: [
-              { state: 'own', text: '2012 or later' },
-              { state: 'optional', text: '2012 SP1 CU3 or later', sub: 'Enterprise before 2016' },
-            ],
-          },
-          {
-            label: 'Always On failover',
-            cells: [
-              { state: 'none', text: 'Full refresh', sub: 'CT data is not replicated' },
-              { state: 'own', text: 'Resumes', sub: 'through the AG listener' },
-            ],
+            option: 'CDC',
+            when: 'The table needs history (SCD type 2) or has no primary key.',
+            tradeoffs:
+              'Works without a primary key, supports SCD type 2, and resumes through the Availability Group listener after a failover. It needs SQL Server 2012 SP1 CU3 or later, with Enterprise edition before 2016, and puts more work on the source because SQL Server maintains change tables.',
           },
         ],
-        legend: [
-          { state: 'own', label: 'Works' },
-          { state: 'optional', label: 'With conditions' },
-          { state: 'none', label: 'Limitation' },
-        ],
+        recommendation:
+          'Use Change Tracking for keyed tables that only need the latest row, and CDC for tables that need history or have no key. If a table has both enabled, the connector uses Change Tracking, so leave it off on tables you want as SCD type 2.',
       },
       examples: [
         {
@@ -332,6 +320,10 @@ account_id  plan      status  __START_AT        __END_AT
         {
           label: 'Prepare SQL Server for ingestion',
           url: 'https://docs.databricks.com/aws/en/ingestion/lakeflow-connect/sql-server-source-setup',
+        },
+        {
+          label: 'SQL Server connector overview',
+          url: 'https://docs.databricks.com/aws/en/ingestion/lakeflow-connect/sql-server-overview',
         },
         {
           label: 'History tracking (SCD type 2)',

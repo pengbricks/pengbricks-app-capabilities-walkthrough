@@ -198,7 +198,42 @@ export const walkthrough: Walkthrough = {
           text: 'The reference bundle runs the same assess, convert, reconcile loop on one T-SQL batch with the open-source sqlglot library. Its README has the numbers and the code; it is a teaching stand-in, not a replacement for Lakebridge.',
         },
       ],
+      options: {
+        caption: 'Which converter to run',
+        rows: [
+          {
+            option: 'Lakebridge BladeBridge',
+            when: 'You have many dialects, large folders of scripts, or ETL and orchestration code to convert in bulk.',
+            tradeoffs:
+              'Described in the Lakebridge docs as mature, with wide dialect coverage, and run from the command line on whole source folders. Output still needs review for the constructs it flags, and redesign for the platform stays your job.',
+          },
+          {
+            option: 'Lakebridge Morpheus',
+            when: 'Your source dialect is one that Morpheus supports and you want to try the next-generation transpiler, or you need its experimental dbt support.',
+            tradeoffs:
+              'Newer, with fewer dialects, and dbt support is experimental. Check the Lakebridge docs for the dialects it covers before you plan around it.',
+          },
+          {
+            option: 'Lakebridge Switch',
+            when: 'The source has no transpiler support or the logic is too irregular for rules, and you want Databricks notebooks as output.',
+            tradeoffs:
+              'Uses LLMs, so it can attempt code that fixed translation rules do not cover. Treat the output as a draft, because model output can vary between runs and every file needs review and reconciliation.',
+          },
+          {
+            option: 'Agentic code converter in Genie Code',
+            when: 'You convert SQL from T-SQL, Snowflake, Redshift, Oracle, BigQuery, or Teradata and want to work interactively in a workspace migration project.',
+            tradeoffs:
+              'Generally available for SQL conversion. It validates its output and fixes errors before writing results to a workspace folder, and you can keep chatting with it about the converted files. The Notebooks target is Beta. Check the docs for size limits before you point it at a very large estate.',
+          },
+        ],
+        recommendation:
+          'Run BladeBridge for bulk SQL and ETL conversion, and use the agentic code converter for interactive, validated SQL conversion in a migration project. Use Switch for code the others cannot handle, and plan more review time for it.',
+      },
       links: [
+        {
+          label: 'Lakebridge transpile',
+          url: 'https://databrickslabs.github.io/lakebridge/docs/transpile/',
+        },
         {
           label: 'Convert SQL with the agentic code converter',
           url: 'https://docs.databricks.com/aws/en/migration/agentic-code-converter',
@@ -260,6 +295,37 @@ export const walkthrough: Walkthrough = {
           text: 'Schedule Reconcile every cycle, and treat a new mismatch as a defect until explained.',
         },
       ],
+      options: {
+        caption: 'Reconcile report types',
+        rows: [
+          {
+            option: 'Schema',
+            when: 'An early check that column names and types match after conversion.',
+            tradeoffs:
+              'Cheapest, since no data is compared. It cannot find wrong values, so it never proves a workload correct on its own.',
+          },
+          {
+            option: 'Row',
+            when: 'The table has no reliable key, so you can only compare whole rows by hash.',
+            tradeoffs:
+              'Flags rows that exist on one side only or differ, with no key needed. It does not say which column differs, so diagnosis is slower.',
+          },
+          {
+            option: 'Data',
+            when: 'The table has join columns you trust, and you want to see which columns mismatch.',
+            tradeoffs:
+              'Compares values by key and reports per-column mismatches, which makes defects easy to trace. It depends on a correct key, and reading both sides costs compute and source load.',
+          },
+          {
+            option: 'All',
+            when: 'Final sign-off before cutover on critical tables.',
+            tradeoffs:
+              'Runs schema and data checks together for the strongest evidence, at the highest compute cost. Reserve it for tables where an error is expensive.',
+          },
+        ],
+        recommendation:
+          'Run schema reports early and often, data reports on keyed tables through the parallel run, and row reports where no key exists. Use all for sign-off on critical tables.',
+      },
       links: [
         {
           label: 'Lakebridge Reconcile',

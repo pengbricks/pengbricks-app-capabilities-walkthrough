@@ -125,6 +125,35 @@ FROM STREAM stg_web_users;`,
           ],
         },
       ],
+      options: {
+        caption: 'How to combine sources into one table',
+        rows: [
+          {
+            option: 'Append flows into one streaming table',
+            when: 'Sources are streaming or incremental, and new sources arrive over time.',
+            tradeoffs:
+              'Each source gets its own flow and checkpoint, so you add a source without touching the others or reprocessing history. Reads only new rows, so cost follows data volume. It suits append-only inputs. Corrections to old rows need AUTO CDC.',
+          },
+          {
+            option: 'Materialized view with UNION ALL',
+            when: 'Sources are small batch tables and the combined result should always match them.',
+            tradeoffs:
+              'A single query is easy to read and review. Databricks refreshes it incrementally where it can and recomputes otherwise, so cost depends on the query and the data. Adding a source means editing one larger query.',
+          },
+          {
+            option: 'View with UNION ALL',
+            when: 'Sources are tiny, and the combined result must be live with no refresh to schedule.',
+            tradeoffs:
+              'Nothing is stored and it is always current. Every read recomputes the union and the mapping, so it slows down as sources grow, and downstream expectations do not run on a view.',
+          },
+        ],
+        recommendation:
+          'Use append flows for streaming or growing sources. Use a materialized view for small batch sources. Keep a plain view for tiny, always-live combinations only.',
+      },
+      links: [
+        { label: 'Use append flows to write to a streaming table', url: 'https://docs.databricks.com/aws/en/ldp/flows' },
+        { label: 'Materialized views', url: 'https://docs.databricks.com/aws/en/ldp/materialized-views' },
+      ],
       points: [
         {
           strong: 'Own the contract.',
@@ -189,6 +218,35 @@ FROM STREAM stg_web_users;`,
 FROM customers_matched
 GROUP BY entity_id;`,
         },
+      ],
+      options: {
+        caption: 'How to decide two records are the same entity',
+        rows: [
+          {
+            option: 'Exact match on a normalized key',
+            when: 'A reliable identifier exists in every source, such as a tax ID or a lower-cased email.',
+            tradeoffs:
+              'Cheap, fast, and explainable, and safe to merge automatically. It misses records that differ by typos or formatting, so match rates depend on key quality.',
+          },
+          {
+            option: 'Edit distance on names and addresses',
+            when: 'Identifiers are missing or unreliable, and candidate pairs can be narrowed first by a blocking key such as postal code.',
+            tradeoffs:
+              'Catches typos and spacing, using built-in functions such as levenshtein at no model cost. Comparing all pairs does not scale, so block first. Thresholds need tuning, and the uncertain middle band needs human review.',
+          },
+          {
+            option: 'ai_similarity scoring',
+            when: 'Records differ in wording, such as abbreviations or reordered words, and edit distance gives poor scores.',
+            tradeoffs:
+              'Scores meaning as well as spelling. It is in Public Preview and tuned for English. Each comparison calls a model, so it adds cost and latency, and the scores are harder to explain to a reviewer. Apply it only to candidate pairs.',
+          },
+        ],
+        recommendation:
+          'Match exactly on keys first and merge those automatically. Add edit distance on blocked candidates for the rest, and use ai_similarity only on pairs that edit distance cannot settle. Send the middle band to review and keep a crosswalk.',
+      },
+      links: [
+        { label: 'levenshtein function', url: 'https://docs.databricks.com/aws/en/sql/language-manual/functions/levenshtein' },
+        { label: 'ai_similarity function', url: 'https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_similarity' },
       ],
     },
   ],
