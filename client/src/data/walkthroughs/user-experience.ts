@@ -261,18 +261,37 @@ export const walkthrough: Walkthrough = {
       heading: 'Distribute where people work',
       prose:
         'Adoption depends on friction. Start with the built-in surfaces and add channels as the cohort grows.',
-      table: {
-        columns: ['Channel', 'Use it for'],
+      options: {
+        caption: 'Where users ask questions',
         rows: [
-          ['Genie One', 'The business-user home: browse and ask published agents. Add tags, a description, and common questions so people find the right agent.'],
-          [
-            'Slack and Microsoft Teams',
-            'Asking from chat. The Teams app is in Beta and Slack features are in preview at the time of writing; check the release notes before you commit.',
-          ],
-          ['Embedded page or app', 'A Genie chat inside a Databricks App or an internal portal'],
-          ['Genie One MCP server', 'Let other agents call Genie as a tool through Unity Gateway (GA)'],
-          ['Conversation API', 'Custom front ends and scheduled quality checks'],
+          {
+            option: 'Genie One',
+            when: 'The business-user home, where people browse and ask published agents.',
+            tradeoffs:
+              'Nothing to build or host. People find agents through tags, descriptions, and common questions, so write those well. Users need workspace access.',
+          },
+          {
+            option: 'Slack and Microsoft Teams',
+            when: 'People want to ask from chat.',
+            tradeoffs:
+              'Meets users where they already work. The Teams app is in Beta and Slack features are in preview at the time of writing, so check the release notes before you commit.',
+          },
+          {
+            option: 'Embedded page or app',
+            when: 'A Genie chat belongs inside a Databricks App or an internal portal.',
+            tradeoffs:
+              'You control the experience and the context around the chat. You build, host, and maintain the app.',
+          },
+          {
+            option: 'Genie One MCP server or the Conversation API',
+            when:
+              'Other agents call Genie as a tool through Unity Gateway, or you build a custom front end or scheduled quality checks.',
+            tradeoffs:
+              'Most flexible, and the MCP server is generally available. It takes the most engineering, and you own the front end or agent that calls it.',
+          },
         ],
+        recommendation:
+          'Start in Genie One for the pilot cohort. Add Slack or Teams when users ask for chat and the preview status is acceptable, and build an embedded app or API integration only when a portal or another agent needs it.',
       },
       links: [
         {
@@ -282,6 +301,11 @@ export const walkthrough: Walkthrough = {
         {
           label: 'Embed a Genie Agent',
           url: 'https://docs.databricks.com/aws/en/genie-agents/embed',
+        },
+        { label: 'Genie Agents API', url: 'https://docs.databricks.com/aws/en/genie-agents/conversation-api' },
+        {
+          label: 'Databricks-provided MCP servers',
+          url: 'https://docs.databricks.com/aws/en/agents/mcp-tools/managed-mcp',
         },
       ],
     },

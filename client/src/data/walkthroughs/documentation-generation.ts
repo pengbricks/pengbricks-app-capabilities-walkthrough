@@ -206,19 +206,6 @@ ALTER TABLE main.sales.orders ALTER COLUMN order_total SET TAGS ('comment_source
       heading: 'ai_gen or ai_query for the drafting step',
       prose:
         'Both run from SQL and are billed per inference. Pick by how much control you need over the model and the output shape.',
-      table: {
-        columns: ['Function', 'Use it when'],
-        rows: [
-          [
-            'ai_gen(prompt)',
-            'You want free text from a Databricks-hosted model with no endpoint to name, such as a one-sentence column description. Public Preview and tuned for English.',
-          ],
-          [
-            'ai_query(endpoint, request, ...)',
-            'You need a specific model or your own endpoint, a structured result (use responseFormat for a JSON schema), or per-row error handling with failOnError.',
-          ],
-        ],
-      },
       points: [
         {
           strong: 'Ground the prompt.',
@@ -233,9 +220,37 @@ ALTER TABLE main.sales.orders ALTER COLUMN order_total SET TAGS ('comment_source
           text: 'Write results to the proposals table and read them from there. Do not call the model each time someone opens a dashboard.',
         },
       ],
+      options: {
+        caption: 'Drafting function for descriptions',
+        rows: [
+          {
+            option: 'ai_gen(prompt)',
+            when:
+              'You want free text from a Databricks-hosted model with no endpoint to name, such as a one-sentence column description.',
+            tradeoffs:
+              'Least to set up. Public Preview and tuned for English, so check the release notes before you build a pipeline on it. You get free text with no schema, so you parse it yourself. Billed per inference.',
+          },
+          {
+            option: 'ai_query(endpoint, request, ...)',
+            when: 'You need a specific model or your own endpoint, a structured result, or per-row error handling.',
+            tradeoffs:
+              'More arguments and an endpoint name to track. responseFormat returns a JSON schema result you can validate before it reaches the proposals table, and failOnError keeps one bad row from failing a batch. Billed per inference at the rate of the model you pick. An external-model endpoint sends the request to that provider under its terms.',
+          },
+        ],
+        recommendation:
+          'Use ai_query with responseFormat for bulk drafting, because a parseable result and failOnError keep bad rows out of the proposals table. Use ai_gen for quick one-off descriptions while you explore.',
+      },
       links: [
         { label: 'ai_gen', url: 'https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_gen' },
         { label: 'ai_query', url: 'https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_query' },
+        {
+          label: 'AI Functions overview',
+          url: 'https://docs.databricks.com/aws/en/large-language-models/ai-functions',
+        },
+        {
+          label: 'Query a model with ai_query',
+          url: 'https://docs.databricks.com/aws/en/large-language-models/ai-query',
+        },
       ],
     },
     {

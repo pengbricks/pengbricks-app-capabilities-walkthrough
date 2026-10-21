@@ -122,6 +122,32 @@ export const walkthrough: Walkthrough = {
           text: 'A metric view over a fact table and its dimensions gives Genie one object to query and keeps an agent within its limit of 50 tables and views.',
         },
       ],
+      options: {
+        caption: 'Where to define a business term',
+        rows: [
+          {
+            option: 'Metric view measure or dimension',
+            when:
+              'A calculation, a filter such as completed orders, or a code-to-name mapping that several consumers need.',
+            tradeoffs:
+              'One governed definition serves dashboards, Genie, notebooks, and SQL, so the number matches everywhere. It is YAML that someone owns and versions, and you add synonyms yourself.',
+          },
+          {
+            option: 'Table and column comments and tags',
+            when: 'Describing what raw columns mean.',
+            tradeoffs:
+              'Cheap to write, and AI-generated comments give a first draft that you should review. A comment describes a column and cannot hold logic, so it does not guarantee the same calculation across consumers.',
+          },
+          {
+            option: 'Genie Agent instructions and SQL expressions',
+            when: 'A rule belongs to one agent, such as tone or when to ask a clarifying question.',
+            tradeoffs:
+              'Fast to change and scoped to that agent. Dashboards and other agents do not see it, and example SQL can drift away from the official definition.',
+          },
+        ],
+        recommendation:
+          'Put shared measures and dimensions in a metric view, describe raw columns with comments and tags, and keep agent instructions for rules that belong to one agent.',
+      },
       links: [
         {
           label: 'Metric views',
@@ -132,6 +158,11 @@ export const walkthrough: Walkthrough = {
           url: 'https://docs.databricks.com/aws/en/metric-views/data-modeling/semantic-metadata',
           note: 'Display names, formats, and synonyms.',
         },
+        {
+          label: 'Curate an effective Genie Agent',
+          url: 'https://docs.databricks.com/aws/en/genie-agents/best-practices',
+        },
+        { label: 'AI-generated comments', url: 'https://docs.databricks.com/aws/en/comments/ai-comments' },
       ],
     },
     {

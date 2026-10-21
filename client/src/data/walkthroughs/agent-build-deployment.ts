@@ -267,6 +267,25 @@ export const walkthrough: Walkthrough = {
           text: 'Follow the migration guide from Model Serving to Databricks Apps, move the tools and resources into agent.toml, and rerun your evaluation set against the new deployment before you switch traffic.',
         },
       ],
+      options: {
+        caption: 'Where a new agent runs',
+        rows: [
+          {
+            option: 'Agent Runtime on Databricks Apps',
+            when: 'Any new agent, and the target for migrations.',
+            tradeoffs:
+              'Gives a stable OAuth-protected URL, an agent identity, durable run state, and tracing, and the version lives in Git behind an evaluation gate. The Agent Bricks CLI is in Beta, so expect changes and check the release notes.',
+          },
+          {
+            option: 'Model Serving endpoint (Legacy)',
+            when: 'An agent already runs there and a migration is not scheduled yet.',
+            tradeoffs:
+              'No migration work now. It is Legacy as of October 12, 2026, so it is no longer recommended for new agents, and the cost of moving later grows with the number of agents and tools.',
+          },
+        ],
+        recommendation:
+          'Build new agents on Agent Runtime. Leave existing Model Serving agents running only until you can follow the documented migration and rerun your evaluation set against the new deployment.',
+      },
       links: [
         {
           label: 'Legacy agent offerings',

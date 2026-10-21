@@ -92,6 +92,36 @@ export const walkthrough: Walkthrough = {
           { kind: 'surface', label: 'Materialized view' },
         ],
       },
+      options: {
+        caption: 'How the pipeline reads changes',
+        rows: [
+          {
+            option: 'Change files read by Auto Loader',
+            when: 'The source writes change records, such as Debezium JSON, to files.',
+            tradeoffs:
+              'Work follows the number of new files, and you keep a bronze copy you can replay. You need a sequence column for ordering and a delete marker.',
+          },
+          {
+            option: 'Change data feed on a Delta table',
+            when: 'The source is a Delta table you control.',
+            tradeoffs:
+              'No separate change files to land. The source needs the change data feed or row tracking enabled, and the feed covers only the history still retained. Drop update_preimage rows before AUTO CDC.',
+          },
+          {
+            option: 'AUTO CDC from snapshots',
+            when: 'The source only gives full extracts with no change column.',
+            tradeoffs:
+              'Works without change information. Each update compares the whole new snapshot with the previous one, so cost follows table size and not change volume. It reports no row metrics, so check duration and final counts.',
+          },
+        ],
+        recommendation:
+          'Prefer a real change feed, from files or a change data feed, over snapshots, because the work follows the changes. Use snapshot CDC when the source can only produce full extracts.',
+      },
+      links: [
+        { label: 'AUTO CDC in pipelines', url: 'https://docs.databricks.com/aws/en/ldp/cdc' },
+        { label: 'Change data feed', url: 'https://docs.databricks.com/aws/en/delta/delta-change-data-feed' },
+        { label: 'Auto Loader', url: 'https://docs.databricks.com/aws/en/ingestion/cloud-object-storage/auto-loader/' },
+      ],
     },
     {
       id: 'autoloader',

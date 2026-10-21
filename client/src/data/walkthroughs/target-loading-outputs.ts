@@ -58,15 +58,36 @@ export const walkthrough: Walkthrough = {
     {
       id: 'choose',
       heading: 'Choose the write pattern',
-      table: {
-        columns: ['Load', 'Use'],
+      options: {
+        caption: 'Which write pattern to use',
         rows: [
-          ['Batch of inserts, updates, and deletes to a table', 'MERGE INTO'],
-          ['Continuous or ordered change feed, type 1 or type 2', 'AUTO CDC in a Lakeflow Spark Declarative Pipeline'],
-          ['Replace one day, region, or other slice', 'INSERT INTO ... REPLACE WHERE, or INSERT OVERWRITE'],
-          ['Append-only events', 'INSERT INTO, or a streaming table'],
-          ['Rebuild a derived table from its sources', 'A materialized view instead of a hand-written load'],
+          {
+            option: 'MERGE INTO',
+            when: 'A batch of inserts, updates, and deletes to a table.',
+            tradeoffs:
+              'Flexible matching and per-clause logic. Cost depends on how much of the target it must scan, so cluster or partition on the match keys. You write the ordering and delete handling yourself.',
+          },
+          {
+            option: 'AUTO CDC in a Lakeflow Spark Declarative Pipeline',
+            when: 'A continuous or ordered change feed, type 1 or type 2.',
+            tradeoffs:
+              'Handles sequencing, late data, deletes, and history for you. It runs inside a pipeline, so it fits only when the target is a pipeline-managed table.',
+          },
+          {
+            option: 'REPLACE WHERE or INSERT OVERWRITE',
+            when: 'Replace one day, region, or other slice.',
+            tradeoffs:
+              'Simple and repeatable for reruns, because the slice is rewritten whole. It rewrites everything in the slice, so it costs more than a merge for a few changed rows.',
+          },
+          {
+            option: 'INSERT INTO or a streaming table',
+            when: 'Append-only events.',
+            tradeoffs:
+              'Cheapest and simplest write. It cannot update or delete, and rerunning a load can create duplicates unless the load is idempotent.',
+          },
         ],
+        recommendation:
+          'Match the pattern to the shape of the change. Use AUTO CDC for feeds, MERGE for batch changes, REPLACE WHERE for slice reloads, and append for events. For a derived table you can rebuild from its sources, use a materialized view instead of a hand-written load.',
       },
       links: [
         {
@@ -77,6 +98,7 @@ export const walkthrough: Walkthrough = {
           label: 'Selective overwrite with REPLACE WHERE',
           url: 'https://docs.databricks.com/aws/en/delta/selective-overwrite',
         },
+        { label: 'AUTO CDC in pipelines', url: 'https://docs.databricks.com/aws/en/ldp/cdc' },
       ],
     },
     {

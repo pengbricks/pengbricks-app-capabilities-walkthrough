@@ -138,14 +138,6 @@ export const walkthrough: Walkthrough = {
       heading: 'Data drift and data quality monitoring',
       prose:
         'Data quality monitoring has two parts. Anomaly detection learns the usual freshness and completeness of each table in a schema and flags departures, with no per-table setup. Data profiling creates a monitor on a table that computes column statistics and drift metrics into Unity Catalog tables you can query, chart, and alert on.',
-      table: {
-        columns: ['Part', 'What it watches'],
-        rows: [
-          ['Anomaly detection (Public Preview)', 'Freshness and completeness of each table in a schema, from historical patterns'],
-          ['Data profiling', 'Column statistics, distribution drift against a baseline or the previous window, and custom metrics'],
-          ['Pipeline expectations', 'Row-level rules, checked as data flows through a pipeline'],
-        ],
-      },
       points: [
         {
           strong: 'Create the monitor once and schedule it.',
@@ -164,6 +156,31 @@ export const walkthrough: Walkthrough = {
           text: 'A population stability index on a key column is easy to explain to a business owner. A common rule treats PSI above 0.2 as a significant shift.',
         },
       ],
+      options: {
+        caption: 'Which data quality check to use',
+        rows: [
+          {
+            option: 'Anomaly detection (Public Preview)',
+            when: 'You want to know when any table in a schema goes stale or incomplete.',
+            tradeoffs:
+              'Learns the usual freshness and completeness of each table from history, with no per-table setup. It needs history to learn from, it covers freshness and completeness and not column values, and it is in Public Preview.',
+          },
+          {
+            option: 'Data profiling',
+            when: 'The values in specific tables matter, such as distribution drift against a baseline.',
+            tradeoffs:
+              'Computes column statistics, drift, and custom metrics into tables you can query and alert on. You create and schedule a monitor per table, which uses compute, and drift needs a baseline or a previous window.',
+          },
+          {
+            option: 'Pipeline expectations',
+            when: 'A row-level rule must be checked as data flows through a pipeline.',
+            tradeoffs:
+              'Checks each row at write time and can drop the row or stop the update. It covers only datasets in a pipeline, and not tables written elsewhere.',
+          },
+        ],
+        recommendation:
+          'Turn on anomaly detection for schemas first, because it needs no setup. Add data profiling to the tables whose values drive decisions, and keep expectations for row-level rules inside pipelines. They catch different failures and work together.',
+      },
       examples: [
         {
           label: 'Create a data profiling monitor that refreshes on a schedule',

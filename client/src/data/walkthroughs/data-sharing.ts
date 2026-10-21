@@ -236,6 +236,25 @@ GRANT SELECT ON SHARE partner_orders TO RECIPIENT partner_acme;`,
           body: 'The activation link downloads the credential file once. Treat the file as a secret, and drop or rotate the recipient when the engagement ends.',
         },
       ],
+      options: {
+        caption: 'How an open recipient authenticates',
+        rows: [
+          {
+            option: 'OIDC federation',
+            when: 'The recipient\'s identity provider can issue JWTs and their client supports federation.',
+            tradeoffs:
+              'Tokens are short-lived and the identity provider enforces MFA and sets lifetimes. Databricks never issues a long-lived secret. The recipient needs an identity provider you can write a federation policy for, and email activation is not available.',
+          },
+          {
+            option: 'Bearer token',
+            when: 'The recipient has no OIDC provider, or the client only accepts a credential file.',
+            tradeoffs:
+              'Works with the widest set of clients and is simple to start. The credential is a secret that works from anywhere until it expires, so you set a short lifetime, renew it on a schedule, add an IP access list, and send it over a secure channel.',
+          },
+        ],
+        recommendation:
+          'Use OIDC federation whenever the recipient can support it. Use a bearer token only when it cannot, and pair it with a short lifetime and an IP access list.',
+      },
       links: [
         {
           label: 'OIDC federation for recipients',
@@ -249,29 +268,51 @@ GRANT SELECT ON SHARE partner_orders TO RECIPIENT partner_acme;`,
           label: 'IP access lists for recipients',
           url: 'https://docs.databricks.com/aws/en/delta-sharing/access-list',
         },
+        { label: 'Create a recipient', url: 'https://docs.databricks.com/aws/en/delta-sharing/create-recipient' },
       ],
     },
     {
       id: 'alternatives',
       heading: 'When Clean Rooms or Marketplace fit better',
-      table: {
-        columns: ['Need', 'Use'],
+      options: {
+        caption: 'Which sharing mechanism fits the need',
         rows: [
-          ['Give a known recipient read access to live data', 'A share and a recipient'],
-          [
-            "Let two or more parties compute on combined sensitive data without seeing each other's raw rows",
-            'Clean Rooms, which run approved code on serverless compute over OpenSharing',
-          ],
-          ['Publish a dataset or AI asset to many consumers, free or paid, with listings and terms', 'Marketplace'],
-          [
-            'The recipient needs its own writable copy or must be isolated from your storage',
-            'Replicate the data to their storage or account; a share is read-only access to yours',
-          ],
+          {
+            option: 'A share and a recipient',
+            when: 'Give a known recipient read access to live data.',
+            tradeoffs:
+              'No copy to keep in sync, and you audit access through system tables. The recipient reads the rows you expose, so share a view when it should see a subset. Cross-region and cross-cloud reads can incur egress charges.',
+          },
+          {
+            option: 'Clean Rooms',
+            when: 'Two or more parties compute on combined sensitive data without seeing each other\'s raw rows.',
+            tradeoffs:
+              'Strongest isolation, because only approved code runs, on serverless compute over OpenSharing. It takes more setup and approval than a plain share, and collaborators work inside what the clean room allows.',
+          },
+          {
+            option: 'Marketplace',
+            when: 'Publish a dataset or AI asset to many consumers, free or paid, with listings and terms.',
+            tradeoffs:
+              'Reach and a standard listing and terms process. You give up the one-to-one control of a named recipient, and a listing takes effort to prepare and maintain.',
+          },
+          {
+            option: 'Replicate to their storage or account',
+            when: 'The recipient needs its own writable copy or must be isolated from your storage.',
+            tradeoffs:
+              'The recipient is independent of your platform. You pay for storage, a copy pipeline, and egress, the copy lags the source, and you lose governance over the data once it leaves.',
+          },
         ],
+        recommendation:
+          'Start with a share to a named recipient. Move to Clean Rooms when neither side may see the other\'s raw rows, to Marketplace when the audience is open, and replicate only when the recipient needs a writable or isolated copy.',
       },
       links: [
         { label: 'Clean Rooms', url: 'https://docs.databricks.com/aws/en/clean-rooms/' },
         { label: 'Marketplace', url: 'https://docs.databricks.com/aws/en/marketplace/' },
+        { label: 'Create and manage shares', url: 'https://docs.databricks.com/aws/en/delta-sharing/create-share' },
+        {
+          label: 'Publish data in Marketplace',
+          url: 'https://docs.databricks.com/aws/en/marketplace/get-started-provider',
+        },
       ],
     },
     {

@@ -60,14 +60,36 @@ export const walkthrough: Walkthrough = {
       heading: 'Choose the dataset type',
       prose:
         'Layer datasets as bronze (raw), silver (cleaned and conformed), and gold (business-ready). The type you pick for each decides how it refreshes.',
-      table: {
-        columns: ['Need', 'Use'],
+      options: {
+        caption: 'Which dataset type to use',
         rows: [
-          ['Ingest files or messages that only append', 'Streaming table, read with Auto Loader or read_files'],
-          ['Cleaned, joined, or aggregated data that others query', 'Materialized view'],
-          ['Logic you reuse in one pipeline and do not need stored', 'View'],
-          ['Row-by-row change feeds with updates and deletes', 'AUTO CDC into a streaming table'],
+          {
+            option: 'Streaming table',
+            when: 'Ingest files or messages that only append, read with Auto Loader or read_files.',
+            tradeoffs:
+              'Each row is processed once as it arrives, so cost follows new data. It does not revisit rows already processed, so source updates and deletes are not reflected unless you use AUTO CDC.',
+          },
+          {
+            option: 'Materialized view',
+            when: 'Cleaned, joined, or aggregated data that others query.',
+            tradeoffs:
+              'The result stays correct as sources change. Refresh is incremental when the query supports it and a full recompute when it does not, so check cost on large sources.',
+          },
+          {
+            option: 'View',
+            when: 'Logic you reuse in one pipeline and do not need stored.',
+            tradeoffs:
+              'No storage and nothing to refresh. The logic runs again every time a downstream dataset reads it, so keep it for light steps.',
+          },
+          {
+            option: 'AUTO CDC into a streaming table',
+            when: 'Row-by-row change feeds with updates and deletes.',
+            tradeoffs:
+              'Applies ordering and deletes for you and supports type 1 and type 2 targets. You need a key and a sequence column.',
+          },
         ],
+        recommendation:
+          'Use streaming tables for ingest, AUTO CDC for change feeds, and materialized views for the silver and gold data people query. Use a view only for intermediate logic.',
       },
       links: [
         {
@@ -75,6 +97,9 @@ export const walkthrough: Walkthrough = {
           url: 'https://docs.databricks.com/aws/en/ldp/',
           note: 'Dataset types, pipeline modes, and the editor.',
         },
+        { label: 'Streaming tables', url: 'https://docs.databricks.com/aws/en/ldp/streaming-tables' },
+        { label: 'Materialized views', url: 'https://docs.databricks.com/aws/en/ldp/materialized-views' },
+        { label: 'AUTO CDC', url: 'https://docs.databricks.com/aws/en/ldp/cdc' },
       ],
     },
     {
@@ -117,13 +142,30 @@ export const walkthrough: Walkthrough = {
       heading: 'Enforce quality with expectations',
       prose:
         'An expectation is a SQL condition on a dataset. By default it keeps the row and counts the violation. You can drop the row or stop the update instead. The counts land in the pipeline event log, so one place shows how much data failed each rule.',
-      table: {
-        columns: ['Action', 'Behavior'],
+      options: {
+        caption: 'What an expectation does on a violation',
         rows: [
-          ['EXPECT (condition)', 'Keep the row and record the violation'],
-          ['ON VIOLATION DROP ROW', 'Drop the row and record the count'],
-          ['ON VIOLATION FAIL UPDATE', 'Stop the update until someone fixes the data'],
+          {
+            option: 'EXPECT (warn)',
+            when: 'You want to measure a problem and keep the data, such as in bronze.',
+            tradeoffs:
+              'Keeps the row and records the violation, so nothing is lost and nothing stops. Downstream tables must handle the bad rows themselves.',
+          },
+          {
+            option: 'ON VIOLATION DROP ROW',
+            when: 'Bad rows should not reach silver or gold.',
+            tradeoffs:
+              'Keeps downstream data clean and records the count. The dropped rows are not stored, so route them to a quarantine table if you need to repair them.',
+          },
+          {
+            option: 'ON VIOLATION FAIL UPDATE',
+            when: 'Bad data is worse than late data, such as a missing key on a financial table.',
+            tradeoffs:
+              'Nothing wrong gets through. The update stops until someone fixes the data, so freshness suffers and someone has to respond.',
+          },
         ],
+        recommendation:
+          'Warn on bronze, drop rows on silver, and fail the update only for rules where late data is better than wrong data.',
       },
       links: [
         {

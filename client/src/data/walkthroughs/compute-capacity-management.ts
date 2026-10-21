@@ -97,21 +97,6 @@ export const walkthrough: Walkthrough = {
       heading: 'Size, scale, and isolate warehouses',
       prose:
         'Cluster size sets the resources for one cluster. The maximum number of clusters sets how far the warehouse scales out. Choose them for different problems.',
-      table: {
-        columns: ['Symptom', 'Change'],
-        rows: [
-          [
-            'Queries spill to disk, or one query is slow',
-            'Scale up: a larger cluster size. Check bytes spilled in the query profile.',
-          ],
-          [
-            'Peak Queued Queries stays above zero',
-            'Scale out: raise max_num_clusters, or give the heavy workload its own warehouse.',
-          ],
-          ['Dashboard queries wait behind a batch job', 'Isolate: a separate warehouse for each workload.'],
-          ['Cost is high and utilization is low', 'Scale down, shorten auto-stop, and merge lightly used warehouses.'],
-        ],
-      },
       points: [
         {
           strong: 'Start larger, then trim.',
@@ -129,6 +114,38 @@ export const walkthrough: Walkthrough = {
           strong: 'Test with realistic load.',
           text: 'Run a representative burst of concurrent queries against a throwaway warehouse and read the wait columns before you set production sizes.',
         },
+      ],
+      options: {
+        caption: 'What to change when a warehouse is slow or queued',
+        rows: [
+          {
+            option: 'Scale up (larger cluster size)',
+            when: 'Queries spill to disk, or one query is slow. Check bytes spilled in the query profile.',
+            tradeoffs:
+              'Each cluster has more resources, so a single heavy query finishes sooner. Each hour costs more DBUs while it runs, and it does not help queueing from many concurrent queries.',
+          },
+          {
+            option: 'Scale out (raise max_num_clusters)',
+            when: 'Peak Queued Queries stays above zero.',
+            tradeoffs:
+              'Adds clusters under concurrent load and removes them as load falls, so it targets waiting without making each query faster. Spend rises at peak. Plan for about one cluster per 10 concurrent queries on pro and classic warehouses.',
+          },
+          {
+            option: 'Isolate (a warehouse per workload)',
+            when: 'Dashboard queries wait behind a batch job.',
+            tradeoffs:
+              'Separate queues, auto-stop, permissions, tags, and billing lines. You run more warehouses, and each lightly used one can idle-bill, so merge the ones with low utilization.',
+          },
+        ],
+        recommendation:
+          'Match the change to the symptom. Spill or one slow query means scale up, queued queries mean scale out, and mixed workloads mean separate warehouses. When cost is high and utilization low, scale down, shorten auto-stop, and merge lightly used warehouses.',
+      },
+      links: [
+        {
+          label: 'Sizing, scaling, and queuing behavior',
+          url: 'https://docs.databricks.com/aws/en/compute/sql-warehouse/warehouse-behavior',
+        },
+        { label: 'Create a SQL warehouse', url: 'https://docs.databricks.com/aws/en/compute/sql-warehouse/create' },
       ],
     },
     {
@@ -177,11 +194,34 @@ export const walkthrough: Walkthrough = {
           ],
         ],
       },
+      options: {
+        caption: 'Serverless or classic for a workload',
+        rows: [
+          {
+            option: 'Serverless',
+            when: 'The workload runs on a supported environment and has no special runtime needs.',
+            tradeoffs:
+              'No capacity to tune. Idle time is short on SQL warehouses and notebooks. Usage policies and budgets control spend, and cluster policies, pools, and compute-scoped init scripts do not apply.',
+          },
+          {
+            option: 'Classic',
+            when: 'You need a specific runtime, instance type, or network setup.',
+            tradeoffs:
+              'You choose the hardware and runtime. You also own sizing, autoscaling bounds, auto-termination, and policies, and idle all-purpose clusters keep billing until they stop.',
+          },
+        ],
+        recommendation:
+          'Default to serverless. Use classic where a runtime, instance, or network requirement rules serverless out, and run production work on job compute so it exists only for the run.',
+      },
       links: [
         { label: 'Compute policies', url: 'https://docs.databricks.com/aws/en/admin/clusters/policies' },
         { label: 'Compute configuration reference', url: 'https://docs.databricks.com/aws/en/compute/configure' },
         { label: 'Pool configuration reference', url: 'https://docs.databricks.com/aws/en/compute/pools' },
         { label: 'What is Photon?', url: 'https://docs.databricks.com/aws/en/compute/photon' },
+        {
+          label: 'Serverless compute limitations',
+          url: 'https://docs.databricks.com/aws/en/compute/serverless/limitations',
+        },
       ],
     },
     {

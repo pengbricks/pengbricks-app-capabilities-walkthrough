@@ -153,14 +153,36 @@ export const walkthrough: Walkthrough = {
       heading: 'Start on data, not on a clock',
       prose:
         'A trigger starts the job when the data it depends on changes, so it does not poll on a fixed schedule and does not run when nothing is new. Use a cron schedule only when a deadline, such as a report due at 7 a.m., sets the time.',
-      table: {
-        columns: ['Start the job when', 'Use'],
+      options: {
+        caption: 'What starts the job',
         rows: [
-          ['A Unity Catalog table is updated', 'table_update trigger'],
-          ['Files land in a volume or external location', 'file_arrival trigger'],
-          ['Work must always be running, as in streaming', 'continuous mode'],
-          ['A deadline or calendar sets the time', 'cron schedule'],
+          {
+            option: 'table_update trigger',
+            when: 'A Unity Catalog table is updated.',
+            tradeoffs:
+              'Runs only when upstream data changes, so there are no empty runs and no wait for a clock. It depends on the upstream table being committed to, and a minimum time between triggers keeps bursts from starting many runs.',
+          },
+          {
+            option: 'file_arrival trigger',
+            when: 'Files land in a volume or external location.',
+            tradeoffs:
+              'Starts on new files without polling from your code. It watches one location, so it fits file drops and not table changes.',
+          },
+          {
+            option: 'Continuous mode',
+            when: 'Work must always be running, as in streaming.',
+            tradeoffs:
+              'Lowest latency and automatic restarts. Compute runs all the time, so it costs the most when data is sparse.',
+          },
+          {
+            option: 'Cron schedule',
+            when: 'A deadline or calendar sets the time, such as a report due at 7 a.m.',
+            tradeoffs:
+              'Predictable and simple to explain. It runs whether or not new data arrived, and it can run before late upstream data lands.',
+          },
         ],
+        recommendation:
+          'Trigger on the data when you can, with table_update or file_arrival. Use cron when a deadline sets the time, and continuous mode when the work must not stop.',
       },
       examples: [
         {
@@ -179,6 +201,8 @@ export const walkthrough: Walkthrough = {
           label: 'Trigger jobs when new files arrive',
           url: 'https://docs.databricks.com/aws/en/jobs/file-arrival-triggers',
         },
+        { label: 'Trigger types for jobs', url: 'https://docs.databricks.com/aws/en/jobs/triggers' },
+        { label: 'Run jobs continuously', url: 'https://docs.databricks.com/aws/en/jobs/continuous' },
       ],
     },
     {

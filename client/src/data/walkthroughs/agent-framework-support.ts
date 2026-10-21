@@ -110,6 +110,32 @@ export const walkthrough: Walkthrough = {
           text: 'Register the server in Unity Gateway so credentials and OAuth flows sit in a connection instead of agent code, and share it by grant. Check the current status of external MCP servers in the release notes before you depend on them.',
         },
       ],
+      options: {
+        caption: 'Which kind of MCP server to use',
+        rows: [
+          {
+            option: 'Databricks-provided MCP server',
+            when:
+              'The job matches one that exists, such as Genie for business questions or Databricks SQL for engineering work.',
+            tradeoffs:
+              'Nothing to build or host, and it is governed through Unity Gateway. You get the tools it exposes and no more. Status differs by server, since the Genie One MCP server is generally available and some connectors are Beta.',
+          },
+          {
+            option: 'Custom MCP server on Databricks Apps',
+            when: 'You own the tools and want them next to your data.',
+            tradeoffs:
+              'Full control of the tools and their identity. You build, deploy, and operate the app. Name it with the mcp- prefix so AI Playground finds it.',
+          },
+          {
+            option: 'External MCP server through a Unity Catalog connection',
+            when: 'The tool is hosted outside Databricks, by you or a partner.',
+            tradeoffs:
+              'Credentials and OAuth flows sit in a connection instead of agent code. Availability, latency, and data handling depend on the external host, and you should check the release notes for current status.',
+          },
+        ],
+        recommendation:
+          'Use a Databricks-provided server when one fits, build a custom server on Apps when you own the tools, and register an external server only when the tool must stay where it is.',
+      },
       links: [
         {
           label: 'MCP on Databricks',
@@ -124,6 +150,7 @@ export const walkthrough: Walkthrough = {
           label: 'Databricks-provided MCP servers',
           url: 'https://docs.databricks.com/aws/en/agents/mcp-tools/managed-mcp',
         },
+        { label: 'External MCP servers', url: 'https://docs.databricks.com/aws/en/agents/mcp-tools/external-mcp' },
       ],
     },
     {
@@ -169,16 +196,6 @@ export const walkthrough: Walkthrough = {
       heading: 'Whose identity runs the tool',
       prose:
         'An agent on Apps has two identities available. Pick per tool, not per agent.',
-      table: {
-        columns: ['Identity', 'Use it when'],
-        rows: [
-          ['App service principal (OAuth M2M)', 'The action is the same for every caller, such as writing run state or reading shared reference data'],
-          [
-            'On-behalf-of user',
-            'Results must follow the person’s permissions. Databricks forwards the user’s token, scoped, and Unity Catalog applies row filters and column masks to that user.',
-          ],
-        ],
-      },
       points: [
         {
           strong: 'Default to least privilege.',
@@ -189,6 +206,26 @@ export const walkthrough: Walkthrough = {
           text: 'Querying tables, SQL warehouses, and jobs tied to a user action should run as that user, so the agent can never return more than the user could see.',
         },
       ],
+      options: {
+        caption: 'Which identity a tool call runs as',
+        rows: [
+          {
+            option: 'App service principal (OAuth M2M)',
+            when:
+              'The action is the same for every caller, such as writing run state or reading shared reference data.',
+            tradeoffs:
+              'One set of grants to review, and it works for background work with no user present. Every caller gets what the principal can see, so row filters and masks do not vary by person.',
+          },
+          {
+            option: 'On-behalf-of user',
+            when: 'Results must follow the person\'s permissions.',
+            tradeoffs:
+              'Databricks forwards the scoped user token, and Unity Catalog applies row filters and column masks to that user, so the agent cannot return more than the user could see. You choose the scopes, and it needs a user in the request.',
+          },
+        ],
+        recommendation:
+          'Choose per tool. Use user authorization for anything tied to a person, and the service principal with least privilege for shared actions.',
+      },
       links: [
         {
           label: 'Databricks Apps authorization',

@@ -238,6 +238,31 @@ export const walkthrough: Walkthrough = {
           body: 'Declare a genie_spaces resource. It needs the direct deployment engine, the default for new bundles on CLI 1.3.0 and later. Put serialized_space inline as YAML or point file_path at a .geniespace.json file. Run databricks bundle generate genie-space --existing-id <id> to pull a UI-built agent into the bundle.',
         },
       ],
+      options: {
+        caption: 'How to create and maintain the agent',
+        rows: [
+          {
+            option: 'UI',
+            when: 'You are exploring and the definition is still changing.',
+            tradeoffs:
+              'Fastest start, and Genie Code suggests descriptions and example queries. The definition does not live in Git, and moving it between environments is manual.',
+          },
+          {
+            option: 'REST API',
+            when: 'You script creation or run tests against a deployed agent.',
+            tradeoffs:
+              'Repeatable and scriptable. serialized_space is a JSON string with strict rules, such as version 2, hex IDs, and sorted collections, so you write and validate it yourself.',
+          },
+          {
+            option: 'Declarative Automation Bundle',
+            when: 'The definition has settled and should promote from dev to production.',
+            tradeoffs:
+              'The definition sits in Git and deploys per target like any other resource. It needs the direct deployment engine, the tables must exist at deploy time, and IDs need quoting in YAML.',
+          },
+        ],
+        recommendation:
+          'Iterate in the UI, then move the final definition into a bundle for production. Keep the API for tests that run against a deployed agent.',
+      },
       examples: [
         {
           label: 'A genie_spaces bundle resource',

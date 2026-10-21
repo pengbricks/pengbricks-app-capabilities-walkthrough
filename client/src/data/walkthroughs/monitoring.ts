@@ -144,6 +144,32 @@ export const walkthrough: Walkthrough = {
           { kind: 'surface', label: 'Consumers' },
         ],
       },
+      options: {
+        caption: 'How people get at system table data',
+        rows: [
+          {
+            option: 'Grant SELECT on the system tables',
+            when: 'A small admin group needs every workspace and every column.',
+            tradeoffs:
+              'Nothing to build. The grant exposes every workspace in scope and every user, including audit detail, so keep the group small. Large tables such as billing and audit are slow to scan without a date filter.',
+          },
+          {
+            option: 'Views you own over the system tables',
+            when: 'Teams, dashboards, and alerts need part of the data.',
+            tradeoffs:
+              'Consumers get SELECT on the view and not on the table, and you can filter by workspace and drop columns. Someone owns the view definitions and has to update them when a system table schema changes. The view reads the system table at query time, so it does not make a slow query faster.',
+          },
+          {
+            option: 'Scheduled copy into your own tables',
+            when:
+              'Dashboards are slow, you want history longer than the system tables keep, or you join with your own data.',
+            tradeoffs:
+              'Dashboards read a table you control, so they are faster and more predictable. You pay for a job and for storage, you maintain the pipeline, and the copy is only as fresh as its last run. You also set the grants and filters on the copy yourself.',
+          },
+        ],
+        recommendation:
+          'Start with views, which give least-privilege access with little to maintain. Move a view to a scheduled copy when dashboards are slow or you need history beyond what the system tables keep.',
+      },
       examples: [
         {
           label: 'Failed job runs in the last day, as a view',
@@ -173,6 +199,16 @@ WHERE usage_date >= current_date() - INTERVAL 30 DAYS
 GROUP BY ALL
 ORDER BY usage_date, dbus DESC;`,
           notes: ['Join system.billing.list_prices on sku_name and the price window to turn DBUs into dollars.'],
+        },
+      ],
+      links: [
+        {
+          label: 'Manage privileges in Unity Catalog',
+          url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/manage-privileges/',
+        },
+        {
+          label: 'CREATE VIEW',
+          url: 'https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-ddl-create-view',
         },
       ],
     },

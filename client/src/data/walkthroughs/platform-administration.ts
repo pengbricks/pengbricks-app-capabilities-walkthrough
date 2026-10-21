@@ -233,6 +233,25 @@ export const walkthrough: Walkthrough = {
           text: 'Policies limit node types, size, autotermination, and enforce tags on classic compute. They do not apply to serverless, so do not rely on them to control serverless spend.',
         },
       ],
+      options: {
+        caption: 'Serverless or classic compute',
+        rows: [
+          {
+            option: 'Serverless compute',
+            when: 'SQL, jobs, notebooks, and pipelines that run on a supported environment.',
+            tradeoffs:
+              'No clusters to size or patch, and notebooks and SQL start quickly. Cost control comes from serverless usage policies and budgets, because compute policies do not apply. Some things are not supported, such as compute-scoped init scripts, and Scala and R notebooks.',
+          },
+          {
+            option: 'Classic compute',
+            when: 'A workload needs a specific runtime, instance type, init script, or network setup.',
+            tradeoffs:
+              'Full control of node types, runtime, and libraries. You maintain compute policies, pools, and upgrades, and idle clusters bill until auto-termination. Tag enforcement depends on the compute policy being in place.',
+          },
+        ],
+        recommendation:
+          'Default new workloads to serverless and keep classic only where a documented limitation blocks it. List each classic exception and its reason so you can retire it later.',
+      },
       links: [
         {
           label: 'Serverless usage policies',
@@ -243,6 +262,11 @@ export const walkthrough: Walkthrough = {
           url: 'https://docs.databricks.com/aws/en/admin/workspace-settings/base-environment',
         },
         { label: 'Compute policies', url: 'https://docs.databricks.com/aws/en/admin/clusters/policies' },
+        { label: 'Serverless compute', url: 'https://docs.databricks.com/aws/en/compute/serverless/' },
+        {
+          label: 'Serverless compute limitations',
+          url: 'https://docs.databricks.com/aws/en/compute/serverless/limitations',
+        },
       ],
     },
     {
@@ -268,9 +292,33 @@ export const walkthrough: Walkthrough = {
           text: 'system.access.audit records who changed what. Alert on changes to admin roles, grants on production catalogs, and token creation.',
         },
       ],
+      options: {
+        caption: 'Which tool owns which objects',
+        rows: [
+          {
+            option: 'Terraform provider',
+            when:
+              'Account and platform objects such as workspaces, metastores, networking, groups, catalogs, grants, and policies.',
+            tradeoffs:
+              'Covers the account and workspace layers, and a scheduled plan shows drift. You manage state files, keep account and workspace state separate, and the platform team owns the review.',
+          },
+          {
+            option: 'Declarative Automation Bundles',
+            when: 'Workloads such as jobs, pipelines, dashboards, and apps promoted per target.',
+            tradeoffs:
+              'Application teams deploy their own resources with the Databricks CLI and per-target overrides, and there is no state backend to set up. It is aimed at workloads, so it is not the place for account and metastore setup.',
+          },
+        ],
+        recommendation:
+          'Use Terraform for the platform and bundles for workloads, with each team owning its layer. If you can only adopt one tool first, adopt Terraform for the platform, because bundles are aimed at workloads.',
+      },
       links: [
         { label: 'Databricks Terraform provider', url: 'https://docs.databricks.com/aws/en/dev-tools/terraform/' },
         { label: 'Declarative Automation Bundles', url: 'https://docs.databricks.com/aws/en/dev-tools/bundles/' },
+        {
+          label: 'Bundle deployment modes',
+          url: 'https://docs.databricks.com/aws/en/dev-tools/bundles/deployment-modes',
+        },
       ],
     },
     {

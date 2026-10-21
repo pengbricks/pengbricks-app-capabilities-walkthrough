@@ -147,12 +147,42 @@ export const walkthrough: Walkthrough = {
           text: 'Set a streaming backlog threshold on the task. Databricks notifies when the 10-minute average backlog passes the threshold, then repeats every 30 minutes while it stays high.',
         },
       ],
+      options: {
+        caption: 'How to run a streaming workload',
+        rows: [
+          {
+            option: 'Continuous job with a Structured Streaming task',
+            when: 'You own custom streaming code and need low latency.',
+            tradeoffs:
+              'Compute runs all the time, so cost is steady. Jobs restarts a failed run and retries tasks with backoff. You manage the checkpoint, schema changes, and the code yourself.',
+          },
+          {
+            option: 'Pipeline in continuous mode',
+            when: 'The logic fits Lakeflow Spark Declarative Pipelines and you need low latency.',
+            tradeoffs:
+              'Compute also runs all the time. The pipeline handles retries and flow restarts, so you write and operate less code. You accept the pipeline programming model.',
+          },
+          {
+            option: 'Pipeline or job on a triggered schedule',
+            when: 'Minutes to hours of delay is acceptable.',
+            tradeoffs:
+              'Lowest cost, because compute stops between runs. Freshness is limited by the schedule, and each run pays a start-up and catch-up cost. Failures show up as a failed run, which suits run-level alerts.',
+          },
+        ],
+        recommendation:
+          'Default to a triggered run unless the business needs data fresher than a schedule can give. When it does, use a continuous pipeline if the logic fits, and a continuous job for custom Structured Streaming code.',
+      },
       links: [
         { label: 'Run jobs continuously', url: 'https://docs.databricks.com/aws/en/jobs/continuous' },
         {
           label: 'Structured Streaming checkpoints',
           url: 'https://docs.databricks.com/aws/en/structured-streaming/checkpoints',
         },
+        {
+          label: 'Triggers in Structured Streaming',
+          url: 'https://docs.databricks.com/aws/en/structured-streaming/triggers',
+        },
+        { label: 'Pipeline updates and modes', url: 'https://docs.databricks.com/aws/en/ldp/updates' },
       ],
     },
     {

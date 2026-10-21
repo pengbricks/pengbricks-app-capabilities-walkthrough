@@ -178,6 +178,31 @@ CREATE OR REPLACE POLICY region_rows ON SCHEMA prod.sales
       heading: 'Per-table row filters and column masks',
       prose:
         'Attach a SQL function directly to a table when the rule is specific to it. This is the original mechanism, and it still fits a rule with its own lookup, such as a per-table entitlement map.',
+      options: {
+        caption: 'Three ways to restrict rows and columns',
+        rows: [
+          {
+            option: 'ABAC policies with governed tags',
+            when: 'The same rule applies across many tables, such as masking every email column.',
+            tradeoffs:
+              'Databricks recommends it for consistency across many tables. One policy covers current and future tagged columns, and supported external engines get the same enforcement through serverless compute. Tagging becomes a security control, and policies have quotas and can limit predicate pushdown.',
+          },
+          {
+            option: 'Table-level row filter or column mask',
+            when: 'The rule belongs to one table or needs its own lookup that tags cannot express.',
+            tradeoffs:
+              'Flexible, because the function can contain any SQL logic. The table owner manages it, so it repeats per table and can drift. OpenSharing skips tables that carry a filter or mask.',
+          },
+          {
+            option: 'Dynamic view',
+            when: 'You need to publish a subset, for example to share or to users who cannot read the base table.',
+            tradeoffs:
+              'Works anywhere a view works, including sharing. It is a second object to maintain, and users must be denied the base table or they can bypass it. ABAC on views is in beta.',
+          },
+        ],
+        recommendation:
+          'Use ABAC for rules that follow a classification. Use a table-level function when the rule is specific to one table, and a dynamic view when you need to expose or share a derived subset.',
+      },
       examples: [
         {
           label: 'Attach and remove a mask and a row filter',
@@ -229,6 +254,7 @@ ALTER TABLE main.sales.orders DROP ROW FILTER;`,
           label: 'is_account_group_member',
           url: 'https://docs.databricks.com/aws/en/sql/language-manual/functions/is_account_group_member',
         },
+        { label: 'Dynamic views', url: 'https://docs.databricks.com/aws/en/views/dynamic' },
       ],
     },
     {

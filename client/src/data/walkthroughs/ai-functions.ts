@@ -472,6 +472,31 @@ WHERE churned IS NULL;`,
           text: 'Release notes announce retirements, often weeks ahead. Keep the endpoint name in one place, a pipeline parameter or a SQL UDF, so a swap is one change.',
         },
       ],
+      options: {
+        caption: 'Which kind of model ai_query calls',
+        rows: [
+          {
+            option: 'Databricks-hosted model service (system.ai)',
+            when: 'Batch work over a table, using a model the ai_query page lists as batch-optimized.',
+            tradeoffs:
+              'Fully managed and scales without provisioning, and you pay per use. A model that is not batch-optimized can lower throughput and lengthen the job. Availability differs by region.',
+          },
+          {
+            option: 'Provisioned throughput endpoint',
+            when: 'You need a fine-tuned foundation model or a throughput commitment.',
+            tradeoffs:
+              'You create and size the endpoint and watch its cost while it exists. Databricks recommends system.ai model services over provisioned throughput endpoints for batch work, so use it when the model requires it.',
+          },
+          {
+            option: 'External model endpoint',
+            when: 'The use case requires a third-party provider\'s model.',
+            tradeoffs:
+              'Gives access to that provider\'s models. The request goes to the provider under its terms, so check data and residency rules. Price, rate limits, and retirement follow the provider.',
+          },
+        ],
+        recommendation:
+          'Start with a batch-optimized system.ai model service. Move to a provisioned throughput endpoint for a fine-tuned model, and to an external model only when you need that provider and its data terms are acceptable.',
+      },
       links: [
         {
           label: 'Supported foundation models',
@@ -483,6 +508,15 @@ WHERE churned IS NULL;`,
           url: 'https://docs.databricks.com/aws/en/large-language-models/ai-query',
           note: 'Endpoint types, batch-optimized models, and failOnError.',
         },
+        {
+          label: 'Foundation Model APIs',
+          url: 'https://docs.databricks.com/aws/en/machine-learning/foundation-model-apis/',
+        },
+        {
+          label: 'Provisioned throughput endpoints',
+          url: 'https://docs.databricks.com/aws/en/machine-learning/foundation-model-apis/deploy-prov-throughput-foundation-model-apis',
+        },
+        { label: 'External models', url: 'https://docs.databricks.com/aws/en/generative-ai/external-models/' },
       ],
     },
     {

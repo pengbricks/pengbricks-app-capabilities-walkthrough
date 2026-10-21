@@ -91,6 +91,31 @@ export const walkthrough: Walkthrough = {
           text: "When a notebook runs inside a job, the job's policy applies to the usage record.",
         },
       ],
+      options: {
+        caption: 'How to split spend between teams',
+        rows: [
+          {
+            option: 'Tags and serverless usage policies',
+            when: 'Teams share workspaces and you charge back by team, cost center, or application.',
+            tradeoffs:
+              'Splits spend inside a workspace and shows up in billing records as custom_tags. It only works when tags are correct, so enforce them with compute policies and watch untagged spend. A policy applies to new work, and existing jobs need it attached.',
+          },
+          {
+            option: 'A workspace per team or business unit',
+            when: 'Isolation needs already justify separate workspaces.',
+            tradeoffs:
+              'Billing records carry workspace_id, so attribution needs no tags. It adds administration for each workspace, and shared catalogs, warehouses, and jobs still need another way to split their cost.',
+          },
+          {
+            option: 'Query tags on a shared SQL warehouse',
+            when: 'You want to split one warehouse\'s cost between teams or apps.',
+            tradeoffs:
+              'Tags land in system.query.history, so you can see who used the warehouse. The billing table does not carry them, so you design the allocation rule that turns query activity into dollars.',
+          },
+        ],
+        recommendation:
+          'Use tags and serverless usage policies as the default, with a small tag set that compute policies enforce. Use workspace boundaries where isolation already calls for them, and add query tags only for shared warehouses.',
+      },
       links: [
         {
           label: 'Use tags to attribute and track usage',
@@ -98,6 +123,8 @@ export const walkthrough: Walkthrough = {
         },
         { label: 'Serverless usage policies', url: 'https://docs.databricks.com/aws/en/admin/usage/budget-policies' },
         { label: 'Query tags', url: 'https://docs.databricks.com/aws/en/sql/user/queries/query-tags' },
+        { label: 'Billable usage system table', url: 'https://docs.databricks.com/aws/en/admin/system-tables/billing' },
+        { label: 'Compute policies', url: 'https://docs.databricks.com/aws/en/admin/clusters/policies' },
       ],
     },
     {

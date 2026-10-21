@@ -59,15 +59,30 @@ export const walkthrough: Walkthrough = {
       id: 'choose',
       heading: 'Type 1 or type 2',
       prose: 'Both read the same feed with the same key, delete rule, and sequence. Only the STORED AS clause differs.',
-      table: {
-        columns: ['Question', 'Use'],
+      options: {
+        caption: 'Which SCD type to store',
         rows: [
-          ['What is the customer’s current address?', 'Type 1: one row per key, overwritten on update'],
-          ['What was the address when the order shipped?', 'Type 2: one row per version, with __START_AT and __END_AT'],
-          ['Do you need to audit who changed what and when?', 'Type 2, plus the change feed in bronze'],
-          ['Is the table large and history rarely read?', 'Type 1, and keep history in the bronze feed'],
+          {
+            option: 'Type 1',
+            when:
+              'You need current state, such as the customer\'s current address, or the table is large and history is rarely read.',
+            tradeoffs:
+              'One row per key, overwritten on update, so the table stays small and queries are simple. Past values are gone, so keep history in the bronze change feed.',
+          },
+          {
+            option: 'Type 2',
+            when:
+              'You need what a row looked like before, such as the address when the order shipped, or you must audit who changed what and when.',
+            tradeoffs:
+              'One row per version with __START_AT and __END_AT, which supports point-in-time joins and audits. The table grows with every tracked change, and queries need a date filter or a current-row filter.',
+          },
         ],
+        recommendation:
+          'Use type 1 unless a report, audit, or point-in-time join needs earlier values. When you use type 2, track history on the columns that matter so the table does not grow on every minor change.',
       },
+      links: [
+        { label: 'AUTO CDC in pipelines', url: 'https://docs.databricks.com/aws/en/ldp/cdc' },
+      ],
     },
     {
       id: 'types',

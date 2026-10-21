@@ -505,14 +505,6 @@ policies:
         ],
         caption: 'The managed service runs this server for you. The diagram applies only when you self-manage.',
       },
-      table: {
-        caption: 'Managed or self-managed',
-        columns: ['Option', 'Use it when'],
-        rows: [
-          ['Managed: Omnigent on Databricks (Beta)', 'Default choice. Databricks operates the server, with your workspace identity provider, Foundation Model APIs, and Unity Gateway wired in, and can run sessions on a Databricks Sandbox host. It shares a core codebase with the open-source project. Enable the Omnigent preview and follow the quickstart. It needs a region that supports Unity Gateway.'],
-          ['Self-managed on Databricks Apps', 'You need custom YAML policies, your own provider API keys, custom egress controls, or the managed service is not in your region. You deploy the server and host separately, route LLM, MCP, and skill access through Unity Gateway yourself, source your own sandbox provider, and own upgrades and operations.'],
-        ],
-      },
       points: [
         {
           strong: 'Identity is per user.',
@@ -539,6 +531,33 @@ policies:
           text: 'A Databricks Sandbox host routes models through Unity Gateway, so you cannot bring your own model API keys there. It does not work with serverless egress control, so do not enable it in a workspace that uses that control.',
         },
       ],
+      options: {
+        caption: 'Where to run the Omnigent server',
+        rows: [
+          {
+            option: 'Managed: Omnigent on Databricks (Beta)',
+            when:
+              'Default choice. Your workspace identity provider, Foundation Model APIs, and Unity Gateway are wired in.',
+            tradeoffs:
+              'Databricks operates the server and can run sessions on a Databricks Sandbox host. It is Beta and needs a region that supports Unity Gateway. A Databricks Sandbox host takes models only through Unity Gateway, so you cannot bring your own model API keys there.',
+          },
+          {
+            option: 'Self-managed on Databricks Apps',
+            when:
+              'You need custom YAML policies, your own provider API keys, custom egress controls, or the managed service is not in your region.',
+            tradeoffs:
+              'Most control. You deploy the server and host, route model, MCP, and skill access through Unity Gateway yourself, source your own sandbox provider, and own upgrades and operations.',
+          },
+          {
+            option: 'Open-source Omnigent without Databricks',
+            when: 'A small group wants to try it with their own machine and model keys.',
+            tradeoffs:
+              'Apache 2.0 and quick to start. You lose workspace identity, governed models, and tracing, and the project labels itself alpha.',
+          },
+        ],
+        recommendation:
+          'Use the managed service for a pilot when your region supports it, and self-manage on Apps when a policy, key, or region requirement rules it out.',
+      },
       links: [
         { label: 'Omnigent on Databricks', url: 'https://docs.databricks.com/aws/en/omnigent/' },
         { label: 'Connect Databricks (per-user OAuth)', url: 'https://omnigent.ai/docs/deploy/databricks-connect' },

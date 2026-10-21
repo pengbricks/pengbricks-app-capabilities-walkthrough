@@ -179,6 +179,32 @@ WHERE grantee LIKE '%@%';`,
           text: "A principal's effective privileges are the union of direct grants and GRANT policies, so review both.",
         },
       ],
+      options: {
+        caption: 'How to scope a rule',
+        rows: [
+          {
+            option: 'Catalog or schema grants to account groups',
+            when: 'Access follows a team or an environment.',
+            tradeoffs:
+              'Simple to review, and privileges inherit to objects created later. It answers who can use the data and does not hide rows or columns inside a table.',
+          },
+          {
+            option: 'ABAC policies on governed tags',
+            when:
+              'A rule follows a classification across many tables, such as hiding PII from everyone but compliance.',
+            tradeoffs:
+              'One policy covers every tagged table, including new ones. Tagging becomes a security control, so restrict who can assign tags. It needs governed tags and MANAGE on the scope, and policies have quotas and compute requirements.',
+          },
+          {
+            option: 'Per-table grants and filters',
+            when: 'One table has a rule nothing else shares.',
+            tradeoffs:
+              'Exact, and easy to explain for a single table. It repeats for each table, drifts over time, and a new table starts with no protection until someone adds it.',
+          },
+        ],
+        recommendation:
+          'Grant at the catalog or schema to account-level groups, and add ABAC policies for rules that follow a classification. Use per-table grants only for the exceptions.',
+      },
       links: [
         {
           label: 'Attribute-based access control',
@@ -187,6 +213,14 @@ WHERE grantee LIKE '%@%';`,
         {
           label: 'Best practices for ABAC policies',
           url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/abac/best-practices',
+        },
+        {
+          label: 'Unity Catalog privileges',
+          url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/manage-privileges/privileges',
+        },
+        {
+          label: 'ABAC policies',
+          url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/abac/policies',
         },
       ],
     },
