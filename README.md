@@ -53,6 +53,7 @@ Reference code for each guide lives in `reference/<bundle>/` as a deployable bun
 - **Recorded runs:** `recordedRuns` in `server/artifacts.json` are the fallback links shown when the app cannot reach a workspace.
 - **Downloads:** a guide entry in `server/artifacts.json` can set `download: {"path": "reference/<bundle>", "filename": "<name>.zip", "exclude": [...]}`. `npm run build` zips that folder into `server/downloads/` (sorted entries, fixed timestamps, no compression, so rebuilds are byte-identical; local state such as `.databricks/` is left out), `GET /api/capability-guides/artifacts/<slug>/download` serves it, and the guide page shows a download button. `npm run test:python` fails when the zip is stale.
 - **Key functions and dates:** `npm run build` first runs `scripts/build_artifact_snippets.py`, which embeds highlighted code, function docstrings for hover text, Auto Loader samples, and each guide's last updated date from Git. `npm run test:python` fails when snippets are stale.
+- **Starter repositories:** a guide whose `download` entry names a `repo` (the VS Code starter, `pengbricks/databricks-vscode-starter`) links to that public repository instead of a built zip. After changing `reference/vscode-starter/`, run `python scripts/publish_starter_repo.py` to see what would change, then `--push` to amend the repository's single commit and force-push it as the `pengbricks` gh account. `exclude` in the entry lists files kept out of the repository.
 
 ## Reference run
 

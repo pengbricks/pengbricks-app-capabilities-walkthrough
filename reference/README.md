@@ -27,7 +27,7 @@ Each folder under `reference/` is a self-contained Declarative Automation Bundle
 | `agents/` | Agents, MCP, and model gateway; Building and shipping agents |
 | `ai-functions/` | AI Functions in SQL; Document processing pipelines and their cost (a second job, `capability_guides_document_processing`, in the same bundle) |
 | `dab-starter/` | Running a Declarative Automation Bundle (a standalone starter that the guide page offers as a download; it creates its own schema) |
-| `vscode-starter/` | Working with Databricks in VS Code (a standalone starter that the guide page offers as a download: a Python package, notebook, debug script, pytest tests, and a serverless job; it creates its own schema) |
+| `vscode-starter/` | Working with Databricks in VS Code (a standalone starter, published to github.com/pengbricks/databricks-vscode-starter with `scripts/publish_starter_repo.py`: a Python package, notebook, debug script, pytest tests, and a serverless job; it creates its own schema) |
 | `environments/` | Workspaces and catalogs across dev, test, stage, and prod (four targets that map to environment schemas in one catalog, plus a layout audit job; the four-workspace, four-catalog setup is in `setup/` as commands that the bundle does not run. It creates its own schemas) |
 | `geospatial/` | Geospatial analytics (a fictional water network: GIS file loading, spatial joins, H3 aggregation, inspection PDFs joined to pipe geometry, a district row filter, and an AI/BI map dashboard) |
 | `lakeflow-connect/` | SQL Server connections with Lakeflow Connect (needs a reachable SQL Server and classic compute for the gateway) |

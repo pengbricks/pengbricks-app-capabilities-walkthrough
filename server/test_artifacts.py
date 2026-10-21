@@ -92,12 +92,9 @@ def test_download_returns_the_starter_bundle_as_a_zip() -> None:
     assert info == {"filename": "dab-starter.zip", "sizeBytes": len(response.content)}
 
 
-# The VS Code starter is published as its own public repository; the guide links there.
-VSCODE_PUBLISH = {
-    "path": "reference/vscode-starter",
-    "filename": "vscode-starter.zip",
-    "exclude": ["resources/app_access.yml", "guides/vscode-databricks/README.md"],
-}
+# The VS Code starter is published as its own public repository (scripts/publish_starter_repo.py);
+# the guide links there. The publish uses the same file list as a zip download.
+VSCODE_PUBLISH = {**artifacts.load_index()["guides"]["vscode-databricks"]["download"], "filename": "vscode-starter.zip"}
 
 
 def test_vscode_starter_download_comes_from_its_git_repository() -> None:

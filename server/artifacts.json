@@ -848,7 +848,8 @@
         "repo": "pengbricks/databricks-vscode-starter",
         "branch": "main",
         "folder": "vscode-starter",
-        "path": "reference/vscode-starter"
+        "path": "reference/vscode-starter",
+        "exclude": ["resources/app_access.yml", "guides/vscode-databricks/README.md"]
       },
       "code": [
         {
