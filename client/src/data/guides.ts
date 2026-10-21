@@ -339,7 +339,7 @@ export const guides: readonly Guide[] = [
     category: 'AI Guides',
     difficulty: 2,
     summary:
-      'Define business terms once with metric views, governed tags, and comments so people and Genie read data the same way.',
+      'Define business terms once with metric views, governed tags, comments, and Pages (Beta) so people and Genie read data the same way.',
     acceptanceCriteria:
       'Business terms and synonyms are defined once in metric views, comments, and governed tags, trusted assets are certified, and Genie benchmarks show how well questions are interpreted.',
     evidence: [
