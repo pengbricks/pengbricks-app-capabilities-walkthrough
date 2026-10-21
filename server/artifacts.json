@@ -7873,6 +7873,261 @@
           "section": "glossary"
         }
       ]
+    },
+    "geospatial-analytics": {
+      "bundle": "reference/geospatial",
+      "onePager": "reference/geospatial/guides/geospatial-analytics/README.md",
+      "code": [
+        {
+          "label": "Notebooks, one per job task",
+          "path": "reference/geospatial/guides/geospatial-analytics"
+        },
+        {
+          "label": "Network generator, answer keys, and PDF helper",
+          "path": "reference/geospatial/src/geo_lib.py"
+        },
+        {
+          "label": "Geospatial job",
+          "path": "reference/geospatial/resources/geospatial.job.yml"
+        },
+        {
+          "label": "AI/BI map dashboard",
+          "path": "reference/geospatial/src/dashboards/water_network.lvdash.json"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_geospatial",
+          "label": "Geospatial job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "Geospatial run (load, joins, H3, documents, row filter)",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/894940404467655/runs/636473484085785",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-21T16:54:33Z"
+        },
+        {
+          "label": "Water network map dashboard",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/dashboardsv3/01f1cd6e2a0b1da4b622c8d5177dac40/published",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-21T16:54:33Z"
+        }
+      ],
+      "recordedFolder": {
+        "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/browse/folders/1264420743923045",
+        "startHereUrl": "https://fevm-rpeng-demobricks.cloud.databricks.com/editor/notebooks/1264420743923058",
+        "workspace": "Reference workspace"
+      },
+      "docs": [
+        {
+          "label": "ST geospatial functions",
+          "url": "https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-st-geospatial-functions"
+        },
+        {
+          "label": "H3 geospatial functions",
+          "url": "https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-h3-geospatial-functions"
+        },
+        {
+          "label": "GEOMETRY type",
+          "url": "https://docs.databricks.com/aws/en/sql/language-manual/data-types/geometry-type"
+        },
+        {
+          "label": "GEOGRAPHY type",
+          "url": "https://docs.databricks.com/aws/en/sql/language-manual/data-types/geography-type"
+        },
+        {
+          "label": "Tutorial: geospatial pipeline with native spatial types",
+          "url": "https://docs.databricks.com/aws/en/ldp/tutorial-spatial-pipelines"
+        },
+        {
+          "label": "AI/BI dashboard visualization types",
+          "url": "https://docs.databricks.com/aws/en/dashboards/visualization-types"
+        },
+        {
+          "label": "Row filters and column masks",
+          "url": "https://docs.databricks.com/aws/en/data-governance/unity-catalog/filters-and-masks"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "GeoJSON file into GEOMETRY, with a metric copy",
+          "path": "reference/geospatial/guides/geospatial-analytics/02_load_geometries.py",
+          "lines": [
+            48,
+            58
+          ],
+          "section": "ingest",
+          "notes": [
+            "Split the FeatureCollection, parse each geometry with ST_GeomFromGeoJSON, add ST_Transform to EPSG:32610.",
+            "ST_GeomFromGeoJSON always returns SRID 4326."
+          ]
+        },
+        {
+          "label": "Points from coordinates, an H3 cell, and liquid clustering",
+          "path": "reference/geospatial/guides/geospatial-analytics/02_load_geometries.py",
+          "lines": [
+            75,
+            81
+          ],
+          "section": "ingest",
+          "notes": [
+            "ST_Point(lon, lat, 4326) and H3_LongLatAsH3 in one pass.",
+            "CLUSTER BY the cell keeps nearby points together."
+          ]
+        },
+        {
+          "label": "Shapefile, GeoPackage, KML through GDAL",
+          "path": "reference/geospatial/guides/geospatial-analytics/02_load_geometries.py",
+          "lines": [
+            138,
+            148
+          ],
+          "section": "ingest",
+          "notes": [
+            "No built-in reader: pyogrio decodes to WKB, ST_GeomFromWKB loads it.",
+            "Compared with the GeoJSON load, zone by zone."
+          ]
+        },
+        {
+          "label": "Zone membership with ST_Contains",
+          "path": "reference/geospatial/guides/geospatial-analytics/03_spatial_joins.py",
+          "lines": [
+            46,
+            50
+          ],
+          "section": "membership",
+          "notes": [
+            "Left join keeps meters outside every zone, with a null zone.",
+            "Scored against an answer key computed in plain Python."
+          ]
+        },
+        {
+          "label": "Cover each zone with H3 cells",
+          "path": "reference/geospatial/guides/geospatial-analytics/03_spatial_joins.py",
+          "lines": [
+            69,
+            72
+          ],
+          "section": "h3-prefilter",
+          "notes": [
+            "H3_CoverAsH3 returns every cell that touches the polygon; polyfill misses points near an edge."
+          ]
+        },
+        {
+          "label": "Join on the cell, then test exactly",
+          "path": "reference/geospatial/guides/geospatial-analytics/03_spatial_joins.py",
+          "lines": [
+            78,
+            82
+          ],
+          "section": "h3-prefilter",
+          "notes": [
+            "Equality join on the cell ID, then ST_Contains on the survivors.",
+            "Same rows as the exact join, with fewer pairs tested."
+          ]
+        },
+        {
+          "label": "Assets within the radius of a break",
+          "path": "reference/geospatial/guides/geospatial-analytics/03_spatial_joins.py",
+          "lines": [
+            106,
+            116
+          ],
+          "section": "proximity",
+          "notes": [
+            "ST_DWithin on the metric column, with an H3 k-ring in front for meters.",
+            "Pipes use ST_DWithin against the whole linestring."
+          ]
+        },
+        {
+          "label": "Nearest pipe for each sensor",
+          "path": "reference/geospatial/guides/geospatial-analytics/03_spatial_joins.py",
+          "lines": [
+            161,
+            168
+          ],
+          "section": "nearest",
+          "notes": [
+            "ST_DWithin narrows candidates, row_number over ST_Distance keeps the closest."
+          ]
+        },
+        {
+          "label": "Complaints per H3 cell, rate, and smoothing",
+          "path": "reference/geospatial/guides/geospatial-analytics/04_h3_heat_map.py",
+          "lines": [
+            31,
+            48
+          ],
+          "section": "heat-map",
+          "notes": [
+            "H3_ToParent rolls cells up, H3_KRing smooths, the cell center becomes longitude and latitude for the map."
+          ]
+        },
+        {
+          "label": "Parse the PDFs once",
+          "path": "reference/geospatial/guides/geospatial-analytics/05_inspection_documents.py",
+          "lines": [
+            41,
+            48
+          ],
+          "section": "documents",
+          "notes": [
+            "ai_parse_document on binary files from a volume.",
+            "parse_errors counts error_status entries; a VARIANT null is not SQL NULL."
+          ]
+        },
+        {
+          "label": "Extract fields and join to the pipe",
+          "path": "reference/geospatial/guides/geospatial-analytics/05_inspection_documents.py",
+          "lines": [
+            62,
+            92
+          ],
+          "section": "documents",
+          "notes": [
+            "ai_extract with a field schema, then a plain join on the asset ID.",
+            "Unmatched reports keep a row for review."
+          ]
+        },
+        {
+          "label": "Map: point map on H3 cell centers",
+          "path": "reference/geospatial/src/dashboards/water_network.lvdash.json",
+          "lines": [
+            77,
+            112
+          ],
+          "section": "visualize",
+          "notes": [
+            "symbol-map takes latitude and longitude columns; size and color follow the complaint count."
+          ]
+        },
+        {
+          "label": "Export for QGIS or Esri",
+          "path": "reference/geospatial/guides/geospatial-analytics/06_govern_and_export.py",
+          "lines": [
+            41,
+            51
+          ],
+          "section": "visualize",
+          "notes": [
+            "CSV with a WKT column and a GeoJSON FeatureCollection, written to a volume."
+          ]
+        },
+        {
+          "label": "District row filter",
+          "path": "reference/geospatial/guides/geospatial-analytics/06_govern_and_export.py",
+          "lines": [
+            69,
+            78
+          ],
+          "section": "governance",
+          "notes": [
+            "Name the parameter row_district: a bare district inside the subquery resolves to the access table's column and lets every row through."
+          ]
+        }
+      ]
     }
   }
 }

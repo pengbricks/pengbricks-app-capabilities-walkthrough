@@ -1,0 +1,8 @@
+resources:
+  dashboards:
+    water_network_dashboard:
+      display_name: Capability guides water network map
+      file_path: ../src/dashboards/water_network.lvdash.json
+      warehouse_id: ${var.warehouse_id}
+      dataset_catalog: ${var.catalog}
+      dataset_schema: ${var.schema}

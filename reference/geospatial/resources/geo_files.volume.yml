@@ -1,0 +1,7 @@
+resources:
+  volumes:
+    geo_files:
+      catalog_name: ${var.catalog}
+      schema_name: ${var.schema}
+      name: geo_files
+      comment: Holds the synthetic GIS files, inspection-report PDFs, and exports for the geospatial guide
