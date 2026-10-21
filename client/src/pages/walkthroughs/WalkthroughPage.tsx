@@ -6,6 +6,7 @@ import { CodeExcerpt } from '../../components/CodeExcerpt.tsx';
 import { FlowDiagramView, MatrixDiagramView } from '../../components/WalkthroughDiagram.tsx';
 import { guessLanguage } from '../../lib/highlight.ts';
 import { valueIcons } from '../../components/valueIcon.ts';
+import { HeadingLink } from '../../components/HeadingLink.tsx';
 import { getWalkthrough } from '../../data/walkthroughs/index.ts';
 import { useGuideArtifacts, type CodeHighlight } from '../../lib/artifacts.ts';
 import type {
@@ -96,7 +97,10 @@ export function WalkthroughBody({
     <>
       {value && (
         <section className="guide-section" id="value" aria-labelledby="h-value">
-          <h2 id="h-value">Business value</h2>
+          <h2 id="h-value" className="group">
+            Business value
+            <HeadingLink id="value" label="Business value" />
+          </h2>
           <p className="value-summary">{value.summary}</p>
           <ul className="value-list">
             {value.outcomes.map((item, index) => {
@@ -116,7 +120,10 @@ export function WalkthroughBody({
       )}
 
       <section className="guide-section" id="short" aria-labelledby="h-short">
-        <h2 id="h-short">The short version</h2>
+        <h2 id="h-short" className="group">
+          The short version
+          <HeadingLink id="short" label="The short version" />
+        </h2>
         <ol className="short-list" style={{ ['--short-count' as string]: shortColumns(walkthrough.shortVersion.length) }}>
           {walkthrough.shortVersion.map((item) => (
             <li key={item.title}>
@@ -138,7 +145,10 @@ function Section({ section, excerpts }: { section: WalkthroughSection; excerpts:
   const headingId = `h-${section.id}`;
   return (
     <section className="guide-section" id={section.id} aria-labelledby={headingId}>
-      <h2 id={headingId}>{section.heading}</h2>
+      <h2 id={headingId} className="group">
+        {section.heading}
+        <HeadingLink id={section.id} label={section.heading} />
+      </h2>
       {section.prose && <p className="prose">{section.prose}</p>}
       {section.diagram && <DiagramFigure diagram={section.diagram} id={`d-${section.id}`} />}
       {section.steps && (

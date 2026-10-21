@@ -1,11 +1,13 @@
 import { Button, Card, CardContent, Input } from '@databricks/appkit-ui/react';
 import { Search } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useSearchParams } from 'react-router';
 import { DifficultyStars } from '../components/DifficultyStars.tsx';
 import { GuideCard } from '../components/GuideCard.tsx';
 import { categories, difficulties, guides, type Difficulty, type Guide } from '../data/guides.ts';
 import { learningPath, learningStep } from '../data/learningPath.ts';
+import { HeadingLink } from '../components/HeadingLink.tsx';
+import { areaSlug, categoryFromSlug } from '../lib/deepLinks.ts';
 
 const allCategories = 'All guides';
 
@@ -23,18 +25,27 @@ const categoryBlurbs = {
 } satisfies Record<(typeof categories)[number], string>;
 
 export function HomePage() {
-  const [query, setQuery] = useState('');
-  const [category, setCategory] = useState(allCategories);
-  const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
-  // The view lives in the URL (?view=path) so a link can open straight into the learning path.
+  // Every filter lives in the URL, so other apps can link straight to a view:
+  //   ?area=ingestion  ?difficulty=3  ?q=lakeflow  ?view=path   (combine freely)
   const [params, setParams] = useSearchParams();
-  const pathView = params.get('view') === 'path';
-  const setPathView = (on: boolean) => {
+  const update = (changes: Record<string, string | null>) => {
     const next = new URLSearchParams(params);
-    if (on) next.set('view', 'path');
-    else next.delete('view');
+    for (const [key, value] of Object.entries(changes)) {
+      if (value === null || value === '') next.delete(key);
+      else next.set(key, value);
+    }
     setParams(next, { replace: true });
   };
+  const query = params.get('q') ?? '';
+  const setQuery = (value: string) => update({ q: value });
+  const category: string = categoryFromSlug(params.get('area')) ?? allCategories;
+  const setCategory = (value: string) =>
+    update({ area: value === allCategories ? null : areaSlug(value as (typeof categories)[number]) });
+  const levelParam = Number(params.get('difficulty'));
+  const difficulty: Difficulty | null = difficulties.includes(levelParam as Difficulty) ? (levelParam as Difficulty) : null;
+  const setDifficulty = (value: Difficulty | null) => update({ difficulty: value === null ? null : String(value) });
+  const pathView = params.get('view') === 'path';
+  const setPathView = (on: boolean) => update({ view: on ? 'path' : null });
 
   const filteredGuides = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -148,13 +159,14 @@ export function HomePage() {
                 .filter((guide) => guide.category === area)
                 .sort((a, b) => a.difficulty - b.difficulty);
               if (areaGuides.length === 0) return null;
-              const sectionId = `area-${area.replaceAll(' ', '-').replaceAll('/', '-').toLowerCase()}`;
+              const sectionId = `area-${areaSlug(area)}`;
 
               return (
                 <section key={area} className="mt-10" aria-labelledby={sectionId}>
                   <div className="mb-4">
-                    <h2 id={sectionId} className="text-2xl font-bold tracking-tight">
+                    <h2 id={sectionId} className="group text-2xl font-bold tracking-tight">
                       {area}
+                      <HeadingLink id={sectionId} label={area} />
                     </h2>
                     <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">{categoryBlurbs[area]}</p>
                   </div>
@@ -176,9 +188,7 @@ export function HomePage() {
                   variant="outline"
                   className="mt-5"
                   onClick={() => {
-                    setQuery('');
-                    setCategory(allCategories);
-                    setDifficulty(null);
+                    update({ q: null, area: null, difficulty: null });
                   }}
                 >
                   Clear filters
@@ -205,8 +215,9 @@ function PathView({ guides: visible }: { guides: Guide[] }) {
           <section key={stage.title} className="mt-10" aria-labelledby={sectionId}>
             <div className="mb-4">
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Stage {index + 1}</p>
-              <h2 id={sectionId} className="mt-1 text-2xl font-bold tracking-tight">
+              <h2 id={sectionId} className="group mt-1 text-2xl font-bold tracking-tight">
                 {stage.title}
+                <HeadingLink id={sectionId} label={stage.title} />
               </h2>
               <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">{stage.summary}</p>
             </div>
