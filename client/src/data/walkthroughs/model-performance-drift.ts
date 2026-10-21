@@ -109,7 +109,7 @@ export const walkthrough: Walkthrough = {
         },
         {
           strong: 'Baseline.',
-          text: 'Use the training data, or a window you trust, as the baseline. A baseline makes drift mean "different from what the model learned", not just "different from last week".',
+          text: 'Use the training data, or a window you trust, as the baseline. A baseline makes drift mean "different from what the model learned" instead of "different from last week".',
         },
       ],
       examples: [

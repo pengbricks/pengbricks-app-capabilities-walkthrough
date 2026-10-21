@@ -63,7 +63,7 @@ flowchart LR
      dbfs:/Volumes/<catalog>/<schema>/landing/events/manual/valid_event.json --profile <profile>
    databricks pipelines start-update <pipeline-id> --profile <profile>
    ```
-8. Explain the latency number honestly. The pipeline runs in triggered mode, so latency includes the wait for the update to start. For seconds-level latency, set `continuous: true` on the pipeline. For sub-second operational paths, use real-time mode or Zerobus ingest.
+8. Explain the latency number. The pipeline runs in triggered mode, so latency includes the wait for the update to start. For seconds-level latency, set `continuous: true` on the pipeline. For sub-second operational paths, use real-time mode or Zerobus ingest.
 
 ## Reference run
 

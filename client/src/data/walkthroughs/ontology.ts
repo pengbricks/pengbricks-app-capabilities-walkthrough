@@ -5,7 +5,7 @@ export const walkthrough: Walkthrough = {
   area: 'AI Guides',
   title: 'Business terms and synonyms',
   intro:
-    'Enterprise tables use codes such as seg_cd, rgn_cd, and ord_st. A person, a dashboard, or Genie can read them correctly only if the meaning is written down once, next to the data. There is no single ontology object to create in Unity Catalog. You build the governed semantic layer from comments, governed tags, metric views with synonyms, certification, and Genie Agent context, and you check it with benchmarks.',
+    'Enterprise tables use codes such as seg_cd, rgn_cd, and ord_st. A person, a dashboard, or Genie can read them correctly only if the meaning is written down once, next to the data. There is no single ontology object to create in Unity Catalog. You build the governed semantic layer from comments, governed tags, metric views with synonyms, Pages (Beta) for business terms, certification, and Genie Agent context, and you check it with benchmarks.',
   businessValue: {
     summary:
       'Data and analytics leaders need terms like revenue, segment, and active customer to mean the same thing for every person, dashboard, and AI agent. This guide builds that shared meaning in Unity Catalog next to the data.',
@@ -44,6 +44,10 @@ export const walkthrough: Walkthrough = {
     {
       title: 'Govern tags with tag policies.',
       body: 'Governed tags are account-level tags with a policy for allowed keys, values, and who can assign them. Use them for domain, sensitivity, and business-term labels that stay consistent.',
+    },
+    {
+      title: 'Define shared terms as Pages (Beta).',
+      body: 'A Page is a governed definition of a business concept, with an owner, synonyms, and related assets. Genie One prioritizes a Page over context it infers and cites it. Pages are in Beta, so confirm availability first.',
     },
     {
       title: 'Generate comments, then review them.',
@@ -114,7 +118,7 @@ export const walkthrough: Walkthrough = {
           text: 'A CASE expression turns E, M, S into Enterprise, Mid-Market, SMB once. Users see names, and a question about a tier finds the dimension.',
         },
         {
-          strong: 'Add the words people actually use.',
+          strong: 'Add the words people use.',
           text: 'List synonyms from real questions and support tickets, not guesses. A synonym such as turnover for revenue lets Genie match a word that appears in no column name.',
         },
         {
@@ -139,6 +143,12 @@ export const walkthrough: Walkthrough = {
               'Cheap to write, and AI-generated comments give a first draft that you should review. A comment describes a column and cannot hold logic, so it does not guarantee the same calculation across consumers.',
           },
           {
+            option: 'Pages (Beta)',
+            when: 'A business term, entity, or acronym that needs one authoritative definition, owned by a domain.',
+            tradeoffs:
+              'Docs: a Page has an owner, synonyms, a description, a body, related assets, and sources, and it inherits access from its domain. Genie One prioritizes a Page over context it infers and cites it in answers. It defines a concept in words and holds no calculation, so keep the measure in a metric view and link to it. Beta, so confirm availability with your account team.',
+          },
+          {
             option: 'Genie Agent instructions and SQL expressions',
             when: 'A rule belongs to one agent, such as tone or when to ask a clarifying question.',
             tradeoffs:
@@ -153,6 +163,7 @@ export const walkthrough: Walkthrough = {
           label: 'Metric views',
           url: 'https://docs.databricks.com/aws/en/metric-views/',
         },
+        { label: 'Pages (Beta)', url: 'https://docs.databricks.com/aws/en/uc-semantics/pages' },
         {
           label: 'Agent metadata in metric views',
           url: 'https://docs.databricks.com/aws/en/metric-views/data-modeling/semantic-metadata',
@@ -174,6 +185,10 @@ export const walkthrough: Walkthrough = {
         {
           title: 'Create governed tags with tag policies',
           body: 'A governed tag is an account-level tag whose policy fixes the allowed values and who may assign it. Create tags such as domain, sensitivity, and business_term, then apply them to tables, columns, dashboards, and Genie Agents. Do not put secrets in tag names or values: tag data is stored as plain text.',
+        },
+        {
+          title: 'Define shared terms as Pages (Beta)',
+          body: 'In Discover, open Pages and click Create page. Pick a domain, then fill in the owner, synonyms, description, and body, and link the metric views and tables that implement the term. Save as a draft, then publish. A draft shows up only in Genie One conversations with its owner, and a published Page shows up in all of them. Do not put PII or other sensitive data in Page text. Pages are Beta, and account admins control access from the Previews page.',
         },
         {
           title: 'Draft comments with AI, then review',

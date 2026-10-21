@@ -584,7 +584,7 @@ GRANT SELECT ON schema::cdc TO lakeflow_ingest;`,
       id: 'connection',
       heading: 'Create the SQL Server connection in Unity Catalog',
       prose:
-        'Credentials live in a governed Unity Catalog connection, not in pipeline code. In Catalog Explorer: Catalog, then Connect, Connections, Create connection, type SQL Server, then host, port, user, and password. The connection is just a credential: the gateway that uses it runs on classic compute, and nothing about the connection itself is tied to a compute type.',
+        'Credentials live in a governed Unity Catalog connection, not in pipeline code. In Catalog Explorer: Catalog, then Connect, Connections, Create connection, type SQL Server, then host, port, user, and password. The connection holds only the credential. The gateway that uses it runs on classic compute, and nothing about the connection itself is tied to a compute type.',
       examples: [
         {
           label: 'Create the connection with the CLI',
