@@ -1,0 +1,63 @@
+# Geospatial analytics: load GIS files, join them spatially, aggregate by H3, read inspection PDFs, govern, and export.
+resources:
+  jobs:
+    capability_guides_geospatial:
+      name: capability-guides-geospatial
+      description: Writes a fictional water network (zones, pipes, meters, events, sensors, inspection PDFs), loads it as native GEOMETRY, runs the spatial joins and H3 aggregation, joins parsed inspection reports to the pipes, and applies a district row filter.
+      tags:
+        capability_guide_job: capability_guides_geospatial
+      max_concurrent_runs: 1
+      timeout_seconds: 3600
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${var.schema}
+        - name: radius_m
+          default: ${var.radius_m}
+      tasks:
+        - task_key: land_gis_data
+          notebook_task:
+            notebook_path: ../guides/geospatial-analytics/01_land_gis_data.py
+
+        - task_key: load_geometries
+          depends_on:
+            - task_key: land_gis_data
+          notebook_task:
+            notebook_path: ../guides/geospatial-analytics/02_load_geometries.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
+
+        - task_key: spatial_joins
+          depends_on:
+            - task_key: load_geometries
+          notebook_task:
+            notebook_path: ../guides/geospatial-analytics/03_spatial_joins.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
+
+        - task_key: h3_heat_map
+          depends_on:
+            - task_key: load_geometries
+          notebook_task:
+            notebook_path: ../guides/geospatial-analytics/04_h3_heat_map.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
+
+        - task_key: inspection_documents
+          depends_on:
+            - task_key: load_geometries
+          notebook_task:
+            notebook_path: ../guides/geospatial-analytics/05_inspection_documents.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
+
+        - task_key: govern_and_export
+          depends_on:
+            - task_key: spatial_joins
+            - task_key: h3_heat_map
+            - task_key: inspection_documents
+          notebook_task:
+            notebook_path: ../guides/geospatial-analytics/06_govern_and_export.py
+            base_parameters:
+              run_id: "{{job.run_id}}"

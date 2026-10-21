@@ -1,0 +1,357 @@
+{
+  "datasets": [
+    {
+      "name": "ds_cells",
+      "displayName": "Complaints by H3 cell",
+      "queryLines": [
+        "SELECT cell_hex, longitude, latitude, complaints, complaints_per_100_meters ",
+        "FROM geo_complaint_cells"
+      ]
+    },
+    {
+      "name": "ds_meters",
+      "displayName": "Meters with zone",
+      "queryLines": [
+        "SELECT m.meter_id, m.longitude, m.latitude, coalesce(z.zone_id, 'outside') AS zone_id ",
+        "FROM geo_meters m LEFT JOIN geo_meter_zone z USING (meter_id)"
+      ]
+    },
+    {
+      "name": "ds_impact",
+      "displayName": "Break impact",
+      "queryLines": [
+        "SELECT event_id, asset_type, count(*) AS assets ",
+        "FROM geo_break_impact GROUP BY event_id, asset_type"
+      ]
+    },
+    {
+      "name": "ds_inspections",
+      "displayName": "Inspected pipes",
+      "queryLines": [
+        "SELECT asset_id, condition, zone_id, nearest_break, distance_to_break_m ",
+        "FROM geo_inspected_assets"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "main",
+      "displayName": "Network",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {
+            "name": "title",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Water network: complaints, zones, and break impact"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "sub",
+            "multilineTextboxSpec": {
+              "lines": [
+                "Synthetic data. Cell counts come from H3 resolution 8; zone membership from ST_Contains; impact from ST_DWithin on a metric projection."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 1,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "complaint-map",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_cells",
+                  "fields": [
+                    {
+                      "name": "longitude",
+                      "expression": "`longitude`"
+                    },
+                    {
+                      "name": "latitude",
+                      "expression": "`latitude`"
+                    },
+                    {
+                      "name": "sum(complaints)",
+                      "expression": "SUM(`complaints`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "symbol-map",
+              "frame": {
+                "showTitle": true,
+                "title": "Low-pressure complaints by H3 cell"
+              },
+              "mark": {
+                "opacity": 0.75
+              },
+              "encodings": {
+                "coordinates": {
+                  "latitude": {
+                    "fieldName": "latitude"
+                  },
+                  "longitude": {
+                    "fieldName": "longitude"
+                  }
+                },
+                "color": {
+                  "fieldName": "sum(complaints)",
+                  "scale": {
+                    "type": "quantitative",
+                    "colorRamp": {
+                      "mode": "custom-sequential",
+                      "colors": {
+                        "start": "#FFDC00",
+                        "end": "#C0392B"
+                      }
+                    }
+                  }
+                },
+                "size": {
+                  "fieldName": "sum(complaints)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 6,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "meter-map",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_meters",
+                  "fields": [
+                    {
+                      "name": "longitude",
+                      "expression": "`longitude`"
+                    },
+                    {
+                      "name": "latitude",
+                      "expression": "`latitude`"
+                    },
+                    {
+                      "name": "zone_id",
+                      "expression": "`zone_id`"
+                    },
+                    {
+                      "name": "count(*)",
+                      "expression": "COUNT(`*`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "symbol-map",
+              "frame": {
+                "showTitle": true,
+                "title": "Meters by pressure zone"
+              },
+              "mark": {
+                "opacity": 0.8
+              },
+              "encodings": {
+                "coordinates": {
+                  "latitude": {
+                    "fieldName": "latitude"
+                  },
+                  "longitude": {
+                    "fieldName": "longitude"
+                  }
+                },
+                "color": {
+                  "fieldName": "zone_id",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Zone"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 2,
+            "width": 6,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "impact-bar",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_impact",
+                  "fields": [
+                    {
+                      "name": "event_id",
+                      "expression": "`event_id`"
+                    },
+                    {
+                      "name": "sum(assets)",
+                      "expression": "SUM(`assets`)"
+                    },
+                    {
+                      "name": "asset_type",
+                      "expression": "`asset_type`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "frame": {
+                "showTitle": true,
+                "title": "Assets within the radius of each break"
+              },
+              "encodings": {
+                "x": {
+                  "fieldName": "event_id",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Break"
+                },
+                "y": {
+                  "fieldName": "sum(assets)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Assets"
+                },
+                "color": {
+                  "fieldName": "asset_type",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Asset type"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 10,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "inspections",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_inspections",
+                  "fields": [
+                    {
+                      "name": "asset_id",
+                      "expression": "`asset_id`"
+                    },
+                    {
+                      "name": "condition",
+                      "expression": "`condition`"
+                    },
+                    {
+                      "name": "zone_id",
+                      "expression": "`zone_id`"
+                    },
+                    {
+                      "name": "nearest_break",
+                      "expression": "`nearest_break`"
+                    },
+                    {
+                      "name": "distance_to_break_m",
+                      "expression": "`distance_to_break_m`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "frame": {
+                "showTitle": true,
+                "title": "Inspected pipes and distance to the nearest break"
+              },
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "asset_id",
+                    "displayName": "Pipe"
+                  },
+                  {
+                    "fieldName": "condition",
+                    "displayName": "Condition"
+                  },
+                  {
+                    "fieldName": "zone_id",
+                    "displayName": "Zone"
+                  },
+                  {
+                    "fieldName": "nearest_break",
+                    "displayName": "Nearest break"
+                  },
+                  {
+                    "fieldName": "distance_to_break_m",
+                    "displayName": "Distance (m)"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 10,
+            "width": 6,
+            "height": 6
+          }
+        }
+      ]
+    }
+  ]
+}

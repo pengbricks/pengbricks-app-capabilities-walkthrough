@@ -77,7 +77,8 @@ export const guides: readonly Guide[] = [
     title: 'Metadata-driven ingestion',
     category: 'Ingestion',
     difficulty: 4,
-    summary: 'Describe sources in configuration, run them through shared code, and use native Lakeflow features before a custom runner.',
+    summary:
+      'Describe sources in configuration, run them through shared code, and use native Lakeflow features before a custom runner.',
     acceptanceCriteria:
       'Per-source differences live in validated configuration and, where unavoidable, a narrow adapter. Validation, upserts, and fan-out use expectations, AUTO CDC, and for_each. Rejected rows are quarantined with the failed rule, and every run is audited.',
     evidence: [
@@ -133,7 +134,8 @@ export const guides: readonly Guide[] = [
     title: 'Working with Databricks in VS Code',
     category: 'CI/CD & Version Control Guides',
     difficulty: 2,
-    summary: 'Set up the Databricks extension with OAuth, work from a bundle, and run, debug, and test code against serverless or a cluster.',
+    summary:
+      'Set up the Databricks extension with OAuth, work from a bundle, and run, debug, and test code against serverless or a cluster.',
     acceptanceCriteria:
       'The extension signs in with an OAuth profile, never a personal access token. The project is a bundle with a chosen target, and deploys and runs go through the Bundle Resource Explorer. Code is debugged with Databricks Connect in a virtual environment that matches the compute, with databricks-connect pinned to that version, and pytest runs from the test explorer. Code does not depend on local-only paths such as dbutils.',
     evidence: [
@@ -147,7 +149,8 @@ export const guides: readonly Guide[] = [
     title: 'Collaborating on Databricks projects with Git',
     category: 'CI/CD & Version Control Guides',
     difficulty: 2,
-    summary: 'Work in personal Git folders on short-lived branches, review through pull requests, and deploy through CI.',
+    summary:
+      'Work in personal Git folders on short-lived branches, review through pull requests, and deploy through CI.',
     acceptanceCriteria:
       'Each person works in their own Git folder or IDE clone on a short-lived branch. Git credentials use the Databricks GitHub app or OAuth where available, and automation uses service principal credentials. Main is protected with required review and checks, notebooks are committed without outputs, secrets, or data, and shared and production code deploys only through CI and bundles, never from a hand-edited folder.',
     evidence: [
@@ -175,7 +178,8 @@ export const guides: readonly Guide[] = [
     title: 'GitHub-based CI/CD',
     category: 'CI/CD & Version Control Guides',
     difficulty: 4,
-    summary: 'Author in Git folders or an IDE, deploy with bundles from CI, and promote one commit through environments with approvals.',
+    summary:
+      'Author in Git folders or an IDE, deploy with bundles from CI, and promote one commit through environments with approvals.',
     acceptanceCriteria:
       'People author on short-lived branches in their own Git folders or IDE clones, and production runs from bundle deployments made by CI, never from a hand-edited Git folder. A pull request runs unit tests and bundle validate --strict, a merge deploys the commit to dev, and approvals promote the same commit through the later environments. A service principal deploys over GitHub OIDC with no stored secret, the CLI version is pinned, and every resource carries the release SHA.',
     evidence: [
@@ -189,9 +193,10 @@ export const guides: readonly Guide[] = [
     title: 'Workspaces and catalogs across dev, test, stage, and prod',
     category: 'CI/CD & Version Control Guides',
     difficulty: 3,
-    summary: 'Lay out workspaces, catalogs, bindings, and identities for four environments, and audit a real catalog against the layout.',
+    summary:
+      'Lay out workspaces, catalogs, bindings, and identities for four environments, and audit a real catalog against the layout.',
     acceptanceCriteria:
-      'Three catalog layouts are compared side by side, with the three-level table name each one gives. A bundle deploys dev, test, stage, and prod targets, and a job reads the catalog\'s isolation mode, workspace bindings, owner, and grants and reports what a layout check finds. The four-catalog setup is shown as SQL and CLI commands.',
+      "Three catalog layouts are compared side by side, with the three-level table name each one gives. A bundle deploys dev, test, stage, and prod targets, and a job reads the catalog's isolation mode, workspace bindings, owner, and grants and reports what a layout check finds. The four-catalog setup is shown as SQL and CLI commands.",
     evidence: [
       'Workspace and catalog layout comparison with bundle variable mapping',
       'Audit run with isolation, binding, ownership, and grant findings',
@@ -319,7 +324,8 @@ export const guides: readonly Guide[] = [
     title: 'Business terms and synonyms',
     category: 'AI Guides',
     difficulty: 2,
-    summary: 'Define business terms once with metric views, governed tags, and comments so people and Genie read data the same way.',
+    summary:
+      'Define business terms once with metric views, governed tags, and comments so people and Genie read data the same way.',
     acceptanceCriteria:
       'Business terms and synonyms are defined once in metric views, comments, and governed tags, trusted assets are certified, and Genie benchmarks show how well questions are interpreted.',
     evidence: [
@@ -333,7 +339,8 @@ export const guides: readonly Guide[] = [
     title: 'Genie Agents: setup, instructions, and data handling',
     category: 'AI Guides',
     difficulty: 2,
-    summary: 'Create a Genie Agent, write the instructions that make it accurate, and know which compute, identity, and stored data sit behind each answer.',
+    summary:
+      'Create a Genie Agent, write the instructions that make it accurate, and know which compute, identity, and stored data sit behind each answer.',
     acceptanceCriteria:
       'A Genie Agent is scoped to one domain over curated tables or a metric view, with definitions in SQL and short text instructions. It runs on a serverless SQL warehouse sized for concurrency, answers with each asker’s Unity Catalog permissions, and is versioned in a bundle and tested as a non-admin before rollout.',
     evidence: [
@@ -347,7 +354,8 @@ export const guides: readonly Guide[] = [
     title: 'Agents, MCP, and model gateway',
     category: 'AI Guides',
     difficulty: 5,
-    summary: 'Host MCP servers and agents on Databricks Apps, govern tools and models through Unity Gateway, and trace and evaluate runs.',
+    summary:
+      'Host MCP servers and agents on Databricks Apps, govern tools and models through Unity Gateway, and trace and evaluate runs.',
     acceptanceCriteria:
       'MCP servers and agents run on Databricks Apps with the right identity (app or on-behalf-of user), tools are governed through Unity Gateway and Unity Catalog, models are routed with limits and fallback, and runs are traced and evaluated with MLflow.',
     evidence: [
@@ -375,7 +383,8 @@ export const guides: readonly Guide[] = [
     title: 'Omnigent: coding agents with shared sessions and policies',
     category: 'AI Guides',
     difficulty: 3,
-    summary: 'Run coding agents through one server with shared sessions and enforced policies, using the managed service on Databricks or a self-managed deployment on Apps.',
+    summary:
+      'Run coding agents through one server with shared sessions and enforced policies, using the managed service on Databricks or a self-managed deployment on Apps.',
     acceptanceCriteria:
       'Coding agents run through Omnigent on Databricks, with the managed service as the default and a self-managed deployment on Databricks Apps only for needs it does not cover. Each user connects with their own OAuth identity, models route through Unity Gateway, traces go to MLflow Tracing, and policies set cost budgets, repo allowlists, approval gates, and blast-radius limits at the session, agent, and server levels.',
     evidence: [
@@ -473,7 +482,8 @@ export const guides: readonly Guide[] = [
     title: 'Apache Iceberg interoperability',
     category: 'General Guides',
     difficulty: 4,
-    summary: 'Use managed Iceberg, the Unity Catalog Iceberg REST catalog, and credential vending for governed interoperability.',
+    summary:
+      'Use managed Iceberg, the Unity Catalog Iceberg REST catalog, and credential vending for governed interoperability.',
     acceptanceCriteria:
       'A managed Iceberg table, or a Delta table with Iceberg reads, is chosen for the use case and read by an external engine through the Iceberg REST catalog with vended credentials and a service principal on OAuth M2M.',
     evidence: [
@@ -487,7 +497,8 @@ export const guides: readonly Guide[] = [
     title: 'JSON, CSV, Parquet, Delta, and Iceberg',
     category: 'General Guides',
     difficulty: 2,
-    summary: 'Choose a format by use: Delta by default, Iceberg reads for interop, managed Iceberg when Iceberg is the contract.',
+    summary:
+      'Choose a format by use: Delta by default, Iceberg reads for interop, managed Iceberg when Iceberg is the contract.',
     acceptanceCriteria:
       'Raw files are ingested into Delta, tables are Unity Catalog managed with liquid clustering and predictive optimization, retention is set deliberately, and the format choice for each consumer is explained.',
     evidence: [
@@ -501,13 +512,30 @@ export const guides: readonly Guide[] = [
     title: 'Partner tool integrations',
     category: 'General Guides',
     difficulty: 3,
-    summary: 'Choose the integration pattern for each tool: SQL warehouse, Federation, Lakeflow Connect, sharing, or Lakebase.',
+    summary:
+      'Choose the integration pattern for each tool: SQL warehouse, Federation, Lakeflow Connect, sharing, or Lakebase.',
     acceptanceCriteria:
       'Each priority tool connects through the pattern that fits it, with OAuth identity and Unity Catalog governance, and the choice between query in place, ingest, and share is explained.',
     evidence: [
       'Pattern chosen for each tool, with the reason',
       'OAuth identity and least-privilege grants for each connection',
       'End-to-end exchange through the chosen path',
+    ],
+  },
+  {
+    slug: 'geospatial-analytics',
+    title: 'Geospatial analytics',
+    category: 'General Guides',
+    difficulty: 3,
+    summary:
+      'Load GIS data as native GEOMETRY, join assets to zones and events, aggregate by H3, and tie inspection documents to geometry.',
+    acceptanceCriteria:
+      'GIS files load into governed Delta tables with a known SRID and valid geometry. Zone membership, proximity, and nearest-asset questions are answered with ST_ functions, with H3 used as a prefilter or an aggregation key where it fits. Inspection documents are parsed and joined to asset geometry, results are mapped or exported, and access is limited by district.',
+    evidence: [
+      'Source formats, SRIDs, and the metric projection used for distance',
+      'Spatial joins scored against known answers',
+      'Parsed inspection fields joined to asset geometry',
+      'Map or GIS export, and the grants and row filter on geometry tables',
     ],
   },
   {
@@ -629,7 +657,8 @@ export const guides: readonly Guide[] = [
     title: 'SQL Server connections with Lakeflow Connect',
     category: 'Ingestion',
     difficulty: 3,
-    summary: 'A Unity Catalog connection, a gateway and a serverless pipeline, and CDC or Change Tracking per table. The gateway needs classic compute.',
+    summary:
+      'A Unity Catalog connection, a gateway and a serverless pipeline, and CDC or Change Tracking per table. The gateway needs classic compute.',
     acceptanceCriteria:
       'A Lakeflow Connect gateway and ingestion pipeline replicate SQL Server tables, with SCD type 2 history where needed. Inserts, updates, and deletes reach bronze, schema changes flow through, a single-table full refresh keeps history tables intact, and the pipelines run as a service principal with monitoring and alerts.',
     evidence: [
@@ -745,7 +774,7 @@ export const guides: readonly Guide[] = [
     difficulty: 2,
     summary: 'Choose the right analysis surface and keep it fast at scale.',
     acceptanceCriteria:
-      'Analysts explore in the SQL editor on a serverless SQL warehouse and use serverless notebooks for Python. They aggregate in Spark before collecting to pandas, use the pandas API on Spark for large data, and get help from Genie Code. R runs from the analyst\'s own IDE through sparklyr or ODBC, or in a classic-compute notebook, because serverless has no R and hosted RStudio is end-of-life.',
+      "Analysts explore in the SQL editor on a serverless SQL warehouse and use serverless notebooks for Python. They aggregate in Spark before collecting to pandas, use the pandas API on Spark for large data, and get help from Genie Code. R runs from the analyst's own IDE through sparklyr or ODBC, or in a classic-compute notebook, because serverless has no R and hosted RStudio is end-of-life.",
     evidence: [
       'SQL editor and notebook usage by job',
       'Aggregate-then-collect and pandas API on Spark',
@@ -774,11 +803,7 @@ export const guides: readonly Guide[] = [
     summary: 'Connect Excel, Power BI, Tableau, Python, R, and SAS to one SQL warehouse.',
     acceptanceCriteria:
       'Analysts reach Unity Catalog data from Excel (Add-in, GA), Power BI, Tableau, Python, R, SAS, and SPSS through a serverless SQL warehouse. Every client signs in with OAuth, with a service principal for unattended use and no personal access tokens in shared tools. Permissions follow the signed-in identity.',
-    evidence: [
-      'Client choice per tool',
-      'OAuth U2M and M2M sign-in',
-      'Warehouse sizing and network controls for BI',
-    ],
+    evidence: ['Client choice per tool', 'OAuth U2M and M2M sign-in', 'Warehouse sizing and network controls for BI'],
   },
   {
     slug: 'no-code-data-prep',

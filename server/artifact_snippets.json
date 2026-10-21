@@ -1980,6 +1980,134 @@
       "functions": {}
     }
   ],
+  "geospatial-analytics": [
+    {
+      "path": "reference/geospatial/guides/geospatial-analytics/02_load_geometries.py",
+      "symbol": null,
+      "startLine": 48,
+      "endLine": 58,
+      "language": "py",
+      "code": "spark.sql(f\"\"\"\nCREATE OR REPLACE TABLE {T('geo_zones')} AS\nSELECT f:properties:zone_id::STRING AS zone_id, f:properties:zone_name::STRING AS zone_name,\n       f:properties:district::STRING AS district, f:properties:target_psi::INT AS target_psi,\n       geom, st_transform(geom, {UTM}) AS geom_m\nFROM (SELECT f, st_geomfromgeojson(f:geometry::STRING) AS geom\n      FROM (SELECT explode(cast(parse_json(value):features AS ARRAY<VARIANT>)) AS f\n            FROM read_files('{root}/gis/zones.geojson', format => 'text', wholeText => true)))\n\"\"\")\ndisplay(spark.sql(f\"SELECT zone_id, zone_name, district, target_psi, st_srid(geom) AS srid, st_geometrytype(geom) AS type, round(st_area(geom_m) / 1e6, 2) AS area_km2 FROM {T('geo_zones')} ORDER BY zone_id\"))\n",
+      "functions": {}
+    },
+    {
+      "path": "reference/geospatial/guides/geospatial-analytics/02_load_geometries.py",
+      "symbol": null,
+      "startLine": 75,
+      "endLine": 81,
+      "language": "py",
+      "code": "def point_table(table, source, keep):\n    spark.sql(f\"\"\"\n    CREATE OR REPLACE TABLE {T(table)} CLUSTER BY (h3_r{H3}) AS\n    SELECT {keep}, longitude, latitude, geom, st_transform(geom, {UTM}) AS geom_m, h3_longlatash3(longitude, latitude, {H3}) AS h3_r{H3}\n    FROM (SELECT *, st_point(longitude, latitude, 4326) AS geom FROM read_files('{root}/gis/{source}', format => 'csv', header => true))\n    \"\"\")\n",
+      "functions": {}
+    },
+    {
+      "path": "reference/geospatial/guides/geospatial-analytics/02_load_geometries.py",
+      "symbol": null,
+      "startLine": 138,
+      "endLine": 148,
+      "language": "py",
+      "code": "        ogr.write(path, geometry=np.array([bytes(z.wkb) for z in zones], dtype=object),\n                  field_data=[np.array([z.zone_id for z in zones], dtype=object)], fields=[\"zone_id\"],\n                  geometry_type=\"Polygon\", crs=\"EPSG:4326\", driver=driver)\n        meta, _, geometry, field_data = ogr.read(path)\n        frame = spark.createDataFrame([(str(i), bytearray(w)) for i, w in zip(field_data[0], geometry)], \"zone_id string, wkb binary\")\n        frame.createOrReplaceTempView(\"zz_container_zones\")\n        mismatches = spark.sql(f\"\"\"\n            SELECT count(*) FROM (SELECT zone_id, st_setsrid(st_geomfromwkb(wkb), 4326) AS g FROM zz_container_zones) c\n            JOIN {T('geo_zones')} z USING (zone_id)\n            WHERE NOT (st_npoints(c.g) = st_npoints(z.geom) AND st_distance(st_centroid(c.g), st_centroid(z.geom)) < 1e-5)\"\"\").first()[0]\n        format_results[label] = (len(geometry), mismatches, \"\")",
+      "functions": {}
+    },
+    {
+      "path": "reference/geospatial/guides/geospatial-analytics/03_spatial_joins.py",
+      "symbol": null,
+      "startLine": 46,
+      "endLine": 50,
+      "language": "py",
+      "code": "spark.sql(f\"\"\"\nCREATE OR REPLACE TABLE {T('geo_meter_zone')} AS\nSELECT m.meter_id, m.customer_class, z.zone_id, z.district\nFROM {T('geo_meters')} m LEFT JOIN {T('geo_zones')} z ON st_contains(z.geom, m.geom)\n\"\"\")",
+      "functions": {}
+    },
+    {
+      "path": "reference/geospatial/guides/geospatial-analytics/03_spatial_joins.py",
+      "symbol": null,
+      "startLine": 69,
+      "endLine": 72,
+      "language": "py",
+      "code": "spark.sql(f\"\"\"\nCREATE OR REPLACE TABLE {T('geo_zone_cells')} AS\nSELECT zone_id, explode(h3_coverash3(st_astext(geom), {H3})) AS cell FROM {T('geo_zones')}\n\"\"\")",
+      "functions": {}
+    },
+    {
+      "path": "reference/geospatial/guides/geospatial-analytics/03_spatial_joins.py",
+      "symbol": null,
+      "startLine": 78,
+      "endLine": 82,
+      "language": "py",
+      "code": "prefiltered = spark.sql(f\"\"\"\nSELECT m.meter_id, z.zone_id\nFROM {T('geo_meters')} m JOIN {T('geo_zone_cells')} c ON m.h3_r{H3} = c.cell\nJOIN {T('geo_zones')} z ON z.zone_id = c.zone_id AND st_contains(z.geom, m.geom)\"\"\")\nexact = spark.sql(f\"SELECT meter_id, zone_id FROM {T('geo_meter_zone')} WHERE zone_id IS NOT NULL\")",
+      "functions": {}
+    },
+    {
+      "path": "reference/geospatial/guides/geospatial-analytics/03_spatial_joins.py",
+      "symbol": null,
+      "startLine": 106,
+      "endLine": 116,
+      "language": "py",
+      "code": "spark.sql(f\"\"\"\nCREATE OR REPLACE TABLE {T('geo_break_impact')} AS\nSELECT e.event_id, 'meter' AS asset_type, m.meter_id AS asset_id, z.zone_id, round(st_distance(e.geom_m, m.geom_m), 1) AS distance_m\nFROM (SELECT *, explode(h3_kring(h3_r{H3}, 2)) AS ring_cell FROM {T('geo_events')} WHERE event_type = 'main_break') e\nJOIN {T('geo_meters')} m ON m.h3_r{H3} = e.ring_cell AND st_dwithin(e.geom_m, m.geom_m, {radius})\nLEFT JOIN {T('geo_meter_zone')} z ON z.meter_id = m.meter_id\nUNION ALL\nSELECT e.event_id, 'pipe', p.pipe_id, NULL, round(st_distance(e.geom_m, p.geom_m), 1)\nFROM {T('geo_events')} e JOIN {T('geo_pipes')} p ON st_dwithin(e.geom_m, p.geom_m, {radius})\nWHERE e.event_type = 'main_break'\n\"\"\")",
+      "functions": {}
+    },
+    {
+      "path": "reference/geospatial/guides/geospatial-analytics/03_spatial_joins.py",
+      "symbol": null,
+      "startLine": 161,
+      "endLine": 168,
+      "language": "py",
+      "code": "spark.sql(f\"\"\"\nCREATE OR REPLACE TABLE {T('geo_sensor_pipe')} AS\nSELECT sensor_id, pipe_id, distance_m FROM (\n  SELECT s.sensor_id, p.pipe_id, round(st_distance(s.geom_m, p.geom_m), 1) AS distance_m,\n         row_number() OVER (PARTITION BY s.sensor_id ORDER BY st_distance(s.geom_m, p.geom_m)) AS rank\n  FROM {T('geo_sensors')} s JOIN {T('geo_pipes')} p ON st_dwithin(s.geom_m, p.geom_m, 100))\nWHERE rank = 1\n\"\"\")",
+      "functions": {}
+    },
+    {
+      "path": "reference/geospatial/guides/geospatial-analytics/04_h3_heat_map.py",
+      "symbol": null,
+      "startLine": 31,
+      "endLine": 48,
+      "language": "py",
+      "code": "spark.sql(f\"\"\"\nCREATE OR REPLACE TABLE {T('geo_complaint_cells')} AS\nWITH complaints AS (\n  SELECT h3_toparent(h3_r{H3}, {HEAT}) AS cell, count(*) AS complaints\n  FROM {T('geo_events')} WHERE event_type = 'low_pressure_complaint' GROUP BY 1),\nmeters AS (\n  SELECT h3_toparent(h3_r{H3}, {HEAT}) AS cell, count(*) AS meters FROM {T('geo_meters')} GROUP BY 1),\ncells AS (\n  SELECT c.cell, c.complaints, coalesce(m.meters, 0) AS meters FROM complaints c LEFT JOIN meters m USING (cell)),\nsmoothed AS (\n  SELECT a.cell, sum(b.complaints) AS complaints_with_neighbors\n  FROM (SELECT cell, explode(h3_kring(cell, 1)) AS neighbor FROM cells) a JOIN cells b ON b.cell = a.neighbor GROUP BY a.cell)\nSELECT h3_h3tostring(c.cell) AS cell_hex, c.complaints, c.meters,\n       CASE WHEN c.meters > 0 THEN round(100.0 * c.complaints / c.meters, 1) END AS complaints_per_100_meters,\n       s.complaints_with_neighbors,\n       st_x(st_geomfromtext(h3_centeraswkt(c.cell))) AS longitude, st_y(st_geomfromtext(h3_centeraswkt(c.cell))) AS latitude\nFROM cells c JOIN smoothed s USING (cell)\n\"\"\")",
+      "functions": {}
+    },
+    {
+      "path": "reference/geospatial/guides/geospatial-analytics/05_inspection_documents.py",
+      "symbol": null,
+      "startLine": 41,
+      "endLine": 48,
+      "language": "py",
+      "code": "CREATE OR REPLACE TABLE {T('geo_reports_parsed')} AS\nSELECT path, doc,\n       coalesce(array_size(try_variant_get(doc, '$.error_status', 'ARRAY<VARIANT>')), 0) AS parse_errors,\n       array_size(cast(doc:document:pages AS ARRAY<VARIANT>)) AS pages,\n       concat_ws('\\\\n', transform(cast(doc:document:elements AS ARRAY<VARIANT>), e -> e:content::STRING)) AS text\nFROM (SELECT path, ai_parse_document(content, map('version', '2.0')) AS doc\n      FROM read_files('{reports}/', format => 'binaryFile', pathGlobFilter => '*.pdf'))\n\"\"\")",
+      "functions": {}
+    },
+    {
+      "path": "reference/geospatial/guides/geospatial-analytics/05_inspection_documents.py",
+      "symbol": null,
+      "startLine": 62,
+      "endLine": 92,
+      "language": "py",
+      "code": "CREATE OR REPLACE TABLE {T('geo_reports_extracted')} AS\nSELECT element_at(split(path, '/'), -1) AS file,\n       r:response:asset_id::STRING AS asset_id, r:response:condition::STRING AS condition,\n       r:response:inspection_date::STRING AS inspection_date, r:error_message::STRING AS extract_error\nFROM (SELECT path, ai_extract(text, {schema_json}, map('version', '2.0')) AS r FROM {T('geo_reports_parsed')} WHERE parse_errors = 0)\n\"\"\")\ndisplay(spark.sql(f\"\"\"\nSELECT x.file, x.asset_id, t.asset_id AS expected_asset, x.condition, t.condition AS expected_condition, x.inspection_date, t.inspection_date AS expected_date, x.extract_error\nFROM {T('geo_reports_extracted')} x FULL JOIN {T('geo_truth_reports')} t USING (file) ORDER BY file\"\"\"))\n\n# COMMAND ----------\n\n# MAGIC %md\n# MAGIC ## Join to the pipe geometry\n# MAGIC\n# MAGIC Join on the extracted asset ID. A report whose ID matches no pipe keeps a row with a null `pipe_id` so it can be reviewed, not lost. The distance to the nearest main break uses the metric column.\n\n# COMMAND ----------\n\nspark.sql(f\"\"\"\nCREATE OR REPLACE TABLE {T('geo_inspected_assets')} AS\nWITH pipe_zone AS (  -- a main that crosses a zone line intersects two zones; keep the lower zone ID\n  SELECT p.pipe_id, min(z.zone_id) AS zone_id FROM {T('geo_pipes')} p JOIN {T('geo_zones')} z ON st_intersects(z.geom, p.geom) GROUP BY p.pipe_id)\nSELECT x.file, x.asset_id, x.condition, to_date(x.inspection_date) AS inspection_date,\n       p.pipe_id IS NOT NULL AS matched_pipe, p.material, p.diameter_mm, p.install_year, p.length_m, z.zone_id, p.geom,\n       b.event_id AS nearest_break, round(b.distance_m, 0) AS distance_to_break_m\nFROM {T('geo_reports_extracted')} x\nLEFT JOIN {T('geo_pipes')} p ON p.pipe_id = x.asset_id\nLEFT JOIN pipe_zone z ON z.pipe_id = p.pipe_id\nLEFT JOIN (SELECT p2.pipe_id, e.event_id, st_distance(p2.geom_m, e.geom_m) AS distance_m,\n                  row_number() OVER (PARTITION BY p2.pipe_id ORDER BY st_distance(p2.geom_m, e.geom_m)) AS rank",
+      "functions": {}
+    },
+    {
+      "path": "reference/geospatial/src/dashboards/water_network.lvdash.json",
+      "symbol": null,
+      "startLine": 77,
+      "endLine": 112,
+      "language": "json",
+      "code": "            \"name\": \"complaint-map\",\n            \"queries\": [\n              {\n                \"name\": \"main_query\",\n                \"query\": {\n                  \"datasetName\": \"ds_cells\",\n                  \"fields\": [\n                    {\n                      \"name\": \"longitude\",\n                      \"expression\": \"`longitude`\"\n                    },\n                    {\n                      \"name\": \"latitude\",\n                      \"expression\": \"`latitude`\"\n                    },\n                    {\n                      \"name\": \"sum(complaints)\",\n                      \"expression\": \"SUM(`complaints`)\"\n                    }\n                  ],\n                  \"disaggregated\": false\n                }\n              }\n            ],\n            \"spec\": {\n              \"version\": 2,\n              \"widgetType\": \"symbol-map\",\n              \"frame\": {\n                \"showTitle\": true,\n                \"title\": \"Low-pressure complaints by H3 cell\"\n              },\n              \"mark\": {\n                \"opacity\": 0.75\n              },\n              \"encodings\": {\n                \"coordinates\": {",
+      "functions": {}
+    },
+    {
+      "path": "reference/geospatial/guides/geospatial-analytics/06_govern_and_export.py",
+      "symbol": null,
+      "startLine": 41,
+      "endLine": 51,
+      "language": "py",
+      "code": "rows = spark.sql(f\"\"\"\nSELECT i.event_id, m.meter_id, m.customer_class, i.zone_id, i.distance_m, st_astext(m.geom) AS wkt, st_asgeojson(m.geom) AS geojson\nFROM {T('geo_break_impact')} i JOIN {T('geo_meters')} m ON m.meter_id = i.asset_id WHERE i.asset_type = 'meter' ORDER BY i.event_id, i.distance_m\"\"\").collect()\nimport csv\nwith open(f\"{root}/exports/impacted_meters.csv\", \"w\", newline=\"\") as handle:\n    writer = csv.writer(handle)\n    writer.writerow([\"event_id\", \"meter_id\", \"customer_class\", \"zone_id\", \"distance_m\", \"wkt\"])\n    writer.writerows([[r.event_id, r.meter_id, r.customer_class, r.zone_id, r.distance_m, r.wkt] for r in rows])\nfeatures = [{\"type\": \"Feature\", \"properties\": {\"event_id\": r.event_id, \"meter_id\": r.meter_id, \"zone_id\": r.zone_id, \"distance_m\": r.distance_m}, \"geometry\": json.loads(r.geojson)} for r in rows]\nwith open(f\"{root}/exports/impacted_meters.geojson\", \"w\") as handle:\n    json.dump({\"type\": \"FeatureCollection\", \"features\": features}, handle)",
+      "functions": {}
+    },
+    {
+      "path": "reference/geospatial/guides/geospatial-analytics/06_govern_and_export.py",
+      "symbol": null,
+      "startLine": 69,
+      "endLine": 78,
+      "language": "py",
+      "code": "spark.sql(f\"\"\"\nCREATE FUNCTION {T('geo_district_filter')}(row_district STRING)\nRETURN EXISTS (SELECT 1 FROM {T('geo_district_access')} a WHERE a.user_name = current_user() AND a.district = row_district)\n\"\"\")\nspark.sql(f\"\"\"\nCREATE TABLE {T('geo_meters_governed')} AS\nSELECT m.meter_id, m.customer_class, z.district, m.geom FROM {T('geo_meters')} m JOIN {T('geo_meter_zone')} z USING (meter_id) WHERE z.district IS NOT NULL\n\"\"\")\nall_rows = spark.table(T(\"geo_meters_governed\")).count()\nspark.sql(f\"ALTER TABLE {T('geo_meters_governed')} SET ROW FILTER {T('geo_district_filter')} ON (district)\")",
+      "functions": {}
+    }
+  ],
   "github-cicd": [
     {
       "path": ".github/workflows/reference-cicd.yml",
