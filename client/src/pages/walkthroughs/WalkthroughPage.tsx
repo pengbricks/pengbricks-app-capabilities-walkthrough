@@ -5,6 +5,7 @@ import { CodeBlock, HighlightedCode } from '../../components/CodeBlock.tsx';
 import { CodeExcerpt } from '../../components/CodeExcerpt.tsx';
 import { FlowDiagramView, MatrixDiagramView } from '../../components/WalkthroughDiagram.tsx';
 import { guessLanguage } from '../../lib/highlight.ts';
+import { valueIcons } from '../../components/valueIcon.ts';
 import { getWalkthrough } from '../../data/walkthroughs/index.ts';
 import { useGuideArtifacts, type CodeHighlight } from '../../lib/artifacts.ts';
 import type {
@@ -78,6 +79,9 @@ export function WalkthroughPage() {
   );
 }
 
+// Up to six short-version cards share one row; longer lists split into two even rows.
+const shortColumns = (count: number) => (count <= 6 ? count : Math.ceil(count / 2));
+
 // The walkthrough content without page chrome, so a guide page can lead with it.
 export function WalkthroughBody({
   walkthrough,
@@ -87,6 +91,7 @@ export function WalkthroughBody({
   excerpts?: CodeHighlight[];
 }) {
   const value = walkthrough.businessValue;
+  const icons = value ? valueIcons(value.outcomes) : [];
   return (
     <>
       {value && (
@@ -94,19 +99,25 @@ export function WalkthroughBody({
           <h2 id="h-value">Business value</h2>
           <p className="value-summary">{value.summary}</p>
           <ul className="value-list">
-            {value.outcomes.map((item) => (
-              <li key={item.title}>
-                <h3>{item.title}</h3>
-                <p>{item.body}</p>
-              </li>
-            ))}
+            {value.outcomes.map((item, index) => {
+              const Icon = icons[index];
+              return (
+                <li key={item.title}>
+                  <span className="value-icon" aria-hidden="true">
+                    <Icon className="size-5" />
+                  </span>
+                  <h3>{item.title}</h3>
+                  <p>{item.body}</p>
+                </li>
+              );
+            })}
           </ul>
         </section>
       )}
 
       <section className="guide-section" id="short" aria-labelledby="h-short">
         <h2 id="h-short">The short version</h2>
-        <ol className="short-list">
+        <ol className="short-list" style={{ ['--short-count' as string]: shortColumns(walkthrough.shortVersion.length) }}>
           {walkthrough.shortVersion.map((item) => (
             <li key={item.title}>
               <h3>{item.title}</h3>
