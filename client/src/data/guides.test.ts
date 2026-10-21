@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { categories, difficulties, getGuide, guides } from './guides.ts';
+import { learningPath } from './learningPath.ts';
 
 describe('guide catalog', () => {
   it('defines a unique one-pager route for every guide', () => {
@@ -31,5 +32,11 @@ describe('guide catalog', () => {
     expect(getGuide('reusability-templatization')?.category).toBe('Ingestion');
     expect(getGuide('batch-real-time-ingestion')?.category).toBe('Ingestion');
     expect(getGuide('data-ingestion-feature-preparation')?.category).toBe('Ingestion');
+  });
+
+  it('places every guide exactly once on the learning path', () => {
+    const onPath = learningPath.flatMap((stage) => stage.slugs);
+    expect(new Set(onPath).size, 'duplicates on the path').toBe(onPath.length);
+    expect([...onPath].sort()).toEqual(guides.map((guide) => guide.slug).sort());
   });
 });

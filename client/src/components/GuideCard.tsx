@@ -5,11 +5,18 @@ import type { Guide } from '../data/guides.ts';
 import guideUpdates from '../data/guideUpdates.json';
 import { DifficultyStars } from './DifficultyStars.tsx';
 
-export function GuideCard({ guide }: { guide: Guide }) {
+export function GuideCard({ guide, step }: { guide: Guide; step?: number }) {
   return (
     <Card className="group relative flex h-full flex-col rounded-lg shadow-none transition-colors hover:border-foreground">
       <CardHeader className="gap-2 p-5">
-        <DifficultyStars value={guide.difficulty} />
+        <div className="flex items-center justify-between gap-3">
+          <DifficultyStars value={guide.difficulty} />
+          {step !== undefined && (
+            <span className="rounded-full border px-2 py-0.5 text-xs font-medium tabular-nums text-muted-foreground">
+              Step {step}
+            </span>
+          )}
+        </div>
         <h3 className="text-xl font-semibold leading-snug tracking-tight">{guide.title}</h3>
       </CardHeader>
       <CardContent className="flex-1 px-5 pb-5">

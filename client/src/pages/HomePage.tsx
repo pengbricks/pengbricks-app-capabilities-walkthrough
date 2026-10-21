@@ -1,9 +1,11 @@
 import { Button, Card, CardContent, Input } from '@databricks/appkit-ui/react';
 import { Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router';
 import { DifficultyStars } from '../components/DifficultyStars.tsx';
 import { GuideCard } from '../components/GuideCard.tsx';
-import { categories, difficulties, guides, type Difficulty } from '../data/guides.ts';
+import { categories, difficulties, guides, type Difficulty, type Guide } from '../data/guides.ts';
+import { learningPath, learningStep } from '../data/learningPath.ts';
 
 const allCategories = 'All guides';
 
@@ -24,6 +26,15 @@ export function HomePage() {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState(allCategories);
   const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
+  // The view lives in the URL (?view=path) so a link can open straight into the learning path.
+  const [params, setParams] = useSearchParams();
+  const pathView = params.get('view') === 'path';
+  const setPathView = (on: boolean) => {
+    const next = new URLSearchParams(params);
+    if (on) next.set('view', 'path');
+    else next.delete('view');
+    setParams(next, { replace: true });
+  };
 
   const filteredGuides = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -40,18 +51,8 @@ export function HomePage() {
 
   return (
     <div className="mx-auto max-w-[1440px] px-5 py-10 lg:px-8 lg:py-14">
-      <section className="border-b pb-8">
-        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Platform guides</p>
-        <h1 className="mt-2 max-w-3xl text-4xl font-bold tracking-[-0.03em] sm:text-5xl">
-          Databricks capability walkthrough
-        </h1>
-        <p className="mt-5 max-w-3xl text-lg leading-8 text-muted-foreground">
-          One page per guide: what to demonstrate, which Databricks capabilities apply, and the reference implementation
-          behind it.
-        </p>
-      </section>
 
-      <section id="guide-library" className="scroll-mt-20 pt-10 lg:grid lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-10">
+      <section id="guide-library" className="scroll-mt-20 lg:grid lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-10">
         <aside className="lg:sticky lg:top-24 lg:self-start">
           <label htmlFor="guide-search" className="text-sm font-semibold">
             Search guides
@@ -116,11 +117,31 @@ export function HomePage() {
         </aside>
 
         <div className="mt-6 lg:mt-0">
-          <p className="text-sm text-muted-foreground" aria-live="polite">
-            Showing {filteredGuides.length} of {guides.length} guides
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground" aria-live="polite">
+              Showing {filteredGuides.length} of {guides.length} guides
+            </p>
+            <div role="group" aria-label="Order guides" className="inline-flex rounded-full border p-0.5 text-sm">
+              {[
+                { on: false, label: 'By area' },
+                { on: true, label: 'Learning path' },
+              ].map((option) => (
+                <button
+                  key={option.label}
+                  type="button"
+                  aria-pressed={pathView === option.on}
+                  onClick={() => setPathView(option.on)}
+                  className={`rounded-full px-3.5 py-1.5 transition-colors ${pathView === option.on ? 'bg-primary font-medium text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
-          {filteredGuides.length > 0 ? (
+          {filteredGuides.length > 0 && pathView ? (
+            <PathView guides={filteredGuides} />
+          ) : filteredGuides.length > 0 ? (
             categories.map((area) => {
               // Easiest first within each area; sort is stable, so equal ratings keep catalog order.
               const areaGuides = filteredGuides
@@ -168,5 +189,35 @@ export function HomePage() {
         </div>
       </section>
     </div>
+  );
+}
+
+// Guides in learning order, grouped by stage. Filters still apply; a stage with no matches is hidden.
+function PathView({ guides: visible }: { guides: Guide[] }) {
+  const bySlug = new Map(visible.map((guide) => [guide.slug, guide]));
+  return (
+    <>
+      {learningPath.map((stage, index) => {
+        const stageGuides = stage.slugs.flatMap((slug) => bySlug.get(slug) ?? []);
+        if (stageGuides.length === 0) return null;
+        const sectionId = `stage-${index + 1}`;
+        return (
+          <section key={stage.title} className="mt-10" aria-labelledby={sectionId}>
+            <div className="mb-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Stage {index + 1}</p>
+              <h2 id={sectionId} className="mt-1 text-2xl font-bold tracking-tight">
+                {stage.title}
+              </h2>
+              <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">{stage.summary}</p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {stageGuides.map((guide) => (
+                <GuideCard key={guide.slug} guide={guide} step={learningStep.get(guide.slug)} />
+              ))}
+            </div>
+          </section>
+        );
+      })}
+    </>
   );
 }
