@@ -114,6 +114,22 @@ export const walkthrough: Walkthrough = {
           text: 'Dataset materialization, in Beta per the release notes, stores dashboard dataset results on a schedule so published dashboards render from stored results.',
         },
       ],
+      options: {
+        caption: 'Whose permissions a published dashboard uses',
+        rows: [
+          {
+            option: 'Shared data permissions (default)',
+            when: 'A broad audience on data that is not sensitive, or viewers without access to the underlying tables.',
+            tradeoffs: 'Queries run with the publisher\'s credential, which can be a service principal, and every viewer sees the same data. Scheduled updates fill a shared cache, so dashboards load faster and the warehouse runs fewer queries. Row filters and column masks do not vary by viewer.',
+          },
+          {
+            option: 'Individual data permissions',
+            when: 'Readers have different entitlements and row filters or column masks must apply per person.',
+            tradeoffs: 'Queries run as each viewer, who needs permission on the underlying data. Without a shared cache, load times and warehouse use depend on each viewer, though viewers can opt into refresh-only schedules for a personal cache.',
+          },
+        ],
+        recommendation: 'Publish with shared data permissions, using a service principal credential, for broad non-sensitive audiences. Use individual data permissions when readers differ in what they may see.',
+      },
       links: [
         {
           label: 'Schedules and subscriptions',
@@ -158,6 +174,39 @@ export const walkthrough: Walkthrough = {
           language: 'sql',
           code: 'GRANT READ VOLUME ON VOLUME <catalog>.<schema>.extracts TO `partner-analysts`;',
           notes: ['The files sit in a Unity Catalog volume, so access is a grant, not a shared link.'],
+        },
+      ],
+      options: {
+        caption: 'How to give data to someone outside',
+        rows: [
+          {
+            option: 'A file in a Unity Catalog volume',
+            when: 'The reader\'s system expects a CSV or Parquet drop and cannot connect to Databricks.',
+            tradeoffs: 'Works for any consumer, and access is a READ VOLUME grant. The file is a copy that is out of date once written, so you own the schedule, the row-count check, and format changes.',
+          },
+          {
+            option: 'OpenSharing of the table',
+            when: 'Live data for an outside organization.',
+            tradeoffs: 'No copies, and the recipient reads current data. Recipients need a client that supports your table features, and you manage the share and recipients.',
+          },
+          {
+            option: 'Dashboard or SQL editor download',
+            when: 'A one-time copy of what is on screen.',
+            tradeoffs: 'No setup. Row limits apply, the download is manual, and nobody verifies the file against the source.',
+          },
+        ],
+        recommendation: 'Use OpenSharing for outside organizations that can read it, files in a volume for systems that only take files, and downloads for one-off requests.',
+      },
+      links: [
+        {
+          label: 'OpenSharing',
+          url: 'https://docs.databricks.com/aws/en/opensharing',
+          note: 'Share tables and views with outside recipients.',
+        },
+        {
+          label: 'Work with files in Unity Catalog volumes',
+          url: 'https://docs.databricks.com/aws/en/ingestion/file-upload/',
+          note: 'Write files to a volume and grant access.',
         },
       ],
     },

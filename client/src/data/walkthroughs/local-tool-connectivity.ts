@@ -139,10 +139,46 @@ export const walkthrough: Walkthrough = {
           notes: ['The SQL connector, Databricks Connect, and odbc::databricks() all read these settings.'],
         },
       ],
+      options: {
+        caption: 'Which identity the client uses',
+        rows: [
+          {
+            option: 'OAuth U2M: the user signs in',
+            when: 'Excel, Power BI Desktop, Tableau, and interactive Python or R.',
+            tradeoffs: 'Queries run as the person, so Unity Catalog grants, row filters, and masks apply per user and the audit log names them. It needs an interactive browser sign-in, so it cannot run unattended.',
+          },
+          {
+            option: 'OAuth M2M: a service principal',
+            when: 'Scheduled reports, batch SAS jobs, and shared refreshes.',
+            tradeoffs: 'Runs unattended. Everyone using it gets the service principal\'s access, so per-person row filters do not apply. The client secret has to be stored and rotated, and each access token lasts one hour.',
+          },
+          {
+            option: 'OAuth token federation',
+            when: 'Your identity provider already issues tokens.',
+            tradeoffs: 'The client holds no Databricks secret. You set up a federation policy and depend on the identity provider\'s tokens.',
+          },
+        ],
+        recommendation: 'Use U2M for people, M2M for scheduled unattended work, and token federation where your identity provider can supply tokens.',
+      },
       links: [
         {
           label: 'Authorize access with OAuth',
           url: 'https://docs.databricks.com/aws/en/dev-tools/auth/',
+        },
+        {
+          label: 'OAuth user-to-machine (U2M) authentication',
+          url: 'https://docs.databricks.com/aws/en/dev-tools/auth/oauth-u2m',
+          note: 'Browser sign-in for a user.',
+        },
+        {
+          label: 'OAuth machine-to-machine (M2M) authentication',
+          url: 'https://docs.databricks.com/aws/en/dev-tools/auth/oauth-m2m',
+          note: 'Service principal client ID and secret.',
+        },
+        {
+          label: 'OAuth token federation',
+          url: 'https://docs.databricks.com/aws/en/dev-tools/auth/oauth-federation',
+          note: 'Exchange identity provider tokens.',
         },
       ],
     },
@@ -183,6 +219,27 @@ export const walkthrough: Walkthrough = {
         { strong: 'R.', text: 'DBI with odbc::databricks() reads tables on the warehouse. For Spark work from R, use sparklyr through Databricks Connect.' },
         { strong: 'SAS, SPSS, and other desktop tools.', text: 'Configure the Databricks ODBC or JDBC driver with the warehouse host and HTTP path, and sign in with OAuth.' },
       ],
+      options: {
+        caption: 'Which client to use from Python and other languages',
+        rows: [
+          {
+            option: 'Databricks SQL connector for Python',
+            when: 'A script or app that sends SQL and wants rows back, for example into pandas.',
+            tradeoffs: 'A light client with no Spark install. SQL runs on a SQL warehouse and you pay for the warehouse. There is no DataFrame API, and results must fit in the local process.',
+          },
+          {
+            option: 'Databricks Connect',
+            when: 'DataFrame code written locally and run on serverless compute.',
+            tradeoffs: 'The full DataFrame API with local debugging and tests. The install is heavier, the client version must match the compute, and serverless limits apply.',
+          },
+          {
+            option: 'ODBC or JDBC driver',
+            when: 'Tools that only speak ODBC or JDBC, such as SAS and SPSS, or R with odbc.',
+            tradeoffs: 'Works with many desktop tools through generic drivers. It needs per-tool driver setup and gives you no DataFrame API.',
+          },
+        ],
+        recommendation: 'Use the SQL connector for scripts that need rows, Databricks Connect for DataFrame code and tests, and ODBC or JDBC only where the tool requires it.',
+      },
       links: [
         {
           label: 'Databricks SQL connector for Python',

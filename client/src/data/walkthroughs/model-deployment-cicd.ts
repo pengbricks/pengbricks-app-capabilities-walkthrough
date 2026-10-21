@@ -136,6 +136,27 @@ client.set_registered_model_alias("prod.churn.classifier", "champion", copied.ve
           notes: ['The copy keeps the artifacts and signature. Tag the new version with the source version and the approver.'],
         },
       ],
+      options: {
+        caption: 'How a model reaches production',
+        rows: [
+          {
+            option: 'Deploy code: train in each environment',
+            when: 'The default. Production data is restricted to production.',
+            tradeoffs: 'Databricks recommends it. Production data stays in production, and retraining is safer because the training code is reviewed and tested. Data scientists have to hand off code and read results from the production environment, and you pay for training in more than one environment. A hybrid trains once in staging on the full data.',
+          },
+          {
+            option: 'Deploy models: train once, copy the version up',
+            when: 'Training is very expensive or hard to reproduce, or you work in one workspace without CI/CD.',
+            tradeoffs: 'Simple handoff and a single training run. It does not work when dev cannot reach production data, automated retraining is harder to trust, and the code for features, inference, and monitoring has to be deployed separately.',
+          },
+          {
+            option: 'One catalog, aliases only',
+            when: 'A small team that accepts one set of grants for every stage.',
+            tradeoffs: 'No copy step, and moving an alias is the promotion. Grants apply to the registered model, so you cannot give production different access than development.',
+          },
+        ],
+        recommendation: 'Deploy code, with a catalog per environment. Choose deploy models when training is too costly to repeat or production data is out of reach from dev.',
+      },
       links: [
         {
           label: 'Models in Unity Catalog',
@@ -149,6 +170,11 @@ client.set_registered_model_alias("prod.churn.classifier", "champion", copied.ve
         {
           label: 'MLOps deployment patterns',
           url: 'https://docs.databricks.com/aws/en/machine-learning/mlops/deployment-patterns',
+        },
+        {
+          label: 'Recommended MLOps workflow',
+          url: 'https://docs.databricks.com/aws/en/machine-learning/mlops/mlops-workflow',
+          note: 'The workflow behind the deploy code pattern.',
         },
       ],
     },
@@ -292,6 +318,22 @@ if not passed:
           notes: ['Apply with the endpoint config update API. Move to 100 and remove the old entity when the canary holds.'],
         },
       ],
+      options: {
+        caption: 'How to switch traffic to a new version',
+        rows: [
+          {
+            option: 'Move the alias and update the endpoint',
+            when: 'Internal consumers, low-risk changes, or consumers that load by alias.',
+            tradeoffs: 'The simplest path, and rollback is moving the alias back because versions are immutable. All traffic sees the new version at once, so a bad model reaches everyone before metrics show it.',
+          },
+          {
+            option: 'Canary with a traffic split on one endpoint',
+            when: 'Customer-facing or high-impact models.',
+            tradeoffs: 'Two served entities share the endpoint, so you pay for both while the split runs. You widen the share as metrics hold, and the same mechanism runs A/B tests. It needs enough traffic and a metric to read.',
+          },
+        ],
+        recommendation: 'Use a canary split for models that touch customers or money, and flip the alias for the rest. Keep a documented rollback path for both.',
+      },
       links: [
         {
           label: 'Serve multiple models on one endpoint',

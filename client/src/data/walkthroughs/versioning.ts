@@ -170,6 +170,32 @@ ALTER TABLE main.sales.customers DROP COLUMN legacy_flag;`,
           notes: ['rescue keeps unexpected fields in _rescued_data, so nothing is lost and the schema does not move.'],
         },
       ],
+      options: {
+        caption: 'What Auto Loader does with a new column',
+        rows: [
+          {
+            option: 'addNewColumns (default)',
+            when: 'Bronze ingestion where new source fields should reach the table.',
+            tradeoffs: 'The stream fails once with an UnknownFieldException after it adds the new columns, then resumes when restarted. Run it as a Lakeflow Job with automatic restart. Existing column types do not change.',
+          },
+          {
+            option: 'rescue',
+            when: 'The schema must stay put and nothing may be lost.',
+            tradeoffs: 'The schema never evolves and the stream does not fail. New fields land in the rescued data column, and someone has to read it and promote columns on purpose.',
+          },
+          {
+            option: 'failOnNewColumns',
+            when: 'A strict contract where the producer must announce changes.',
+            tradeoffs: 'No surprise columns. The stream stops and stays stopped until you update the schema or remove the offending file, so each upstream change pages someone.',
+          },
+          {
+            option: 'none',
+            when: 'Only a fixed set of columns matters.',
+            tradeoffs: 'New columns are ignored and the stream never fails. Data is not rescued unless you set the rescued data column, so values can disappear without a signal.',
+          },
+        ],
+        recommendation: 'Use rescue for bronze tables that feed a reviewed gold layer, and addNewColumns where the producer adds fields often and a job restarts the stream. Use none only with a rescued data column set.',
+      },
       links: [
         {
           label: 'Delta type widening',
@@ -219,10 +245,41 @@ ALTER TABLE main.sales.customers
           notes: ['Adding a constraint checks existing rows and fails if any violate it, so fix the data first.'],
         },
       ],
+      options: {
+        caption: 'Where to reject bad rows',
+        rows: [
+          {
+            option: 'Table constraints (NOT NULL, CHECK)',
+            when: 'Gold tables and any table whose readers rely on the rule.',
+            tradeoffs: 'A write that violates a constraint fails the whole transaction, so bad rows never land. The producer job fails and someone fixes the data. Adding a constraint checks existing rows and fails if any violate it.',
+          },
+          {
+            option: 'Pipeline expectation that drops rows',
+            when: 'Ingestion layers where losing a few rows is acceptable and you want counts.',
+            tradeoffs: 'Invalid records are dropped before they reach the target, and the pipeline UI shows how many. Dropped rows are gone from the table unless you capture them elsewhere.',
+          },
+          {
+            option: 'Pipeline expectation that fails the update',
+            when: 'Layers where one bad record means the data should not publish.',
+            tradeoffs: 'Invalid records stop the update, and manual intervention is required before reprocessing. Nothing bad lands, and the pipeline is down until someone acts.',
+          },
+          {
+            option: 'Quarantine pattern',
+            when: 'You want good rows to flow and bad rows kept for review.',
+            tradeoffs: 'Valid rows reach the target and invalid rows go to a side table, with no loss and no failure. It takes extra pipeline logic, and someone has to review the quarantine table.',
+          },
+        ],
+        recommendation: 'Use constraints on gold tables, and expectations in ingestion pipelines with quarantine where bad rows need review. The default expectation action, warn, keeps invalid rows in the target.',
+      },
       links: [
         {
           label: 'Constraints on Databricks',
           url: 'https://docs.databricks.com/aws/en/tables/constraints',
+        },
+        {
+          label: 'Manage data quality with pipeline expectations',
+          url: 'https://docs.databricks.com/aws/en/ldp/expectations',
+          note: 'Warn, drop, and fail actions, and quarantine patterns.',
         },
       ],
     },
@@ -273,10 +330,36 @@ ALTER TABLE main.sales.customers
           text: 'Nonbreaking changes keep the same object. A breaking one publishes a new versioned object and leaves the old interface in place as deprecated.',
         },
       ],
+      options: {
+        caption: 'How to ship a rename, a drop, or a change in meaning',
+        rows: [
+          {
+            option: 'Add the new column, keep the old one, then drop later',
+            when: 'A rename that can run in two steps, with a grace period for readers.',
+            tradeoffs: 'Adding a nullable column is nonbreaking, so readers keep working while they move. Writers fill two columns for a while, and the copies can drift apart. You finish with a drop, which needs column mapping.',
+          },
+          {
+            option: 'Column mapping in place',
+            when: 'You know every reader and can update them together.',
+            tradeoffs: 'A rename or drop is metadata only, with no files rewritten. It breaks queries that name the old column and can break streaming readers. It raises the minimum reader and writer protocol versions, so check every reader and share recipient first.',
+          },
+          {
+            option: 'A new versioned table behind a compatibility view',
+            when: 'Readers you cannot move on your schedule, external recipients, a narrowed type, or a change in meaning.',
+            tradeoffs: 'Old names keep working through the view until the sunset date. You keep two tables for a while, need a backfill, and have to tag, announce, and retire the old view.',
+          },
+        ],
+        recommendation: 'Add and deprecate first. Use column mapping when you control every reader, and use a versioned table behind a view when readers are outside your control or the meaning changes.',
+      },
       links: [
         {
           label: 'Views',
           url: 'https://docs.databricks.com/aws/en/views',
+        },
+        {
+          label: 'Rename and drop columns with column mapping',
+          url: 'https://docs.databricks.com/aws/en/tables/features/column-mapping',
+          note: 'Protocol requirements and limits.',
         },
       ],
     },

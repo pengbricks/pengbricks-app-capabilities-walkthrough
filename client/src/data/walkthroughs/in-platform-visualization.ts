@@ -82,6 +82,27 @@ export const walkthrough: Walkthrough = {
           text: 'Power BI and Tableau can query metric views, so a report outside Databricks shares the definition.',
         },
       ],
+      options: {
+        caption: 'Where a measure is defined',
+        rows: [
+          {
+            option: 'Metric view',
+            when: 'The same measure is sliced many ways across dashboards, Genie, notebooks, and BI tools.',
+            tradeoffs: 'One definition serves every consumer through MEASURE(). Someone owns the YAML definition, and SQL authors learn one extra function.',
+          },
+          {
+            option: 'Standard view',
+            when: 'A fixed shape, such as a joined and filtered table at one grain.',
+            tradeoffs: 'Plain SQL that everyone knows. A standard view locks in its grouping when you create it, so each new grouping becomes a new view and the formula gets copied.',
+          },
+          {
+            option: 'SQL in a dashboard dataset',
+            when: 'One dashboard or a prototype.',
+            tradeoffs: 'The fastest to build. The formula lives in that dashboard only, so other dashboards and Genie rebuild it and the numbers can diverge.',
+          },
+        ],
+        recommendation: 'Use a metric view for any measure that more than one consumer needs, a standard view for fixed shapes, and dataset SQL for prototypes.',
+      },
       links: [
         {
           label: 'Unity Catalog metric views',
@@ -90,6 +111,11 @@ export const walkthrough: Walkthrough = {
         {
           label: 'Create a metric view',
           url: 'https://docs.databricks.com/aws/en/metric-views/create',
+        },
+        {
+          label: 'Views',
+          url: 'https://docs.databricks.com/aws/en/views',
+          note: 'Standard views, materialized views, and dynamic views.',
         },
       ],
     },
@@ -124,6 +150,44 @@ export const walkthrough: Walkthrough = {
           { kind: 'store', label: 'Unity Catalog table' },
         ],
       },
+      options: {
+        caption: 'Which surface presents the numbers',
+        rows: [
+          {
+            option: 'AI/BI dashboard',
+            when: 'A recurring, shared view with filters and scheduled snapshots.',
+            tradeoffs: 'Published and governed, with schedules and subscriptions. The questions are fixed by its authors, and viewers explore through filters and cross-filtering.',
+          },
+          {
+            option: 'Genie Agent or Genie One',
+            when: 'Open-ended questions in plain language.',
+            tradeoffs: 'Flexible and needs no SQL. Answer quality depends on how well the space is set up with metric views and instructions, so people should read the SQL it shows. It is not a fixed report.',
+          },
+          {
+            option: 'Notebook charts',
+            when: 'Analyst exploration and custom figures.',
+            tradeoffs: 'Full freedom with the visualization editor, matplotlib, or Plotly. The audience needs notebook access, and results update only when someone reruns the code.',
+          },
+        ],
+        recommendation: 'Use a dashboard for the recurring view, Genie for follow-up questions on the same metric view, and notebook charts for analysis.',
+      },
+      links: [
+        {
+          label: 'AI/BI dashboards',
+          url: 'https://docs.databricks.com/aws/en/dashboards/',
+          note: 'Build, publish, and share.',
+        },
+        {
+          label: 'Genie Agents',
+          url: 'https://docs.databricks.com/aws/en/genie-agents/',
+          note: 'Plain-language questions over governed data.',
+        },
+        {
+          label: 'Visualizations in notebooks and the SQL editor',
+          url: 'https://docs.databricks.com/aws/en/notebooks/visualizations/',
+          note: 'Built-in charts and custom figures.',
+        },
+      ],
     },
     {
       id: 'dashboards',

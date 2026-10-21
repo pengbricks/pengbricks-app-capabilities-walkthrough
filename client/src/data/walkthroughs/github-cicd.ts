@@ -364,6 +364,27 @@ jobs:
       DATABRICKS_CLIENT_ID: \${{ vars.DATABRICKS_CLIENT_ID }}`,
         },
       ],
+      options: {
+        caption: 'How CI signs in to Databricks',
+        rows: [
+          {
+            option: 'OIDC workload identity federation',
+            when: 'GitHub Actions, or any CI that can present an OIDC token.',
+            tradeoffs: 'No secret sits in GitHub and nothing needs rotating. You create a federation policy on each service principal, and the subject has to match the repository and environment exactly, including the numeric IDs that newer repositories carry.',
+          },
+          {
+            option: 'OAuth M2M with a service principal secret',
+            when: 'A CI system that cannot issue OIDC tokens.',
+            tradeoffs: 'Works with any CI. The client ID and secret live in the CI secret store and have to be rotated, access tokens last one hour, and a leaked secret works from anywhere until you revoke it.',
+          },
+          {
+            option: 'Personal access token',
+            when: 'Throwaway tests only.',
+            tradeoffs: 'The token belongs to a person, so the pipeline breaks when that person leaves. Databricks recommends OAuth over PATs where possible, and it revokes PATs unused for 90 days.',
+          },
+        ],
+        recommendation: 'Use OIDC federation. Fall back to OAuth M2M only where the CI system cannot present OIDC tokens, and avoid PATs in pipelines.',
+      },
       links: [
         {
           label: 'Enable workload identity federation for GitHub Actions',
@@ -374,6 +395,16 @@ jobs:
           label: 'OAuth token federation',
           url: 'https://docs.databricks.com/aws/en/dev-tools/auth/oauth-federation',
           note: 'How federation works across CI providers.',
+        },
+        {
+          label: 'Authorize service principal access with OAuth (M2M)',
+          url: 'https://docs.databricks.com/aws/en/dev-tools/auth/oauth-m2m',
+          note: 'Client ID and secret flow, and token lifetime.',
+        },
+        {
+          label: 'Personal access token authentication',
+          url: 'https://docs.databricks.com/aws/en/dev-tools/auth/pat',
+          note: 'PAT limits and why OAuth is preferred.',
         },
       ],
     },
@@ -400,6 +431,22 @@ jobs:
           text: 'Each deploy job runs bundle validate --strict for its own target first, then deploy, then run.',
         },
       ],
+      options: {
+        caption: 'What starts a production deploy',
+        rows: [
+          {
+            option: 'Deploy on every merge to main, with reviewers on the environment',
+            when: 'Trunk-based teams making small, steady changes.',
+            tradeoffs: 'Each merged commit moves toward prod and waits at the approval gate, so changes ship in small steps. It relies on protected main and good tests, because the merge itself starts the pipeline.',
+          },
+          {
+            option: 'Release tag or workflow_dispatch',
+            when: 'Fixed release windows, or change management that wants an explicit release.',
+            tradeoffs: 'You choose when prod changes and which SHA ships, and a rollback is the same workflow run on an older tag. Main can run ahead of prod, so releases bundle more changes and test and prod drift further apart.',
+          },
+        ],
+        recommendation: 'Deploy on merge with required reviewers on stage and prod, and keep a workflow_dispatch run on a tag for rollbacks and hotfixes.',
+      },
       links: [
         {
           label: 'GitHub Actions with Databricks',

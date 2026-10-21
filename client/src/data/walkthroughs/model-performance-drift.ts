@@ -279,10 +279,36 @@ WHERE drift_type = 'BASELINE'
           text: 'Keep the trigger, the comparison, the approver, and the outcome with the model version.',
         },
       ],
+      options: {
+        caption: 'How to compare a challenger with the champion',
+        rows: [
+          {
+            option: 'Offline comparison on a recent labeled window',
+            when: 'Labels arrive soon enough, and you want no exposure in production.',
+            tradeoffs: 'Both models score the same data, so the comparison is fair. It reflects only the window you pick, labels may lag, and it cannot show how users react to the new model.',
+          },
+          {
+            option: 'Canary with a traffic split',
+            when: 'You need live evidence from real requests.',
+            tradeoffs: 'Real behavior, with a small share of traffic on the new version. Both versions are served at once, and you need enough traffic and time to read the result.',
+          },
+          {
+            option: 'Shadow endpoint',
+            when: 'High-risk changes where no user may see the new score.',
+            tradeoffs: 'No user impact. A traffic split does not mirror requests, so the caller or a proxy has to send the copy, and you pay for a second endpoint.',
+          },
+        ],
+        recommendation: 'Start with an offline comparison on a recent labeled window. Add a canary split for customer-facing models once the offline result holds.',
+      },
       links: [
         {
           label: 'Models in Unity Catalog',
           url: 'https://docs.databricks.com/aws/en/machine-learning/manage-model-lifecycle',
+        },
+        {
+          label: 'Serve multiple models on one endpoint',
+          url: 'https://docs.databricks.com/aws/en/machine-learning/model-serving/serve-multiple-models-to-serving-endpoint',
+          note: 'Traffic split for a canary.',
         },
       ],
     },
@@ -310,10 +336,36 @@ def psi(baseline, current, bins=10, eps=1e-6):
           ],
         },
       ],
+      options: {
+        caption: 'Where drift is computed',
+        rows: [
+          {
+            option: 'Built-in drift metrics in the profile',
+            when: 'Standard per-column statistics against a baseline or the previous window.',
+            tradeoffs: 'A managed pipeline that runs on serverless compute for jobs, writes metric tables, and generates a dashboard. The profile refresh has a cost you can track, and you accept its metrics and binning.',
+          },
+          {
+            option: 'Custom metrics in the profile',
+            when: 'One more number from the same table, such as a weighted mean or a business quality score.',
+            tradeoffs: 'The metric runs in the same refresh and lands in the same tables, so alerts and the dashboard reuse it. You define it through the MonitorMetric API and keep it with the profile.',
+          },
+          {
+            option: 'A standalone job',
+            when: 'Different binning, a metric across several columns, or a result outside the monitored table.',
+            tradeoffs: 'Full control, as in the PSI function below. You own the schedule, backfills, result tables, tests, and alerting.',
+          },
+        ],
+        recommendation: 'Start with the built-in metrics, add custom metrics for one more number, and write a job only when the profile cannot express the metric.',
+      },
       links: [
         {
           label: 'Custom metrics in data profiling',
           url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/data-quality-monitoring/data-profiling/custom-metrics',
+        },
+        {
+          label: 'Data profiling',
+          url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/data-quality-monitoring/data-profiling/',
+          note: 'Profile types, refresh, and cost.',
         },
       ],
     },

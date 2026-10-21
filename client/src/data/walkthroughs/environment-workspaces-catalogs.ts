@@ -449,9 +449,31 @@ variables: { catalog: analytics, schema: prod_sales }`,
           text: 'Pass the commit SHA as the release variable, so every job in every environment carries the release it came from.',
         },
       ],
+      options: {
+        caption: 'Where lower environments get their data',
+        rows: [
+          {
+            option: 'Generated sample data',
+            when: 'Dev and test, where integration tests need the same rows on every run.',
+            tradeoffs: 'No real data leaves prod, so governance risk is lowest, and a seeded generator makes failures reproducible. Generated rows can miss odd shapes in real data, so add bad rows on purpose, and someone has to maintain the generator.',
+          },
+          {
+            option: 'Masked copy built inside prod',
+            when: 'Stage, or any test that needs the shape and volume of real data.',
+            tradeoffs: 'Realistic data. A reviewed job in prod builds the masked output and only that output moves down. A masking mistake leaks real values, so the job needs review, and it uses prod compute and needs an owner for the refresh.',
+          },
+          {
+            option: 'OpenSharing of one approved dataset',
+            when: 'Environments on different metastores or in different regions.',
+            tradeoffs: 'Read-only access with no copy to maintain. It is not a way around the prod binding, so share an approved or masked dataset and not a raw prod table. Shares and recipients need management.',
+          },
+        ],
+        recommendation: 'Generate data in dev and test, and add a masked or shared sample in stage only when tests need real shapes. Do not copy prod tables down.',
+      },
       links: [
         { label: 'OpenSharing', url: 'https://docs.databricks.com/aws/en/delta-sharing/' },
         { label: 'GitHub Actions with Databricks', url: 'https://docs.databricks.com/aws/en/dev-tools/ci-cd/github' },
+        { label: 'Row filters and column masks', url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/filters-and-masks/' },
       ],
     },
     {

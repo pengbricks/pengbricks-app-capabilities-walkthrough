@@ -152,6 +152,27 @@ with mlflow.start_run() as run:
           notes: ['One run now holds the data, code, seed, environment, and model needed to rerun it.'],
         },
       ],
+      options: {
+        caption: 'How to log a run',
+        rows: [
+          {
+            option: 'mlflow.autolog()',
+            when: 'Supported libraries, and exploration where you want records with no extra code.',
+            tradeoffs: 'Logs parameters, metrics, and the model for supported libraries with no extra code. What it records varies by library, and it does not know your data version, seed, or commit.',
+          },
+          {
+            option: 'Manual log calls',
+            when: 'A custom training loop, a library autologging does not cover, or a fixed set of names across teams.',
+            tradeoffs: 'You decide the names and exactly what is recorded. Every call is code to maintain, and a missed call is a missing record.',
+          },
+          {
+            option: 'Autolog plus explicit calls for the rest',
+            when: 'Most production runs.',
+            tradeoffs: 'Default coverage plus the pieces autologging misses: the logged dataset, the seed, the Git commit, and pinned requirements. A short helper keeps the explicit part the same in every project.',
+          },
+        ],
+        recommendation: 'Turn on autologging and add explicit calls for the data input, seed, commit, and pinned requirements.',
+      },
       links: [
         {
           label: 'Databricks autologging',
@@ -228,10 +249,36 @@ with mlflow.start_run() as run:
           text: 'Multithreaded training, GPUs, and some algorithms vary run to run. Fix what you can and size the tolerance for the rest.',
         },
       ],
+      options: {
+        caption: 'How to keep the training data replayable',
+        rows: [
+          {
+            option: 'Log the Delta table version and rely on time travel',
+            when: 'Replays within weeks, on tables you control.',
+            tradeoffs: 'No copy and no extra storage. It works only while the old files exist. VACUUM removes files older than 7 days by default, and raising retention keeps more files, which costs storage on that table.',
+          },
+          {
+            option: 'Deep clone the training set',
+            when: 'Models you must reproduce or audit months or years later.',
+            tradeoffs: 'An independent copy of data and metadata that survives VACUUM and later changes to the source. It costs storage, and you log the clone name as the input. A shallow clone still references the source files, so it does not give you this.',
+          },
+          {
+            option: 'Export to a versioned volume path',
+            when: 'The source is not Delta, or an auditor needs plain files.',
+            tradeoffs: 'Portable files with a path you can log. You maintain naming, versioning, and permissions yourself, and the link to table lineage is lost.',
+          },
+        ],
+        recommendation: 'Pin a Delta version for routine runs and raise retention on tables behind important models. Deep clone the training set when a model has to be reproducible years later.',
+      },
       links: [
         {
           label: 'Table history and retention',
           url: 'https://docs.databricks.com/aws/en/tables/history',
+        },
+        {
+          label: 'Clone a table',
+          url: 'https://docs.databricks.com/aws/en/tables/operations/clone',
+          note: 'Deep and shallow clones.',
         },
       ],
     },

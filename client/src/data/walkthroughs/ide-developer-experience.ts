@@ -129,6 +129,27 @@ def get_spark() -> SparkSession:
           notes: ['Authentication comes from your Databricks CLI profile or environment variables, never from the code.'],
         },
       ],
+      options: {
+        caption: 'Where your code runs while you develop',
+        rows: [
+          {
+            option: 'Databricks Connect on serverless',
+            when: 'Daily work on Python and DataFrame code that you debug locally and test with pytest.',
+            tradeoffs: 'No cluster to start or keep warm, and serverless bills for the compute your queries use. Serverless limits apply, such as no custom libraries in Python UDFs, and Spark Connect does not support RDD or JVM-level APIs. The databricks-connect version you install has to match what serverless supports.',
+          },
+          {
+            option: 'Databricks Connect on a cluster',
+            when: 'Your code needs libraries, init scripts, instance types, or GPUs that serverless does not allow.',
+            tradeoffs: 'The cluster has to be running, so you wait for it to start and pay while it sits idle unless it auto-terminates. Each developer needs access to a cluster, and its Databricks Runtime version decides which databricks-connect version you install.',
+          },
+          {
+            option: 'A notebook in a Git folder',
+            when: 'Exploring data, quick fixes, or checking behavior on the exact workspace runtime.',
+            tradeoffs: 'No local setup, and the code runs where the job runs. You have no IDE debugger or pytest test explorer, and tests take longer to run, so keep the logic in modules that you also test from the IDE and CI.',
+          },
+        ],
+        recommendation: 'Default to Databricks Connect on serverless. Move to a cluster only when a library or hardware need rules out serverless, and use Git folder notebooks for exploration.',
+      },
       links: [
         {
           label: 'Databricks Connect for Python',
@@ -139,6 +160,16 @@ def get_spark() -> SparkSession:
           label: 'Databricks extension for VS Code',
           url: 'https://docs.databricks.com/aws/en/dev-tools/vscode-ext',
           note: 'Run, debug, and deploy bundles from the editor.',
+        },
+        {
+          label: 'Databricks Connect cluster and serverless configuration',
+          url: 'https://docs.databricks.com/aws/en/dev-tools/databricks-connect/cluster-config',
+          note: 'Connect to a cluster or to serverless compute.',
+        },
+        {
+          label: 'Limitations of Databricks Connect for Python',
+          url: 'https://docs.databricks.com/aws/en/dev-tools/databricks-connect/python/limitations',
+          note: 'What does not run over Spark Connect.',
         },
       ],
     },
@@ -250,6 +281,27 @@ select = ["E", "F", "I"]`,
           notes: ['Pin the databricks-connect version to the compute you target in development.'],
         },
       ],
+      options: {
+        caption: 'How notebooks and jobs share code',
+        rows: [
+          {
+            option: 'Python wheel built by the bundle',
+            when: 'Several jobs or teams use the same code, or you want versions and a test suite for it.',
+            tradeoffs: 'One version, one test suite, and one install path in every environment. It needs a pyproject.toml and a build on deploy, and each consumer has to pick up a new wheel version to get a fix.',
+          },
+          {
+            option: 'Python modules as workspace files',
+            when: 'One repository and one team, with notebooks sitting next to the code in a Git folder.',
+            tradeoffs: 'No build step, and a notebook imports the code on the branch it has checked out, so code and notebooks stay in sync. Imports depend on the working directory or sys.path, and on serverless the working directory is not guaranteed, so use absolute paths. Versions are Git commits.',
+          },
+          {
+            option: '%run on a shared notebook',
+            when: 'A quick prototype that already lives in notebooks.',
+            tradeoffs: 'Nothing to set up. pytest cannot import the shared notebook, and it shares one namespace with the caller. Databricks suggests replacing %run with imports from workspace files.',
+          },
+        ],
+        recommendation: 'Use a wheel once more than one job or team shares the code. Workspace-file modules work inside a single repository, and %run is for prototypes you plan to replace.',
+      },
       links: [
         {
           label: 'Bundle project templates',
@@ -260,6 +312,16 @@ select = ["E", "F", "I"]`,
           label: 'Python wheel dependencies in bundles',
           url: 'https://docs.databricks.com/aws/en/dev-tools/bundles/library-dependencies',
           note: 'Build and install a wheel on a job task.',
+        },
+        {
+          label: 'Work with Python and R modules',
+          url: 'https://docs.databricks.com/aws/en/files/workspace-modules',
+          note: 'Import modules from workspace files and move off %run.',
+        },
+        {
+          label: 'Build a Python wheel with a bundle',
+          url: 'https://docs.databricks.com/aws/en/dev-tools/bundles/python-wheel',
+          note: 'Template, build, deploy, and run.',
         },
       ],
     },

@@ -136,6 +136,27 @@ export const walkthrough: Walkthrough = {
           text: 'Admins can set a Git URL allowlist to limit which repositories users can clone, commit to, or push to, and can encrypt stored Git credentials with customer-managed keys. Git folders use HTTPS only, not SSH, and do not support GPG commit signing.',
         },
       ],
+      options: {
+        caption: 'Which Git credential to use',
+        rows: [
+          {
+            option: 'Databricks GitHub app (OAuth)',
+            when: 'People using hosted GitHub or GitHub Enterprise Cloud.',
+            tradeoffs: 'It uses OAuth 2.0, renews tokens automatically, and limits access to the repositories you choose. GitHub Enterprise Server cannot link this way, and Enterprise Managed Users can use it for organization repositories only.',
+          },
+          {
+            option: 'Personal access token',
+            when: 'Providers without OAuth linking, such as Azure DevOps, and GitHub Enterprise Server.',
+            tradeoffs: 'Works with any provider reached over HTTPS. The token belongs to one person, expires, and has to be rotated by hand. Scope it to the repositories and permissions you need and set an expiry. Azure DevOps does not accept Microsoft Entra ID tokens for Git folders.',
+          },
+          {
+            option: 'Service principal with its own Git credential',
+            when: 'Jobs, CI pipelines, and anything that should not depend on a person.',
+            tradeoffs: 'Automation keeps working when a person leaves, and commits show a machine identity. It is still a stored token on a dedicated bot or machine account, so give it an owner and an expiry.',
+          },
+        ],
+        recommendation: 'Link the GitHub app for people on hosted GitHub, use a scoped token elsewhere, and run every job and pipeline as a service principal with its own credential.',
+      },
       links: [
         {
           label: 'Connect your Git provider to Databricks',
@@ -242,6 +263,34 @@ export const walkthrough: Walkthrough = {
         {
           strong: 'Delete branches in the provider.',
           text: 'You cannot delete a branch from a Git folder. A local copy can linger for up to 30 days after the remote branch is deleted.',
+        },
+      ],
+      options: {
+        caption: 'How to merge a pull request',
+        rows: [
+          {
+            option: 'Squash merge',
+            when: 'Short-lived branches where one pull request is one logical change.',
+            tradeoffs: 'One commit per pull request on main, which is easy to read and revert. Branch history is gone, so delete the branch after merging instead of working on it further.',
+          },
+          {
+            option: 'Merge commit',
+            when: 'Each commit on the branch means something and you want to keep it.',
+            tradeoffs: 'History stays complete and no rewrite happens. The log on main gets longer and includes merge commits.',
+          },
+          {
+            option: 'Rebase and merge',
+            when: 'A linear history on a branch only you use.',
+            tradeoffs: 'The history is linear. Rebase rewrites commits and forces a push, which the Databricks docs warn can cause trouble for others on the same branch.',
+          },
+        ],
+        recommendation: 'Squash merge is a good default for short-lived branches. Pick one strategy per repository and set it in your Git provider, because Databricks does not enforce it.',
+      },
+      links: [
+        {
+          label: 'Create and manage Git folders',
+          url: 'https://docs.databricks.com/aws/en/repos/git-operations-with-repos',
+          note: 'Merge, rebase, and conflict handling in the Git dialog.',
         },
       ],
     },
