@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { guides } from '../guides.ts';
 import { faqsBySlug } from './index.ts';
+import { faqTopics } from './topics.ts';
 
 const slugs = new Set(guides.map((guide) => guide.slug));
+const topicSlugs = new Set(faqTopics.map((topic) => topic.slug));
 const isValidUrl = (url: string) => {
   if (url.startsWith('https://')) return true;
   const match = /^\/(walkthroughs|guides)\/([a-z0-9-]+)$/.exec(url);
@@ -10,8 +12,17 @@ const isValidUrl = (url: string) => {
 };
 
 describe('guide FAQs', () => {
-  it('only has files named for real guide slugs', () => {
-    expect(Object.keys(faqsBySlug).filter((slug) => !slugs.has(slug))).toEqual([]);
+  it('only has files named for real guide or topic slugs', () => {
+    expect(Object.keys(faqsBySlug).filter((slug) => !slugs.has(slug) && !topicSlugs.has(slug))).toEqual([]);
+  });
+
+  it('keeps topic slugs distinct from guide slugs', () => {
+    expect([...topicSlugs].filter((slug) => slugs.has(slug))).toEqual([]);
+  });
+
+  it('gives every topic at least 3 questions', () => {
+    const short = faqTopics.filter((topic) => (faqsBySlug[topic.slug]?.length ?? 0) < 3).map((topic) => topic.slug);
+    expect(short).toEqual([]);
   });
 
   it('gives every guide at least 3 questions', () => {

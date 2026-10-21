@@ -236,4 +236,6 @@ body,
 .faq-item summary:hover { color: var(--brand, inherit); }
 .faq-answer { margin: 0 0 1rem 1.5rem; max-width: 46rem; line-height: 1.7; color: var(--muted-foreground); }
 .faq-links { margin-top: 0.625rem; display: flex; flex-wrap: wrap; gap: 0.25rem 1.25rem; }
+.faq-kind { display: inline-block; margin-right: 0.5rem; padding: 0.0625rem 0.5rem; border: 1px solid var(--border); border-radius: 9999px; font-size: 0.75rem; font-weight: 600; vertical-align: 0.0625rem; color: var(--muted-foreground); }
+.faq-kind-decision { color: var(--foreground); }
 .faq-links a { color: var(--foreground); font-weight: 600; text-decoration: underline; text-underline-offset: 4px; }

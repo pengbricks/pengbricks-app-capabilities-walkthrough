@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { FaqItem } from '../components/FaqList.tsx';
 import { HeadingLink } from '../components/HeadingLink.tsx';
-import { faqGroups } from '../data/faqs/index.ts';
+import { faqGroups, faqTopicGroups } from '../data/faqs/index.ts';
 import type { Faq } from '../data/faqs/types.ts';
 import { areaSlug } from '../lib/deepLinks.ts';
 
@@ -26,8 +26,20 @@ export function FaqPage() {
   };
 
   const total = useMemo(
-    () => faqGroups.reduce((n, area) => n + area.guides.reduce((m, g) => m + g.faqs.length, 0), 0),
+    () =>
+      faqTopicGroups.reduce((n, group) => n + group.faqs.length, 0) +
+      faqGroups.reduce((n, area) => n + area.guides.reduce((m, g) => m + g.faqs.length, 0), 0),
     []
+  );
+  const topics = useMemo(
+    () =>
+      faqTopicGroups
+        .map((group) => ({
+          ...group,
+          items: group.faqs.map((faq, index) => ({ faq, index })).filter(({ faq }) => !needle || matches(faq, needle)),
+        }))
+        .filter((group) => group.items.length > 0),
+    [needle]
   );
   const groups = useMemo(
     () =>
@@ -47,15 +59,17 @@ export function FaqPage() {
         .filter((area) => area.guides.length > 0),
     [needle]
   );
-  const shown = groups.reduce((n, area) => n + area.guides.reduce((m, g) => m + g.items.length, 0), 0);
+  const shown =
+    topics.reduce((n, group) => n + group.items.length, 0) +
+    groups.reduce((n, area) => n + area.guides.reduce((m, g) => m + g.items.length, 0), 0);
 
   return (
     <div className="mx-auto max-w-[1100px] px-5 py-10 lg:px-8 lg:py-14">
       <header>
         <h1 className="text-3xl font-bold tracking-tight">Questions</h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-          Questions people ask while working through the guides, answered from the guides themselves. Each group links
-          to its guide, and each question has its own link.
+          Questions people ask while working through the guides, answered from the guides themselves, plus topics that
+          span guides. Each guide group links to its guide, and each question has its own link.
         </p>
         <label htmlFor="faq-search" className="mt-6 block text-sm font-semibold">
           Search questions
@@ -76,7 +90,33 @@ export function FaqPage() {
         </p>
       </header>
 
-      {groups.length === 0 ? (
+      {topics.length > 0 && (
+        <section className="mt-10" aria-labelledby="faq-topics">
+          <h2 id="faq-topics" className="group scroll-mt-20 text-2xl font-bold tracking-tight">
+            Topics
+            <HeadingLink id="faq-topics" label="Topics" />
+          </h2>
+          {topics.map(({ topic, items }) => {
+            const topicId = `faq-topic-${topic.slug}`;
+            return (
+              <section key={topic.slug} className="faq-group" aria-labelledby={topicId}>
+                <h3 id={topicId} className="group scroll-mt-20 text-lg font-semibold">
+                  {topic.title}
+                  <HeadingLink id={topicId} label={topic.title} />
+                </h3>
+                <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">{topic.summary}</p>
+                <div className="faq-list">
+                  {items.map(({ faq, index }) => (
+                    <FaqItem key={index} slug={topic.slug} index={index} faq={faq} forceOpen={needle.length > 0} />
+                  ))}
+                </div>
+              </section>
+            );
+          })}
+        </section>
+      )}
+
+      {groups.length === 0 && topics.length === 0 ? (
         <Card className="mt-10 border-dashed shadow-none">
           <CardContent className="flex min-h-40 flex-col items-center justify-center text-center">
             <h2 className="font-semibold">No questions found</h2>

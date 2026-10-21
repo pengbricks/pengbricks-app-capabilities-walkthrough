@@ -1,10 +1,14 @@
 import { categories, guides, type Guide, type GuideCategory } from '../guides.ts';
+import { faqTopics, type FaqTopic } from './topics.ts';
 import type { Faq } from './types.ts';
 
-// Every faqs/<guide-slug>.ts exports `faqs`. Types, this file, and tests are not content.
-const modules = import.meta.glob<{ faqs?: Faq[] }>(['./*.ts', '!./types.ts', '!./index.ts', '!./*.test.ts'], {
-  eager: true,
-});
+// Every faqs/<guide-slug>.ts and faqs/<topic-slug>.ts exports `faqs`. Types, topics, this file, and tests are not content.
+const modules = import.meta.glob<{ faqs?: Faq[] }>(
+  ['./*.ts', '!./types.ts', '!./topics.ts', '!./index.ts', '!./*.test.ts'],
+  {
+    eager: true,
+  }
+);
 
 export const faqsBySlug: Readonly<Record<string, readonly Faq[]>> = Object.fromEntries(
   Object.entries(modules).flatMap(([path, mod]) => {
@@ -36,3 +40,10 @@ export const faqGroups: readonly FaqAreaGroup[] = categories
       .filter((group) => group.faqs.length > 0),
   }))
   .filter((group) => group.guides.length > 0);
+
+export type FaqTopicGroup = { topic: FaqTopic; faqs: readonly Faq[] };
+
+/** Cross-guide topics in topics.ts order. Topics without FAQs are left out. */
+export const faqTopicGroups: readonly FaqTopicGroup[] = faqTopics
+  .map((topic) => ({ topic, faqs: faqsFor(topic.slug) }))
+  .filter((group) => group.faqs.length > 0);

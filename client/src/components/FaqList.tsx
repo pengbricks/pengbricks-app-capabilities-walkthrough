@@ -1,7 +1,9 @@
 import { useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router';
 import { faqId } from '../data/faqs/index.ts';
-import type { Faq } from '../data/faqs/types.ts';
+import type { Faq, FaqKind } from '../data/faqs/types.ts';
+
+const kindLabel: Record<FaqKind, string> = { decision: 'Decision', tradeoff: 'Tradeoff' };
 
 // One question as a disclosure. It opens when the URL hash points at it (or when forceOpen is set,
 // for search results), and ScrollToHash handles the scrolling.
@@ -27,7 +29,10 @@ export function FaqItem({
   }, [forceOpen]);
   return (
     <details ref={ref} id={id} className="faq-item">
-      <summary>{faq.question}</summary>
+      <summary>
+        {faq.kind && <span className={`faq-kind faq-kind-${faq.kind}`}>{kindLabel[faq.kind]}</span>}
+        {faq.question}
+      </summary>
       <div className="faq-answer">
         <p>{faq.answer}</p>
         {faq.links && faq.links.length > 0 && (
