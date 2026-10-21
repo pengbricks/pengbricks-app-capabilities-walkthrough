@@ -5,7 +5,7 @@ export const walkthrough: Walkthrough = {
   area: 'AI Guides',
   title: 'Omnigent: coding agents with shared sessions and policies',
   intro:
-    'Omnigent is an open-source meta-harness that sits above coding agents such as Claude Code, Codex, Cursor, and Pi. Run the agents through one server, share sessions with your team, and set the rules in policies the server enforces around every action. On Databricks you start with the managed service (Beta) and keep identity, models, tracing, and data access on the platform. Deploy it yourself on Databricks Apps only when you need something the managed service does not expose. This page covers the pattern in that order.',
+    'Every agent ships with its own harness, which makes it hard to compose agents, collaborate across people and agents, and control cost and security. Omnigent is an open-source meta-harness, a layer above the harness that sits over coding agents such as Claude Code, Codex, Cursor, and Pi. Run the agents through one server, share sessions with your team, and set the rules in policies the server enforces around every action. On Databricks you start with the managed service (Beta) and keep identity, models, tracing, and data access on the platform. Deploy it yourself on Databricks Apps only when you need something the managed service does not expose. This page covers the pattern in that order.',
   businessValue: {
     summary:
       'Coding agents already run in your engineers’ terminals. Omnigent adds one layer above them so teams compose several agents, collaborate on shared sessions, and control cost and risk with policies the platform enforces, using the Databricks identity and governance they already have.',
@@ -62,14 +62,15 @@ export const walkthrough: Walkthrough = {
         'Coding agents handle the loop of read, think, edit, and run. Omnigent adds what sits around the loop: several agents in one session, shared history, sandboxes, and policies. The terminal, web UI, desktop app, mobile, Slack, and the API attach to the same live session. The Omnigent project labels itself alpha, and the Databricks offering is in Beta, so check the release notes before you commit a rollout date.',
       diagram: {
         type: 'flow',
-        title: 'Omnigent between developers and the platform',
+        title: 'Omnigent between clients, agents, and the platform',
         description:
-          'A developer connects through the terminal, web UI, or Slack to the Omnigent server. The server applies policies to each action and hands work to coding agents such as Claude Code, Codex, and Pi. On Databricks, the agents call models through Unity Gateway, read data under Unity Catalog grants, and write traces to MLflow Tracing.',
+          'Clients such as the web UI, terminal, mobile, and the REST API connect to the Omnigent server, which holds history, the catalog, policies, MCPs, artifacts, and skills. The server applies policies to each action and hands work to a host and runner that drive coding agents such as Claude Code, Codex, and Pi, and custom agents. On Databricks, the agents call models through Unity Gateway, read data under Unity Catalog grants, and write traces to MLflow Tracing.',
         nodes: [
-          { id: 'dev', label: 'Developer', sub: 'terminal, web, Slack', col: 0, row: 0 },
-          { id: 'server', label: 'Omnigent server', sub: 'sessions and identity', col: 1, row: 0, kind: 'highlight' },
+          { id: 'dev', label: 'Clients', sub: 'web, mobile, TUI, REST API', col: 0, row: 0 },
+          { id: 'server', label: 'Omnigent server', sub: 'history, catalog, skills', col: 1, row: 0, kind: 'highlight' },
           { id: 'policy', label: 'Policy layer', sub: 'ALLOW, ASK, DENY', col: 2, row: 0, kind: 'gate' },
-          { id: 'agents', label: 'Coding agents', sub: 'Claude Code, Codex, Pi', col: 3, row: 0, kind: 'surface' },
+          { id: 'host', label: 'Host and runner', sub: 'sandbox, common API', col: 3, row: 0 },
+          { id: 'agents', label: 'Agents', sub: 'coding and custom agents', col: 4, row: 0, kind: 'surface' },
           { id: 'gw', label: 'Unity Gateway', sub: 'models and usage', col: 2, row: 1, kind: 'store' },
           { id: 'uc', label: 'Unity Catalog', sub: 'grants and audit logs', col: 3, row: 1, kind: 'store' },
           { id: 'mlflow', label: 'MLflow Tracing', sub: 'one trace per turn', col: 4, row: 1, kind: 'store' },
@@ -77,7 +78,8 @@ export const walkthrough: Walkthrough = {
         edges: [
           { from: 'dev', to: 'server' },
           { from: 'server', to: 'policy' },
-          { from: 'policy', to: 'agents' },
+          { from: 'policy', to: 'host' },
+          { from: 'host', to: 'agents' },
           { from: 'agents', to: 'gw' },
           { from: 'agents', to: 'uc' },
           { from: 'agents', to: 'mlflow' },
@@ -91,6 +93,10 @@ export const walkthrough: Walkthrough = {
           'The server evaluates policies around each tool call and model request. Which Databricks services are wired in depends on whether you use the managed service or deploy it yourself.',
       },
       points: [
+        {
+          strong: 'Three layers.',
+          text: 'Clients (web UI, native app, mobile, terminal, REST API) attach to a server that keeps history, the catalog, policies, MCPs, artifacts, and skills. A host provides the common API, sandboxing, and reliability, and its runner drives the agents.',
+        },
         {
           strong: 'A runner wraps each agent.',
           text: 'The runner gives every harness the same session shape. It can run on a laptop, a cloud sandbox, or Kubernetes, while the server keeps history, auth, and policies.',
@@ -166,11 +172,24 @@ export const walkthrough: Walkthrough = {
         },
         {
           strong: 'Supported harnesses.',
-          text: 'The README names Claude Code, Codex, Cursor, OpenCode, Hermes, and Pi, and the docs list more, plus any ACP agent. Check the supported-harness page for the current list before you promise a vendor.',
+          text: 'The supported-harness page lists more than a dozen, including Claude Code, Codex, Cursor, OpenCode, Hermes, and Pi, plus any ACP agent. Support levels differ, so check the page for the current list before you promise a vendor.',
+        },
+        {
+          strong: 'No migration.',
+          text: 'Omnigent drives the coding agents already installed on your machine, so engineers keep their current setup.',
+        },
+        {
+          strong: 'Add harnesses with a plugin.',
+          text: 'A harness plugin is a separate Python package that registers an entry point, so the community can add a runtime without changing the omnigent package. An installed plugin appears in agent YAML, the --harness flag, and the web UI picker.',
+        },
+        {
+          strong: 'One YAML file defines a team.',
+          text: 'Combine roles, models, tools, and harnesses in one config. Run it for a single session, or publish it as a shared server template that carries the same policies and sandboxing.',
         },
       ],
       links: [
         { label: 'Supported harnesses', url: 'https://omnigent.ai/docs/build/harnesses' },
+        { label: 'Community harnesses', url: 'https://omnigent.ai/docs/build/harnesses/community' },
         { label: 'Custom agents', url: 'https://omnigent.ai/docs/use/custom-agents' },
         { label: 'Smart routing', url: 'https://omnigent.ai/docs/build/routing' },
         { label: 'Polly', url: 'https://omnigent.ai/docs/use/builtin-agents/polly' },
@@ -193,6 +212,10 @@ export const walkthrough: Walkthrough = {
       },
       points: [
         {
+          strong: 'Self-managed servers offer three sign-in modes.',
+          text: 'Built-in accounts (username and password with invite links) suit a standalone deploy. OIDC single sign-on works with Google, GitHub, Okta, or Microsoft. Header-based auth sits behind an SSO proxy that injects X-Forwarded-Email.',
+        },
+        {
           strong: 'Identity follows each person.',
           text: 'Users sign in with SSO or OIDC and connect their own GitHub and Databricks accounts. Sandboxes act as that user with short-lived tokens, so there are no shared personal access tokens.',
         },
@@ -202,7 +225,7 @@ export const walkthrough: Walkthrough = {
         },
         {
           strong: 'Let admins set the ceiling.',
-          text: 'A server admin can cap sharing at read-only, turn it off, or disable public links.',
+          text: 'Admins configure session sharing on the server. They can cap sharing at read-only, turn it off, or disable public links. Read access lets others comment on a session. On the managed service, sessions can be shared with other users of the workspace.',
         },
         {
           strong: 'Use comments to steer.',
@@ -220,6 +243,36 @@ export const walkthrough: Walkthrough = {
       heading: 'Control: policies the server enforces',
       prose:
         'A policy checks each action, such as a tool call, a model request, or a file operation, and answers ALLOW, ASK, or DENY. The check runs in the server, outside the prompt, so the agent cannot talk its way around it. Policies keep state, which is how a budget remembers what a session has spent.',
+      diagram: {
+        type: 'matrix',
+        title: 'Same action, different answer by data touched',
+        description:
+          'An agent that touched customer data with PII is asked before it emails a coworker and denied when it tries to publish to the company website. An agent that touched only public information is allowed to do both.',
+        corner: 'Agent touched',
+        columns: ['Email a coworker', 'Publish to website'],
+        rows: [
+          {
+            label: 'Customer data with PII',
+            cells: [
+              { state: 'optional', text: 'ASK', sub: 'a person approves' },
+              { state: 'none', text: 'DENY', sub: 'blocked' },
+            ],
+          },
+          {
+            label: 'Public information',
+            cells: [
+              { state: 'own', text: 'ALLOW', sub: 'runs automatically' },
+              { state: 'own', text: 'ALLOW', sub: 'runs automatically' },
+            ],
+          },
+        ],
+        legend: [
+          { state: 'own', label: 'ALLOW' },
+          { state: 'optional', label: 'ASK' },
+          { state: 'none', label: 'DENY' },
+        ],
+        caption: 'Illustrative rules. You define the data classes and the actions each one may take.',
+      },
       table: {
         caption: 'Three levels, checked in this order',
         columns: ['Level', 'Who sets it, and how'],
@@ -249,6 +302,10 @@ export const walkthrough: Walkthrough = {
         {
           strong: 'Pick pre-tool gates for destructive actions.',
           text: 'A policy that runs after a tool call cannot undo it. Put the gate before the call.',
+        },
+        {
+          strong: 'Decide on data and action together.',
+          text: 'A contextual policy weighs what the agent has touched and what it asks to do, then answers ALLOW, ASK, or DENY for that action. The matrix above shows one example.',
         },
         {
           strong: 'Write custom rules.',
@@ -292,6 +349,37 @@ export const walkthrough: Walkthrough = {
       ],
     },
     {
+      id: 'gateway',
+      heading: 'Omnigent policies and Unity Gateway',
+      prose:
+        'The two govern different things and work together. Omnigent sees the whole run, including actions that never leave the machine. Unity Gateway sees each request that reaches a model or an MCP service.',
+      table: {
+        caption: 'Where each one enforces',
+        columns: ['Layer', 'What it governs'],
+        rows: [
+          ['Omnigent policies', 'The full run and its trajectory. Stateful policies span a multi-step session, such as cumulative spend, tool-call counts, and a running risk score. Local actions with no network egress, such as ls, rm -rf, and cat, are gated in the loop before they run. An OS sandbox limits local files and network.'],
+          ['Unity Gateway (formerly AI Gateway)', 'Each request to a model or MCP service. Unity Catalog permissions control access to the AI assets. Inference tables log model requests and responses to Delta tables. Budgets set per-user thresholds and hard limits. Cost is broken down by service, model, and requesting principal, with request tags for usage analysis.'],
+          ['Together', 'Omnigent gates what the agent does on the host. Unity Gateway governs and audits what leaves the host for a model.'],
+        ],
+      },
+      points: [
+        {
+          strong: 'A gateway cannot see local actions.',
+          text: 'A file read or a shell delete never crosses the network, so only a policy inside the agent loop can stop it.',
+        },
+        {
+          strong: 'Self-managed servers need their own gateway setup.',
+          text: 'Route model calls through Unity Gateway to get its permissions, logging, and budgets. The managed service wires this in for you.',
+        },
+      ],
+      links: [
+        { label: 'Unity Gateway', url: 'https://docs.databricks.com/aws/en/unity-gateway/' },
+        { label: 'Manage budgets for Unity Gateway', url: 'https://docs.databricks.com/aws/en/ai-gateway/budgets' },
+        { label: 'Analyze Unity Gateway cost', url: 'https://docs.databricks.com/aws/en/ai-gateway/cost-observability' },
+        { label: 'Log requests and responses to inference tables', url: 'https://docs.databricks.com/aws/en/ai-gateway/inference-tables' },
+      ],
+    },
+    {
       id: 'mcp',
       heading: 'MCP servers, sandboxes, and blast radius',
       prose:
@@ -305,7 +393,7 @@ export const walkthrough: Walkthrough = {
           ['MCP tools', 'Name the tools a server exposes in the agent YAML. Only the session owner can add, edit, or remove MCP servers.'],
           ['File writes', 'worktree_guard keeps writes inside a worker’s worktree, and read_only_os makes a report-only agent.'],
           ['Working directory', 'block_working_dir_changes denies cd, git -C, and worktree changes outside allowed directories.'],
-          ['OS sandbox', 'Omnibox restricts the filesystem and network for the agent process.'],
+          ['OS sandbox', 'Omnibox restricts the filesystem and network for the agent process and every subprocess it spawns.'],
         ],
       },
       points: [
@@ -322,11 +410,39 @@ export const walkthrough: Walkthrough = {
           text: 'The repository includes an MCP registry and gateway prototype where an admin configures services and the server holds the credentials. Treat it as a prototype and check its status before you depend on it.',
         },
         {
+          strong: 'Omnibox is a kernel-enforced OS sandbox.',
+          text: 'It uses Bubblewrap and seccomp on Linux and Seatbelt on macOS. It isolates the filesystem, restricts network traffic through a default-deny proxy when you set egress rules, injects credentials so the agent holds only a placeholder, and contains child processes. A server can enforce one sandbox config on every host, or a host can define its own.',
+        },
+        {
           strong: 'Use sandbox hosts for shared work.',
           text: 'The sandbox providers include Microsandbox micro-VMs, Kubernetes with an optional Kata or gVisor runtime class, and several cloud sandbox services. On Databricks, the managed service can launch Databricks Sandboxes in select AWS regions.',
         },
+        {
+          strong: 'Cloud sandboxes suit always-on work.',
+          text: 'Providers such as Modal and Daytona give scalable, reproducible environments. For open source, you source and configure the provider yourself.',
+        },
+        {
+          strong: 'The Databricks Sandbox host (Beta) runs in the serverless compute plane.',
+          text: 'You reach it over SSH, and its home directory persists when you stop and restart it. Treat it as Beta: Databricks may purge sandbox data at the end of the Beta period.',
+        },
       ],
       examples: [
+        {
+          label: 'An OS sandbox in agent YAML',
+          language: 'yaml',
+          code: `os_env:
+  type: caller_process
+  cwd: .
+  sandbox:
+    type: darwin_seatbelt   # linux_bwrap on Linux
+    read_paths: [~/.gitconfig]
+    write_paths: [.]
+    allow_network: true`,
+          notes: [
+            'The repository docs use these keys: type, read_paths, write_paths, and allow_network. Dotfiles stay masked unless you grant them.',
+            'Set the sandbox type to match the host operating system.',
+          ],
+        },
         {
           label: 'An MCP server with an allowlist',
           language: 'yaml',
@@ -393,8 +509,8 @@ policies:
         caption: 'Managed or self-managed',
         columns: ['Option', 'Use it when'],
         rows: [
-          ['Managed: Omnigent on Databricks (Beta)', 'Default choice. Databricks operates the server, with workspace identity, Foundation Model APIs, and Unity Gateway wired in. Enable the Omnigent preview and follow the quickstart. It needs a region that supports Unity Gateway.'],
-          ['Self-managed on Databricks Apps', 'You need custom YAML policies, your own provider API keys, custom egress controls, or the managed service is not in your region. You own upgrades and operations.'],
+          ['Managed: Omnigent on Databricks (Beta)', 'Default choice. Databricks operates the server, with your workspace identity provider, Foundation Model APIs, and Unity Gateway wired in, and can run sessions on a Databricks Sandbox host. It shares a core codebase with the open-source project. Enable the Omnigent preview and follow the quickstart. It needs a region that supports Unity Gateway.'],
+          ['Self-managed on Databricks Apps', 'You need custom YAML policies, your own provider API keys, custom egress controls, or the managed service is not in your region. You deploy the server and host separately, route LLM, MCP, and skill access through Unity Gateway yourself, source your own sandbox provider, and own upgrades and operations.'],
         ],
       },
       points: [
