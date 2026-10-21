@@ -36,6 +36,7 @@ export function WalkthroughPage() {
   const toc = [
     ...(walkthrough.businessValue ? [{ id: 'value', heading: 'Business value' }] : []),
     { id: 'short', heading: 'The short version' },
+    ...(walkthrough.prerequisites?.length ? [{ id: 'before', heading: 'Before you start' }] : []),
     ...walkthrough.sections,
   ];
 
@@ -133,6 +134,25 @@ export function WalkthroughBody({
           ))}
         </ol>
       </section>
+
+      {walkthrough.prerequisites && walkthrough.prerequisites.length > 0 && (
+        <section className="guide-section" id="before" aria-labelledby="h-before">
+          <h2 id="h-before" className="group">
+            Before you start
+            <HeadingLink id="before" label="Before you start" />
+          </h2>
+          <ul className="practice-list">
+            {walkthrough.prerequisites.map((item) => (
+              <li key={item.slug}>
+                <Link to={`/guides/${item.slug}`} className="font-semibold text-foreground underline underline-offset-4">
+                  {item.title}
+                </Link>{' '}
+                {item.why}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {walkthrough.sections.map((section) => (
         <Section key={section.id} section={section} excerpts={excerpts.filter((item) => item.section === section.id)} />

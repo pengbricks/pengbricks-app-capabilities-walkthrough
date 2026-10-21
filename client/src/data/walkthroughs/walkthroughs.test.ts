@@ -10,6 +10,7 @@ describe.each(walkthroughs.map((walkthrough) => [walkthrough.slug, walkthrough] 
     const slugs = new Set(guides.map((guide) => guide.slug));
     expect(slugs.has(walkthrough.slug)).toBe(true);
     for (const related of walkthrough.related) expect(slugs.has(related.slug)).toBe(true);
+    for (const item of walkthrough.prerequisites ?? []) expect(slugs.has(item.slug), item.slug).toBe(true);
   });
 
   it('leads with a business value summary and three or four outcomes', () => {

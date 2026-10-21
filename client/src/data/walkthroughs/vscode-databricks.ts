@@ -54,6 +54,13 @@ export const walkthrough: Walkthrough = {
       body: 'Sync is one way, from your machine to the workspace, and only in development mode. Never edit that copy. Real changes go through Git and a bundle deploy.',
     },
   ],
+  prerequisites: [
+    {
+      slug: 'create-catalog',
+      title: 'Create a catalog',
+      why: 'The starter bundle writes to dev_sales in dev and prod_sales in prod, and creates only a schema. Create those catalogs first, or have USE CATALOG and CREATE SCHEMA on one you already have and deploy the demo target to it.',
+    },
+  ],
   sections: [
     {
       id: 'map',
@@ -107,8 +114,8 @@ export const walkthrough: Walkthrough = {
           text: 'Its numbered demo steps follow this page: open the folder, sign in with OAuth, pick serverless, set up the environment, run a notebook cell, debug the script, run the tests, deploy and run the job, change the code and redeploy, deploy to prod, and destroy.',
         },
         {
-          strong: 'It needs one value from you.',
-          text: 'Set the catalog variable in the Bundle Variables view, or pass --var catalog=<catalog>. The bundle creates its own schema there, prefixed with your user name in the dev target.',
+          strong: 'Each target has its own catalog.',
+          text: 'Following one catalog per environment, dev writes to dev_sales and prod to prod_sales; commented test and staging targets use test_sales and staging_sales. The bundle creates its schema in that catalog, prefixed with your user name in dev. Create the catalogs first (see Create a catalog), or use the demo target, which writes to the exact catalog you pass: -t demo --var catalog=main.',
         },
         {
           strong: 'Unit tests need no workspace.',
@@ -135,14 +142,18 @@ databricks auth login --host https://<your-workspace-url> --profile <name>
 databricks auth profiles
 export DATABRICKS_CONFIG_PROFILE=<name>
 
-# Validate, deploy, and run the starter in dev
-databricks bundle validate --strict --var catalog=<catalog>
-databricks bundle deploy --var catalog=<catalog>
-databricks bundle run capability_guides_vscode_starter --var catalog=<catalog>
+# Validate, deploy, and run the starter in dev (catalog dev_sales)
+databricks bundle validate --strict
+databricks bundle deploy
+databricks bundle run capability_guides_vscode_starter
 
-# Promote to prod, then clean up when done
-databricks bundle deploy -t prod --var catalog=<catalog>
-databricks bundle destroy --var catalog=<catalog>`,
+# Promote to prod (catalog prod_sales), then clean up when done
+databricks bundle deploy -t prod
+databricks bundle destroy
+
+# No dev_sales catalog? The demo target deploys to exactly the catalog you name
+databricks bundle deploy -t demo --var catalog=main
+databricks bundle run capability_guides_vscode_starter -t demo --var catalog=main`,
           notes: ['The README in the repository has the full terminal flow, including tests, bundle summary, and redeploying after a change.'],
         },
       ],
@@ -582,6 +593,7 @@ display(df.limit(20))`,
     },
   ],
   related: [
+    { slug: 'create-catalog', title: 'Create a catalog' },
     { slug: 'ide-developer-experience', title: 'Developer workflow in the IDE' },
     { slug: 'dab-starter', title: 'Running a Declarative Automation Bundle' },
     { slug: 'git-collaboration', title: 'Collaborating on Databricks projects with Git' },

@@ -91,7 +91,7 @@ display(spark.table(T["daily_orders"]).orderBy("order_date", "region"))
 # MAGIC %md
 # MAGIC ## Documents
 # MAGIC
-# MAGIC The invoice PDFs are rendered with fpdf2; the answer key, `aif_invoice_truth`, holds the number, vendor, date, and total of each. The two scans come from public archives (links below). They have no reliable text layer, so step 3 has to read them with OCR.
+# MAGIC The invoice PDFs are rendered with fpdf2; the answer key, `aif_invoice_truth`, holds the number, vendor, date, and total of each. The two scans come from public archives: [a 1947 letter from Harry S. Truman to Eleanor Roosevelt](https://commons.wikimedia.org/wiki/File:Letter_from_Harry_S._Truman_to_Eleanor_Roosevelt_-_DPLA_-_49b1c8f89d84a70ed20acf75b97ae3bf.pdf) (National Archives, via the Digital Public Library of America) and [Edison's 1880 electric lamp patent](https://patents.google.com/patent/US223898A/en) (US Patent 223,898). They have no reliable text layer, so step 3 has to read them with OCR.
 
 # COMMAND ----------
 

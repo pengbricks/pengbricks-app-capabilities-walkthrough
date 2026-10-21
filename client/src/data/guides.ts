@@ -59,6 +59,20 @@ export const guides: readonly Guide[] = [
     ],
   },
   {
+    slug: 'create-catalog',
+    title: 'Create a catalog',
+    category: 'Foundations',
+    difficulty: 1,
+    summary: 'Who can create a catalog, where it stores data, and how to name, grant, and bind one per environment.',
+    acceptanceCriteria:
+      'Catalogs are named <environment>_<domain>, created by someone with CREATE CATALOG, given a managed location where storage must be separate, owned by a group, granted USE CATALOG and CREATE SCHEMA to builders, and bound to the workspaces that should see them.',
+    evidence: [
+      'Privileges needed to create standard, foreign, and shared catalogs',
+      'Inherited storage versus a managed location per catalog',
+      'Catalog Explorer, SQL, CLI, and bundle options with grants and bindings',
+    ],
+  },
+  {
     slug: 'medallion-architecture',
     title: 'Medallion architecture',
     category: 'Foundations',

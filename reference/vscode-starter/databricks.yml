@@ -4,9 +4,10 @@
 # The extension reads this file. Its Target selector lists the targets below, its Bundle Resource Explorer
 # lists the resources, and its Bundle Variables view edits the variables.
 #
-#   databricks bundle validate --var catalog=<catalog>
-#   databricks bundle deploy   --var catalog=<catalog>
-#   databricks bundle run capability_guides_vscode_starter --var catalog=<catalog>
+#   databricks bundle validate                     # dev target, catalog dev_sales
+#   databricks bundle deploy
+#   databricks bundle run capability_guides_vscode_starter
+#   databricks bundle deploy -t demo --var catalog=main   # demo target: exactly this catalog, no prefixes
 #
 # Learn more:
 #   What bundles are and how they deploy  https://docs.databricks.com/aws/en/dev-tools/bundles
@@ -39,11 +40,18 @@ sync:
     - .vscode/**
 
 # Variables are set with --var name=value, a BUNDLE_VAR_name environment variable, or the extension's
-# Bundle Variables view. A variable with no default must be set before validate succeeds.
+# Bundle Variables view. Precedence, highest first: --var, BUNDLE_VAR_name, the target's value below,
+# then the default here.
 # https://docs.databricks.com/aws/en/dev-tools/bundles/variables
+#
+# Catalogs follow one catalog per environment, named <environment>_<domain> (dev_sales, prod_sales), so
+# each target writes to its own catalog and a dev deploy can never touch prod data. Each target sets its
+# catalog below; change "sales" there to your domain. To use one existing catalog instead (for example
+# main in a sandbox workspace), override it: --var catalog=main or export BUNDLE_VAR_catalog=main.
+# https://docs.databricks.com/aws/en/data-governance/unity-catalog/best-practices
 variables:
   catalog:
-    description: Existing Unity Catalog catalog where the bundle creates its schema
+    description: Unity Catalog catalog where the bundle creates its schema; each target sets <environment>_<domain>
   schema:
     description: Schema the bundle creates for its tables. Development mode prefixes it with dev_<you>_
     default: vscode_starter
@@ -70,6 +78,34 @@ targets:
   dev:
     default: true
     mode: development
+    variables:
+      catalog: dev_sales
+    presets:
+      tags:
+        environment: dev
+
+  # Demo deploys to the exact catalog you name, for a sandbox or a shared demo catalog. It sets no catalog,
+  # so validate fails until you pass one: -t demo --var catalog=<catalog>. It has no mode, so nothing gets
+  # a prefix: the schema is <catalog>.vscode_starter and the job is vscode-starter-orders. Two people
+  # deploying demo to one catalog share those names, so give each their own catalog.
+  demo:
+    presets:
+      tags:
+        environment: demo
+
+  # More environments follow the same pattern. Uncomment to add them; each needs its catalog to exist.
+  # test:
+  #   mode: production
+  #   workspace:
+  #     root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+  #   variables:
+  #     catalog: test_sales
+  # staging:
+  #   mode: production
+  #   workspace:
+  #     root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+  #   variables:
+  #     catalog: staging_sales
 
   # Production mode deploys one shared copy. Names are unprefixed. Keep real prod deploys in CI.
   prod:
@@ -77,6 +113,8 @@ targets:
     workspace:
       # Production mode requires a fixed path that names the target, so only one copy is deployed.
       root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+    variables:
+      catalog: prod_sales
     # For a real production deployment, deploy as a service principal and add run_as here:
     #   run_as:
     #     service_principal_name: <application-id>

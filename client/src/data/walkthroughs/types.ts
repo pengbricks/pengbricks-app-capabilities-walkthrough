@@ -95,6 +95,8 @@ export type Walkthrough = {
    */
   businessValue?: { summary: string; outcomes: { title: string; body: string }[] };
   shortVersion: { title: string; body: string }[];
+  /** Other guides to finish first, shown under the short version with why each one is needed. */
+  prerequisites?: { slug: string; title: string; why: string }[];
   sections: WalkthroughSection[];
   related: { slug: string; title: string }[];
 };

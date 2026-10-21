@@ -6,7 +6,7 @@ export const learningPath: readonly LearningStage[] = [
   {
     title: 'Foundations',
     summary: 'How storage, compute, and Unity Catalog fit together, and how data moves through layers.',
-    slugs: ['how-databricks-works', 'unity-catalog-basics', 'medallion-architecture'],
+    slugs: ['how-databricks-works', 'unity-catalog-basics', 'create-catalog', 'medallion-architecture'],
   },
   {
     title: 'Set up the platform',

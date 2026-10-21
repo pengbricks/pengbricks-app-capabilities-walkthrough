@@ -92,7 +92,7 @@ export const walkthrough: Walkthrough = {
         ],
         caption: 'The reference job builds this chain with two metric views, one over orders and one over sessions.',
       },
-      links: [{ label: 'Unity Catalog metric views', url: `${DOCS}/`, note: 'Overview and links to every page below.' }],
+      links: [{ label: 'Unity Catalog metric views', url: `${DOCS}/`, note: 'Overview page that links to every metric view docs page.' }],
     },
     {
       id: 'choose',
