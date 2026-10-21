@@ -2051,6 +2051,112 @@
       "functions": {}
     }
   ],
+  "metric-views": [
+    {
+      "path": "reference/metric-views/guides/metric-views/02_orders_metric_view.sql",
+      "symbol": null,
+      "startLine": 18,
+      "endLine": 28,
+      "language": "sql",
+      "code": "CREATE OR REPLACE VIEW mv_orders_metrics\nWITH METRICS\nLANGUAGE YAML\nAS $$\nversion: 1.1\ncomment: >-\n  Completed orders. Net revenue is quantity x unit price after discount. Cancelled and returned\n  orders are excluded by the filter, so every consumer sees the same scope.\nsource: mv_orders\nfilter: order_status = 'completed'\n",
+      "functions": {}
+    },
+    {
+      "path": "reference/metric-views/guides/metric-views/02_orders_metric_view.sql",
+      "symbol": null,
+      "startLine": 29,
+      "endLine": 40,
+      "language": "sql",
+      "code": "joins:\n  - name: customer\n    source: mv_customers\n    'on': source.customer_id = customer.customer_id\n    rely:\n      at_most_one_match: true\n  - name: product\n    source: mv_products\n    'on': source.product_id = product.product_id\n    rely:\n      at_most_one_match: true\n",
+      "functions": {}
+    },
+    {
+      "path": "reference/metric-views/guides/metric-views/03_funnel_metric_view.sql",
+      "symbol": null,
+      "startLine": 69,
+      "endLine": 78,
+      "language": "sql",
+      "code": "  - name: conversion_rate\n    expr: MEASURE(converted_sessions) / MEASURE(sessions)\n    comment: Converted sessions divided by sessions, both summed over the group.\n    display_name: Conversion Rate\n    synonyms: ['conversion', 'CVR']\n    format:\n      type: percentage\n      decimal_places:\n        type: exact\n        places: 2",
+      "functions": {}
+    },
+    {
+      "path": "reference/metric-views/guides/metric-views/04_verify_measures.py",
+      "symbol": null,
+      "startLine": 160,
+      "endLine": 168,
+      "language": "py",
+      "code": "# 1. Average of daily conversion rates vs conversion rate of all sessions.\nview_rate = run(f\"SELECT MEASURE(conversion_rate) AS v FROM {V['funnel']}\")[0][\"v\"]\navg_daily = run(f\"\"\"\n    SELECT AVG(rate) AS v FROM (\n      SELECT session_date, COUNT(*) FILTER (WHERE converted) / COUNT(*) AS rate FROM {T['sessions']} GROUP BY session_date)\"\"\")[0][\"v\"]\nrows.append({\"check\": \"pitfall: average of daily conversion rates\", \"grain\": \"total\", \"view\": view_rate, \"hand\": avg_daily,\n             \"matched\": 0, \"checked\": 1, \"passed\": not m.close(view_rate, avg_daily, rel=1e-3),\n             \"detail\": \"passed means the two differ, as the guide says they should: the average gives a quiet day the same weight as a busy one\"})\n",
+      "functions": {
+        "close": "True when two measure values agree. Both missing counts as agreeing."
+      }
+    },
+    {
+      "path": "reference/metric-views/guides/metric-views/02_orders_metric_view.sql",
+      "symbol": null,
+      "startLine": 140,
+      "endLine": 159,
+      "language": "sql",
+      "code": "  - name: net_revenue_prior_month\n    expr: SUM(source.quantity * source.unit_price * (1 - source.discount_pct))\n    window:\n      - order: order_month\n        range: current\n        offset: -1 month\n        semiadditive: last\n    comment: Net revenue of the month before the month in each row.\n    display_name: Net Revenue, Prior Month\n    format:\n      type: currency\n      currency_code: USD\n      decimal_places:\n        type: exact\n        places: 2\n  - name: net_revenue_mom_growth\n    expr: (MEASURE(net_revenue) - MEASURE(net_revenue_prior_month)) / NULLIF(MEASURE(net_revenue_prior_month), 0)\n    comment: Month-over-month change in net revenue. Group by Order Month to read it.\n    display_name: Net Revenue MoM Growth\n    synonyms: ['month over month growth', 'MoM']",
+      "functions": {}
+    },
+    {
+      "path": "reference/metric-views/guides/metric-views/02_orders_metric_view.sql",
+      "symbol": null,
+      "startLine": 88,
+      "endLine": 93,
+      "language": "sql",
+      "code": "  - name: net_revenue\n    expr: SUM(source.quantity * source.unit_price * (1 - source.discount_pct))\n    comment: Quantity x unit price after discount, completed orders only.\n    display_name: Net Revenue\n    synonyms: ['revenue', 'sales', 'turnover']\n    format:",
+      "functions": {}
+    },
+    {
+      "path": "reference/metric-views/guides/metric-views/05_lineage_and_governance.py",
+      "symbol": null,
+      "startLine": 66,
+      "endLine": 79,
+      "language": "py",
+      "code": "\nfor key, view in V.items():\n    name = m.VIEWS[key]\n    try:\n        spark.sql(f\"ALTER VIEW {view} SET TAGS ('system.certification_status' = 'certified')\")\n        tags = spark.sql(f\"\"\"SELECT tag_name, tag_value FROM `{catalog}`.information_schema.table_tags\n                             WHERE schema_name = '{schema}' AND table_name = '{name}'\"\"\").collect()\n        found = {t.tag_name: t.tag_value for t in tags}\n        rows.append({\"check\": f\"{name}: certification tag\", \"grain\": \"unity catalog\", \"view\": None, \"hand\": None,\n                     \"passed\": found.get(\"system.certification_status\") == \"certified\", \"detail\": f\"tags read back: {found}\"})\n    except Exception as exc:  # noqa: BLE001\n        rows.append({\"check\": f\"{name}: certification tag\", \"grain\": \"unity catalog\", \"view\": None, \"hand\": None, \"passed\": False,\n                     \"detail\": f\"could not set the tag: {type(exc).__name__}: {str(exc).splitlines()[0][:160]}\"})\n",
+      "functions": {}
+    },
+    {
+      "path": "reference/metric-views/guides/metric-views/05_lineage_and_governance.py",
+      "symbol": null,
+      "startLine": 92,
+      "endLine": 96,
+      "language": "py",
+      "code": "def upstream_names(view_fq):\n    full = view_fq.replace(\"`\", \"\")\n    resp = w.api_client.do(\"GET\", \"/api/2.0/lineage-tracking/table-lineage\", query={\"table_name\": full, \"include_entity_lineage\": True})\n    return {u[\"tableInfo\"][\"name\"] for u in resp.get(\"upstreams\", []) if \"tableInfo\" in u}, resp\n",
+      "functions": {}
+    },
+    {
+      "path": "reference/metric-views/resources/metric_views.job.yml",
+      "symbol": null,
+      "startLine": 26,
+      "endLine": 35,
+      "language": "yml",
+      "code": "        - task_key: deploy_orders_view\n          depends_on:\n            - task_key: generate_data\n          sql_task:\n            warehouse_id: ${var.warehouse_id}\n            file:\n              path: ../guides/metric-views/02_orders_metric_view.sql\n            parameters:\n              catalog: ${var.catalog}\n              schema: ${var.schema}",
+      "functions": {}
+    },
+    {
+      "path": "reference/metric-views/guides/metric-views/04_verify_measures.py",
+      "symbol": null,
+      "startLine": 27,
+      "endLine": 37,
+      "language": "py",
+      "code": "def check(measure_list, keys, view_sql, hand_sql, grain, view_name):\n    \"\"\"Run both queries, compare each measure, and add a result row per measure.\"\"\"\n    view_rows, hand_rows = run(view_sql), run(hand_sql)\n    for measure in measure_list:\n        r = m.compare_groups(view_rows, hand_rows, keys, measure)\n        rows.append({\"check\": f\"{view_name}.{measure}\", \"grain\": grain, \"view\": r[\"view\"], \"hand\": r[\"hand\"],\n                     \"matched\": r[\"matched\"], \"checked\": r[\"checked\"], \"passed\": r[\"passed\"],\n                     \"detail\": f\"{r['matched']} of {r['checked']} groups match\" + (f\"; largest group: {', '.join(str(x)[:10] for x in r['top'])}\" if keys else \"\")})\n\n# COMMAND ----------\n",
+      "functions": {
+        "check": "Run both queries, compare each measure, and add a result row per measure.",
+        "compare_groups": "Compare one measure between the metric view's rows and the hand-written rows, group by group."
+      }
+    },
+    {
+      "path": "reference/metric-views/tests/test_mv_lib.py",
+      "symbol": null,
+      "startLine": 94,
+      "endLine": 110,
+      "language": "py",
+      "code": "@pytest.mark.parametrize(\"file_name\", [\"02_orders_metric_view.sql\", \"03_funnel_metric_view.sql\"])\ndef test_metric_view_yaml_is_well_formed(file_name):\n    spec = metric_view_yaml(GUIDE / file_name)\n    assert spec[\"version\"] == 1.1\n    assert spec[\"source\"] in m.TABLES.values()\n    assert spec[\"fields\"] and spec[\"measures\"]\n    names = [x[\"name\"] for x in spec[\"fields\"] + spec[\"measures\"]]\n    assert len(names) == len(set(names)), \"field and measure names must be unique\"\n    for join in spec[\"joins\"]:\n        # `on` unquoted parses as a boolean in YAML 1.1, so it must stay quoted.\n        assert \"on\" in {str(k) for k in join} and True not in join\n        assert join[\"source\"] in m.TABLES.values()\n        assert join[\"rely\"][\"at_most_one_match\"] is True\n    for item in spec[\"fields\"] + spec[\"measures\"]:\n        assert item.get(\"display_name\"), item[\"name\"]\n    for measure in spec[\"measures\"]:\n        assert measure.get(\"comment\"), measure[\"name\"]",
+      "functions": {}
+    }
+  ],
   "model-deployment-cicd": [
     {
       "path": "reference/model-deployment/src/common.py",

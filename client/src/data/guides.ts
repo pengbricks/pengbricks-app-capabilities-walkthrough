@@ -779,6 +779,20 @@ export const guides: readonly Guide[] = [
     ],
   },
   {
+    slug: 'metric-views',
+    title: 'Metric views',
+    category: 'Analyst Guides',
+    difficulty: 2,
+    summary: 'Define a business metric once in YAML, query it everywhere, and deploy it as code.',
+    acceptanceCriteria:
+      'A business metric is defined once in a Unity Catalog metric view with joins, a filter, ratio and window measures, and synonyms. Dashboards, Genie, SQL, and BI tools query it with MEASURE(). The YAML is reviewed in source control and deployed with a bundle job, and each measure is checked against a hand-written aggregate.',
+    evidence: [
+      'Metric view YAML in source control with joins, measures, and synonyms',
+      'MEASURE() queries that match hand-written SQL',
+      'Deployment through a bundle job, promoted by catalog variable',
+    ],
+  },
+  {
     slug: 'in-platform-visualization',
     title: 'Charts and dashboards in the platform',
     category: 'Analyst Guides',

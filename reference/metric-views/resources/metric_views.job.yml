@@ -1,0 +1,63 @@
+# Metric views: generate sample tables, deploy two metric views from SQL files kept in the repo,
+# query them with MEASURE(), compare every measure with a hand-written aggregate, and read lineage.
+# Bundles have no native metric view resource (checked with `databricks bundle schema` on CLI 1.17.0),
+# so the views are created by SQL tasks on the warehouse.
+resources:
+  jobs:
+    capability_guides_metric_views:
+      name: capability-guides-metric-views
+      description: Generates orders, customers, products, and sessions; deploys two metric views with SQL tasks; queries them with MEASURE(); compares each measure with a hand-written aggregate; and reads lineage and governance.
+      tags:
+        capability_guide_job: capability_guides_metric_views
+      max_concurrent_runs: 1
+      timeout_seconds: 3600
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${var.schema}
+      tasks:
+        - task_key: generate_data
+          notebook_task:
+            notebook_path: ../guides/metric-views/01_generate_data.py
+
+        # SQL tasks: the YAML lives inside each .sql file, so Git review covers the metric definition.
+        # The file sets the catalog and schema from the job parameters, then creates the view.
+        - task_key: deploy_orders_view
+          depends_on:
+            - task_key: generate_data
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file:
+              path: ../guides/metric-views/02_orders_metric_view.sql
+            parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+
+        - task_key: deploy_funnel_view
+          depends_on:
+            - task_key: generate_data
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file:
+              path: ../guides/metric-views/03_funnel_metric_view.sql
+            parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+
+        - task_key: verify_measures
+          depends_on:
+            - task_key: deploy_orders_view
+            - task_key: deploy_funnel_view
+          notebook_task:
+            notebook_path: ../guides/metric-views/04_verify_measures.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
+
+        - task_key: lineage_and_governance
+          depends_on:
+            - task_key: verify_measures
+          notebook_task:
+            notebook_path: ../guides/metric-views/05_lineage_and_governance.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
