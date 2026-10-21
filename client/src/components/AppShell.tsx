@@ -2,6 +2,7 @@ import { Button, Separator } from '@databricks/appkit-ui/react';
 import { ArrowUpRight, BookOpen, Github, Layers3 } from 'lucide-react';
 import { Link, Outlet } from 'react-router';
 import { ScrollToHash } from './ScrollToHash.tsx';
+import { ParentLocationSync } from './ParentLocationSync.tsx';
 
 export function AppShell() {
   return (
@@ -41,6 +42,7 @@ export function AppShell() {
 
       <main id="main-content" tabIndex={-1}>
         <ScrollToHash />
+        <ParentLocationSync />
         <Outlet />
       </main>
 
