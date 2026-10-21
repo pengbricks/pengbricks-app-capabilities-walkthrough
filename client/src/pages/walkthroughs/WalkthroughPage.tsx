@@ -7,6 +7,8 @@ import { FlowDiagramView, MatrixDiagramView } from '../../components/Walkthrough
 import { guessLanguage } from '../../lib/highlight.ts';
 import { valueIcons } from '../../components/valueIcon.ts';
 import { HeadingLink } from '../../components/HeadingLink.tsx';
+import { FaqItem } from '../../components/FaqList.tsx';
+import { faqsFor } from '../../data/faqs/index.ts';
 import { getWalkthrough } from '../../data/walkthroughs/index.ts';
 import { useGuideArtifacts, type CodeHighlight } from '../../lib/artifacts.ts';
 import type {
@@ -38,6 +40,7 @@ export function WalkthroughPage() {
     { id: 'short', heading: 'The short version' },
     ...(walkthrough.prerequisites?.length ? [{ id: 'before', heading: 'Before you start' }] : []),
     ...walkthrough.sections,
+    ...(faqsFor(walkthrough.slug).length ? [{ id: 'questions', heading: 'Questions' }] : []),
   ];
 
   return (
@@ -157,7 +160,32 @@ export function WalkthroughBody({
       {walkthrough.sections.map((section) => (
         <Section key={section.id} section={section} excerpts={excerpts.filter((item) => item.section === section.id)} />
       ))}
+
+      <QuestionsSection slug={walkthrough.slug} />
     </>
+  );
+}
+
+function QuestionsSection({ slug }: { slug: string }) {
+  const faqs = faqsFor(slug);
+  if (faqs.length === 0) return null;
+  return (
+    <section className="guide-section" id="questions" aria-labelledby="h-questions">
+      <h2 id="h-questions" className="group">
+        Questions
+        <HeadingLink id="questions" label="Questions" />
+      </h2>
+      <div className="faq-list">
+        {faqs.map((faq, index) => (
+          <FaqItem key={faq.question} slug={slug} index={index} faq={faq} />
+        ))}
+      </div>
+      <p className="prose next-step">
+        <Link to="/faq" className="font-semibold underline underline-offset-4">
+          See questions for every guide
+        </Link>
+      </p>
+    </section>
   );
 }
 

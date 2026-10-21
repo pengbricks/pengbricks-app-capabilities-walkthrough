@@ -226,3 +226,14 @@ body,
 
 /* Deep links land below the sticky header. */
 [id] { scroll-margin-top: 5rem; }
+
+/* Questions (FAQ) */
+.faq-group { margin-top: 1.5rem; }
+.faq-list { margin-top: 0.5rem; border-top: 1px solid var(--border); }
+.faq-item { border-bottom: 1px solid var(--border); scroll-margin-top: 5rem; }
+.faq-item summary { cursor: pointer; padding: 0.875rem 0.25rem; font-weight: 500; line-height: 1.5; list-style-position: outside; margin-left: 1.25rem; }
+.faq-item summary:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+.faq-item summary:hover { color: var(--brand, inherit); }
+.faq-answer { margin: 0 0 1rem 1.5rem; max-width: 46rem; line-height: 1.7; color: var(--muted-foreground); }
+.faq-links { margin-top: 0.625rem; display: flex; flex-wrap: wrap; gap: 0.25rem 1.25rem; }
+.faq-links a { color: var(--foreground); font-weight: 600; text-decoration: underline; text-underline-offset: 4px; }
