@@ -1336,6 +1336,90 @@
       }
     }
   ],
+  "document-processing": [
+    {
+      "path": "reference/ai-functions/guides/document-processing/01_land_documents.py",
+      "symbol": null,
+      "startLine": 77,
+      "endLine": 93,
+      "language": "py",
+      "code": "def ingest():\n    stream = (spark.readStream.format(\"cloudFiles\")\n              .option(\"cloudFiles.format\", \"binaryFile\")\n              .option(\"pathGlobFilter\", \"*.pdf\")\n              .load(landing)\n              .select(F.col(\"path\"), F.element_at(F.split(\"path\", \"/\"), -1).alias(\"file_name\"),\n                      F.col(\"length\").alias(\"size_bytes\"), F.col(\"modificationTime\").alias(\"modified_at\"),\n                      F.current_timestamp().alias(\"ingested_at\")))\n    query = (stream.writeStream.option(\"checkpointLocation\", checkpoint).trigger(availableNow=True).toTable(T[\"raw\"]))\n    query.awaitTermination()\n\nbefore = spark.table(T[\"raw\"]).count() if spark.catalog.tableExists(T[\"raw\"]) else 0\ningest()\nfirst = spark.table(T[\"raw\"]).count() - before\nbefore = spark.table(T[\"raw\"]).count()\ningest()\nsecond = spark.table(T[\"raw\"]).count() - before",
+      "functions": {}
+    },
+    {
+      "path": "reference/ai-functions/guides/document-processing/02_parse_once.py",
+      "symbol": null,
+      "startLine": 49,
+      "endLine": 71,
+      "language": "py",
+      "code": "def parse_pending() -> int:\n    before = spark.table(T[\"parsed\"]).count()\n    spark.sql(f\"\"\"\n    INSERT INTO {T['parsed']}\n    SELECT path, element_at(split(path, '/'), -1), current_timestamp(), doc,\n           coalesce(array_size(try_variant_get(doc, '$.error_status', 'ARRAY<VARIANT>')), 0),\n           array_size(cast(doc:document:pages AS ARRAY<VARIANT>)),\n           concat_ws('\\\\n', transform(cast(doc:document:elements AS ARRAY<VARIANT>), e -> e:content::STRING)) AS text,\n           0\n    FROM (\n      SELECT f.path, ai_parse_document(f.content, map('version', '2.0')) AS doc\n      FROM read_files('{landing}', format => 'binaryFile', pathGlobFilter => '*.pdf') f\n      LEFT SEMI JOIN {T['raw']} r ON f.path = r.path\n      LEFT ANTI JOIN {T['parsed']} p ON f.path = p.path\n    )\n    \"\"\")\n    spark.sql(f\"UPDATE {T['parsed']} SET chars = length(text) WHERE chars = 0\")\n    return spark.table(T[\"parsed\"]).count() - before\n\nstarted = datetime.now(timezone.utc)\nfirst = parse_pending()\nended = datetime.now(timezone.utc)\nsecond = parse_pending()",
+      "functions": {}
+    },
+    {
+      "path": "reference/ai-functions/guides/document-processing/03_classify_and_route.py",
+      "symbol": null,
+      "startLine": 46,
+      "endLine": 57,
+      "language": "py",
+      "code": "spark.sql(f\"\"\"\nCREATE OR REPLACE TABLE {T['classified']} AS\nSELECT path, file_name,\n       r:response[0]:value::STRING AS predicted_type,\n       r:response[0]:confidence_score::DOUBLE AS confidence,\n       CASE WHEN r:error_message::STRING IS NOT NULL OR r:response[0]:confidence_score::DOUBLE < {threshold} THEN 'review'\n            ELSE r:response[0]:value::STRING END AS route,\n       r:error_message::STRING AS classify_error\nFROM (SELECT path, file_name,\n             ai_classify(left(text, 6000), {labels}, map('version', '2.1', 'enableConfidenceScores', 'true')) AS r\n      FROM {T['parsed']} WHERE parse_errors = 0)\n\"\"\")",
+      "functions": {}
+    },
+    {
+      "path": "reference/ai-functions/guides/document-processing/04_extract_fields.py",
+      "symbol": null,
+      "startLine": 47,
+      "endLine": 66,
+      "language": "py",
+      "code": "started = datetime.now(timezone.utc)\nspark.sql(f\"DROP TABLE IF EXISTS {T['extracted_raw']}\")\nspark.sql(f\"CREATE TABLE {T['extracted_raw']} (path STRING, file_name STRING, doc_type STRING, response VARIANT, extracted_at TIMESTAMP)\")\nsent = {}\nfor doc_type, fields in schemas.items():\n    # One ai_extract call per document, stored as the raw response. Unpacking it into fields below reads this\n    # table, so the model is never called again for each field.\n    spark.sql(f\"\"\"\n    INSERT INTO {T['extracted_raw']}\n    SELECT c.path, c.file_name, '{doc_type}', ai_extract(p.text, {a.sql_string(d.schema_json(fields))}, {OPTIONS}), current_timestamp()\n    FROM {T['classified']} c JOIN {T['parsed']} p ON c.path = p.path\n    WHERE c.route = '{doc_type}'\n    \"\"\")\n    sent[doc_type] = spark.sql(f\"SELECT count(*), coalesce(sum(chars), 0) FROM {T['parsed']} p JOIN {T['classified']} c ON c.path = p.path WHERE c.route = '{doc_type}'\").first()\n\nunpack = \" UNION ALL \".join(\n    f\"SELECT path, file_name, doc_type, '{name}', response:response:{name}:value::STRING, response:response:{name}:confidence_score::DOUBLE, response:error_message::STRING \"\n    f\"FROM {T['extracted_raw']} WHERE doc_type = '{doc_type}'\"\n    for doc_type, fields in schemas.items() for name in fields)\nspark.sql(f\"CREATE OR REPLACE TABLE {T['extracted']} AS SELECT * FROM ({unpack}) AS t(path, file_name, doc_type, field, value, confidence, extract_error)\")",
+      "functions": {
+        "sql_string": "A single-quoted SQL string literal."
+      }
+    },
+    {
+      "path": "reference/ai-functions/guides/document-processing/05_validate_and_mask.py",
+      "symbol": null,
+      "startLine": 51,
+      "endLine": 68,
+      "language": "py",
+      "code": "passed, held = [], []\nfor file_name in sorted(truth):\n    c = classified.get(file_name)\n    if parsed[file_name].parse_errors:\n        held.append((file_name, None, \"parse failed\", {}))\n    elif c is None or c.route == \"review\":\n        held.append((file_name, c.predicted_type if c else None, f\"classification confidence {c.confidence if c else 'n/a'} is below the threshold or the call failed\", {}))\n    else:\n        reasons = d.validate_fields(c.route, fields.get(file_name, {}), spec)\n        values = {name: v for name, (v, _) in fields.get(file_name, {}).items()}\n        confidences = [conf for _, conf in fields.get(file_name, {}).values() if conf is not None]\n        (held if reasons else passed).append((file_name, c.route, \"; \".join(reasons), values, min(confidences) if confidences else None))\n\nnow = datetime.now(timezone.utc)\nspark.createDataFrame([(f, t, json.dumps(v), m) for f, t, _, v, m in passed],\n                      \"file_name string, doc_type string, fields string, min_confidence double\").write.mode(\"overwrite\").saveAsTable(T[\"validated\"])\nspark.createDataFrame([(h[0], h[1], h[2], json.dumps(h[3]), \"pending\", now) for h in held],\n                      \"file_name string, doc_type string, reasons string, fields string, review_status string, quarantined_at timestamp\").write.mode(\"overwrite\").saveAsTable(T[\"quarantine\"])",
+      "functions": {
+        "validate_fields": "Reasons a document fails validation; an empty list means it passes. `fields` maps name to (value, confidence)."
+      }
+    },
+    {
+      "path": "reference/ai-functions/guides/document-processing/05_validate_and_mask.py",
+      "symbol": null,
+      "startLine": 88,
+      "endLine": 95,
+      "language": "py",
+      "code": "mask_labels = \"array(\" + \", \".join(a.sql_string(x) for x in spec[\"mask\"][\"labels\"]) + \")\"\nmask_started = datetime.now(timezone.utc)\nspark.sql(f\"\"\"\nCREATE OR REPLACE TABLE {T['masked']} AS\nSELECT c.file_name, c.route AS doc_type, ai_mask(p.text, {mask_labels}) AS masked_text\nFROM {T['classified']} c JOIN {T['parsed']} p ON c.path = p.path\nWHERE c.route IN ('intake_form', 'letter')\n\"\"\")",
+      "functions": {
+        "sql_string": "A single-quoted SQL string literal."
+      }
+    },
+    {
+      "path": "reference/ai-functions/guides/document-processing/06_measure_cost.py",
+      "symbol": null,
+      "startLine": 68,
+      "endLine": 85,
+      "language": "py",
+      "code": "def read_usage():\n    return spark.sql(f\"\"\"\n    SELECT u.billing_origin_product AS product, u.sku_name, u.usage_unit,\n           coalesce(u.product_features.ai_functions.ai_function, '') AS ai_function,\n           u.usage_metadata.job_run_id AS job_run_id, u.usage_start_time, u.usage_end_time,\n           u.record_type, u.usage_quantity AS quantity, u.usage_quantity * p.pricing.effective_list.default AS list_usd\n    FROM system.billing.usage u\n    LEFT JOIN system.billing.list_prices p\n      ON u.cloud = p.cloud AND u.sku_name = p.sku_name AND u.usage_unit = p.usage_unit\n     AND u.usage_end_time >= p.price_start_time AND (p.price_end_time IS NULL OR u.usage_end_time < p.price_end_time)\n     AND p.currency_code = 'USD'\n    WHERE u.workspace_id = '{workspace_id}'\n      AND u.identity_metadata.run_as = {a.sql_string(identity)}\n      AND u.usage_date BETWEEN date('{window_start:%Y-%m-%d}') AND date('{window_end:%Y-%m-%d}')\n      AND u.usage_start_time < timestamp('{window_end:%Y-%m-%d %H:%M:%S}') AND u.usage_end_time > timestamp('{window_start:%Y-%m-%d %H:%M:%S}')\n      AND ((u.billing_origin_product = 'AI_FUNCTIONS' AND (u.usage_metadata.job_run_id = {a.sql_string(target)} OR u.usage_metadata.job_run_id IS NULL))\n        OR (u.billing_origin_product = 'JOBS' AND u.usage_metadata.job_run_id = {a.sql_string(target)}))\n    \"\"\")",
+      "functions": {
+        "sql_string": "A single-quoted SQL string literal."
+      }
+    },
+    {
+      "path": "reference/ai-functions/guides/document-processing/06_measure_cost.py",
+      "symbol": null,
+      "startLine": 151,
+      "endLine": 162,
+      "language": "py",
+      "code": "results += [\n    row(\"dbu_total\", all_dbu, \"AI Functions plus serverless compute\"),\n    row(\"list_usd_total\", all_usd, \"USD at list price\"),\n    row(\"dbu_per_page_parse\", d.per_unit(dbu[\"ai_parse_document\"], pages), \"ai_parse_document DBU divided by pages parsed\"),\n    row(\"dbu_per_page_ai_functions\", d.per_unit(dbu[\"ai_functions\"], pages), \"all AI Functions DBU divided by pages parsed\"),\n    row(\"dbu_per_page_total\", d.per_unit(all_dbu, pages), \"AI Functions plus serverless compute, per page\"),\n    row(\"dbu_per_document_total\", d.per_unit(all_dbu, documents), \"AI Functions plus serverless compute, per document\"),\n    row(\"list_usd_per_page_parse\", d.per_unit(usd[\"ai_parse_document\"], pages), \"USD at list price\"),\n    row(\"list_usd_per_page_ai_functions\", d.per_unit(usd[\"ai_functions\"], pages), \"USD at list price\"),\n    row(\"list_usd_per_page_total\", d.per_unit(all_usd, pages), \"USD at list price\"),\n    row(\"list_usd_per_document_total\", d.per_unit(all_usd, documents), \"USD at list price\"),\n]",
+      "functions": {
+        "per_unit": "total / units, or None when there is nothing to divide by or no total yet."
+      }
+    }
+  ],
   "documentation-generation": [
     {
       "path": "reference/documentation/guides/documentation-generation/02_generate_docs.py",

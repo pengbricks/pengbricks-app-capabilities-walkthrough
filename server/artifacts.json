@@ -6695,6 +6695,177 @@
         }
       ]
     },
+    "document-processing": {
+      "bundle": "reference/ai-functions",
+      "onePager": "reference/ai-functions/guides/document-processing/README.md",
+      "code": [
+        {
+          "label": "Notebooks, one per job task",
+          "path": "reference/ai-functions/guides/document-processing"
+        },
+        {
+          "label": "Use-case spec: documents, labels, schemas, thresholds",
+          "path": "reference/ai-functions/use_cases/documents.yml"
+        },
+        {
+          "label": "Document generators, validation, scoring, and cost arithmetic",
+          "path": "reference/ai-functions/src/docproc_lib.py"
+        },
+        {
+          "label": "Document processing job",
+          "path": "reference/ai-functions/resources/document_processing.job.yml"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_document_processing",
+          "label": "Document processing job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "Document processing run (land, parse once, classify, extract, validate, mask, measure cost)",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/9844461821924/runs/853758827454483",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-21T17:08:45Z"
+        }
+      ],
+      "recordedFolder": {
+        "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/browse/folders/1264420743922986",
+        "startHereUrl": "https://fevm-rpeng-demobricks.cloud.databricks.com/editor/notebooks/1264420743922987",
+        "workspace": "Reference workspace"
+      },
+      "docs": [
+        {
+          "label": "Intelligent document processing",
+          "url": "https://docs.databricks.com/aws/en/agents/agent-bricks/intelligent-document-processing"
+        },
+        {
+          "label": "ai_parse_document",
+          "url": "https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_parse_document"
+        },
+        {
+          "label": "ai_classify",
+          "url": "https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_classify"
+        },
+        {
+          "label": "ai_extract",
+          "url": "https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_extract"
+        },
+        {
+          "label": "Agent Bricks Information Extraction",
+          "url": "https://docs.databricks.com/aws/en/agents/agent-bricks/info-extraction"
+        },
+        {
+          "label": "Billable usage system table",
+          "url": "https://docs.databricks.com/aws/en/admin/system-tables/billing"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Auto Loader: record each file once",
+          "path": "reference/ai-functions/guides/document-processing/01_land_documents.py",
+          "lines": [
+            77,
+            93
+          ],
+          "section": "land",
+          "notes": [
+            "binaryFile with availableNow; the table keeps path, size, and times, not the bytes.",
+            "The second pass ingests nothing."
+          ]
+        },
+        {
+          "label": "Parse only files not yet parsed",
+          "path": "reference/ai-functions/guides/document-processing/02_parse_once.py",
+          "lines": [
+            49,
+            71
+          ],
+          "section": "parse",
+          "notes": [
+            "The anti-join on path is what makes a rerun parse nothing.",
+            "Errors are counted, not tested for NULL: a JSON null in a VARIANT is a value."
+          ]
+        },
+        {
+          "label": "Classify with described labels and a confidence",
+          "path": "reference/ai-functions/guides/document-processing/03_classify_and_route.py",
+          "lines": [
+            46,
+            57
+          ],
+          "section": "classify",
+          "notes": [
+            "Version 2.1 returns response as an array of value and confidence_score.",
+            "Low confidence takes the review route instead of a guess."
+          ]
+        },
+        {
+          "label": "Extract once, store the response, unpack fields",
+          "path": "reference/ai-functions/guides/document-processing/04_extract_fields.py",
+          "lines": [
+            47,
+            66
+          ],
+          "section": "extract",
+          "notes": [
+            "One ai_extract call per document goes to a table; fields are unpacked from the table.",
+            "enableConfidenceScores adds a score to every field."
+          ]
+        },
+        {
+          "label": "Split results into validated and quarantine",
+          "path": "reference/ai-functions/guides/document-processing/05_validate_and_mask.py",
+          "lines": [
+            51,
+            68
+          ],
+          "section": "review",
+          "notes": [
+            "Reasons and a pending review status are kept with the fields.",
+            "d.validate_fields in docproc_lib.py holds the rules and is unit tested."
+          ]
+        },
+        {
+          "label": "Mask the shared copy",
+          "path": "reference/ai-functions/guides/document-processing/05_validate_and_mask.py",
+          "lines": [
+            88,
+            95
+          ],
+          "section": "mask",
+          "notes": [
+            "Only forms and letters carry personal data; the masked table is what other teams read."
+          ]
+        },
+        {
+          "label": "Read the run's usage from system.billing.usage",
+          "path": "reference/ai-functions/guides/document-processing/06_measure_cost.py",
+          "lines": [
+            68,
+            85
+          ],
+          "section": "cost",
+          "notes": [
+            "Filtered to the workspace, the identity, the run window, and the job run id.",
+            "The table is account-wide; the list price join is for a USD view, not a contract rate."
+          ]
+        },
+        {
+          "label": "Divide by pages and documents",
+          "path": "reference/ai-functions/guides/document-processing/06_measure_cost.py",
+          "lines": [
+            151,
+            162
+          ],
+          "section": "cost",
+          "notes": [
+            "A value of -1 means no usage was recorded yet for that line, not zero cost."
+          ]
+        }
+      ]
+    },
     "sqlserver-lakeflow-connect": {
       "bundle": "reference/lakeflow-connect",
       "onePager": "reference/lakeflow-connect/guides/sqlserver-lakeflow-connect/README.md",

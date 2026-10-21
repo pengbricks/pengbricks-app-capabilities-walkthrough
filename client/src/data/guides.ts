@@ -286,6 +286,21 @@ export const guides: readonly Guide[] = [
     ],
   },
   {
+    slug: 'document-processing',
+    title: 'Document processing pipelines and their cost',
+    category: 'AI Guides',
+    difficulty: 3,
+    summary:
+      'Land, parse, classify, extract, validate, and mask documents at volume, then price the pipeline from a measured sample.',
+    acceptanceCriteria:
+      'Documents land in a Unity Catalog volume and are ingested incrementally, parsed once and stored, classified and routed by type, extracted against a schema, validated with a quarantine path for a reviewer, masked before sharing, and priced from billed usage on a representative sample, extrapolated with growth and reprocessing allowances.',
+    evidence: [
+      'Incremental landing and a parsed table, with no page parsed twice',
+      'Classification, schema extraction, and a quarantine table for doubtful results',
+      'Cost per page and per document read from system.billing.usage, with the extrapolation shown',
+    ],
+  },
+  {
     slug: 'user-experience',
     title: 'Assistant user experience',
     category: 'AI Guides',

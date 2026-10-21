@@ -86,7 +86,7 @@ export const learningPath: readonly LearningStage[] = [
   {
     title: 'AI on your data',
     summary: 'AI Functions in SQL, then Genie Agents and the semantics that make their answers right.',
-    slugs: ['ai-functions', 'genie-agents', 'ontology', 'user-experience'],
+    slugs: ['ai-functions', 'document-processing', 'genie-agents', 'ontology', 'user-experience'],
   },
   {
     title: 'Machine learning',

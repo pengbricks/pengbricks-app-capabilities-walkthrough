@@ -1,0 +1,107 @@
+# Document processing guide: sample documents, labels, extraction schemas, and checks.
+# Every document is generated at run time (fpdf2, plus Pillow for the scanned receipts). All names, emails,
+# and phone numbers are made up (example.com addresses, 555-01xx numbers). The fields listed here are the answer key.
+volume: aif_documents
+landing_folder: dp_landing
+tables:
+  raw: dp_documents_raw
+  parsed: dp_documents_parsed
+  classified: dp_documents_classified
+  extracted_raw: dp_extract_responses
+  extracted: dp_fields_extracted
+  validated: dp_documents_validated
+  quarantine: dp_documents_quarantine
+  masked: dp_documents_masked
+  truth: dp_truth
+  run_log: dp_run_log
+  results: dp_results
+  billing: dp_billing_usage
+
+# Pattern 3: classification. The label descriptions are part of the prompt.
+classify:
+  labels:
+    invoice: "A bill from a vendor with an invoice number, a date, line items, and a total due"
+    intake_form: "A filled-in request or application form with labeled fields for an applicant, a request id, and an amount"
+    letter: "A business letter or memo from one organization to another with a date, a subject, and a requested action"
+    receipt: "A scanned point-of-sale receipt with a merchant, a date, and a total paid"
+  min_confidence: 0.7
+
+# Pattern 4: extraction. One schema per document type.
+extract:
+  min_confidence: 0.8
+  schemas:
+    invoice:
+      invoice_number: {type: string, description: "The invoice number, for example INV-2001"}
+      vendor: {type: string, description: "The company that issued the invoice"}
+      invoice_date: {type: string, description: "Invoice date as YYYY-MM-DD"}
+      total: {type: number, description: "Total due in USD. Null if the document shows no total"}
+    intake_form:
+      request_id: {type: string, description: "The request id, for example REQ-3001"}
+      applicant_name: {type: string, description: "Full name of the applicant"}
+      request_date: {type: string, description: "Date of the request as YYYY-MM-DD. Null if absent"}
+      category: {type: string, description: "The request category exactly as written on the form"}
+      amount_requested: {type: number, description: "Amount requested in USD"}
+    letter:
+      sender_org: {type: string, description: "The organization that sent the letter"}
+      letter_date: {type: string, description: "Date of the letter as YYYY-MM-DD. Null if absent"}
+      subject: {type: string, description: "The subject line"}
+      action_requested: {type: string, description: "What the sender asks the recipient to do, in one short phrase"}
+    receipt:
+      merchant: {type: string, description: "The merchant name printed at the top"}
+      receipt_date: {type: string, description: "Date on the receipt as YYYY-MM-DD"}
+      total: {type: number, description: "Total paid in USD"}
+  required:
+    invoice: [invoice_number, vendor, invoice_date, total]
+    intake_form: [request_id, applicant_name, request_date, category]
+    letter: [sender_org, letter_date, subject]
+    receipt: [merchant, receipt_date, total]
+
+# Pattern 5: validation. A document is quarantined when a required field is null, a field's confidence is
+# below extract.min_confidence, or a date or amount is not valid.
+validate:
+  max_total: 100000
+
+# Pattern 6: masking. The labels ai_mask hides in the shared copy of the text.
+mask:
+  labels: [person, email, phone]
+
+# Cost measurement: how long to wait for billing rows before recording what is there.
+cost:
+  poll_minutes: 4
+  poll_seconds: 60
+
+# The documents. `expect_quarantine: true` marks a document built to fail validation (a missing field), so the run
+# can check that quarantine catches it. `degrade: true` makes a receipt faint, noisy, and tilted to test OCR; it is
+# not expected to fail validation, and the run reports what the parser did with it.
+invoices:
+  - {number: INV-2001, vendor: Alder Supply Co., date: "2026-08-03", lines: 6}
+  - {number: INV-2002, vendor: Birchwood Logistics, date: "2026-08-07", lines: 9}
+  - {number: INV-2003, vendor: Cedar Ridge Labs, date: "2026-08-12", lines: 4}
+  - {number: INV-2004, vendor: Dunmore Office Goods, date: "2026-08-19", lines: 12}
+  - {number: INV-2005, vendor: Elmhurst Facilities, date: "2026-08-22", lines: 7}
+  - {number: INV-2006, vendor: Fairview Printing, date: "2026-09-01", lines: 5}
+  - {number: INV-2007, vendor: Alder Supply Co., date: "2026-09-04", lines: 38}
+  - {number: INV-2008, vendor: Birchwood Logistics, date: "2026-09-10", lines: 41}
+  - {number: INV-2009, vendor: Cedar Ridge Labs, date: "2026-09-15", lines: 6, drop_total: true, expect_quarantine: true}
+forms:
+  - {request_id: REQ-3001, name: Dana Whitfield, date: "2026-08-04", category: Equipment, amount: 2400.00, email: dana.whitfield@example.com, phone: 555-0141}
+  - {request_id: REQ-3002, name: Luis Moreno, date: "2026-08-09", category: Travel, amount: 780.50, email: luis.moreno@example.com, phone: 555-0142}
+  - {request_id: REQ-3003, name: Mei Chen, date: "2026-08-14", category: Training, amount: 1250.00, email: mei.chen@example.com, phone: 555-0143}
+  - {request_id: REQ-3004, name: Omar Haddad, date: "2026-08-21", category: Equipment, amount: 560.25, email: omar.haddad@example.com, phone: 555-0144}
+  - {request_id: REQ-3005, name: Grace Okoye, date: "2026-09-02", category: Facilities, amount: 9100.00, email: grace.okoye@example.com, phone: 555-0145}
+  - {request_id: REQ-3006, name: Ivan Petrov, date: "2026-09-08", category: Travel, amount: 1640.75, email: ivan.petrov@example.com, phone: 555-0146}
+  - {request_id: REQ-3007, name: Hana Sato, date: "2026-09-16", category: Training, amount: 430.00, email: hana.sato@example.com, phone: 555-0147, drop_date: true, expect_quarantine: true}
+letters:
+  - {id: LTR-4001, sender: Harbor County Parks Office, recipient: Alder Supply Co., date: "2026-08-05", subject: Delivery window change, action: Confirm the new delivery window by Friday, signer: Priya Nair, phone: 555-0151}
+  - {id: LTR-4002, sender: Northline Transit Authority, recipient: Birchwood Logistics, date: "2026-08-11", subject: Contract renewal notice, action: Return the signed renewal form within 30 days, signer: Tom Lindgren, phone: 555-0152}
+  - {id: LTR-4003, sender: Meridian Water District, recipient: Cedar Ridge Labs, date: "2026-08-18", subject: Sample submission requirements, action: Resubmit the samples with updated labels, signer: Fatima Rahman, phone: 555-0153}
+  - {id: LTR-4004, sender: Lakeside Library Board, recipient: Dunmore Office Goods, date: "2026-08-26", subject: Request for revised quote, action: Send a revised quote for 40 chairs, signer: Carlos Ibarra, phone: 555-0154}
+  - {id: LTR-4005, sender: Summit Health Clinic, recipient: Elmhurst Facilities, date: "2026-09-03", subject: Inspection follow-up, action: Schedule a repeat inspection of the east wing, signer: Nora Whitaker, phone: 555-0155, paragraphs: 22}
+  - {id: LTR-4006, sender: Pinecrest School District, recipient: Fairview Printing, date: "2026-09-12", subject: Order correction, action: Reissue the order with the corrected quantities, signer: Joel Abrams, phone: 555-0156, paragraphs: 24}
+receipts:
+  - {id: RCT-5001, merchant: Corner Hardware, date: "2026-08-06", total: 48.37}
+  - {id: RCT-5002, merchant: Lakeview Diner, date: "2026-08-13", total: 23.90}
+  - {id: RCT-5003, merchant: Metro Fuel Stop, date: "2026-08-20", total: 61.12}
+  - {id: RCT-5004, merchant: Greenleaf Pharmacy, date: "2026-09-02", total: 17.45}
+  - {id: RCT-5005, merchant: Station Street Books, date: "2026-09-09", total: 35.00}
+  - {id: RCT-5006, merchant: Oak Avenue Market, date: "2026-09-17", total: 82.64, degrade: true}

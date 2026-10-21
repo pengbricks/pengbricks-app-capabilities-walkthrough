@@ -1,0 +1,63 @@
+# Document processing: land, parse once, classify, extract, validate, mask, and measure what the run cost.
+resources:
+  jobs:
+    capability_guides_document_processing:
+      name: capability-guides-document-processing
+      description: Lands 28 generated documents (invoices, request forms, letters, scanned receipts), parses each once, classifies and routes them, extracts fields per type, quarantines low-quality results, masks personal data, and reads the run's billed usage from system.billing.usage to compute cost per page and per document.
+      tags:
+        capability_guide_job: capability_guides_document_processing
+      max_concurrent_runs: 1
+      timeout_seconds: 7200
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${var.schema}
+      tasks:
+        - task_key: land_documents
+          notebook_task:
+            notebook_path: ../guides/document-processing/01_land_documents.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
+
+        - task_key: parse_once
+          depends_on:
+            - task_key: land_documents
+          notebook_task:
+            notebook_path: ../guides/document-processing/02_parse_once.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
+
+        - task_key: classify_and_route
+          depends_on:
+            - task_key: parse_once
+          notebook_task:
+            notebook_path: ../guides/document-processing/03_classify_and_route.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
+
+        - task_key: extract_fields
+          depends_on:
+            - task_key: classify_and_route
+          notebook_task:
+            notebook_path: ../guides/document-processing/04_extract_fields.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
+
+        - task_key: validate_and_mask
+          depends_on:
+            - task_key: extract_fields
+          notebook_task:
+            notebook_path: ../guides/document-processing/05_validate_and_mask.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
+
+        # Billing lands in system.billing.usage hours after the work. This task polls for a few minutes, records
+        # what is there with a billing_status, and can be run again later (see the README).
+        - task_key: measure_cost
+          depends_on:
+            - task_key: validate_and_mask
+          notebook_task:
+            notebook_path: ../guides/document-processing/06_measure_cost.py
+            base_parameters:
+              run_id: "{{job.run_id}}"

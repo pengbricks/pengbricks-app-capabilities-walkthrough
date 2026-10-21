@@ -25,7 +25,7 @@ Each folder under `reference/` is a self-contained Declarative Automation Bundle
 | `open-data/` | Governed data sharing, Apache Iceberg interoperability, Partner tool integrations |
 | `platform-ops/` | Workspace and account administration, Support and recovery |
 | `agents/` | Agents, MCP, and model gateway; Building and shipping agents |
-| `ai-functions/` | AI Functions in SQL |
+| `ai-functions/` | AI Functions in SQL; Document processing pipelines and their cost (a second job, `capability_guides_document_processing`, in the same bundle) |
 | `dab-starter/` | Running a Declarative Automation Bundle (a standalone starter that the guide page offers as a download; it creates its own schema) |
 | `vscode-starter/` | Working with Databricks in VS Code (a standalone starter that the guide page offers as a download: a Python package, notebook, debug script, pytest tests, and a serverless job; it creates its own schema) |
 | `environments/` | Workspaces and catalogs across dev, test, stage, and prod (four targets that map to environment schemas in one catalog, plus a layout audit job; the four-workspace, four-catalog setup is in `setup/` as commands that the bundle does not run. It creates its own schemas) |
