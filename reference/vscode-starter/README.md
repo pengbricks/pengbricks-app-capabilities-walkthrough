@@ -11,6 +11,31 @@ The project holds:
 - `databricks.yml` and `resources/`: a bundle with a `dev` target (the default) and a `prod` target, a schema, and a job with a notebook task and a Python wheel task
 - `.vscode/`: settings, launch configurations, and extension recommendations
 
+## Get the project
+
+Clone it from GitHub, or download the zip from the guide page. Both give you the same files.
+
+```bash
+# Option 1: clone, so you can pull updates later
+git clone https://github.com/pengbricks/databricks-vscode-starter.git vscode-starter
+cd vscode-starter
+code .        # or open the folder from VS Code with File > Open Folder
+
+# Pull updates later
+git pull
+
+# Option 2: download vscode-starter.zip from the guide page, then
+unzip vscode-starter.zip && cd vscode-starter
+```
+
+To keep your own changes in your own repository, point the clone at it:
+
+```bash
+git remote rename origin upstream
+git remote add origin https://github.com/<you>/<your-repo>.git
+git push -u origin main
+```
+
 ## What you need
 
 - Visual Studio Code 1.104.0 or later with a Python interpreter available, or Cursor

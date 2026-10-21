@@ -96,8 +96,12 @@ export const walkthrough: Walkthrough = {
       id: 'starter',
       heading: 'Try it with the starter bundle',
       prose:
-        'Download the starter bundle at the top of this page and open the folder in VS Code. It is a small bundle project set up the way the rest of this guide recommends: a Python package of order-cleaning functions, a source-format notebook that calls it, a script to debug with Databricks Connect, pytest tests, and a serverless Lakeflow job with a notebook task and a Python wheel task. The .vscode folder holds the pytest discovery settings, the launch configurations with "databricks": true, and the extension recommendations. The databricks-connect pin is 18.0.*, which matches serverless environment version 5.',
+        'Clone the starter from GitHub (pengbricks/databricks-vscode-starter) or download the zip at the top of this page, then open the folder in VS Code. It is a small bundle project set up the way the rest of this guide recommends: a Python package of order-cleaning functions, a source-format notebook that calls it, a script to debug with Databricks Connect, pytest tests, and a serverless Lakeflow job with a notebook task and a Python wheel task. The .vscode folder holds the pytest discovery settings, the launch configurations with "databricks": true, and the extension recommendations. The databricks-connect pin is 18.0.*, which matches serverless environment version 5.',
       points: [
+        {
+          strong: 'Clone it to pull updates later.',
+          text: 'The repository holds the same files as the zip. A clone lets you git pull fixes; to keep your own changes, rename origin to upstream and push to your own repository.',
+        },
         {
           strong: 'The README holds the click path.',
           text: 'Its numbered demo steps follow this page: open the folder, sign in with OAuth, pick serverless, set up the environment, run a notebook cell, debug the script, run the tests, deploy and run the job, change the code and redeploy, deploy to prod, and destroy.',
@@ -111,7 +115,25 @@ export const walkthrough: Walkthrough = {
           text: 'The pandas tests run anywhere. One optional test uses Databricks Connect and skips itself when no sign-in works.',
         },
       ],
+      examples: [
+        {
+          label: 'Get the starter with Git',
+          language: 'bash',
+          code: `git clone https://github.com/pengbricks/databricks-vscode-starter.git vscode-starter
+cd vscode-starter
+code .
+
+# Later: pick up changes to the starter
+git pull`,
+          notes: ['Or download vscode-starter.zip from the top of this page and unzip it. Both give you the same files.'],
+        },
+      ],
       links: [
+        {
+          label: 'Starter repository on GitHub',
+          url: 'https://github.com/pengbricks/databricks-vscode-starter',
+          note: 'Public. Clone it or download it as a zip.',
+        },
         {
           label: 'Databricks IDE extension overview',
           url: 'https://docs.databricks.com/aws/en/dev-tools/vscode-ext/',

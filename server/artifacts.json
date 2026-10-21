@@ -926,6 +926,10 @@
       ],
       "docs": [
         {
+          "label": "Starter repository on GitHub (clone instead of downloading the zip)",
+          "url": "https://github.com/pengbricks/databricks-vscode-starter"
+        },
+        {
           "label": "Databricks IDE extension",
           "url": "https://docs.databricks.com/aws/en/dev-tools/vscode-ext/"
         },
