@@ -161,7 +161,34 @@ export const walkthrough: Walkthrough = {
           text: 'Dashboards that many people open need a warehouse sized and scaled for concurrency. Put metric views behind them, so every tool reports the same numbers.',
         },
       ],
+      options: {
+        caption: 'Which identity a BI tool or app uses',
+        rows: [
+          {
+            option: 'OAuth user-to-machine (each user signs in)',
+            when: 'People explore data interactively and should see only what their own grants allow.',
+            tradeoffs:
+              'Unity Catalog permissions, row filters, and column masks apply per person, and the audit log names the user. Each user needs access, and a shared dashboard can show different numbers to different people.',
+          },
+          {
+            option: 'Service principal with OAuth machine-to-machine',
+            when: 'Scheduled reports, embedded apps, and shared dashboards that every viewer sees the same way.',
+            tradeoffs:
+              'One scoped, rotatable identity with no human owner to leave. Everyone who reaches the report sees what the principal can see, so scope its grants to the report and enforce user-level access in the app. Audit shows the principal, not the viewer.',
+          },
+          {
+            option: 'Personal access token',
+            when: 'A tool that does not support OAuth yet.',
+            tradeoffs:
+              'Simple to set up, but a token is a long-lived secret that is easy to leak and tied to one person. Treat it as a fallback and move to OAuth when the tool allows.',
+          },
+        ],
+        recommendation:
+          'Use user-to-machine OAuth for interactive BI and machine-to-machine OAuth with a scoped service principal for scheduled reports and apps. Use a token only where the tool has no OAuth option.',
+      },
       links: [
+        { label: 'OAuth user-to-machine (U2M) authentication', url: 'https://docs.databricks.com/aws/en/dev-tools/auth/oauth-u2m' },
+        { label: 'OAuth machine-to-machine (M2M) authentication', url: 'https://docs.databricks.com/aws/en/dev-tools/auth/oauth-m2m' },
         {
           label: 'Connect Power BI',
           url: 'https://docs.databricks.com/aws/en/partners/bi/power-bi',
@@ -198,6 +225,35 @@ export const walkthrough: Walkthrough = {
           strong: 'Keep credentials in connections.',
           text: 'A Unity Catalog connection holds the host and credentials. Use secrets or OAuth rather than literals, and grant CREATE CONNECTION and USE CONNECTION narrowly.',
         },
+      ],
+      options: {
+        caption: 'Getting data from another system',
+        rows: [
+          {
+            option: 'Lakehouse Federation',
+            when: 'Ad hoc analysis, a lookup table, a proof of concept, or data that must be current at query time.',
+            tradeoffs:
+              'No copy and no pipeline to run, with Unity Catalog permissions on top. Every query hits the source, so speed depends on the source and the pushdown, and heavy or repeated reads load the source system. The data is unavailable when the source is down.',
+          },
+          {
+            option: 'Lakeflow Connect managed ingestion',
+            when: 'Many people read the data, or a SaaS app or database feeds recurring analytics.',
+            tradeoffs:
+              'Incremental loads into Delta tables, which read faster and cost less per query, and stay available when the source is not. You pay for pipeline compute and accept data that is as fresh as the last sync. Check the release stage of the specific connector.',
+          },
+          {
+            option: 'A partner ELT tool',
+            when: 'The source has no managed connector, or your team already runs the tool and its governance.',
+            tradeoffs:
+              'Broad source coverage and existing skills. It adds a vendor license and another system to secure, and the tool runs outside Unity Catalog governance until data lands. Each tool should use its own service principal.',
+          },
+        ],
+        recommendation:
+          'Federate small, fresh, or rarely read data. Ingest with a managed Lakeflow Connect connector when many people read it, and use a partner tool only where no managed connector covers the source.',
+      },
+      links: [
+        { label: 'Lakehouse Federation', url: 'https://docs.databricks.com/aws/en/query-federation/' },
+        { label: 'Lakeflow Connect overview', url: 'https://docs.databricks.com/aws/en/ingestion/overview' },
       ],
       examples: [
         {

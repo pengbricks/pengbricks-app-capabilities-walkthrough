@@ -183,15 +183,36 @@ GROUP BY order_date, region;`,
     {
       id: 'quality',
       heading: 'Choosing an expectation action',
-      table: {
+      options: {
         caption: 'Expectation actions in Lakeflow Spark Declarative Pipelines',
-        columns: ['Action', 'Use it when'],
         rows: [
-          ['Warn (default)', 'The rule is advisory or you are still learning the data. Rows pass, and the violation count goes to the event log.'],
-          ['DROP ROW', 'A bad row is safe to discard and nobody needs to see it. Dropped rows are counted but not stored.'],
-          ['FAIL UPDATE', 'A violation means the source or the logic is broken, such as a null primary key. The update stops before bad data lands.'],
-          ['Quarantine table', 'Someone must review or repair rejected rows. Write the inverse of the rule to a second table.'],
+          {
+            option: 'Warn (default)',
+            when: 'The rule is advisory or you are still learning the data. Rows pass, and the violation count goes to the event log.',
+            tradeoffs:
+              'The pipeline never stops, but bad rows reach downstream tables, so consumers may see them. Good for profiling a new source before you enforce anything.',
+          },
+          {
+            option: 'DROP ROW',
+            when: 'A bad row is safe to discard and nobody needs to see it.',
+            tradeoffs:
+              'Dropped rows are counted but not stored, so you cannot repair them later. A rule that is too strict loses data quietly, so watch the drop counts in the event log.',
+          },
+          {
+            option: 'FAIL UPDATE',
+            when: 'A violation means the source or the logic is broken, such as a null primary key.',
+            tradeoffs:
+              'The update stops before bad data lands, which protects gold and everything after it. The cost is an outage until someone fixes the cause, so pair it with alerting and an owner.',
+          },
+          {
+            option: 'Quarantine table',
+            when: 'Someone must review or repair rejected rows. Write the inverse of the rule to a second table.',
+            tradeoffs:
+              'Keeps every rejected row for repair and replay. It adds a table, a review process, and a second predicate to keep in sync with the rule, so derive both from one definition.',
+          },
         ],
+        recommendation:
+          'Start with warn while you learn a source. Move key and contract rules to FAIL UPDATE, use a quarantine table where rejected rows have business value, and drop only when discarding is safe.',
       },
       examples: [
         {
@@ -250,8 +271,35 @@ STORED AS SCD TYPE 1;`,
           text: 'Pick a metric view to define measures, dimensions, and filters once in Unity Catalog, so dashboards, Genie, and SQL return the same revenue number.',
         },
       ],
+      options: {
+        caption: 'How to publish a gold object',
+        rows: [
+          {
+            option: 'View',
+            when: 'The logic is cheap and the result must always be current.',
+            tradeoffs:
+              'Nothing is stored and nothing needs a refresh. Every query reruns the logic, so cost and latency grow with the number of readers and the size of the inputs.',
+          },
+          {
+            option: 'Materialized view',
+            when: 'Dashboards or apps read an aggregate or join often.',
+            tradeoffs:
+              'Results are cached, so reads are fast. The pipeline refreshes the view incrementally where it can and falls back to a full recompute otherwise, so data is as fresh as the last refresh and you pay for refresh compute. Plan the refresh schedule to match the freshness the business needs.',
+          },
+          {
+            option: 'Metric view',
+            when: 'Several tools must report the same measures, such as revenue, from one definition.',
+            tradeoffs:
+              'Measures, dimensions, and filters are defined once in Unity Catalog, so dashboards, Genie, and SQL agree. A metric view does not store results by default, so put it over a materialized view or a well-clustered table when dashboards are heavy.',
+          },
+        ],
+        recommendation:
+          'Use a materialized view for the heavy aggregates that dashboards read, and add a metric view on top when several tools need one definition of a measure. Use a plain view only for cheap logic that must be live.',
+      },
       links: [
         { label: 'Liquid clustering', url: 'https://docs.databricks.com/aws/en/delta/clustering' },
+        { label: 'Materialized views', url: 'https://docs.databricks.com/aws/en/ldp/materialized-views' },
+        { label: 'Views', url: 'https://docs.databricks.com/aws/en/views/' },
         { label: 'Unity Catalog metric views', url: 'https://docs.databricks.com/aws/en/metric-views/' },
       ],
     },

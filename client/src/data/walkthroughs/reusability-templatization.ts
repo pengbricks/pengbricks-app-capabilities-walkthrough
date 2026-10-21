@@ -193,9 +193,29 @@ resources:
     run_as: { service_principal_name: "<service-principal-application-id>" }`,
         },
       ],
+      options: {
+        caption: 'How to separate environments',
+        rows: [
+          {
+            option: 'One workspace, a catalog per environment',
+            when: 'A small team, or an early project, that wants fast setup and lower admin overhead.',
+            tradeoffs:
+              'Targets override the catalog and mode, and workspace bindings can limit who sees each catalog. Compute, quotas, and workspace settings are shared, so a heavy dev job can compete with prod and admin settings cannot differ by environment.',
+          },
+          {
+            option: 'A workspace per environment',
+            when: 'Prod needs separate admins, network rules, access, or audit scope from dev.',
+            tradeoffs:
+              'Stronger isolation of permissions, quotas, and settings, with the same Unity Catalog metastore shared across workspaces. More workspaces to administer, and each target needs its own host and identity.',
+          },
+        ],
+        recommendation:
+          'Start with a catalog per environment in one workspace and bind catalogs to workspaces when you split. Move to a workspace per environment when prod needs separate admins, networking, or compliance scope.',
+      },
       links: [
         { label: 'Declarative Automation Bundles settings', url: 'https://docs.databricks.com/aws/en/dev-tools/bundles/settings' },
         { label: 'Deployment modes', url: 'https://docs.databricks.com/aws/en/dev-tools/bundles/deployment-modes' },
+        { label: 'Limit catalog access to specific workspaces', url: 'https://docs.databricks.com/aws/en/catalogs/binding' },
       ],
     },
     {
@@ -248,9 +268,35 @@ resources:
           notes: ['Check the current serverless environment version in the docs when you set environment_version.'],
         },
       ],
+      options: {
+        caption: 'Where shared ingestion code lives',
+        rows: [
+          {
+            option: 'Python wheel built by the bundle',
+            when: 'One team owns the shared code and every job or pipeline in the bundle should run the same tested version.',
+            tradeoffs:
+              'Versioned, unit-testable, and attached to jobs and pipelines as a dependency. The bundle needs a build step and dependency settings, and sharing across several bundles means publishing the wheel somewhere.',
+          },
+          {
+            option: 'Source modules deployed with the bundle',
+            when: 'The code is small, used by one project, and you want no packaging step.',
+            tradeoffs:
+              'Simplest to start. Each bundle carries its own copy, so a fix in one project does not reach the others. On serverless compute the working directory is not guaranteed, so import shared code as workspace files and avoid relative-path tricks.',
+          },
+          {
+            option: 'A package from an internal repository',
+            when: 'Several teams and bundles consume the same library on their own release schedule.',
+            tradeoffs:
+              'Independent versioning and one source of truth. You run the package repository and a release process, and each project pins a version and upgrades by pull request.',
+          },
+        ],
+        recommendation:
+          'Package shared logic as a wheel built by the bundle once more than one job uses it. Move to an internal repository when several bundles or teams need the same release.',
+      },
       links: [
         { label: 'Custom bundle templates', url: 'https://docs.databricks.com/aws/en/dev-tools/bundles/templates' },
         { label: 'Build a Python wheel with a bundle', url: 'https://docs.databricks.com/aws/en/dev-tools/bundles/python-wheel' },
+        { label: 'Bundle library dependencies', url: 'https://docs.databricks.com/aws/en/dev-tools/bundles/library-dependencies' },
       ],
     },
     {

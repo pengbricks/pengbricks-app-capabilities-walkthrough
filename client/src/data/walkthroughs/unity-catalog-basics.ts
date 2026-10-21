@@ -207,7 +207,28 @@ SHOW GRANTS \`analysts\` ON SCHEMA prod.sales;`,
           text: 'system.access.audit records who did what, system.access.table_lineage and column_lineage record data flow, and system.billing.usage records spend. Query them with SQL or build dashboards.',
         },
       ],
+      options: {
+        caption: 'Managed or external tables',
+        rows: [
+          {
+            option: 'Managed table',
+            when: 'Databricks is the main reader and writer, and nothing else needs to own the storage path.',
+            tradeoffs:
+              'Unity Catalog manages storage, layout, and optimization. The docs say managed tables cost less to store and query and stay open to outside clients through the Iceberg REST catalog. Features such as predictive optimization and multi-statement transactions are not available on external tables. Files sit in the schema or catalog managed location, so plan those locations up front.',
+          },
+          {
+            option: 'External table',
+            when: 'Another system must own the files, the data format is not Delta or Iceberg (JSON, Avro, CSV, Parquet, ORC, text), or a non-Databricks client needs direct path access.',
+            tradeoffs:
+              'Files stay where they are and dropping the table keeps the data. Unity Catalog manages metadata only, not lifecycle, layout, or optimization, so you own compaction and cleanup. Unity Catalog privileges are not enforced when someone reads the files directly, and metadata changed outside Databricks can drift until you run a repair.',
+          },
+        ],
+        recommendation:
+          'Default to managed tables. Choose external only when another system must own the storage path or the files are in a format managed tables do not cover. You can convert an external Delta table to managed later.',
+      },
       links: [
+        { label: 'Unity Catalog managed tables', url: 'https://docs.databricks.com/aws/en/tables/managed' },
+        { label: 'External tables', url: 'https://docs.databricks.com/aws/en/tables/external' },
         { label: 'Unity Catalog best practices', url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/best-practices' },
         { label: 'Limit catalog access to specific workspaces', url: 'https://docs.databricks.com/aws/en/catalogs/binding' },
         { label: 'System tables', url: 'https://docs.databricks.com/aws/en/admin/system-tables/' },

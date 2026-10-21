@@ -121,10 +121,36 @@ export const walkthrough: Walkthrough = {
           ],
         ],
       },
+      options: {
+        caption: 'Running the same logic for many sources',
+        rows: [
+          {
+            option: 'for_each task in a Lakeflow Job',
+            when: 'Each source is a separate unit of work that can succeed, fail, and be retried on its own, such as a file drop per partner.',
+            tradeoffs:
+              'Gives one child task per source with its own retries, run history, and repair run. Each iteration starts its own task, so many tiny sources add overhead, and tables are not tracked as one dependency graph.',
+          },
+          {
+            option: 'Pipeline definitions generated from config',
+            when: 'Sources land in tables that feed one another, and you want one dependency graph with lineage and incremental refresh.',
+            tradeoffs:
+              'A small Python loop creates a table or flow per source inside one Lakeflow Spark Declarative Pipeline, so Databricks handles checkpoints and ordering. A failure in one flow can affect the update, and adding a source means updating the pipeline.',
+          },
+          {
+            option: 'A custom runner loop in one notebook or script',
+            when: 'Sources must share one Spark session, or the logic has no fit with jobs or pipelines.',
+            tradeoffs:
+              'Most flexible, and you own everything else: retries, per-source status, state, and tests. A failure midway needs your own resume logic. Treat it as the last resort.',
+          },
+        ],
+        recommendation:
+          'Use a for_each task when sources are independent, and a generated pipeline when the outputs form a graph. Write a custom runner only when neither fits.',
+      },
       links: [
         { label: 'Manage data quality with pipeline expectations', url: 'https://docs.databricks.com/aws/en/ldp/expectations' },
         { label: 'AUTO CDC', url: 'https://docs.databricks.com/aws/en/ldp/cdc' },
         { label: 'Run a parameterized job task in a loop (for_each)', url: 'https://docs.databricks.com/aws/en/jobs/for-each' },
+        { label: 'Load and process data incrementally with flows', url: 'https://docs.databricks.com/aws/en/ldp/flows' },
       ],
     },
     {
@@ -155,6 +181,35 @@ export const walkthrough: Walkthrough = {
           strong: 'Drift handling is a choice per source.',
           text: 'Set Auto Loader schema evolution and a rescued data column per source, so new columns are captured without a code change and unexpected types do not fail the load.',
         },
+      ],
+      options: {
+        caption: 'Choosing the home for configuration',
+        rows: [
+          {
+            option: 'YAML or JSON files in Git, deployed with a bundle',
+            when: 'Engineers own the configuration and every change needs review, a diff, and a controlled deploy.',
+            tradeoffs:
+              'Pull requests, CI validation, and rollback come with Git. A change needs a deploy, so data owners without Git access depend on engineers. Nothing extra to secure, since repo permissions apply.',
+          },
+          {
+            option: 'A Unity Catalog table',
+            when: 'Data owners or analysts edit settings often and a change should apply on the next run without a deploy.',
+            tradeoffs:
+              'Edits are quick and can use a form or dashboard, and Unity Catalog grants control who may write. You add the review process yourself: validation, an audit trail (Delta history helps), and a way to promote values between dev and prod. A bad row can break a live run.',
+          },
+          {
+            option: 'Bundle variables or pipeline parameters',
+            when: 'The settings are a handful of values per environment, such as catalog, schema, or a landing path.',
+            tradeoffs:
+              'The simplest option and fully versioned with the code. It does not scale to dozens of sources with column mappings and rules, where a structured file or table is easier to read and validate.',
+          },
+        ],
+        recommendation:
+          'Keep configuration in Git by default. Use a Unity Catalog table when non-engineers must change settings between deploys, and add validation and an audit trail when you do.',
+      },
+      links: [
+        { label: 'Bundle variables', url: 'https://docs.databricks.com/aws/en/dev-tools/bundles/variables' },
+        { label: 'Job parameters', url: 'https://docs.databricks.com/aws/en/jobs/parameters' },
       ],
     },
     {

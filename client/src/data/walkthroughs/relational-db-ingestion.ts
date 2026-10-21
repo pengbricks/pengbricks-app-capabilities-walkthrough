@@ -54,57 +54,30 @@ export const walkthrough: Walkthrough = {
     {
       id: 'decision',
       heading: 'Choose the ingestion path',
-      diagram: {
-        type: 'matrix',
-        title: 'Three ways to ingest a relational database',
-        description:
-          'Lakehouse Federation queries the source live with no copy and no setup on the source. Lakeflow Connect CDC connectors read the transaction log through a gateway and apply changes continuously, with the lowest source load. Query-based connectors poll the source with a cursor column on a schedule, with no gateway and no CDC setup, at the cost of more source load and no intermediate row states.',
-        corner: 'Approach ↓ · Trait →',
-        columns: ['Freshness', 'Source load', 'Source setup'],
+      options: {
+        caption: 'Three ways to ingest a relational database',
         rows: [
           {
-            label: 'Lakehouse Federation',
-            sub: 'query in place',
-            cells: [
-              { state: 'own', text: 'Live, per query' },
-              { state: 'optional', text: 'Every query hits the source' },
-              { state: 'own', text: 'Connection and grants' },
-            ],
+            option: 'Lakehouse Federation',
+            when: 'Explore a table, join source data with Delta tables, load once with CREATE TABLE AS SELECT, or push a custom join or aggregate to the source (foreign catalog pushdown or remote_query).',
+            tradeoffs:
+              'Live data per query, with no copy and no setup on the source beyond a connection and grants. Every query hits the source, so performance and source load depend on the source system and on how much work is pushed down. Heavy or repeated use belongs in ingestion instead.',
           },
           {
-            label: 'Lakeflow Connect CDC',
-            sub: 'gateway + pipeline',
-            cells: [
-              { state: 'own', text: 'Continuous or scheduled' },
-              { state: 'own', text: 'Reads the log, lowest' },
-              { state: 'optional', text: 'Enable CDC or logging' },
-            ],
+            option: 'Lakeflow Connect CDC connector',
+            when: 'Keep a table in sync with inserts, updates, and deletes, with minimal source load.',
+            tradeoffs:
+              'Reads the transaction log, so it puts the lowest load on the source, and freshness is continuous or scheduled. You enable CDC or logging on the source, may need a gateway on classic compute depending on the connector, and should check the release stage of each connector.',
           },
           {
-            label: 'Query-based connector',
-            sub: 'cursor column, scheduled',
-            cells: [
-              { state: 'optional', text: 'At each scheduled run' },
-              { state: 'optional', text: 'Queries source tables' },
-              { state: 'own', text: 'A cursor column' },
-            ],
+            option: 'Query-based connector',
+            when: 'The database or its CDC feature is not supported, or you cannot enable CDC. It needs a reliable cursor column.',
+            tradeoffs:
+              'No gateway and no CDC setup, and it runs on serverless compute. Each run queries the source tables, so load is higher than log reading. It captures the latest state of each changed row, not every intermediate state. Hard deletes need extra configuration.',
           },
         ],
-        legend: [
-          { state: 'own', label: 'Strength' },
-          { state: 'optional', label: 'Trade-off' },
-        ],
-        caption: 'Query-based connectors capture the latest state of each changed row, not every intermediate state.',
-      },
-      table: {
-        caption: 'Which to pick',
-        columns: ['Situation', 'Use'],
-        rows: [
-          ['Explore a table, join source data with Delta tables, or load once', 'Lakehouse Federation, then CREATE TABLE AS SELECT'],
-          ['Keep a table in sync with inserts, updates, and deletes, with minimal source load', 'Lakeflow Connect CDC connector'],
-          ['The database or its CDC feature is not supported, or you cannot enable CDC', 'Query-based connector with a reliable cursor column'],
-          ['Need a custom join or aggregate computed at the source', 'Federation with pushdown, or a query-based pipeline over a query'],
-        ],
+        recommendation:
+          'Use a Lakeflow Connect CDC connector for tables people read often and that must track deletes. Use a query-based connector when CDC is unavailable and a cursor column exists. Use Federation for exploration, one-time loads, and small or rarely read tables.',
       },
       links: [
         { label: 'Managed database connectors (CDC)', url: 'https://docs.databricks.com/aws/en/ingestion/lakeflow-connect/cdc-overview' },
@@ -183,6 +156,34 @@ SELECT * FROM remote_query(
             'Keep credentials in the connection. Use a long-lived credential or OAuth setup that suits the database, not a short-lived token pasted into the connection.',
           ],
         },
+      ],
+      options: {
+        caption: 'How to run work at the source',
+        rows: [
+          {
+            option: 'remote_query with a SQL string',
+            when: 'The logic needs source-specific features: database functions, window functions, or a join best done where the data lives.',
+            tradeoffs:
+              'Joins, aggregates, and functions run in the database and only the result crosses the wire. The query is written in the source dialect, so it is tied to that database, and the string is not checked until it runs.',
+          },
+          {
+            option: 'Query a foreign catalog',
+            when: 'Simple filters and aggregates over source tables, with tables you can browse and govern in Unity Catalog.',
+            tradeoffs:
+              'Portable SQL with Unity Catalog permissions on top, and Databricks pushes down the filters and aggregates it can. You do not control what is pushed down, so a complex query may pull more rows than expected.',
+          },
+          {
+            option: 'Query-based connector over a query',
+            when: 'The result must land incrementally on a schedule rather than be recomputed on every run.',
+            tradeoffs:
+              'Loads only changed rows using a cursor column and keeps a Delta table current. It needs a reliable cursor, and each run still queries the source.',
+          },
+        ],
+        recommendation:
+          'Use remote_query when the source can do the heavy part of the work, and a foreign catalog for simple reads. Switch to a query-based pipeline when the result must refresh incrementally.',
+      },
+      links: [
+        { label: 'Query external databases using remote_query', url: 'https://docs.databricks.com/aws/en/query-federation/remote-queries' },
       ],
     },
     {

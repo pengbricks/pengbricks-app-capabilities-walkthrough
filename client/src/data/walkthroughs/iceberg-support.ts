@@ -110,47 +110,30 @@ export const walkthrough: Walkthrough = {
       heading: 'Which Iceberg option to use',
       prose:
         'There are three ways an Iceberg table shows up in Unity Catalog. Choose by who writes the table and who owns the format.',
-      diagram: {
-        type: 'matrix',
-        title: 'Managed Iceberg, Iceberg reads, or foreign Iceberg',
-        description:
-          'Managed Iceberg tables are the choice when Iceberg is the contract, with reads and writes from Databricks and external engines. A Delta table with Iceberg reads is the choice when Databricks is the writer and Iceberg clients only read. A foreign Iceberg table is read-only in Databricks and the table stays in another catalog such as AWS Glue, Hive metastore, or Snowflake Horizon Catalog.',
-        corner: 'Option ↓ · Property →',
-        columns: ['Use it when', 'Who writes', 'Catalog of record'],
+      options: {
+        caption: 'Managed Iceberg, Delta with Iceberg reads, or foreign Iceberg',
         rows: [
           {
-            label: 'Managed Iceberg',
-            cells: [
-              { state: 'own', text: 'Iceberg is the contract' },
-              { state: 'own', text: 'Databricks and external engines' },
-              { state: 'own', text: 'Unity Catalog' },
-            ],
+            option: 'Managed Iceberg table',
+            when: 'Iceberg is the contract: other engines such as Flink or open-source Spark must write through the REST catalog, or your platform standard is Iceberg.',
+            tradeoffs:
+              'Unity Catalog is the catalog of record, Databricks and external engines can both read and write, and predictive optimization maintains the table. Managed Iceberg tables reject Delta-style DataFrame writes, so create and write them with SQL. Liquid clustering for Iceberg is in Public Preview.',
           },
           {
-            label: 'Delta + Iceberg reads',
-            sub: 'formerly UniForm',
-            cells: [
-              { state: 'own', text: 'Delta is the default; clients read Iceberg' },
-              { state: 'optional', text: 'Databricks only' },
-              { state: 'own', text: 'Unity Catalog' },
-            ],
+            option: 'Delta table with Iceberg reads (formerly UniForm)',
+            when: 'Databricks is the only writer and outside Iceberg clients only need to read.',
+            tradeoffs:
+              'Keeps the full Delta feature set with one copy of the data, and Iceberg clients get read-only access through the Unity Catalog REST catalog. It needs column mapping, deletion vectors cannot be enabled together with Iceberg reads on v2 compatibility, and external engines cannot read Unity Catalog views.',
           },
           {
-            label: 'Foreign Iceberg',
-            sub: 'Lakehouse Federation',
-            cells: [
-              { state: 'optional', text: 'Another catalog owns the table' },
-              { state: 'none', text: 'Read-only in Databricks' },
-              { state: 'none', text: 'Glue, Hive, Snowflake Horizon' },
-            ],
+            option: 'Foreign Iceberg table (Lakehouse Federation)',
+            when: 'Another catalog, such as AWS Glue, Hive metastore, or Snowflake Horizon Catalog, owns the table and you only need to read it from Databricks.',
+            tradeoffs:
+              'No data movement, and the table stays where it is. It is read-only in Databricks and has limited platform support, so copy or clone into a managed table when you need the full feature set.',
           },
         ],
-        legend: [
-          { state: 'own', label: 'Full platform support' },
-          { state: 'optional', label: 'Works, with a limit' },
-          { state: 'none', label: 'Read-only or external' },
-        ],
-        caption: 'Foreign Iceberg tables have limited platform support. Copy or clone data into a managed table if you need the full feature set.',
+        recommendation:
+          'Keep tables Delta and turn on Iceberg reads when only Databricks writes. Choose managed Iceberg when other engines must write or Iceberg is your standard. Use foreign Iceberg to read tables another catalog owns.',
       },
       points: [
         {
@@ -175,6 +158,10 @@ export const walkthrough: Walkthrough = {
         },
       ],
       links: [
+        {
+          label: 'What is Apache Iceberg in Databricks?',
+          url: 'https://docs.databricks.com/aws/en/iceberg/',
+        },
         {
           label: 'Read Delta tables with Iceberg clients',
           url: 'https://docs.databricks.com/aws/en/delta/uniform',
@@ -222,6 +209,25 @@ export const walkthrough: Walkthrough = {
           ],
         },
       ],
+      options: {
+        caption: 'How an outside party reads the table',
+        rows: [
+          {
+            option: 'Iceberg REST catalog with credential vending',
+            when: 'Your own engines or trusted teams read or write the tables live, and each client can speak the Iceberg REST catalog protocol.',
+            tradeoffs:
+              'Clients see current table state and get short-lived, scoped storage credentials. Setup per client: a service principal, EXTERNAL USE SCHEMA, the metastore external access setting, and a supported Iceberg client version. Managed Iceberg tables allow writes, and Delta tables with Iceberg reads are read-only.',
+          },
+          {
+            option: 'OpenSharing',
+            when: 'The reader is another organization or business unit, or you want to hand out access to selected tables without giving the reader a service principal in your account.',
+            tradeoffs:
+              'You grant access through a share and recipient, which keeps sharing explicit and auditable. Recipients can read shared Iceberg tables with Iceberg clients. It is read-only and less suited to engines that must write back.',
+          },
+        ],
+        recommendation:
+          'Use the REST catalog for engines you operate or trust that need live reads or writes. Use OpenSharing for partners and other organizations where you want a share and recipient to control access.',
+      },
       links: [
         {
           label: 'Access Databricks tables from Iceberg clients',
@@ -231,6 +237,10 @@ export const walkthrough: Walkthrough = {
           label: 'Credential vending',
           url: 'https://docs.databricks.com/aws/en/external-access/credential-vending',
           note: 'Temporary, scoped storage credentials for external systems.',
+        },
+        {
+          label: 'OpenSharing',
+          url: 'https://docs.databricks.com/aws/en/opensharing',
         },
       ],
     },

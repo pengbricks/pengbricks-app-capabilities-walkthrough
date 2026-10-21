@@ -130,6 +130,35 @@ fe.create_table(
           text: 'Expectations enforce constraints inside the pipeline, with fail or drop actions per rule.',
         },
       ],
+      options: {
+        caption: 'Where to run feature checks',
+        rows: [
+          {
+            option: 'Assertions in the job that writes the feature table',
+            when: 'Features are computed in a notebook or job with the Feature Engineering client.',
+            tradeoffs:
+              'Fully flexible, including key uniqueness and custom statistics, and a failed check stops the task before the table changes. You write and test the checks yourself.',
+          },
+          {
+            option: 'Pipeline expectations',
+            when: 'Features come from a Lakeflow Spark Declarative Pipeline.',
+            tradeoffs:
+              'Declarative rules with warn, drop, or fail actions and pass/fail counts in the event log. They fit row-level rules best. Distribution and drift checks need another tool.',
+          },
+          {
+            option: 'Data quality monitoring on the feature table',
+            when: 'You need to see drift, null rates, and freshness over time after the table is live.',
+            tradeoffs:
+              'Anomaly detection flags stale or incomplete tables, and data profiling tracks statistics such as null rates and drift, all without code in the pipeline. It reports after the data has landed and does not block a bad write, so use it next to a gate, not in place of one.',
+          },
+        ],
+        recommendation:
+          'Gate the write with expectations or job assertions so a bad table never reaches training, and add data quality monitoring to watch drift after the table is live.',
+      },
+      links: [
+        { label: 'Manage data quality with pipeline expectations', url: 'https://docs.databricks.com/aws/en/ldp/expectations' },
+        { label: 'Data quality monitoring', url: 'https://docs.databricks.com/aws/en/data-quality-monitoring/' },
+      ],
     },
     {
       id: 'version',
@@ -197,7 +226,39 @@ fe.log_model(
           text: 'Raising deletedFileRetentionDuration keeps more history at the cost of storage. Choose it per table instead of globally.',
         },
       ],
+      options: {
+        caption: 'Keeping a training set reproducible',
+        rows: [
+          {
+            option: 'Delta time travel on the feature table',
+            when: 'Models retrain often and you only need to reproduce a recent training set, within the retention window.',
+            tradeoffs:
+              'No extra storage or code, since you record the table version. The version disappears once VACUUM removes the files or the log is trimmed, so it fails for audits that look back months.',
+          },
+          {
+            option: 'Write the training set to its own table',
+            when: 'A model is long-lived or audited and you need the exact rows it trained on.',
+            tradeoffs:
+              'Durable and easy to query and share. It stores a full copy of the joined data, so storage grows with every retrain. Apply Unity Catalog grants to the copy, because it can hold sensitive features.',
+          },
+          {
+            option: 'DEEP CLONE of the feature table at the version used',
+            when: 'You want the feature table as of a date but not the label join.',
+            tradeoffs:
+              'Copies the data files, so it survives VACUUM on the source. Cheaper to hold than a joined training set, but it still adds storage. A shallow clone still depends on the source files, so it is not durable.',
+          },
+          {
+            option: 'Longer retention on the feature table',
+            when: 'A few tables need weeks or months of time travel and the table is small or changes little.',
+            tradeoffs:
+              'No new objects, only a table property. Old files stay on storage, so cost rises with the change rate. Set it per table instead of globally.',
+          },
+        ],
+        recommendation:
+          'Use time travel for short-lived experiments. For any model that is audited or stays in production, write the training set to its own table, or DEEP CLONE the feature table, and log the reference with the model.',
+      },
       links: [
+        { label: 'Clone a table', url: 'https://docs.databricks.com/aws/en/delta/clone' },
         { label: 'Feature tables in Unity Catalog', url: 'https://docs.databricks.com/aws/en/machine-learning/feature-store/uc/feature-tables-uc' },
         { label: 'Point-in-time feature joins', url: 'https://docs.databricks.com/aws/en/machine-learning/feature-store/time-series' },
         { label: 'Delta table history and time travel', url: 'https://docs.databricks.com/aws/en/delta/history' },

@@ -109,6 +109,31 @@ FROM STREAM read_files(
           ],
         },
       ],
+      options: {
+        caption: 'How files get from the SFTP server into Delta',
+        rows: [
+          {
+            option: 'SFTP connector with Auto Loader',
+            when: 'Databricks compute can reach the server and the connector supports its authentication and protocol features.',
+            tradeoffs:
+              'No copy job and no transfer log to operate, and credentials stay in a Unity Catalog connection. The server must allow-list your compute addresses, the connector needs a recent Databricks Runtime, and it was announced in Public Preview, so confirm the current stage.',
+          },
+          {
+            option: 'Copy job to a volume, then Auto Loader',
+            when: 'The server needs a protocol feature the connector lacks, or it is reachable only from a host outside Databricks.',
+            tradeoffs:
+              'Works with almost any server and gives you full control over what is copied. You maintain the copy code, a transfer log, change detection, and retries, and you store the files twice (volume and table).',
+          },
+          {
+            option: 'A cloud transfer service that delivers files to object storage',
+            when: 'The partner can push to a cloud storage location, or your team already runs a managed file-transfer service.',
+            tradeoffs:
+              'The transfer service handles protocol and access, and Databricks reads from storage with Auto Loader and file events. It adds a service to pay for and administer, outside Databricks governance until the files land.',
+          },
+        ],
+        recommendation:
+          'Use the SFTP connector when the server is reachable and you can allow-list compute addresses. Use a copy job only when the connector cannot work, and a managed transfer service when the partner can deliver to cloud storage.',
+      },
       links: [
         { label: 'Ingest files from SFTP servers', url: 'https://docs.databricks.com/aws/en/ingestion/sftp' },
         { label: 'File connectors', url: 'https://docs.databricks.com/aws/en/ingestion/lakeflow-connect/file-connectors-overview' },
@@ -138,6 +163,34 @@ FROM STREAM read_files(
           strong: 'Check the release stage.',
           text: 'Databricks announced the SFTP connector in Public Preview. Confirm its current stage on the docs page before you rely on it in production.',
         },
+      ],
+      options: {
+        caption: 'How the server sees your compute',
+        rows: [
+          {
+            option: 'Classic compute behind a NAT gateway',
+            when: 'The workload already runs on classic compute in your VPC.',
+            tradeoffs:
+              'One stable public address that you own, and the server allow-list is narrow. You run the network path and the classic compute, and the server must also be reachable from that VPC.',
+          },
+          {
+            option: 'Serverless with a network connectivity configuration (stable IPs)',
+            when: 'Pipelines run on serverless compute and the server owner wants a fixed address list.',
+            tradeoffs:
+              'Databricks manages the compute while the addresses stay stable and specific to your account. Setup is an account-level configuration, usually done by an admin.',
+          },
+          {
+            option: 'Allow-list the published serverless address ranges',
+            when: 'A quick test, or a server that can accept broad ranges.',
+            tradeoffs:
+              'No network configuration to build. The ranges are broader than a dedicated address, so the allow-list is less specific, and the server owner must keep it current.',
+          },
+        ],
+        recommendation:
+          'Use a stable address in production: a NAT gateway for classic compute or a network connectivity configuration for serverless. Reserve the broad serverless ranges for tests.',
+      },
+      links: [
+        { label: 'Serverless network security', url: 'https://docs.databricks.com/aws/en/security/network/serverless-network-security/' },
       ],
     },
     {
