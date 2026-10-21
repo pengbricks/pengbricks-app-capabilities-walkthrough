@@ -31,6 +31,17 @@ describe.each(walkthroughs.map((walkthrough) => [walkthrough.slug, walkthrough] 
     expect(walkthrough.shortVersion.length).toBeGreaterThanOrEqual(3);
   });
 
+  it('gives every options table at least two choices and a default', () => {
+    for (const section of walkthrough.sections) {
+      if (!section.options) continue;
+      expect(section.options.rows.length, section.id).toBeGreaterThanOrEqual(2);
+      expect(section.options.recommendation.trim().length, section.id).toBeGreaterThan(0);
+      for (const row of section.options.rows) {
+        expect(row.option && row.when && row.tradeoffs, `${section.id}: ${row.option}`).toBeTruthy();
+      }
+    }
+  });
+
   it('links only to https pages', () => {
     for (const section of walkthrough.sections) {
       for (const link of section.links ?? []) expect(link.url, `${section.id}: ${link.label}`).toMatch(/^https:\/\//);

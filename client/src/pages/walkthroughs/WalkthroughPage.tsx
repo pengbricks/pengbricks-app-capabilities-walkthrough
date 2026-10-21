@@ -176,6 +176,34 @@ function Section({ section, excerpts }: { section: WalkthroughSection; excerpts:
           </table>
         </div>
       )}
+      {section.options && (
+        <div className="options-block">
+          {section.options.caption && <p className="options-caption">{section.options.caption}</p>}
+          <div className="table-wrap" tabIndex={0} role="region" aria-label={section.options.caption ?? `${section.heading}: options`}>
+            <table className="data-table options-table">
+              <thead>
+                <tr>
+                  <th scope="col">Option</th>
+                  <th scope="col">When to use it</th>
+                  <th scope="col">Tradeoffs</th>
+                </tr>
+              </thead>
+              <tbody>
+                {section.options.rows.map((row) => (
+                  <tr key={row.option}>
+                    <td className="font-medium">{row.option}</td>
+                    <td>{row.when}</td>
+                    <td>{row.tradeoffs}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="options-pick">
+            <strong>Default:</strong> {section.options.recommendation}
+          </p>
+        </div>
+      )}
       {section.points && (
         <ul className="practice-list">
           {section.points.map((point) => (

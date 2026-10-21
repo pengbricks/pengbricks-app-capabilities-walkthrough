@@ -64,6 +64,16 @@ export type WalkthroughSection = {
   table?: { caption?: string; columns: [string, string]; rows: [string, string][] };
   steps?: { title: string; body: string; code?: string }[];
   points?: { strong: string; text: string }[];
+  /**
+   * A design choice with more than one valid approach: each option, when it fits, and what it costs
+   * (performance, cost, maintenance, governance, accuracy), then the default and why. Tradeoffs that
+   * the docs do not state are written as practical guidance.
+   */
+  options?: {
+    caption?: string;
+    rows: { option: string; when: string; tradeoffs: string }[];
+    recommendation: string;
+  };
   /** Outside reading, such as the official docs page for each topic. Opens in a new tab. */
   links?: { label: string; url: string; note?: string }[];
   /**

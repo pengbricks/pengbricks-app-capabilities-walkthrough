@@ -218,3 +218,8 @@ body,
 .walkthrough pre code { display: block; background: none; border: 0; border-radius: 0; padding: 0; font-size: inherit; }
 .walkthrough .section-code { margin-top: 1.5rem; display: grid; gap: 1.25rem; }
 .walkthrough .section-code figcaption { flex-wrap: nowrap; font-size: inherit; color: inherit; background: none; border-top: 0; padding: 0.625rem 1rem; }
+.walkthrough .options-block { margin-top: 1.25rem; }
+.walkthrough .options-caption { margin-bottom: 0.5rem; font-size: 0.8125rem; font-weight: 600; color: var(--muted-foreground); }
+.walkthrough .options-table td { vertical-align: top; }
+.walkthrough .options-table td:first-child { width: 22%; }
+.walkthrough .options-pick { margin-top: 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--muted); padding: 0.75rem 1rem; font-size: 0.875rem; line-height: 1.6; }
