@@ -7613,6 +7613,266 @@
           ]
         }
       ]
+    },
+    "data-validation-framework": {
+      "bundle": "reference/data-validation",
+      "onePager": "reference/data-validation/guides/data-validation-framework/README.md",
+      "code": [
+        {
+          "label": "Notebooks, one per job task",
+          "path": "reference/data-validation/guides/data-validation-framework"
+        },
+        {
+          "label": "Validation helpers",
+          "path": "reference/data-validation/src/dv_lib.py"
+        },
+        {
+          "label": "Check spec",
+          "path": "reference/data-validation/use_cases/general.yml"
+        },
+        {
+          "label": "Pipeline with expectations and quarantine",
+          "path": "reference/data-validation/guides/data-validation-framework/pipeline/dv_orders.py"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_data_validation",
+          "label": "Data validation job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "Data validation run",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/682958473665705/runs/988955619735040",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-21T17:00:51Z"
+        }
+      ],
+      "docs": [
+        {
+          "label": "Run queries on a remote database with remote_query",
+          "url": "https://docs.databricks.com/aws/en/query-federation/remote-queries"
+        },
+        {
+          "label": "Pipeline expectations",
+          "url": "https://docs.databricks.com/aws/en/ldp/expectations"
+        },
+        {
+          "label": "Expectation recommendations and advanced patterns",
+          "url": "https://docs.databricks.com/aws/en/ldp/expectation-patterns"
+        },
+        {
+          "label": "Data quality monitoring",
+          "url": "https://docs.databricks.com/aws/en/data-governance/unity-catalog/data-quality-monitoring/"
+        },
+        {
+          "label": "Lineage system tables",
+          "url": "https://docs.databricks.com/aws/en/admin/system-tables/lineage"
+        },
+        {
+          "label": "Metric views",
+          "url": "https://docs.databricks.com/aws/en/metric-views/"
+        },
+        {
+          "label": "Pages (Beta)",
+          "url": "https://docs.databricks.com/aws/en/uc-semantics/pages"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Aggregate SQL for both sides",
+          "path": "reference/data-validation/src/dv_lib.py",
+          "notes": [
+            "One metric list builds the source SQL (Postgres) and the target SQL (Spark).",
+            "The source side runs through remote_query and returns one row per slice."
+          ],
+          "symbol": "aggregate_sql",
+          "section": "reconcile"
+        },
+        {
+          "label": "Copy with remote_query",
+          "path": "reference/data-validation/guides/data-validation-framework/03_load_target.py",
+          "notes": [
+            "The copy plays the bronze role.",
+            "Each table is overwritten, so a rerun replaces it."
+          ],
+          "lines": [
+            46,
+            57
+          ],
+          "section": "reconcile"
+        },
+        {
+          "label": "Change the source after the copy",
+          "path": "reference/data-validation/guides/data-validation-framework/03_load_target.py",
+          "notes": [
+            "Six source orders move to the previous day. The whole-table count and sum still match; two days do not."
+          ],
+          "lines": [
+            65,
+            73
+          ],
+          "section": "recon-grain"
+        },
+        {
+          "label": "One checksum recipe, two dialects",
+          "path": "reference/data-validation/src/dv_lib.py",
+          "notes": [
+            "Both dialects hash the same canonical row string and sum the first 8 hex digits of md5."
+          ],
+          "symbol": "checksum_expr",
+          "section": "recon-grain"
+        },
+        {
+          "label": "Find the slices that differ",
+          "path": "reference/data-validation/src/dv_lib.py",
+          "notes": [
+            "Compares source and target by slice and metric, with an optional tolerance.",
+            "A slice present on one side only counts as a mismatch."
+          ],
+          "symbol": "diff_slices",
+          "section": "recon-grain"
+        },
+        {
+          "label": "Rules defined once, two outputs",
+          "path": "reference/data-validation/guides/data-validation-framework/pipeline/dv_orders.py",
+          "notes": [
+            "The same DROP_RULES feed expect_all_or_drop on silver and the inverted filter on quarantine.",
+            "coalesce(rule, false) sends a NULL result to quarantine."
+          ],
+          "lines": [
+            10,
+            44
+          ],
+          "section": "quarantine"
+        },
+        {
+          "label": "Expectation metrics from the event log",
+          "path": "reference/data-validation/guides/data-validation-framework/05_read_expectation_metrics.py",
+          "notes": [
+            "event_log() flow_progress events carry passed and failed counts per expectation for the latest update."
+          ],
+          "lines": [
+            28,
+            40
+          ],
+          "section": "quarantine"
+        },
+        {
+          "label": "Checks as data",
+          "path": "reference/data-validation/use_cases/general.yml",
+          "notes": [
+            "Each check has a name, dataset, type, threshold, and severity.",
+            "One check fails on purpose: per-day reconciliation against the source."
+          ],
+          "lines": [
+            45,
+            66
+          ],
+          "section": "runner"
+        },
+        {
+          "label": "Run one check",
+          "path": "reference/data-validation/src/dv_lib.py",
+          "notes": [
+            "Every type goes through the same path: build SQL, measure one value, compare, record.",
+            "A check that cannot run is recorded with status error."
+          ],
+          "symbol": "run_check",
+          "section": "runner"
+        },
+        {
+          "label": "SQL for each single-value check type",
+          "path": "reference/data-validation/src/dv_lib.py",
+          "notes": [
+            "row_count, unique, null_rate, referential, freshness, and custom_sql each become one SELECT that returns observed."
+          ],
+          "symbol": "single_value_sql",
+          "section": "freshness"
+        },
+        {
+          "label": "Write one results table and a failures view",
+          "path": "reference/data-validation/guides/data-validation-framework/06_run_validations.py",
+          "notes": [
+            "A rerun replaces its own run_id.",
+            "dv_latest_failures is the view the SQL alert reads."
+          ],
+          "lines": [
+            83,
+            94
+          ],
+          "section": "alerts"
+        },
+        {
+          "label": "Which results block the next task",
+          "path": "reference/data-validation/src/dv_lib.py",
+          "notes": [
+            "block_on=error stops on a failed error-severity check; warn stops on any failure; none never stops."
+          ],
+          "symbol": "blocking",
+          "section": "alerts"
+        },
+        {
+          "label": "Block one task, run another after failure",
+          "path": "reference/data-validation/resources/validation.job.yml",
+          "notes": [
+            "publish_metric_view waits for run_validations to succeed.",
+            "read_lineage uses run_if ALL_DONE, so it runs after a failure too."
+          ],
+          "lines": [
+            78,
+            95
+          ],
+          "section": "alerts"
+        },
+        {
+          "label": "SQL alert on the failures view",
+          "path": "reference/data-validation/resources/validation.alert.yml",
+          "notes": [
+            "Ships paused, so a deploy never sends mail."
+          ],
+          "section": "alerts"
+        },
+        {
+          "label": "Walk downstream from each dataset",
+          "path": "reference/data-validation/guides/data-validation-framework/08_read_lineage.py",
+          "notes": [
+            "Up to three hops over system.access.table_lineage.",
+            "A row with no target table is a read by a notebook, query, or dashboard."
+          ],
+          "lines": [
+            69,
+            91
+          ],
+          "section": "lineage"
+        },
+        {
+          "label": "Create the metric view",
+          "path": "reference/data-validation/guides/data-validation-framework/07_publish_metric_view.py",
+          "notes": [
+            "Measures are defined once in the spec and created with WITH METRICS LANGUAGE YAML.",
+            "The job then checks MEASURE() against a direct query."
+          ],
+          "lines": [
+            30,
+            39
+          ],
+          "section": "metrics"
+        },
+        {
+          "label": "Certify after validation",
+          "path": "reference/data-validation/guides/data-validation-framework/07_publish_metric_view.py",
+          "notes": [
+            "system.certification_status needs ASSIGN on the governed tag, so the notebook reports the result."
+          ],
+          "lines": [
+            69,
+            74
+          ],
+          "section": "glossary"
+        }
+      ]
     }
   }
 }

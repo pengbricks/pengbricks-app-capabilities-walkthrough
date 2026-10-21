@@ -1126,6 +1126,182 @@
       }
     }
   ],
+  "data-validation-framework": [
+    {
+      "path": "reference/data-validation/src/dv_lib.py",
+      "symbol": "aggregate_sql",
+      "startLine": 201,
+      "endLine": 207,
+      "language": "py",
+      "code": "def aggregate_sql(dialect: str, table: str, metrics: list[str], columns: list[Column], grain: str | None = None) -> str:\n    \"\"\"One row per slice (or one row, 'all'), with one column per metric. The source side runs through remote_query.\"\"\"\n    cast_text = \"text\" if dialect == \"postgres\" else \"STRING\"\n    slice_sql = f\"CAST({ident(grain)} AS {cast_text})\" if grain else \"'all'\"\n    select = \", \".join(f\"{_metric_sql(m, columns, dialect)} AS {metric_alias(m)}\" for m in metrics)\n    group = \" GROUP BY 1\" if grain else \"\"\n    return f\"SELECT {slice_sql} AS slice, {select} FROM {table}{group}\"",
+      "functions": {
+        "aggregate_sql": "One row per slice (or one row, 'all'), with one column per metric. The source side runs through remote_query.",
+        "ident": "A table or column name that is safe to put in SQL.",
+        "metric_alias": "row_count -> row_count, sum:amount -> sum_amount, distinct:order_id -> distinct_order_id."
+      }
+    },
+    {
+      "path": "reference/data-validation/guides/data-validation-framework/03_load_target.py",
+      "symbol": null,
+      "startLine": 46,
+      "endLine": 57,
+      "language": "py",
+      "code": "remote(f\"SELECT customer_id, name, segment FROM {src}.customers\").selectExpr(\n    \"CAST(customer_id AS INT) AS customer_id\", \"name\", \"segment\", \"current_timestamp() AS _loaded_at\"\n).write.mode(\"overwrite\").option(\"overwriteSchema\", \"true\").saveAsTable(f\"{ns}.dv_customers_landed\")\n\nremote(f\"SELECT order_id, customer_id, order_date, status, amount FROM {src}.orders\").selectExpr(\n    \"CAST(order_id AS INT) AS order_id\", \"CAST(customer_id AS INT) AS customer_id\", \"CAST(order_date AS DATE) AS order_date\",\n    \"status\", \"CAST(amount AS DECIMAL(12,2)) AS amount\", \"current_timestamp() AS _loaded_at\",\n).write.mode(\"overwrite\").option(\"overwriteSchema\", \"true\").saveAsTable(f\"{ns}.dv_orders_landed\")\n\nfor table in (\"dv_customers_landed\", \"dv_orders_landed\"):\n    print(f\"{table}: {spark.table(f'{ns}.{table}').count()} rows\")\n",
+      "functions": {}
+    },
+    {
+      "path": "reference/data-validation/guides/data-validation-framework/03_load_target.py",
+      "symbol": null,
+      "startLine": 65,
+      "endLine": 73,
+      "language": "py",
+      "code": "change = spec[\"data\"][\"late_change\"]\nids = dv_lib.late_change_ids(spec)\nwith dv_lib.connect(dv_lib.connection_settings(WorkspaceClient(), cfg)) as conn, conn.cursor() as cur:\n    cur.execute(\n        f\"UPDATE {src}.orders SET order_date = order_date - %s WHERE order_id = ANY(%s)\",\n        (change[\"to_day_offset\"] - change[\"from_day_offset\"], ids),\n    )\n    print(f\"Moved {cur.rowcount} source orders from {change['from_day_offset']} to {change['to_day_offset']} days ago: {ids}\")\n    assert cur.rowcount == len(ids)",
+      "functions": {
+        "connection_settings": "Host, user, database, and a short-lived OAuth token (valid for about an hour).",
+        "late_change_ids": "Order ids that move to another day in the source after the copy is taken."
+      }
+    },
+    {
+      "path": "reference/data-validation/src/dv_lib.py",
+      "symbol": "checksum_expr",
+      "startLine": 168,
+      "endLine": 174,
+      "language": "py",
+      "code": "def checksum_expr(columns: list[Column], dialect: str) -> str:\n    \"\"\"Sum of the first 8 hex digits of md5 over a canonical row string. Equal on both sides when the rows are equal.\"\"\"\n    if dialect == \"postgres\":\n        row = \" || '|' || \".join(f\"coalesce({_pg_expr(c)}, '')\" for c in columns)\n        return f\"coalesce(sum(('x' || substr(md5({row}), 1, 8))::bit(32)::bigint), 0)\"\n    row = \", '|', \".join(f\"coalesce({_spark_expr(c)}, '')\" for c in columns)\n    return f\"coalesce(sum(CAST(conv(substr(md5(concat({row})), 1, 8), 16, 10) AS BIGINT)), 0)\"",
+      "functions": {
+        "checksum_expr": "Sum of the first 8 hex digits of md5 over a canonical row string. Equal on both sides when the rows are equal."
+      }
+    },
+    {
+      "path": "reference/data-validation/src/dv_lib.py",
+      "symbol": "diff_slices",
+      "startLine": 220,
+      "endLine": 233,
+      "language": "py",
+      "code": "def diff_slices(\n    source: dict[str, dict[str, Decimal]], target: dict[str, dict[str, Decimal]], tolerance: Decimal = Decimal(0)\n) -> list[dict[str, Any]]:\n    \"\"\"Slices whose metrics differ by more than the tolerance, or that exist on one side only.\"\"\"\n    mismatches = []\n    for key in sorted(set(source) | set(target)):\n        left, right = source.get(key), target.get(key)\n        if left is None or right is None:\n            mismatches.append({\"slice\": key, \"missing\": \"source\" if left is None else \"target\"})\n            continue\n        bad = {m: (left[m], right[m]) for m in left if abs(left[m] - right[m]) > tolerance}\n        if bad:\n            mismatches.append({\"slice\": key, \"metrics\": bad})\n    return mismatches",
+      "functions": {
+        "diff_slices": "Slices whose metrics differ by more than the tolerance, or that exist on one side only."
+      }
+    },
+    {
+      "path": "reference/data-validation/guides/data-validation-framework/pipeline/dv_orders.py",
+      "symbol": null,
+      "startLine": 10,
+      "endLine": 44,
+      "language": "py",
+      "code": "# Same rules as pipeline: in use_cases/general.yml (tests/test_dv_lib.py checks that they match).\nDROP_RULES = {\n    \"amount_positive\": \"amount > 0\",\n    \"customer_present\": \"customer_id IS NOT NULL\",\n}\nWARN_RULES = {\n    \"status_known\": \"status IN ('shipped', 'pending', 'cancelled')\",\n}\nFAIL_RULES = {\n    \"order_id_present\": \"order_id IS NOT NULL\",\n}\n\n# A rule that evaluates to NULL counts as failed, on both sides.\nfailed_any_drop_rule = \" OR \".join(f\"NOT coalesce({rule}, false)\" for rule in DROP_RULES.values())\nbroken_rule_names = F.concat_ws(\n    \", \", *[F.when(~F.coalesce(F.expr(rule), F.lit(False)), F.lit(name)) for name, rule in DROP_RULES.items()]\n)\n\n\n@dp.materialized_view(name=\"dv_orders_silver\", comment=\"Orders that pass every drop rule. Warn rules are counted and kept.\")\n@dp.expect_all_or_fail(FAIL_RULES)\n@dp.expect_all_or_drop(DROP_RULES)\n@dp.expect_all(WARN_RULES)\ndef dv_orders_silver():\n    return spark.read.table(\"dv_orders_landed\")  # noqa: F821\n\n\n@dp.materialized_view(name=\"dv_orders_quarantine\", comment=\"Orders that broke a drop rule, with the rule names.\")\ndef dv_orders_quarantine():\n    return (\n        spark.read.table(\"dv_orders_landed\")  # noqa: F821\n        .where(F.expr(failed_any_drop_rule))\n        .withColumn(\"quarantine_reasons\", broken_rule_names)\n        .withColumn(\"quarantined_at\", F.current_timestamp())\n    )",
+      "functions": {}
+    },
+    {
+      "path": "reference/data-validation/guides/data-validation-framework/05_read_expectation_metrics.py",
+      "symbol": null,
+      "startLine": 28,
+      "endLine": 40,
+      "language": "py",
+      "code": "pipeline_id = params[\"pipeline_id\"]\nmetrics = spark.sql(f\"\"\"\n    SELECT '{run_id}' AS run_id, timestamp AS logged_at, origin.flow_name AS flow, exp.dataset, exp.name AS expectation,\n           exp.passed_records, exp.failed_records\n    FROM event_log('{pipeline_id}')\n    LATERAL VIEW explode(from_json(details:flow_progress.data_quality.expectations,\n                  'array<struct<name:string,dataset:string,passed_records:bigint,failed_records:bigint>>')) t AS exp\n    WHERE event_type = 'flow_progress'\n      AND origin.update_id = (SELECT origin.update_id FROM event_log('{pipeline_id}') WHERE event_type = 'create_update' ORDER BY timestamp DESC LIMIT 1)\n\"\"\")\nmetrics.write.mode(\"overwrite\").option(\"overwriteSchema\", \"true\").saveAsTable(f\"{ns}.dv_expectation_metrics_latest\")\ndisplay(spark.table(f\"{ns}.dv_expectation_metrics_latest\").orderBy(\"dataset\", \"expectation\"))\n",
+      "functions": {}
+    },
+    {
+      "path": "reference/data-validation/use_cases/general.yml",
+      "symbol": null,
+      "startLine": 45,
+      "endLine": 66,
+      "language": "yml",
+      "code": "# One list, one runner.\n# type: reconciliation | row_count | unique | null_rate | referential | freshness | custom_sql\n# severity: error blocks the next task; warn is recorded only.\nchecks:\n  - name: orders_totals_vs_source\n    type: reconciliation\n    dataset: dv_orders_landed\n    severity: error\n    source: live                  # query the source through remote_query\n    source_table: orders\n    metrics: [row_count, \"sum:amount\", \"distinct:order_id\"]\n    threshold: 0                  # mismatched slices allowed\n\n  - name: orders_daily_vs_source\n    type: reconciliation\n    dataset: dv_orders_landed\n    severity: warn                # fails on purpose in the reference run\n    source: snapshot              # compare with the source aggregates captured earlier in the run\n    source_table: orders\n    grain: order_date\n    metrics: [row_count, \"sum:amount\", checksum]\n    threshold: 0",
+      "functions": {}
+    },
+    {
+      "path": "reference/data-validation/src/dv_lib.py",
+      "symbol": "run_check",
+      "startLine": 376,
+      "endLine": 395,
+      "language": "py",
+      "code": "def run_check(check: dict[str, Any], ctx: Context) -> Result:\n    \"\"\"Run one check from the spec. A check that cannot run is recorded as status `error`, not skipped.\"\"\"\n    kind = check[\"type\"]\n    op = check.get(\"op\", DEFAULT_OPERATOR[kind])\n    threshold = float(check[\"threshold\"])\n    base = dict(\n        check_name=check[\"name\"], check_type=kind, dataset=check[\"dataset\"], severity=check[\"severity\"],\n        operator=OPERATOR_TEXT[op], expected=threshold,\n    )\n    try:\n        if kind == \"reconciliation\":\n            observed, details = _reconcile(check, ctx)\n        else:\n            row = ctx.spark.sql(single_value_sql(check, ctx.ns)).first()\n            observed = None if row[\"observed\"] is None else float(row[\"observed\"])\n            details = \"no values to measure\" if observed is None else f\"observed {observed:g}, expected {OPERATOR_TEXT[op]} {threshold:g}\"\n    except Exception as exc:  # recorded, so one broken check does not hide the others\n        return Result(observed=None, status=\"error\", details=f\"{type(exc).__name__}: {str(exc).splitlines()[0][:300]}\", **base)\n    status = \"pass\" if passes(observed, op, threshold) else \"fail\"\n    return Result(observed=observed, status=status, details=details, **base)",
+      "functions": {
+        "run_check": "Run one check from the spec. A check that cannot run is recorded as status `error`, not skipped.",
+        "single_value_sql": "SQL that returns one `observed` value, for every type except reconciliation."
+      }
+    },
+    {
+      "path": "reference/data-validation/src/dv_lib.py",
+      "symbol": "single_value_sql",
+      "startLine": 317,
+      "endLine": 343,
+      "language": "py",
+      "code": "def single_value_sql(check: dict[str, Any], ns: str) -> str:\n    \"\"\"SQL that returns one `observed` value, for every type except reconciliation.\"\"\"\n    kind = check[\"type\"]\n    table = f\"{ns}.{ident(check['dataset'])}\"\n    if kind == \"row_count\":\n        return f\"SELECT count(*) AS observed FROM {table}\"\n    if kind == \"unique\":\n        cols = \", \".join(ident(c) for c in check[\"columns\"])\n        return f\"SELECT count(*) AS observed FROM (SELECT {cols} FROM {table} GROUP BY {cols} HAVING count(*) > 1)\"\n    if kind == \"null_rate\":\n        column = ident(check[\"column\"])\n        return f\"SELECT coalesce(avg(CASE WHEN {column} IS NULL THEN 1.0 ELSE 0.0 END), 0) AS observed FROM {table}\"\n    if kind == \"referential\":\n        column, ref_column = ident(check[\"column\"]), ident(check[\"ref_column\"])\n        ref = f\"{ns}.{ident(check['ref_dataset'])}\"\n        return (\n            f\"SELECT count(*) AS observed FROM {table} d LEFT ANTI JOIN {ref} r \"\n            f\"ON d.{column} = r.{ref_column} WHERE d.{column} IS NOT NULL\"\n        )\n    if kind == \"freshness\":\n        column = ident(check[\"column\"])\n        return (\n            f\"SELECT (unix_timestamp(current_timestamp()) - unix_timestamp(max({column}))) / 3600.0 AS observed FROM {table}\"\n        )\n    if kind == \"custom_sql\":\n        return check[\"sql\"].replace(\"{ns}\", ns)\n    raise ValueError(f\"no single-value SQL for {kind}\")",
+      "functions": {
+        "ident": "A table or column name that is safe to put in SQL.",
+        "single_value_sql": "SQL that returns one `observed` value, for every type except reconciliation."
+      }
+    },
+    {
+      "path": "reference/data-validation/guides/data-validation-framework/06_run_validations.py",
+      "symbol": null,
+      "startLine": 83,
+      "endLine": 94,
+      "language": "py",
+      "code": "ddl = (\"run_id STRING, checked_at TIMESTAMP, check_name STRING, check_type STRING, dataset STRING, severity STRING, \"\n       \"observed DOUBLE, operator STRING, expected DOUBLE, status STRING, details STRING\")\nchecked_at = datetime.now(timezone.utc)\nrows = [(run_id, checked_at, r.check_name, r.check_type, r.dataset, r.severity, r.observed, r.operator, r.expected, r.status, r.details) for r in results]\nspark.sql(f\"CREATE TABLE IF NOT EXISTS {ns}.dv_check_results ({ddl})\")\nspark.sql(f\"DELETE FROM {ns}.dv_check_results WHERE run_id = '{run_id}'\")\nspark.createDataFrame(rows, ddl).write.mode(\"append\").saveAsTable(f\"{ns}.dv_check_results\")\nspark.sql(f\"\"\"\n    CREATE OR REPLACE VIEW {ns}.dv_latest_failures AS\n    SELECT * FROM {ns}.dv_check_results\n    WHERE status <> 'pass' AND run_id = (SELECT run_id FROM {ns}.dv_check_results ORDER BY checked_at DESC LIMIT 1)\n\"\"\")",
+      "functions": {}
+    },
+    {
+      "path": "reference/data-validation/src/dv_lib.py",
+      "symbol": "blocking",
+      "startLine": 273,
+      "endLine": 280,
+      "language": "py",
+      "code": "def blocking(results: list[Result], block_on: str) -> list[Result]:\n    \"\"\"Results that should stop the next task. block_on: error (default), warn (any failure), or none.\"\"\"\n    if block_on == \"none\":\n        return []\n    if block_on not in SEVERITIES:\n        raise ValueError(f\"block_on must be error, warn, or none, not {block_on!r}\")\n    levels = (\"error\",) if block_on == \"error\" else SEVERITIES\n    return [r for r in results if r.status != \"pass\" and r.severity in levels]",
+      "functions": {
+        "blocking": "Results that should stop the next task. block_on: error (default), warn (any failure), or none."
+      }
+    },
+    {
+      "path": "reference/data-validation/resources/validation.job.yml",
+      "symbol": null,
+      "startLine": 78,
+      "endLine": 95,
+      "language": "yml",
+      "code": "        # Blocked when an error-severity check fails: the metric view is not published.\n        - task_key: publish_metric_view\n          depends_on:\n            - task_key: run_validations\n          notebook_task:\n            notebook_path: ../guides/data-validation-framework/07_publish_metric_view.py\n            base_parameters:\n              run_id: \"{{job.run_id}}\"\n\n        # Runs even when validation fails, because impact analysis matters most then.\n        - task_key: read_lineage\n          depends_on:\n            - task_key: publish_metric_view\n          run_if: ALL_DONE\n          notebook_task:\n            notebook_path: ../guides/data-validation-framework/08_read_lineage.py\n            base_parameters:\n              run_id: \"{{job.run_id}}\"",
+      "functions": {}
+    },
+    {
+      "path": "reference/data-validation/resources/validation.alert.yml",
+      "symbol": null,
+      "startLine": 1,
+      "endLine": 27,
+      "language": "yml",
+      "code": "# A SQL alert on the results table's failure view. It ships paused so a deploy never sends mail;\n# unpause it and set the schedule when you adopt the pattern.\nresources:\n  alerts:\n    capability_guides_data_validation_alert:\n      display_name: \"capability-guides-data-validation: error checks failing\"\n      query_text: >-\n        SELECT count(*) AS failing_error_checks\n        FROM ${var.catalog}.${var.schema}.dv_latest_failures\n        WHERE severity = 'error'\n      warehouse_id: ${var.warehouse_id}\n      evaluation:\n        comparison_operator: GREATER_THAN\n        source:\n          name: failing_error_checks\n          display: failing_error_checks\n        threshold:\n          value:\n            double_value: 0\n        notification:\n          notify_on_ok: false\n          subscriptions:\n            - user_email: ${workspace.current_user.userName}\n      schedule:\n        pause_status: PAUSED\n        quartz_cron_schedule: \"0 0 7 * * ?\"\n        timezone_id: UTC",
+      "functions": {}
+    },
+    {
+      "path": "reference/data-validation/guides/data-validation-framework/08_read_lineage.py",
+      "symbol": null,
+      "startLine": 69,
+      "endLine": 91,
+      "language": "py",
+      "code": "failed = {r.dataset for r in spark.sql(f\"SELECT dataset FROM {ns}.dv_check_results WHERE run_id = '{run_id}' AND status <> 'pass'\").collect()}\ndatasets = sorted(r.dataset for r in spark.sql(f\"SELECT DISTINCT dataset FROM {ns}.dv_check_results WHERE run_id = '{run_id}'\").collect())\n\nrows, readers = [], {}\nfor dataset in datasets:\n    start = low(dataset)\n    frontier, seen = [start], {start}\n    for hop in range(1, 4):\n        if not frontier:\n            break\n        nxt = []\n        for e in edges_from(frontier):\n            if e[\"target_table\"] and e[\"target_table\"] not in seen:\n                seen.add(e[\"target_table\"])\n                nxt.append(e[\"target_table\"])\n                rows.append((run_id, dataset, dataset in failed, \"downstream\", hop, e[\"target_table\"], e[\"entity_type\"], e[\"last_seen\"]))\n            elif not e[\"target_table\"]:  # a read with no table written: a dashboard, notebook, or query\n                key = (dataset, e[\"entity_type\"])\n                if key not in readers:  # keep the nearest hop for each kind of reader\n                    readers[key] = (run_id, dataset, dataset in failed, \"reader\", hop, None, e[\"entity_type\"], e[\"last_seen\"])\n        frontier = nxt\nrows += readers.values()\n",
+      "functions": {}
+    },
+    {
+      "path": "reference/data-validation/guides/data-validation-framework/07_publish_metric_view.py",
+      "symbol": null,
+      "startLine": 30,
+      "endLine": 39,
+      "language": "py",
+      "code": "spec = dv_lib.load_spec(SPEC_FILE)\nmv = spec[\"metric_view\"]\nview = f\"{ns}.{dv_lib.ident(mv['name'])}\"\ndefinition = {\"version\": str(mv[\"definition\"][\"version\"]), \"source\": f\"{ns}.{dv_lib.ident(mv['source'])}\",\n              **{k: v for k, v in mv[\"definition\"].items() if k != \"version\"}}\nbody = yaml.safe_dump(definition, sort_keys=False, width=1000)\nspark.sql(f\"CREATE OR REPLACE VIEW {view} WITH METRICS LANGUAGE YAML AS $$\\n{body}$$\")\nprint(f\"Created metric view {view}\")\nprint(body)\n",
+      "functions": {
+        "ident": "A table or column name that is safe to put in SQL."
+      }
+    },
+    {
+      "path": "reference/data-validation/guides/data-validation-framework/07_publish_metric_view.py",
+      "symbol": null,
+      "startLine": 69,
+      "endLine": 74,
+      "language": "py",
+      "code": "try:\n    spark.sql(f\"SET TAG ON VIEW {view} `system.certification_status` = `certified`\")\n    certified = \"certified\"\nexcept Exception as exc:\n    certified = \"not set: \" + str(exc).splitlines()[0][:160]\nprint(f\"Certification: {certified}\")",
+      "functions": {}
+    }
+  ],
   "dataops": [
     {
       "path": "reference/ingestion/resources/dataops.job.yml",

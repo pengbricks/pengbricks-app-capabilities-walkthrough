@@ -1,0 +1,95 @@
+# Data validation framework: build a stand-in source, copy it, run a pipeline with expectations and a
+# quarantine table, run every check from one spec, publish a metric view, and read lineage.
+resources:
+  jobs:
+    capability_guides_data_validation:
+      name: capability-guides-data-validation
+      description: Copies a Postgres source into Databricks, enforces expectations with a quarantine table, runs spec-driven checks into one results table, publishes a metric view, and reads lineage.
+      tags:
+        capability_guide_job: capability_guides_data_validation
+        capability_guide_use_case: ${var.use_case}
+      max_concurrent_runs: 1
+      timeout_seconds: 5400
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${var.schema}
+        - name: use_case
+          default: ${var.use_case}
+        - name: lakebase_project
+          default: ${var.lakebase_project}
+        - name: warehouse_id
+          default: ${var.warehouse_id}
+        - name: block_on
+          default: error
+      tasks:
+        - task_key: create_source
+          notebook_task:
+            notebook_path: ../guides/data-validation-framework/01_create_source.py
+
+        - task_key: setup_federation
+          depends_on:
+            - task_key: create_source
+          notebook_task:
+            notebook_path: ../guides/data-validation-framework/02_setup_federation.py
+
+        - task_key: load_target
+          depends_on:
+            - task_key: setup_federation
+          notebook_task:
+            notebook_path: ../guides/data-validation-framework/03_load_target.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
+
+        - task_key: snapshot_source
+          depends_on:
+            - task_key: load_target
+          notebook_task:
+            notebook_path: ../guides/data-validation-framework/04_snapshot_source.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
+
+        - task_key: run_pipeline
+          depends_on:
+            - task_key: load_target
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.capability_guides_data_validation_pipeline.id}
+            full_refresh: true
+
+        - task_key: read_expectation_metrics
+          depends_on:
+            - task_key: run_pipeline
+          notebook_task:
+            notebook_path: ../guides/data-validation-framework/05_read_expectation_metrics.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
+              pipeline_id: ${resources.pipelines.capability_guides_data_validation_pipeline.id}
+
+        - task_key: run_validations
+          depends_on:
+            - task_key: snapshot_source
+            - task_key: read_expectation_metrics
+          notebook_task:
+            notebook_path: ../guides/data-validation-framework/06_run_validations.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
+
+        # Blocked when an error-severity check fails: the metric view is not published.
+        - task_key: publish_metric_view
+          depends_on:
+            - task_key: run_validations
+          notebook_task:
+            notebook_path: ../guides/data-validation-framework/07_publish_metric_view.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
+
+        # Runs even when validation fails, because impact analysis matters most then.
+        - task_key: read_lineage
+          depends_on:
+            - task_key: publish_metric_view
+          run_if: ALL_DONE
+          notebook_task:
+            notebook_path: ../guides/data-validation-framework/08_read_lineage.py
+            base_parameters:
+              run_id: "{{job.run_id}}"

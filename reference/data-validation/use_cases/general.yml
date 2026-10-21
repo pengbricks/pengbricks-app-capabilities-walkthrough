@@ -1,0 +1,151 @@
+# Orders from a source system, checked against a copy in Databricks. The source is a stand-in:
+# a schema in Lakebase Postgres, read through a Unity Catalog connection and remote_query.
+source:
+  lakebase_project: capability-guides
+  lakebase_branch: production
+  lakebase_endpoint: primary
+  lakebase_database: databricks_postgres
+  schema: dv_source
+  connection_name: capability_guides_dv_source
+
+data:
+  orders: 1200            # order_id 1..1200
+  customers: 60
+  days: 30                # order_date runs from today - 29 to today
+  statuses: [shipped, pending, cancelled]
+  # Rows that break a rule, picked by order_id so every run builds the same data.
+  negative_amount_every: 97       # amount < 0       (12 rows)
+  missing_customer_every: 211     # customer_id null (5 rows)
+  unknown_status_every: 401       # status 'UNKNOWN' (2 rows)
+  # Change made in the source after the copy was taken. Whole-table count and sum stay the same;
+  # two days change, so only a per-day comparison sees it.
+  late_change:
+    from_day_offset: 5            # orders dated today - 5 ...
+    to_day_offset: 6              # ... move to today - 6
+    order_count: 6
+
+pipeline:
+  # The rules the pipeline enforces. The quarantine table holds rows that fail a drop rule.
+  drop:
+    amount_positive: "amount > 0"
+    customer_present: "customer_id IS NOT NULL"
+  warn:
+    status_known: "status IN ('shipped', 'pending', 'cancelled')"
+  fail:
+    order_id_present: "order_id IS NOT NULL"
+
+checksum_columns:
+  orders:
+    - {name: order_id, kind: int}
+    - {name: customer_id, kind: int}
+    - {name: order_date, kind: date}
+    - {name: status, kind: text}
+    - {name: amount, kind: decimal}
+
+# One list, one runner.
+# type: reconciliation | row_count | unique | null_rate | referential | freshness | custom_sql
+# severity: error blocks the next task; warn is recorded only.
+checks:
+  - name: orders_totals_vs_source
+    type: reconciliation
+    dataset: dv_orders_landed
+    severity: error
+    source: live                  # query the source through remote_query
+    source_table: orders
+    metrics: [row_count, "sum:amount", "distinct:order_id"]
+    threshold: 0                  # mismatched slices allowed
+
+  - name: orders_daily_vs_source
+    type: reconciliation
+    dataset: dv_orders_landed
+    severity: warn                # fails on purpose in the reference run
+    source: snapshot              # compare with the source aggregates captured earlier in the run
+    source_table: orders
+    grain: order_date
+    metrics: [row_count, "sum:amount", checksum]
+    threshold: 0
+
+  - name: silver_has_rows
+    type: row_count
+    dataset: dv_orders_silver
+    severity: error
+    threshold: 1000               # at least this many rows
+
+  - name: landed_order_id_unique
+    type: unique
+    dataset: dv_orders_landed
+    columns: [order_id]
+    severity: error
+    threshold: 0                  # duplicate keys allowed
+
+  - name: landed_customer_null_rate
+    type: null_rate
+    dataset: dv_orders_landed
+    column: customer_id
+    severity: warn
+    threshold: 0.01               # largest allowed share of nulls
+
+  - name: silver_customer_never_null
+    type: null_rate
+    dataset: dv_orders_silver
+    column: customer_id
+    severity: error
+    threshold: 0
+
+  - name: silver_customer_exists
+    type: referential
+    dataset: dv_orders_silver
+    column: customer_id
+    ref_dataset: dv_customers_landed
+    ref_column: customer_id
+    severity: error
+    threshold: 0                  # orphan rows allowed
+
+  - name: landed_fresh
+    type: freshness
+    dataset: dv_orders_landed
+    column: _loaded_at
+    severity: error
+    threshold: 24                 # hours since the newest value
+
+  - name: silver_plus_quarantine_equals_landed
+    type: custom_sql
+    dataset: dv_orders_silver
+    severity: error
+    op: eq
+    threshold: 0
+    sql: >-
+      SELECT (SELECT count(*) FROM {ns}.dv_orders_silver)
+           + (SELECT count(*) FROM {ns}.dv_orders_quarantine)
+           - (SELECT count(*) FROM {ns}.dv_orders_landed) AS observed
+
+  - name: quarantine_rows_have_reason
+    type: custom_sql
+    dataset: dv_orders_quarantine
+    severity: error
+    op: eq
+    threshold: 0
+    sql: >-
+      SELECT count(*) AS observed FROM {ns}.dv_orders_quarantine
+      WHERE quarantine_reasons IS NULL OR quarantine_reasons = ''
+
+metric_view:
+  name: dv_orders_metrics
+  source: dv_orders_silver
+  definition:
+    version: "1.1"
+    comment: Order metrics on validated orders. Dashboards, Genie spaces, and SQL queries all use these definitions.
+    dimensions:
+      - name: order_date
+        expr: order_date
+        comment: Day the order was placed
+      - name: status
+        expr: status
+        comment: Order status
+    measures:
+      - name: order_count
+        expr: COUNT(1)
+        comment: Orders that passed the pipeline rules
+      - name: net_revenue
+        expr: SUM(amount) FILTER (WHERE status <> 'cancelled')
+        comment: Sum of order amount, excluding cancelled orders
