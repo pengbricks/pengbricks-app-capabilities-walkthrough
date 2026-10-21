@@ -92,11 +92,27 @@ def test_download_returns_the_starter_bundle_as_a_zip() -> None:
     assert info == {"filename": "dab-starter.zip", "sizeBytes": len(response.content)}
 
 
-def test_vscode_starter_download_keeps_editor_config_and_leaves_out_app_access() -> None:
-    response = client.get("/api/capability-guides/artifacts/vscode-databricks/download")
+# The VS Code starter is published as its own public repository; the guide links there.
+VSCODE_PUBLISH = {
+    "path": "reference/vscode-starter",
+    "filename": "vscode-starter.zip",
+    "exclude": ["resources/app_access.yml", "guides/vscode-databricks/README.md"],
+}
 
-    assert response.status_code == 200
-    archive = zipfile.ZipFile(io.BytesIO(response.content))
+
+def test_vscode_starter_download_comes_from_its_git_repository() -> None:
+    info = client.get("/api/capability-guides/artifacts/vscode-databricks").json()["download"]
+    assert info["repoUrl"] == "https://github.com/pengbricks/databricks-vscode-starter"
+    assert info["url"] == "https://github.com/pengbricks/databricks-vscode-starter/archive/refs/heads/main.zip"
+    assert info["clone"] == "git clone https://github.com/pengbricks/databricks-vscode-starter.git vscode-starter"
+    response = client.get("/api/capability-guides/artifacts/vscode-databricks/download", follow_redirects=False)
+    assert response.status_code == 307
+    assert response.headers["location"] == info["url"]
+
+
+def test_vscode_starter_publish_keeps_editor_config_and_leaves_out_app_access() -> None:
+    builder = load_snippet_builder()
+    archive = zipfile.ZipFile(io.BytesIO(builder.build_download(VSCODE_PUBLISH)))
     assert archive.testzip() is None
     names = set(archive.namelist())
     assert {

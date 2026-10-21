@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse, Response
 from pydantic import BaseModel
 
 from .run_store import RunRecord, RunStore
@@ -212,10 +212,24 @@ def to_record(slug: str, job_key: str, job_id: int, summary: dict[str, Any], via
     )
 
 
+def repo_download(config: dict[str, Any]) -> dict[str, Any]:
+    """A download served by GitHub from a public repository instead of a zip built into the app."""
+    repo, branch = config["repo"], config.get("branch", "main")
+    folder = config.get("folder") or repo.split("/")[-1]
+    return {
+        "filename": f"{repo.split('/')[-1]}-{branch}.zip",
+        "sizeBytes": None,
+        "url": f"https://github.com/{repo}/archive/refs/heads/{branch}.zip",
+        "repoUrl": f"https://github.com/{repo}",
+        "clone": f"git clone https://github.com/{repo}.git {folder}",
+    }
+
+
 def download_path(entry: dict[str, Any]) -> Path | None:
-    """The built zip for a guide's `download` entry, or None when the guide offers none or it was not built."""
+    """The built zip for a guide's `download` entry, or None when the guide offers none, it was not
+    built, or the download comes from a Git repository."""
     config = entry.get("download")
-    if not config:
+    if not config or config.get("repo"):
         return None
     path = DOWNLOADS_DIR / f"{Path(config['filename']).name}{DOWNLOAD_STORED_SUFFIX}"
     return path if path.is_file() else None
@@ -227,6 +241,9 @@ def download_name(path: Path) -> str:
 
 
 def download_info(entry: dict[str, Any]) -> dict[str, Any] | None:
+    config = entry.get("download")
+    if config and config.get("repo"):
+        return repo_download(config)
     path = download_path(entry)
     if path is None:
         return None
@@ -234,8 +251,13 @@ def download_info(entry: dict[str, Any]) -> dict[str, Any] | None:
 
 
 @router.get("/artifacts/{slug}/download")
-def download_bundle(slug: str) -> FileResponse:
-    path = download_path(guide_entry(slug))
+def download_bundle(slug: str) -> Response:
+    entry = guide_entry(slug)
+    config = entry.get("download") or {}
+    if config.get("repo"):
+        # The repository is the source of truth; send the reader to GitHub's zip of the branch.
+        return RedirectResponse(repo_download(config)["url"], status_code=307)
+    path = download_path(entry)
     if path is None:
         raise HTTPException(status_code=404, detail="This guide has no download")
     return FileResponse(path, media_type="application/zip", filename=download_name(path))

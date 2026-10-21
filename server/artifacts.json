@@ -845,12 +845,10 @@
       "bundle": "reference/vscode-starter",
       "onePager": "reference/vscode-starter/guides/vscode-databricks/README.md",
       "download": {
-        "path": "reference/vscode-starter",
-        "filename": "vscode-starter.zip",
-        "exclude": [
-          "resources/app_access.yml",
-          "guides/vscode-databricks/README.md"
-        ]
+        "repo": "pengbricks/databricks-vscode-starter",
+        "branch": "main",
+        "folder": "vscode-starter",
+        "path": "reference/vscode-starter"
       },
       "code": [
         {

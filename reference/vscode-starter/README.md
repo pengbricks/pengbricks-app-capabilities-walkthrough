@@ -13,7 +13,7 @@ The project holds:
 
 ## Get the project
 
-Clone it from GitHub, or download the zip from the guide page. Both give you the same files.
+Clone it from GitHub, or download it as a zip from GitHub or the guide page. Both give you the same files.
 
 ```bash
 # Option 1: clone, so you can pull updates later
@@ -24,8 +24,9 @@ code .        # or open the folder from VS Code with File > Open Folder
 # Pull updates later
 git pull
 
-# Option 2: download vscode-starter.zip from the guide page, then
-unzip vscode-starter.zip && cd vscode-starter
+# Option 2: download the zip (on GitHub: Code > Download ZIP), then
+unzip databricks-vscode-starter-main.zip
+mv databricks-vscode-starter-main vscode-starter && cd vscode-starter
 ```
 
 To keep your own changes in your own repository, point the clone at it:
@@ -43,6 +44,21 @@ git push -u origin main
 - The Databricks CLI, tested with v1.17.0 (`databricks --version`). Install it from <https://docs.databricks.com/aws/en/dev-tools/cli/install>.
 - [uv](https://docs.astral.sh/uv/). The extension installs it if missing, and the bundle build (`uv build`) needs it.
 - A Databricks workspace with Unity Catalog and serverless compute, and a catalog where you can create a schema (`USE CATALOG` and `CREATE SCHEMA`)
+
+## Sign in and create a profile
+
+The CLI, the VS Code extension, and Databricks Connect all read the same profiles from `~/.databrickscfg`. Create one with OAuth; no personal access token is needed.
+
+```bash
+databricks --version                                  # v1.17.0 or later
+databricks auth login --host https://<your-workspace-url> --profile <name>
+                                                      # opens the browser; sign in and approve
+databricks auth profiles                              # the new profile shows Valid: YES
+databricks current-user me --profile <name>           # confirms who you are signed in as
+export DATABRICKS_CONFIG_PROFILE=<name>               # optional: make it the default in this terminal
+```
+
+When the sign-in expires (errors about a refresh token or a 401), run the same `databricks auth login --profile <name>` again. In VS Code, pick the same profile under Auth Type in the Configuration view (step 2 below).
 
 ## Demo steps
 
@@ -72,19 +88,39 @@ git push -u origin main
     databricks bundle destroy -t prod --var catalog=<catalog>
     ```
 
-## Command line equivalents
+## Deploy and run from the terminal
 
-Pass `--profile <name>` to each command if you have more than one profile, or set `DATABRICKS_CONFIG_PROFILE`.
+The same steps as the Bundle Resource Explorer, from a terminal in the project folder. Pass `--profile <name>` to each command, or set `DATABRICKS_CONFIG_PROFILE` once. `dev` is the default target.
 
 ```bash
-uv sync                                                      # builds .venv with databricks-connect and pytest
-uv run pytest                                                # unit tests; the Connect test skips
-DATABRICKS_CONFIG_PROFILE=<profile> uv run pytest            # also runs the Connect test on serverless
-DATABRICKS_CONFIG_PROFILE=<profile> uv run python scratch/explore.py
-databricks bundle validate --strict --var catalog=<catalog>
+# Test locally first
+uv sync                                                        # builds .venv with databricks-connect and pytest
+uv run pytest                                                  # unit tests; the Connect test skips
+DATABRICKS_CONFIG_PROFILE=<name> uv run pytest                 # also runs the Connect test on serverless
+DATABRICKS_CONFIG_PROFILE=<name> uv run python scratch/explore.py
+
+# Validate, deploy, and run in dev
+databricks bundle validate --strict --var catalog=<catalog>    # catches schema and variable errors
+databricks bundle deploy --var catalog=<catalog>               # builds the wheel, uploads files, creates the schema and job
+databricks bundle summary --var catalog=<catalog>              # lists what was deployed, with workspace links
+databricks bundle run capability_guides_vscode_starter --var catalog=<catalog>
+                                                               # runs the job and waits; prints the run URL
+
+# Change code, then redeploy and run again (only changed files upload)
 databricks bundle deploy --var catalog=<catalog>
 databricks bundle run capability_guides_vscode_starter --var catalog=<catalog>
+
+# Promote the same code to prod (unprefixed names, fixed path under your user folder)
+databricks bundle validate --strict -t prod --var catalog=<catalog>
+databricks bundle deploy -t prod --var catalog=<catalog>
+databricks bundle run capability_guides_vscode_starter -t prod --var catalog=<catalog>
+
+# Clean up: removes the job, the schema and its tables, and the uploaded files
+databricks bundle destroy --var catalog=<catalog>
+databricks bundle destroy -t prod --var catalog=<catalog>
 ```
+
+Instead of `--var catalog=<catalog>` on every command, run `export BUNDLE_VAR_catalog=<catalog>` once.
 
 ## Troubleshooting
 

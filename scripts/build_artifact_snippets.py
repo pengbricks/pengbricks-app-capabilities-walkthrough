@@ -172,7 +172,7 @@ def build_downloads() -> dict[str, bytes]:
     return {
         guide["download"]["filename"]: build_download(guide["download"])
         for _, guide in sorted(index["guides"].items())
-        if guide.get("download")
+        if guide.get("download") and not guide["download"].get("repo")
     }
 
 

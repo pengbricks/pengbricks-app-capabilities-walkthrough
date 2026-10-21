@@ -57,7 +57,15 @@ export type WorkspaceLinks = {
 };
 
 /** A zip of the guide's bundle, built into the app. */
-export type GuideDownload = { filename: string; sizeBytes: number };
+export type GuideDownload = {
+  filename: string;
+  /** Size of a zip built into the app; null when the download comes from a Git repository. */
+  sizeBytes: number | null;
+  /** Set when the download comes from a public Git repository. */
+  url?: string;
+  repoUrl?: string;
+  clone?: string;
+};
 
 export type GuideArtifacts = {
   slug: string;

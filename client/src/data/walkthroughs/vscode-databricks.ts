@@ -96,7 +96,7 @@ export const walkthrough: Walkthrough = {
       id: 'starter',
       heading: 'Try it with the starter bundle',
       prose:
-        'Clone the starter from GitHub (pengbricks/databricks-vscode-starter) or download the zip at the top of this page, then open the folder in VS Code. It is a small bundle project set up the way the rest of this guide recommends: a Python package of order-cleaning functions, a source-format notebook that calls it, a script to debug with Databricks Connect, pytest tests, and a serverless Lakeflow job with a notebook task and a Python wheel task. The .vscode folder holds the pytest discovery settings, the launch configurations with "databricks": true, and the extension recommendations. The databricks-connect pin is 18.0.*, which matches serverless environment version 5.',
+        'Clone the starter from GitHub (pengbricks/databricks-vscode-starter) or download its zip at the top of this page, then open the folder in VS Code. It is a small bundle project set up the way the rest of this guide recommends: a Python package of order-cleaning functions, a source-format notebook that calls it, a script to debug with Databricks Connect, pytest tests, and a serverless Lakeflow job with a notebook task and a Python wheel task. The .vscode folder holds the pytest discovery settings, the launch configurations with "databricks": true, and the extension recommendations. The databricks-connect pin is 18.0.*, which matches serverless environment version 5.',
       points: [
         {
           strong: 'Clone it to pull updates later.',
@@ -125,7 +125,25 @@ code .
 
 # Later: pick up changes to the starter
 git pull`,
-          notes: ['Or download vscode-starter.zip from the top of this page and unzip it. Both give you the same files.'],
+          notes: ['Or download the zip from the top of this page (it comes from the same GitHub repository) and unzip it.'],
+        },
+        {
+          label: 'Sign in, deploy, and run from a terminal',
+          language: 'bash',
+          code: `# Create an OAuth profile (opens the browser); the extension and Databricks Connect reuse it
+databricks auth login --host https://<your-workspace-url> --profile <name>
+databricks auth profiles
+export DATABRICKS_CONFIG_PROFILE=<name>
+
+# Validate, deploy, and run the starter in dev
+databricks bundle validate --strict --var catalog=<catalog>
+databricks bundle deploy --var catalog=<catalog>
+databricks bundle run capability_guides_vscode_starter --var catalog=<catalog>
+
+# Promote to prod, then clean up when done
+databricks bundle deploy -t prod --var catalog=<catalog>
+databricks bundle destroy --var catalog=<catalog>`,
+          notes: ['The README in the repository has the full terminal flow, including tests, bundle summary, and redeploying after a change.'],
         },
       ],
       links: [
