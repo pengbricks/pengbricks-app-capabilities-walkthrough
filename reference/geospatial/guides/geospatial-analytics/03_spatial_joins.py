@@ -97,7 +97,7 @@ print(f"cell-only (cover) gives {candidates - spark.table(T('geo_meter_zone')).w
 # MAGIC %md
 # MAGIC ## Pattern 3: what is within 260 m of a main break?
 # MAGIC
-# MAGIC `ST_DWithin` measures in the units of the coordinates. On longitude and latitude that is degrees, which is useless for a radius in meters, so the join uses the `geom_m` columns in UTM (meters). Without a prefilter this is a nested-loop-style distance test, so the meter join uses an H3 ring first: the break's cell plus its neighbors out to `k` rings. At resolution 9 (edge about 175 m) two rings cover 260 m with room to spare.
+# MAGIC `ST_DWithin` measures in the units of the coordinates. On longitude and latitude that is degrees, which is useless for a radius in meters, so the join uses the `geom_m` columns in UTM (meters). Without a prefilter this is a nested-loop-style distance test, so the meter join uses an H3 ring first: the break's cell plus its neighbors out to `k` rings. At resolution 9 (edge about 200 m) two rings cover 260 m with room to spare.
 # MAGIC
 # MAGIC Pipes are lines, so the join uses `ST_DWithin` against the whole linestring: a main counts if any part of it is inside the radius.
 

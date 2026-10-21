@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 4. Aggregate events by H3 cell for a heat map
 # MAGIC
-# MAGIC **Pattern 6: H3 aggregation.** Counting points in a hexagon is a `GROUP BY` on a number, which is the cheapest spatial aggregation there is, and the result is a small table a dashboard can plot. This step turns low-pressure complaints into counts per resolution-8 cell (edge about 460 m), adds the cell's center as longitude and latitude, divides by the meters in that cell to get a rate, and smooths each cell with its six neighbors using `H3_KRing`.
+# MAGIC **Pattern 6: H3 aggregation.** Counting points in a hexagon is a `GROUP BY` on a number, which is the cheapest spatial aggregation there is, and the result is a small table a dashboard can plot. This step turns low-pressure complaints into counts per resolution-8 cell (edge about 530 m), adds the cell's center as longitude and latitude, divides by the meters in that cell to get a rate, and smooths each cell with its six neighbors using `H3_KRing`.
 # MAGIC
 # MAGIC Safe to rerun: the table is replaced and the step's rows in `geo_results` are swapped.
 

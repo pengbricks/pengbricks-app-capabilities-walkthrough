@@ -19,8 +19,8 @@ WGS84 = 4326
 ORIGIN = (600000.0, 4250000.0)  # south-west corner of the fictional service area, in UTM 10N meters
 EXTENT = 4000.0  # the area is 4 km by 4 km
 CENTRAL_MERIDIAN = -123.0
-H3_RES = 9  # cell edge about 175 m: roughly one city block
-H3_HEAT_RES = 8  # cell edge about 460 m: neighborhood level, for heat maps
+H3_RES = 9  # cell edge about 200 m: roughly one city block
+H3_HEAT_RES = 8  # cell edge about 530 m: neighborhood level, for heat maps
 
 _A = 6378137.0
 _F = 1 / 298.257223563

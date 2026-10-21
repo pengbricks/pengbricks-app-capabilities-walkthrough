@@ -61,7 +61,7 @@ display(spark.sql(f"SELECT zone_id, zone_name, district, target_psi, st_srid(geo
 # MAGIC %md
 # MAGIC ## Pipes from WKT, meters and events from longitude and latitude
 # MAGIC
-# MAGIC `read_files` infers column types from the CSV. Meters, events, and sensors get an H3 cell (resolution 9, about a city block) next to the geometry, and the tables are clustered on that cell with liquid clustering.
+# MAGIC `read_files` infers column types from the CSV. Meters, events, and sensors get an H3 cell (resolution 9, edge about 200 m) next to the geometry, and the tables are clustered on that cell with liquid clustering.
 
 # COMMAND ----------
 

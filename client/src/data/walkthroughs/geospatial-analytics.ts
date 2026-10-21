@@ -119,6 +119,62 @@ export const walkthrough: Walkthrough = {
       ],
     },
     {
+      id: 'gis-concepts',
+      heading: 'How GIS data is grouped, and where it lands in Unity Catalog',
+      prose:
+        'GIS tools organize data in a hierarchy that is close to a catalog, a schema, and a table. Keeping that shape in Unity Catalog means GIS staff recognize the layout and data engineers can govern it with the usual grants.',
+      table: {
+        caption: 'GIS concept to Unity Catalog object (practical mapping, not a docs rule)',
+        columns: ['GIS concept', 'In Unity Catalog'],
+        rows: [
+          ['Feature: one geometry plus its attributes', 'One row: a GEOMETRY column and ordinary attribute columns'],
+          [
+            'Layer or feature class: features of one kind, such as pipes',
+            'One Delta table, for example pipes, meters, zones',
+          ],
+          [
+            'Dataset or geodatabase: layers that belong together',
+            'A schema per domain, such as water_network, inside a catalog per environment',
+          ],
+          [
+            'Layer CRS',
+            'The SRID in the column type, GEOMETRY(4326), plus a column comment naming the source CRS and units',
+          ],
+          [
+            'Raw delivery: shapefile set, .gdb folder, GeoPackage',
+            'A file in a volume, kept next to the tables it fed',
+          ],
+          ['Tiling or spatial index', 'An H3 cell column, used as a join key and a liquid clustering key'],
+          ['Symbology and map projects', 'Not stored. Dashboards and GIS projects read the tables'],
+        ],
+      },
+      points: [
+        {
+          strong: 'Geometry types.',
+          text: 'POINT, LINESTRING, and POLYGON are the base types. MULTIPOINT, MULTILINESTRING, and MULTIPOLYGON hold several parts as one feature, such as a parcel split by a road. A GEOMETRYCOLLECTION mixes types, and ST_Contains returns an error for it, so split collections with ST_Dump first. ST_Multi promotes a single geometry to its multi form, which lets one column hold polygons and multipolygons.',
+        },
+        {
+          strong: 'Coordinate reference systems and SRIDs.',
+          text: 'A CRS says how coordinates map to the earth. An SRID is its numeric code, such as 4326 for longitude and latitude in degrees or 32610 for UTM zone 10N in meters. GEOMETRY(srid) fixes the SRID for the column. GEOMETRY(ANY) can hold mixed SRIDs but cannot be saved to a table, so normalize before you write.',
+        },
+        {
+          strong: 'Topology.',
+          text: 'A geodatabase can enforce rules such as no gaps between parcels or no overlaps between zones. The docs describe no topology rule engine. Shared boundaries are stored once per feature, so check them yourself with ST_IsValid, ST_Intersects, and ST_Touches, and keep the failures in a quarantine table.',
+        },
+        {
+          strong: 'Spatial indexing and tiling.',
+          text: 'H3 divides the earth into hexagonal cells at 16 resolutions. Store the cell ID of each feature as a BIGINT column and use it three ways: as the equality key for a prefilter join, as the GROUP BY key for counts, and as the CLUSTER BY key so nearby rows share files. The resolution table in the function reference shows the cell size at each level. Clustering on a cell is practical guidance; the clustering docs do not mention spatial data.',
+        },
+      ],
+      links: [
+        { label: 'GEOMETRY type', url: `${DOCS}/sql/language-manual/data-types/geometry-type` },
+        { label: 'ST_Dump', url: `${DOCS}/sql/language-manual/functions/st_dump` },
+        { label: 'ST_Multi', url: `${DOCS}/sql/language-manual/functions/st_multi` },
+        { label: 'Unity Catalog best practices', url: `${DOCS}/data-governance/unity-catalog/best-practices` },
+        { label: 'Liquid clustering', url: `${DOCS}/delta/clustering` },
+      ],
+    },
+    {
       id: 'types',
       heading: 'Native types, and what runs where',
       prose:
@@ -204,6 +260,88 @@ export const walkthrough: Walkthrough = {
         recommendation:
           'Start native, since it removes the install and keeps geometry in Delta. Reach for a library for a specific gap, and write the result back to a native column. Shapefile, GeoPackage, and KML are the common gap; this guide fills it with GDAL through pyogrio.',
       },
+    },
+    {
+      id: 'file-formats',
+      heading: 'Common GIS file formats',
+      prose:
+        'Built in means a Databricks SQL function or reader named in the docs. read_files lists no GIS container format, and the ST_ functions import GeoJSON, WKT, EWKT, and WKB. Everything else needs a library such as GDAL. The format facts (sidecar files, size limits) come from the format specifications, not from Databricks docs. The "ran" notes say what the reference job did; "not run" means the route comes from the docs or general GIS practice.',
+      options: {
+        caption: 'Format, how to read it on Databricks, and what to watch for',
+        rows: [
+          {
+            option: 'Shapefile (vector, Esri; the most common exchange format)',
+            when: 'Not built in. Convert with GDAL (pyogrio) to WKB, then ST_GeomFromWKB. Ran: read back four zones equal to the GeoJSON load.',
+            tradeoffs:
+              'A set of files: .shp, .shx, and .dbf are required and .prj holds the CRS, so copy them together. Field names are limited to 10 characters, each file to 2 GB, and one geometry type per file. A missing .prj leaves the SRID unknown.',
+          },
+          {
+            option: 'GeoJSON and newline-delimited GeoJSON (vector; web services and open data portals)',
+            when: 'Built in. read_files as text, then ST_GeomFromGeoJSON, which returns SRID 4326. Newline-delimited files have one Feature per line, so read as text and parse each line the same way. Ran for GeoJSON; the line-delimited form was not run.',
+            tradeoffs:
+              'Coordinates are longitude then latitude in WGS 84. A single large FeatureCollection is one document to parse, so prefer the line-delimited form or split files for big layers.',
+          },
+          {
+            option: 'GeoPackage (vector, optionally raster; an SQLite file with several layers)',
+            when: 'Not built in. pyogrio reads one layer at a time to WKB. Ran: read back equal to the GeoJSON load.',
+            tradeoffs:
+              'Name the layer you want. SQLite needs local disk: writing a GeoPackage straight to a volume path failed in the reference run, so work in a temp folder and copy. Each layer has its own CRS.',
+          },
+          {
+            option: 'KML and KMZ (vector; Google Earth and field apps)',
+            when: 'Not built in. pyogrio reads KML to WKB. Ran for KML. KMZ is a zipped KML: unzip it first (not run).',
+            tradeoffs:
+              'Always longitude and latitude. Styles, folders, and descriptions are not attributes, and extended data may need extra parsing.',
+          },
+          {
+            option: 'GeoParquet (vector; columnar, for large layers)',
+            when: 'No GeoParquet reader is described in the docs or release notes. A GeoParquet file is Parquet with a WKB binary column, so read_files with parquet should return bytes that ST_GeomFromWKB converts. Not run here.',
+            tradeoffs:
+              'The geo metadata (CRS, geometry types) would not be applied for you, so set the SRID yourself. Test a file before relying on this route; it is practical guidance, not a docs statement.',
+          },
+          {
+            option: 'Esri File Geodatabase, .gdb (vector and raster; ArcGIS)',
+            when: 'Not built in. GDAL can read it through its OpenFileGDB driver. Not run here.',
+            tradeoffs:
+              'It is a folder of many files, so copy the whole folder. Domains, relationships, and topology rules do not come across as tables. Ask the GIS team to export layers to GeoPackage or GeoParquet when they can.',
+          },
+          {
+            option: 'CSV with longitude and latitude, or a WKT column (tabular)',
+            when: 'Built in. read_files csv, then ST_Point(lon, lat, srid) or ST_GeomFromText(wkt, srid). Ran for both.',
+            tradeoffs:
+              'Nothing in the file states the CRS, and latitude and longitude are often swapped. WKT contains commas, so the column must be quoted.',
+          },
+          {
+            option: 'WKT and WKB columns (geometry as text or bytes inside another source)',
+            when: 'Built in. ST_GeomFromText, ST_GeomFromWKB, and the EWKT and EWKB forms, which can carry an SRID. Ran.',
+            tradeoffs: 'Plain WKT and WKB carry no SRID. Invalid shapes load without error, so run ST_IsValid after.',
+          },
+          {
+            option: 'Raster: GeoTIFF and cloud optimized GeoTIFF (satellite, aerial, elevation)',
+            when: 'No native raster decoding or raster functions are documented; the ST_ functions work on vector values. read_files with binaryFile loads the bytes. Decode pixels with Rasterio or GDAL, or a Spark raster library such as Apache Sedona. Databricks Labs has had raster projects; check their current status. None of this was run.',
+            tradeoffs:
+              'Files are large, so keep them in a volume and store the path, footprint polygon, and CRS in a Delta table. Derive vector results (zonal statistics, extracted features) and join those like any other layer.',
+          },
+        ],
+        recommendation:
+          'Land the raw files in a Unity Catalog volume and keep them. Convert each layer to a Delta table with a GEOMETRY column of one explicit SRID plus attribute columns, validate it, and add a metric copy. Treat the volume as the source of record and the table as the working copy.',
+      },
+      links: [
+        {
+          label: 'read_files',
+          url: `${DOCS}/sql/language-manual/functions/read_files`,
+          note: 'The supported file formats.',
+        },
+        {
+          label: 'Binary file format',
+          url: `${DOCS}/query/formats/binary`,
+          note: 'How raster and other files load as bytes.',
+        },
+        { label: 'Parquet files', url: `${DOCS}/query/formats/parquet` },
+        { label: 'ST_GeomFromWKB', url: `${DOCS}/sql/language-manual/functions/st_geomfromwkb` },
+        { label: 'ST_GeomFromGeoJSON', url: `${DOCS}/sql/language-manual/functions/st_geomfromgeojson` },
+        { label: 'ST_GeomFromEWKT', url: `${DOCS}/sql/language-manual/functions/st_geomfromewkt` },
+      ],
     },
     {
       id: 'ingest',
@@ -417,7 +555,7 @@ WHERE rank = 1;`,
         },
         {
           strong: 'Best practice: pick the resolution by edge length.',
-          text: 'Resolution 9 has an edge near 175 m, about a city block. Finer cells mean more rows per polygon and fewer false pairs. Test two resolutions on your data.',
+          text: 'Resolution 9 has an an average edge near 200 m, about a city block. Finer cells mean more rows per polygon and fewer false pairs. Test two resolutions on your data.',
         },
       ],
       diagram: {
@@ -502,7 +640,7 @@ JOIN zones z ON z.zone_id = c.zone_id AND st_contains(z.geom, m.geom);`,
         },
         {
           strong: 'Best practice: choose the resolution for the question.',
-          text: 'Resolution 8 (edge near 460 m) suits neighborhood hotspots. Too fine and most cells hold one event.',
+          text: 'Resolution 8 (average edge near 530 m) suits neighborhood hotspots. Too fine and most cells hold one event.',
         },
         {
           strong: 'Best practice: show rates, not just counts.',
@@ -651,6 +789,126 @@ JOIN pipes p ON p.pipe_id = x.asset_id;`,
       ],
     },
     {
+      id: 'functions-st',
+      heading: 'ST_ function reference',
+      prose:
+        'Functions grouped by what they do. (run) means the reference job ran it on serverless compute. (run*) means it ran in a spot check on a SQL warehouse while building this guide. (docs) means it appears in the docs list and was not run. GEOMETRY is generally available; GEOGRAPHY is in Public Preview with SRID 4326 only, and the predicates and measures below took GEOMETRY in the reference workspace. None of these run on classic SQL warehouses. For Python or Scala, import them with `from pyspark.databricks.sql import functions as dbf` or `import com.databricks.sql.functions._`.',
+      points: [
+        {
+          strong: 'Constructors and import.',
+          text: 'ST_Point (run), ST_GeomFromText (run), ST_GeomFromWKB (run), ST_GeomFromGeoJSON (run), ST_GeomFromEWKT (run*), ST_GeogFromText (run*), ST_MakeLine (run*), ST_Multi (run*), ST_SetSRID (run), ST_MakePolygon (docs), ST_MakeEnvelope (docs), ST_GeomFromGeoHash (docs).',
+        },
+        {
+          strong: 'Accessors and validation.',
+          text: 'ST_X (run), ST_Y (run), ST_SRID (run), ST_GeometryType (run), ST_NPoints (run), ST_IsValid (run), ST_IsEmpty (run), ST_Envelope (run*), ST_Dimension (docs), ST_NumGeometries (docs), ST_StartPoint and ST_EndPoint (docs), ST_XMin, ST_XMax, ST_YMin, ST_YMax (docs).',
+        },
+        {
+          strong: 'Predicates.',
+          text: 'ST_Contains (run), ST_Intersects (run), ST_DWithin (run), ST_Within (run*), ST_Covers (run*), ST_Touches (docs), ST_Disjoint (docs), ST_Equals (docs). ST_Contains excludes the boundary; ST_Covers includes it.',
+        },
+        {
+          strong: 'Measurements.',
+          text: 'ST_Distance (run), ST_Area (run), ST_Length (run), ST_DistanceSpheroid (run), ST_DistanceSphere (run*), ST_Perimeter (docs), ST_Azimuth (docs). Planar measures use the unit of the SRID, so use a projected SRID for meters. The spheroid and sphere distances return meters between point geometries.',
+        },
+        {
+          strong: 'Transformations.',
+          text: 'ST_Transform (run), ST_Buffer (run), ST_Centroid (run), ST_EstimateSRID (run), ST_Simplify (run*), ST_Union (run*), ST_ClosestPoint (run*), ST_Intersection (docs), ST_Difference (docs), ST_ConvexHull (docs), ST_Force2D (docs), ST_FlipCoordinates (docs).',
+        },
+        {
+          strong: 'Aggregates.',
+          text: 'ST_Union_Agg (run), ST_Envelope_Agg (docs), ST_Collect (docs).',
+        },
+        {
+          strong: 'Output and export.',
+          text: 'ST_AsText (run), ST_AsGeoJSON (run), ST_AsBinary (run), ST_AsWKB (run*), ST_AsEWKT (run*), ST_AsEWKB (docs), ST_GeoHash (docs).',
+        },
+      ],
+      links: [
+        {
+          label: 'ST geospatial functions (full list)',
+          url: `${DOCS}/sql/language-manual/sql-ref-st-geospatial-functions`,
+        },
+        { label: 'ST_Point', url: `${DOCS}/sql/language-manual/functions/st_point` },
+        { label: 'ST_GeomFromText', url: `${DOCS}/sql/language-manual/functions/st_geomfromtext` },
+        { label: 'ST_SetSRID', url: `${DOCS}/sql/language-manual/functions/st_setsrid` },
+        { label: 'ST_IsValid', url: `${DOCS}/sql/language-manual/functions/st_isvalid` },
+        { label: 'ST_Within', url: `${DOCS}/sql/language-manual/functions/st_within` },
+        { label: 'ST_Covers', url: `${DOCS}/sql/language-manual/functions/st_covers` },
+        { label: 'ST_Area', url: `${DOCS}/sql/language-manual/functions/st_area` },
+        { label: 'ST_Length', url: `${DOCS}/sql/language-manual/functions/st_length` },
+        { label: 'ST_DistanceSphere', url: `${DOCS}/sql/language-manual/functions/st_distancesphere` },
+        { label: 'ST_Simplify', url: `${DOCS}/sql/language-manual/functions/st_simplify` },
+        { label: 'ST_Centroid', url: `${DOCS}/sql/language-manual/functions/st_centroid` },
+        { label: 'ST_Union', url: `${DOCS}/sql/language-manual/functions/st_union` },
+        { label: 'ST_Union_Agg', url: `${DOCS}/sql/language-manual/functions/st_union_agg` },
+        { label: 'ST_EstimateSRID', url: `${DOCS}/sql/language-manual/functions/st_estimatesrid` },
+        { label: 'ST_AsText', url: `${DOCS}/sql/language-manual/functions/st_astext` },
+        { label: 'ST_AsGeoJSON', url: `${DOCS}/sql/language-manual/functions/st_asgeojson` },
+      ],
+    },
+    {
+      id: 'functions-h3',
+      heading: 'H3 function reference and resolution guide',
+      prose:
+        'Same key as above. H3 functions work on Databricks Runtime 17.0 and above on every compute type except classic SQL warehouses, including non-Photon clusters. They take longitude and latitude, or WKT, WKB, or GeoJSON text or bytes, not a GEOMETRY value: pass ST_AsText(geom) to H3_PointAsH3 or H3_CoverAsH3.',
+      points: [
+        {
+          strong: 'Indexing.',
+          text: 'H3_LongLatAsH3 (run), H3_LongLatAsH3String (run*), H3_PointAsH3 (run*), H3_PolyfillAsH3 (run), H3_CoverAsH3 (run), H3_CoverAsH3String (docs), H3_PolyfillAsH3String (docs).',
+        },
+        {
+          strong: 'Traversal.',
+          text: 'H3_KRing (run), H3_Distance (run*), H3_HexRing (docs), H3_KRingDistances (docs).',
+        },
+        {
+          strong: 'Hierarchy.',
+          text: 'H3_ToParent (run), H3_ToChildren (run*), H3_Resolution (run*), H3_Compact (docs), H3_Uncompact (docs).',
+        },
+        {
+          strong: 'Conversion.',
+          text: 'H3_H3ToString (run), H3_StringToH3 (run*), H3_CenterAsWKT (run), H3_BoundaryAsWKT (run*), H3_BoundaryAsGeoJSON (docs).',
+        },
+        {
+          strong: 'Validation.',
+          text: 'H3_IsValid (run*), H3_IsPentagon (run*), H3_Validate (docs).',
+        },
+      ],
+      table: {
+        caption:
+          'Average cell size by resolution, from the H3 reference tables (spherical model). Fit is practical guidance.',
+        columns: ['Resolution: average edge and area', 'Suits'],
+        rows: [
+          ['5: 9.85 km, 253 km²', 'Metro areas and regional summaries'],
+          ['6: 3.72 km, 36.1 km²', 'City-wide summaries by district'],
+          ['7: 1.41 km, 5.16 km²', 'Districts and service areas'],
+          ['8: 531 m, 0.74 km²', 'Neighborhood heat maps (the reference run)'],
+          ['9: 201 m, 0.105 km²', 'City blocks and prefilters for zone joins (the reference run)'],
+          ['10: 75.9 m, 15,048 m²', 'Street-level grouping, hydrant and valve density'],
+          ['11: 28.7 m, 2,150 m²', 'Large parcels and sites'],
+          ['12: 10.8 m, 307 m²', 'Individual lots and buildings'],
+          ['13: 4.1 m, 43.9 m²', 'Asset-scale work; rows per polygon grow quickly'],
+        ],
+      },
+      links: [
+        {
+          label: 'H3 geospatial functions (full list)',
+          url: `${DOCS}/sql/language-manual/sql-ref-h3-geospatial-functions`,
+        },
+        {
+          label: 'H3 cell sizes by resolution',
+          url: 'https://h3geo.org/docs/core-library/restable/',
+          note: 'Source of the table above.',
+        },
+        { label: 'H3_PointAsH3', url: `${DOCS}/sql/language-manual/functions/h3_pointash3` },
+        { label: 'H3_Distance', url: `${DOCS}/sql/language-manual/functions/h3_distance` },
+        { label: 'H3_ToChildren', url: `${DOCS}/sql/language-manual/functions/h3_tochildren` },
+        { label: 'H3_Resolution', url: `${DOCS}/sql/language-manual/functions/h3_resolution` },
+        { label: 'H3_StringToH3', url: `${DOCS}/sql/language-manual/functions/h3_stringtoh3` },
+        { label: 'H3_BoundaryAsWKT', url: `${DOCS}/sql/language-manual/functions/h3_boundaryaswkt` },
+        { label: 'H3_IsValid', url: `${DOCS}/sql/language-manual/functions/h3_isvalid` },
+      ],
+    },
+    {
       id: 'performance',
       heading: 'Performance',
       points: [
@@ -718,6 +976,73 @@ ALTER TABLE meters_governed SET ROW FILTER geo_district_filter ON (district);`,
           label: 'Apply a filter or mask to a table',
           url: `${DOCS}/data-governance/unity-catalog/filters-and-masks/manually-apply`,
         },
+      ],
+    },
+    {
+      id: 'best-practices',
+      heading: 'Best practices for GIS data',
+      prose:
+        'A checklist for any spatial table. Items marked (docs) rest on a docs statement; the rest are practical guidance from building the reference job.',
+      points: [
+        {
+          strong: 'Store GEOMETRY with an explicit SRID, one SRID per column.',
+          text: '(docs) GEOMETRY(srid) fixes the SRID, and GEOMETRY(ANY) cannot be persisted. Predicates return ST_DIFFERENT_SRID_VALUES when the two inputs differ.',
+        },
+        {
+          strong: 'Record the source CRS and reproject once, at silver.',
+          text: 'Keep the delivered CRS in the bronze table or a column comment. Reproject with ST_Transform in the step that builds the silver table, so no query repeats it.',
+        },
+        {
+          strong: 'Keep a metric or projected copy for distance and area.',
+          text: '(docs) ST_Distance, ST_DWithin, and ST_Area use the unit of the SRID, which is degrees on 4326. Add a geom_m column in a local projected SRID and use ST_EstimateSRID to pick one.',
+        },
+        {
+          strong: 'Validate with ST_IsValid and quarantine the failures.',
+          text: 'Write invalid rows to a separate table with the reason, and join only valid geometry. The reference job counts invalid, empty, and mixed-SRID rows on every load.',
+        },
+        {
+          strong: 'Simplify very detailed polygons for display.',
+          text: 'ST_Simplify gives a lighter layer for dashboards and exports. Keep the full-detail column for analysis.',
+        },
+        {
+          strong: 'Use the H3 prefilter for large joins, and choose the resolution from the question.',
+          text: 'Cover the polygons, join on the cell, then run the exact predicate. Pick a resolution whose cell is a little smaller than the feature you ask about; the resolution table above gives the sizes.',
+        },
+        {
+          strong: 'Cluster on an H3 cell or a region key.',
+          text: 'CLUSTER BY the cell so nearby rows share files. The clustering docs do not discuss spatial data, and the reference tables were too small to time it.',
+        },
+        {
+          strong: 'Keep the raw files in Unity Catalog volumes.',
+          text: 'The delivered shapefile, GeoPackage, or PDF stays beside the tables built from it, with volume grants and lineage.',
+        },
+        {
+          strong: 'Document CRS and units in comments.',
+          text: 'Put the SRID, unit, and source in the column comment, for example "UTM 10N, meters, from the 2026 survey". COMMENT ON TABLE and COLUMN work as for any data.',
+        },
+        {
+          strong: 'Govern location-sensitive data with row filters or masks.',
+          text: 'Filter by district or role, and mask or generalize exact coordinates for readers who need only an area. Add a coarse H3 cell as the shareable column.',
+        },
+        {
+          strong: 'Avoid GROUP BY on GEOMETRY.',
+          text: '(docs, and seen in the run) GEOMETRY cannot be grouped. Group by an ID, an H3 cell, or ST_AsWKB(geom) when you must deduplicate shapes.',
+        },
+        {
+          strong: 'Prefer GEOMETRY over GEOGRAPHY while GEOGRAPHY is in preview.',
+          text: '(docs) GEOGRAPHY is Public Preview and SRID 4326 only. Use it when you need geodesic results and have confirmed the functions you need accept it. ST_DistanceSpheroid already gives geodesic point distances on GEOMETRY.',
+        },
+      ],
+      links: [
+        { label: 'GEOMETRY type', url: `${DOCS}/sql/language-manual/data-types/geometry-type` },
+        { label: 'GEOGRAPHY type', url: `${DOCS}/sql/language-manual/data-types/geography-type` },
+        { label: 'ST_IsValid', url: `${DOCS}/sql/language-manual/functions/st_isvalid` },
+        { label: 'ST_EstimateSRID', url: `${DOCS}/sql/language-manual/functions/st_estimatesrid` },
+        { label: 'ST_Simplify', url: `${DOCS}/sql/language-manual/functions/st_simplify` },
+        { label: 'Liquid clustering', url: `${DOCS}/delta/clustering` },
+        { label: 'Unity Catalog volumes', url: `${DOCS}/volumes/` },
+        { label: 'Row filters and column masks', url: `${DOCS}/data-governance/unity-catalog/filters-and-masks` },
+        { label: 'COMMENT ON', url: `${DOCS}/sql/language-manual/sql-ref-syntax-ddl-comment` },
       ],
     },
   ],

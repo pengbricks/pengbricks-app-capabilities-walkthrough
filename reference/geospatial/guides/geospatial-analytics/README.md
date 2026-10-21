@@ -53,6 +53,7 @@ Results from one run in the reference workspace, on serverless job compute. They
 
 ## Not covered
 
+- GeoParquet, newline-delimited GeoJSON, File Geodatabase (.gdb), KMZ, and raster (GeoTIFF, COG) were not run. The guide says what the docs support and marks the rest as practical guidance.
 - Photos were not run. `ai_query` accepts JPEG or PNG through its `files` argument, but which model reads a pipe photo well is not tested here.
 - Time and scale. The tables hold hundreds of rows, so the H3 prefilter and liquid clustering are described, not timed.
 - Sedona and GeoPandas were not run.
