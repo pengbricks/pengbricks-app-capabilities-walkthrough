@@ -60,6 +60,7 @@ export const learningPath: readonly LearningStage[] = [
       'scd-change-capture',
       'cdc-incremental-refresh',
       'orchestration-patterns',
+      'data-validation-framework',
       'dataops',
       'versioning',
     ],

@@ -1,0 +1,15 @@
+# Pipeline with expectations (warn, drop, fail) and a quarantine table that holds the rows the drop rules remove.
+resources:
+  pipelines:
+    capability_guides_data_validation_pipeline:
+      name: capability-guides-data-validation
+      catalog: ${var.catalog}
+      schema: ${var.schema}
+      serverless: true
+      continuous: false
+      channel: CURRENT
+      tags:
+        capability_guide_use_case: ${var.use_case}
+      libraries:
+        - glob:
+            include: ../guides/data-validation-framework/pipeline/**

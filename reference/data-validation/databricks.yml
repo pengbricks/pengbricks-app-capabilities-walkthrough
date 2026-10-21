@@ -1,0 +1,47 @@
+bundle:
+  name: capability-guides-data-validation
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Unity Catalog catalog that holds the guide schema
+  warehouse_id:
+    description: SQL warehouse that runs the paused failure alert
+  app_service_principal:
+    description: Application ID of the Databricks App service principal that triggers quick runs
+  schema:
+    description: Schema for this bundle's tables, pipeline, and metric view
+    default: capability_guides
+  use_case:
+    description: Use-case spec under use_cases/ that drives the source data, expectations, and checks
+    default: general
+  lakebase_project:
+    description: Lakebase Postgres project that hosts the stand-in source database (overrides lakebase_project in the use-case spec)
+    default: capability-guides
+  release:
+    description: Release identifier recorded in resource tags
+    default: local
+
+permissions:
+  - level: CAN_MANAGE
+    user_name: ${workspace.current_user.userName}
+  - level: CAN_RUN
+    service_principal_name: ${var.app_service_principal}
+
+targets:
+  dev:
+    default: true
+    mode: development
+    presets:
+      tags:
+        release: ${var.release}
+    variables:
+      schema: dev_${workspace.current_user.short_name}_capability_guides
+  test:
+    presets:
+      name_prefix: "[test] "
+      tags:
+        environment: test
+        release: ${var.release}

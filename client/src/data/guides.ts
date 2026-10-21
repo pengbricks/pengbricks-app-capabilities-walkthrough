@@ -709,6 +709,21 @@ export const guides: readonly Guide[] = [
     ],
   },
   {
+    slug: 'data-validation-framework',
+    title: 'Data validation framework',
+    category: 'Data Engineering Guides',
+    difficulty: 3,
+    summary: 'Reconcile with the source, enforce rules with quarantine, and run every check from one spec into one results table.',
+    acceptanceCriteria:
+      'Validation logic is written once, in Databricks. The copy is reconciled with the source through Lakehouse Federation at the right grain. Row rules run as pipeline expectations with a quarantine table. All other checks run from one spec into one results table that drives an alert and can block downstream tasks. Lineage lists what a failure affects, and metric views hold the metric definitions.',
+    evidence: [
+      'Per-day counts, sums, and checksums compared with the source',
+      'Quarantine table with the rule names and expectation metrics from the event log',
+      'One results table with severities, and a blocked downstream task',
+      'Lineage impact list and a metric view checked against the table',
+    ],
+  },
+  {
     slug: 'sql-notebook-analysis',
     title: 'SQL and notebooks at scale',
     category: 'Analyst Guides',
