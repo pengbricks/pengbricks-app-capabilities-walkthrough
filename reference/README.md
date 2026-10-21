@@ -16,6 +16,7 @@ Each folder under `reference/` is a self-contained Declarative Automation Bundle
 | `data-engineering/` | Transformation patterns, SCD and change capture, Target loading and file outputs |
 | `orchestration/` | Orchestration patterns, Lineage and drift detection |
 | `analyst/` | SQL and notebooks at scale, Bring your own data, Connecting local tools, No-code data preparation, Self-service extracts and subscriptions, Charts and dashboards in the platform |
+| `metric-views/` | Metric views (two metric views deployed by SQL tasks, queried with `MEASURE()`, and checked against hand-written SQL; bundles have no metric view resource, so the views are created by SQL files kept in the repo) |
 | `governance/` | Access management, Row and column security, Compute and capacity management, Cost tracking and chargeback |
 | `ml-lifecycle/` | Feature preparation from source data, Training and bringing existing models, Reproducible experiments, Model quality and drift |
 | `realtime-scoring/` | Online model scoring |

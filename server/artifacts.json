@@ -7375,6 +7375,244 @@
           "route": "/walkthroughs/environment-separation"
         }
       ]
+    },
+    "metric-views": {
+      "bundle": "reference/metric-views",
+      "onePager": "reference/metric-views/guides/metric-views/README.md",
+      "code": [
+        {
+          "label": "Notebooks and SQL files, one per job task",
+          "path": "reference/metric-views/guides/metric-views"
+        },
+        {
+          "label": "Orders metric view (YAML in a SQL file)",
+          "path": "reference/metric-views/guides/metric-views/02_orders_metric_view.sql"
+        },
+        {
+          "label": "Sessions metric view (YAML in a SQL file)",
+          "path": "reference/metric-views/guides/metric-views/03_funnel_metric_view.sql"
+        },
+        {
+          "label": "Sample data, comparison, and results helpers",
+          "path": "reference/metric-views/src/mv_lib.py"
+        },
+        {
+          "label": "Tests for the helpers and the YAML",
+          "path": "reference/metric-views/tests/test_mv_lib.py"
+        },
+        {
+          "label": "Metric views job",
+          "path": "reference/metric-views/resources/metric_views.job.yml"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_metric_views",
+          "label": "Metric views job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "Metric views run (deploy, MEASURE() checks, lineage)",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/533876207442414/runs/1036022687415931",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-21T17:08:16Z"
+        }
+      ],
+      "recordedFolder": {
+        "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/browse/folders/1264420743923079",
+        "startHereUrl": "https://fevm-rpeng-demobricks.cloud.databricks.com/editor/notebooks/1264420743923082",
+        "workspace": "Reference workspace"
+      },
+      "docs": [
+        {
+          "label": "Unity Catalog metric views",
+          "url": "https://docs.databricks.com/aws/en/uc-semantics/metric-views/"
+        },
+        {
+          "label": "Model metric views",
+          "url": "https://docs.databricks.com/aws/en/uc-semantics/metric-views/basic-modeling"
+        },
+        {
+          "label": "Joins in metric views",
+          "url": "https://docs.databricks.com/aws/en/uc-semantics/metric-views/joins"
+        },
+        {
+          "label": "Advanced techniques: window measures and composability",
+          "url": "https://docs.databricks.com/aws/en/uc-semantics/metric-views/advanced-techniques"
+        },
+        {
+          "label": "Agent metadata in metric views",
+          "url": "https://docs.databricks.com/aws/en/uc-semantics/agent-metadata"
+        },
+        {
+          "label": "Query metric views",
+          "url": "https://docs.databricks.com/aws/en/uc-semantics/metric-views/query"
+        },
+        {
+          "label": "Manage metric views",
+          "url": "https://docs.databricks.com/aws/en/uc-semantics/metric-views/manage"
+        },
+        {
+          "label": "Use metric views with external BI tools",
+          "url": "https://docs.databricks.com/aws/en/uc-semantics/metric-views/bi-tools"
+        },
+        {
+          "label": "Metric view YAML syntax reference",
+          "url": "https://docs.databricks.com/aws/en/uc-semantics/metric-views/yaml-reference"
+        },
+        {
+          "label": "Metric view feature availability",
+          "url": "https://docs.databricks.com/aws/en/uc-semantics/metric-views/feature-availability"
+        },
+        {
+          "label": "Add metric views to a share",
+          "url": "https://docs.databricks.com/aws/en/opensharing/create-share"
+        },
+        {
+          "label": "SQL task for jobs",
+          "url": "https://docs.databricks.com/aws/en/jobs/tasks/sql"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Source, filter, and comment",
+          "path": "reference/metric-views/guides/metric-views/02_orders_metric_view.sql",
+          "lines": [
+            18,
+            28
+          ],
+          "section": "define",
+          "notes": [
+            "The filter scopes every query to completed orders.",
+            "The comment states that scope, and it survives a save."
+          ]
+        },
+        {
+          "label": "Joins to two dimension tables",
+          "path": "reference/metric-views/guides/metric-views/02_orders_metric_view.sql",
+          "lines": [
+            29,
+            40
+          ],
+          "section": "joins",
+          "notes": [
+            "'on' is quoted so YAML 1.1 does not read it as a boolean.",
+            "rely.at_most_one_match is true because each order has one customer and one product."
+          ]
+        },
+        {
+          "label": "Conversion rate as a ratio of sums",
+          "path": "reference/metric-views/guides/metric-views/03_funnel_metric_view.sql",
+          "lines": [
+            69,
+            78
+          ],
+          "section": "ratios",
+          "notes": [
+            "The rate divides two measures, so it is right at any grouping."
+          ]
+        },
+        {
+          "label": "Three wrong ways to combine the numbers",
+          "path": "reference/metric-views/guides/metric-views/04_verify_measures.py",
+          "lines": [
+            160,
+            168
+          ],
+          "section": "ratios",
+          "notes": [
+            "An average of daily rates gives 14.23% where the true rate is 8.63%."
+          ]
+        },
+        {
+          "label": "Prior month and growth",
+          "path": "reference/metric-views/guides/metric-views/02_orders_metric_view.sql",
+          "lines": [
+            140,
+            159
+          ],
+          "section": "windows",
+          "notes": [
+            "offset: -1 month shifts the window one month back along order_month.",
+            "The growth measure composes the base and shifted measures with MEASURE()."
+          ]
+        },
+        {
+          "label": "Synonyms and display name on a measure",
+          "path": "reference/metric-views/guides/metric-views/02_orders_metric_view.sql",
+          "lines": [
+            88,
+            93
+          ],
+          "section": "semantics",
+          "notes": [
+            "Genie imports the synonyms; dashboards show the display name."
+          ]
+        },
+        {
+          "label": "Certify the view",
+          "path": "reference/metric-views/guides/metric-views/05_lineage_and_governance.py",
+          "lines": [
+            66,
+            79
+          ],
+          "section": "govern",
+          "notes": [
+            "Setting the tag needs ASSIGN. The step records the error and the job continues.",
+            "CREATE OR REPLACE VIEW drops the tag, so this runs after every deploy."
+          ]
+        },
+        {
+          "label": "Read upstream lineage",
+          "path": "reference/metric-views/guides/metric-views/05_lineage_and_governance.py",
+          "lines": [
+            92,
+            96
+          ],
+          "section": "govern",
+          "notes": [
+            "The lineage API returns the source tables the view reads."
+          ]
+        },
+        {
+          "label": "SQL tasks deploy the views",
+          "path": "reference/metric-views/resources/metric_views.job.yml",
+          "lines": [
+            26,
+            35
+          ],
+          "section": "deploy",
+          "notes": [
+            "The SQL file sets the catalog and schema from these parameters.",
+            "Bundles have no metric view resource, so a sql_task runs the file."
+          ]
+        },
+        {
+          "label": "Compare each measure with plain SQL",
+          "path": "reference/metric-views/guides/metric-views/04_verify_measures.py",
+          "lines": [
+            27,
+            37
+          ],
+          "section": "deploy",
+          "notes": [
+            "Runs both queries and compares every group, so a wrong join or filter shows up."
+          ]
+        },
+        {
+          "label": "CI check of the YAML",
+          "path": "reference/metric-views/tests/test_mv_lib.py",
+          "lines": [
+            94,
+            110
+          ],
+          "section": "deploy",
+          "notes": [
+            "Runs on a laptop with no workspace: names are unique, 'on' is quoted, every measure has a comment."
+          ]
+        }
+      ]
     }
   }
 }

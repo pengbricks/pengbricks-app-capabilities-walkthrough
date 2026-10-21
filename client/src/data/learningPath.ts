@@ -26,6 +26,7 @@ export const learningPath: readonly LearningStage[] = [
       'sql-notebook-analysis',
       'bring-your-own-data',
       'no-code-data-prep',
+      'metric-views',
       'in-platform-visualization',
       'local-tool-connectivity',
       'self-service-extracts',
