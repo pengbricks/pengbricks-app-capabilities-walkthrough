@@ -27,6 +27,7 @@
   "in-platform-visualization": "2026-10-20",
   "legacy-conversion": "2026-10-20",
   "local-tool-connectivity": "2026-10-20",
+  "metric-views": "2026-10-21",
   "model-deployment-cicd": "2026-10-20",
   "model-performance-drift": "2026-10-20",
   "model-training-compatibility": "2026-10-20",
@@ -52,5 +53,5 @@
   "user-experience": "2026-10-20",
   "versioning": "2026-10-20",
   "vscode-databricks": "2026-10-20",
-  "*": "2026-10-20"
+  "*": "2026-10-21"
 }
