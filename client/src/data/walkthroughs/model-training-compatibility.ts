@@ -166,15 +166,6 @@ mlflow.models.predict(
       heading: 'Choose a format that is safe and portable',
       prose:
         'How a model is serialized decides what loading it can do. Pickle runs arbitrary code from the file, so loading an untrusted file is a security risk, and pickles also break across library versions.',
-      table: {
-        columns: ['Format', 'When to use it'],
-        rows: [
-          ['MLflow native flavor (sklearn, xgboost, lightgbm, pytorch, transformers)', 'The default. The flavor handles serialization, versions, and the signature'],
-          ['ONNX', 'Portable across frameworks and runtimes, and fast for inference. Convert once, then serve anywhere ONNX Runtime runs'],
-          ['skops', 'scikit-learn models when you want a format that loads only types you list as trusted, instead of arbitrary code'],
-          ['Pickle or cloudpickle', 'Last resort for a model you cannot retrain. Load only files from a source you control, and pin the library versions'],
-        ],
-      },
       points: [
         {
           strong: 'Wrap what you cannot convert.',
@@ -189,6 +180,32 @@ mlflow.models.predict(
           text: 'A model whose training data is gone cannot be retrained or audited. Log the data source or table version with the run.',
         },
       ],
+      options: {
+        caption: 'Model serialization format',
+        rows: [
+          {
+            option: 'MLflow native flavor (sklearn, xgboost, lightgbm, pytorch, transformers)',
+            when: 'The default.',
+            tradeoffs: 'The flavor handles serialization, versions, and the signature. It covers the frameworks MLflow has a flavor for, and anything else needs a pyfunc wrapper.',
+          },
+          {
+            option: 'ONNX',
+            when: 'Portable across frameworks and runtimes, and fast for inference. Convert once, then serve anywhere ONNX Runtime runs.',
+            tradeoffs: 'The conversion is an extra step that can fail on unsupported operators. Compare predictions with the original model before you register it.',
+          },
+          {
+            option: 'skops',
+            when: 'scikit-learn models, when you want a format that loads only types you list as trusted instead of arbitrary code.',
+            tradeoffs: 'Limited to scikit-learn, and you maintain the list of trusted types.',
+          },
+          {
+            option: 'Pickle or cloudpickle',
+            when: 'A last resort for a model you cannot retrain.',
+            tradeoffs: 'Loading runs arbitrary code from the file and breaks across library versions. Load only files from a source you control, and pin the library versions.',
+          },
+        ],
+        recommendation: 'Use the native flavor by default. Convert to ONNX when you need portability, and wrap a pickled pipeline in a pyfunc model only when retraining is impossible.',
+      },
     },
     {
       id: 'migrate',
@@ -243,6 +260,27 @@ mlflow.models.predict(
           text: 'Materialize features to an offline table for batch scoring and to an online store for low-latency lookup.',
         },
       ],
+      options: {
+        caption: 'Where feature logic lives',
+        rows: [
+          {
+            option: 'Feature Views, looked up at serving',
+            when: 'Features are shared across models, use time windows, or are needed online.',
+            tradeoffs: 'One definition serves training and serving, with point-in-time joins for training sets. You manage materialization and an online store, which adds cost and a sync delay.',
+          },
+          {
+            option: 'Transformations packaged inside the model',
+            when: 'Features come from the request alone, or only one model uses them.',
+            tradeoffs: 'Nothing extra to deploy, and the same code runs at training and serving if you reuse it. It cannot look up history or aggregates at request time, and each model repeats its own logic.',
+          },
+          {
+            option: 'Features computed by the caller',
+            when: 'The caller already owns the values, such as the current cart in a web app.',
+            tradeoffs: 'No lookup at the endpoint. The caller must reproduce the training logic, which is how training-serving skew starts, so test for parity.',
+          },
+        ],
+        recommendation: 'Use Feature Views for shared, time-windowed, or online features. Package request-only transformations in the model, and accept caller-computed values only with a parity test against training.',
+      },
       links: [
         {
           label: 'Feature Views',
@@ -251,6 +289,11 @@ mlflow.models.predict(
         {
           label: 'Train models with feature tables',
           url: 'https://docs.databricks.com/aws/en/machine-learning/feature-store/train-models-with-feature-store',
+        },
+        {
+          label: 'Online Feature Stores',
+          url: 'https://docs.databricks.com/aws/en/machine-learning/feature-store/online-feature-store',
+          note: 'Serve materialized features at low latency.',
         },
       ],
     },

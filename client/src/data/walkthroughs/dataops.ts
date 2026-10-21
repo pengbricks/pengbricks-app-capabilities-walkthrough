@@ -60,16 +60,6 @@ export const walkthrough: Walkthrough = {
       heading: 'Design tasks to run twice',
       prose:
         'Lakeflow Jobs does not make tasks idempotent. A retry or a repair re-runs a task from the beginning, so a task that appended half its output before failing will duplicate it on the second try. Fix that in the task, not in the scheduler.',
-      table: {
-        caption: 'Write patterns and what a second run does',
-        columns: ['Pattern', 'Second run'],
-        rows: [
-          ['MERGE on a business key', 'Updates the same rows and inserts only what is missing'],
-          ['Overwrite one partition or date range (replaceWhere)', 'Replaces that slice with identical data'],
-          ['Streaming table or Auto Loader with a checkpoint', 'Picks up from the checkpoint and skips files already processed'],
-          ['Plain INSERT or append', 'Duplicates the rows from the first attempt'],
-        ],
-      },
       points: [
         {
           strong: 'Pass the slice as a parameter.',
@@ -102,6 +92,27 @@ SELECT * FROM staged_daily_totals WHERE event_date = DATE'2026-10-19';`,
           notes: ['Use whichever matches the table grain: a key for entity tables, a partition or date for facts.'],
         },
       ],
+      options: {
+        caption: 'Write patterns for tasks that can run twice',
+        rows: [
+          {
+            option: 'MERGE on a business key',
+            when: 'Entity tables with a stable key, such as customers or transactions.',
+            tradeoffs: 'A second run updates the same rows and inserts only what is missing. It needs a reliable key in the source, and the merge has to match against the target, so cost grows with the table.',
+          },
+          {
+            option: 'Overwrite one slice with replaceWhere or REPLACE WHERE',
+            when: 'Fact tables loaded by date or partition.',
+            tradeoffs: 'A second run replaces that slice with identical data and needs no key. If the source query returns no rows, REPLACE WHERE can delete the slice, so check for an empty load first.',
+          },
+          {
+            option: 'Streaming table or Auto Loader with a checkpoint',
+            when: 'Files or events that arrive continuously or in increments.',
+            tradeoffs: 'A second run picks up from the checkpoint and skips files already processed. The checkpoint holds the state, so deleting or moving it reprocesses everything.',
+          },
+        ],
+        recommendation: 'Match the pattern to the table grain: MERGE for keyed entities, REPLACE WHERE for date-sliced facts, a checkpointed stream for incremental files. A plain INSERT or append duplicates the first attempt\'s rows on a rerun, so use it only where duplicates are harmless.',
+      },
       links: [
         {
           label: 'Troubleshoot and repair job failures',
@@ -115,6 +126,11 @@ SELECT * FROM staged_daily_totals WHERE event_date = DATE'2026-10-19';`,
         {
           label: 'Selective overwrite',
           url: 'https://docs.databricks.com/aws/en/delta/selective-overwrite',
+        },
+        {
+          label: 'Auto Loader',
+          url: 'https://docs.databricks.com/aws/en/ingestion/cloud-object-storage/auto-loader/',
+          note: 'Incremental file ingestion with checkpoints.',
         },
       ],
     },
@@ -361,6 +377,27 @@ DEEP CLONE silver.transactions;`,
           notes: ['Check the history first. Restore to the version before the bad write, not the one that wrote it.'],
         },
       ],
+      options: {
+        caption: 'How to undo a bad write',
+        rows: [
+          {
+            option: 'RESTORE the table',
+            when: 'One table, and the good version is still within retention.',
+            tradeoffs: 'Rolls the table back to an earlier version and records the restore in table history. It works only while the old files exist (7 days by default, with 30 days of log), acts on one table, and can break streaming checkpoints.',
+          },
+          {
+            option: 'Redeploy the last good release and rerun',
+            when: 'Several tables are wrong, or the logic itself was wrong.',
+            tradeoffs: 'Restores job and pipeline definitions, then recomputes the data from a known input. It costs a full reprocess and only works if tasks are idempotent and the inputs are still available.',
+          },
+          {
+            option: 'Restore from a deep clone backup',
+            when: 'A recovery need that outlasts Delta retention.',
+            tradeoffs: 'A deep clone is an independent copy of data and metadata, so it survives VACUUM on the source. It costs storage and needs a job to refresh it, and reruns copy only what changed.',
+          },
+        ],
+        recommendation: 'Use RESTORE for one table inside the retention window, deep clone backups for tables that need longer recovery, and a redeploy with a rerun when several tables are bad.',
+      },
       links: [
         {
           label: 'RESTORE',

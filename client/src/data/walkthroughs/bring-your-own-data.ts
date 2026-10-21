@@ -58,15 +58,31 @@ export const walkthrough: Walkthrough = {
     {
       id: 'options',
       heading: 'Upload options',
-      table: {
-        columns: ['User and file', 'Use'],
+      options: {
+        caption: 'Ways to bring a file in',
         rows: [
-          ['A CSV or Excel file to keep as is', 'Catalog Explorer: upload to a volume'],
-          ['A file that should become a table', 'Catalog Explorer: create a table from the uploaded file'],
-          ['A no-code user who wants to clean it', 'Lakeflow Designer: bring the file into a visual data prep'],
-          ['Someone who already lives in Excel', 'Excel Add-in: import tables, and write a sheet back to a Unity Catalog table'],
-          ['A file that arrives on a schedule', 'Auto Loader or a file-arrival trigger on the volume, not a manual upload'],
+          {
+            option: 'Catalog Explorer upload',
+            when: 'A CSV or Excel file to keep as is (upload to a volume), or a file that should become a table (create a table from the uploaded file).',
+            tradeoffs: 'Nothing to install, and the file lands in a governed location with grants. It is a one-off: nobody refreshes it, and a table built from a file takes guessed column types unless you give a schema.',
+          },
+          {
+            option: 'Lakeflow Designer',
+            when: 'A no-code user who wants to clean the file, bringing it into a visual data prep.',
+            tradeoffs: 'Steps are visual and the saved flow can run on a schedule. Lakeflow Designer is generally available. Builders need a sandbox schema to write to, and flows with growing logic should move to code.',
+          },
+          {
+            option: 'Excel Add-in',
+            when: 'Someone who already lives in Excel and wants to import tables and write a sheet back to a Unity Catalog table.',
+            tradeoffs: 'Generally available. It queries a SQL warehouse as the signed-in user, so grants apply. A write-back target needs its own schema and grants so it stays apart from production tables.',
+          },
+          {
+            option: 'Auto Loader or a file-arrival trigger on the volume',
+            when: 'A file that arrives on a schedule, so a manual upload does not fit.',
+            tradeoffs: 'Each new file loads on its own, and the pipeline remembers what it has read. Someone has to own the pipeline and handle schema changes.',
+          },
         ],
+        recommendation: 'Upload to a volume for one-off analysis, use Designer or the Excel Add-in when the user\'s tool decides the route, and use Auto Loader once a file arrives on a schedule.',
       },
       links: [
         {
@@ -80,6 +96,11 @@ export const walkthrough: Walkthrough = {
         {
           label: 'Lakeflow Designer',
           url: 'https://docs.databricks.com/aws/en/designer/',
+        },
+        {
+          label: 'Auto Loader',
+          url: 'https://docs.databricks.com/aws/en/ingestion/cloud-object-storage/auto-loader/',
+          note: 'Incremental ingestion for recurring files.',
         },
       ],
     },
@@ -125,6 +146,27 @@ export const walkthrough: Walkthrough = {
           notes: ['An explicit schema stops a stray text value from changing a column type. Rows that do not fit land in _rescued_data.'],
         },
       ],
+      options: {
+        caption: 'Where an uploaded file lives while it is used',
+        rows: [
+          {
+            option: 'Query it in place with read_files',
+            when: 'Exploration or a one-off join.',
+            tradeoffs: 'No table to own, and the file stays in the user\'s folder. Every query parses the file again and infers types unless you pass a schema.',
+          },
+          {
+            option: 'Load it into a table in the sandbox schema',
+            when: 'One person or team reuses the data several times.',
+            tradeoffs: 'Types are fixed once and permissions work at table level. Someone refreshes it when the file changes, and it adds objects to tag, review, and expire.',
+          },
+          {
+            option: 'Promote it to a governed schema',
+            when: 'The data becomes a shared input.',
+            tradeoffs: 'A named owner, a schema, and a refresh plan make it reliable for others. It takes review and process, so use it only once other people depend on it.',
+          },
+        ],
+        recommendation: 'Query in place first, load to the sandbox when you reuse the data, and promote to a governed schema only when others depend on it and someone owns it.',
+      },
       links: [
         {
           label: 'read_files table-valued function',

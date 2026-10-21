@@ -208,28 +208,6 @@ databricks auth profiles`,
       heading: 'Four ways to run code',
       prose:
         'They differ in where your Python executes and what output you get back. Pick by what you are trying to learn: does the logic work, or does it work in the job environment.',
-      table: {
-        caption: 'Run options in the editor',
-        columns: ['Option', 'What happens'],
-        rows: [
-          [
-            'Debug current file with Databricks Connect',
-            'Python runs locally with your debugger and breakpoints. DataFrame and SQL work runs on serverless or the selected cluster. Output goes to the Debug Console.',
-          ],
-          [
-            'Upload and Run File',
-            'The file uploads and runs on the selected cluster. Output goes to the Debug Console. Not available on serverless compute.',
-          ],
-          [
-            'Run File as Workflow',
-            'The file or notebook runs as a Lakeflow Job in the workspace. Output shows in a Databricks Job Run tab, with a link to the run. Works for .py, .ipynb, .sql, .r, and .scala notebooks.',
-          ],
-          [
-            'Bundle Resource Explorer play icon',
-            'Deploys the bundle and runs a job or pipeline you defined, with its real settings, parameters, and permissions.',
-          ],
-        ],
-      },
       points: [
         {
           strong: 'Debug logic locally, then prove it as a job.',
@@ -244,6 +222,32 @@ databricks auth profiles`,
           text: 'Add a configuration under Run > Add Configuration to pass arguments such as --prod to a file or notebook run. Add "databricks": true to a Python debugger configuration to get the extension\'s Databricks Connect sign-in.',
         },
       ],
+      options: {
+        caption: 'Run options in the editor',
+        rows: [
+          {
+            option: 'Debug current file with Databricks Connect',
+            when: 'You are working out why logic fails and want breakpoints.',
+            tradeoffs: 'Python runs locally with your debugger. DataFrame and SQL work runs on serverless or the selected cluster, and output goes to the Debug Console. It hides differences in libraries, parameters, and permissions that a job run exposes.',
+          },
+          {
+            option: 'Upload and Run File',
+            when: 'You want the file to run on a cluster you selected.',
+            tradeoffs: 'The file uploads and runs on that cluster, with output in the Debug Console. It is not available on serverless compute, and the cluster has to be running.',
+          },
+          {
+            option: 'Run File as Workflow',
+            when: 'You want to see the file or notebook run as a job in the workspace, for .py, .ipynb, .sql, .r, or .scala.',
+            tradeoffs: 'It runs as a Lakeflow Job, and output shows in a Databricks Job Run tab with a link to the run. You get no local debugger, and each run starts a job, so the loop is slower than Connect.',
+          },
+          {
+            option: 'Bundle Resource Explorer play icon',
+            when: 'You want a last check with the real job or pipeline before a pull request.',
+            tradeoffs: 'It deploys the bundle and runs a job or pipeline with its real settings, parameters, and permissions. It is the closest to production and the slowest, because it deploys first.',
+          },
+        ],
+        recommendation: 'Debug with Databricks Connect while you write the logic, then run it as a workflow or a bundle job before you open a pull request.',
+      },
       links: [
         {
           label: 'Run a file or notebook',
@@ -259,6 +263,11 @@ databricks auth profiles`,
           label: 'Run and debug notebook cells',
           url: 'https://docs.databricks.com/aws/en/dev-tools/vscode-ext/notebooks',
           note: 'Globals, magics, and limits for cells in the editor.',
+        },
+        {
+          label: 'Limitations of Databricks Connect for Python',
+          url: 'https://docs.databricks.com/aws/en/dev-tools/databricks-connect/python/limitations',
+          note: 'What differs between local Connect runs and job runs.',
         },
       ],
     },
@@ -307,6 +316,22 @@ display(df.limit(20))`,
           ],
         },
       ],
+      options: {
+        caption: 'Notebook format in the repository',
+        rows: [
+          {
+            option: 'Source format (.py, .sql)',
+            when: 'Reviewers read diffs in plain pull request views and most of the logic is code.',
+            tradeoffs: 'A change is a few lines and reviews like any script. It captures only source code, so visualization definitions, widgets, and outputs stay out of the repository.',
+          },
+          {
+            option: '.ipynb',
+            when: 'Your team relies on notebook visualizations and widgets, or wants outputs versioned.',
+            tradeoffs: 'It captures source code, the notebook environment, visualization definitions, widgets, and optional outputs, and it is the default for new notebooks. The raw JSON is noisy to review without the rich diffs that GitHub and GitLab provide. Committed outputs can carry data into the repository, so leave them off for sensitive tables.',
+          },
+        ],
+        recommendation: 'Use source format for code-heavy repositories that are reviewed in plain pull request views. Use .ipynb when the team depends on visualizations and widgets, and pick one format per repository.',
+      },
       links: [
         {
           label: 'Manage Databricks notebook format',

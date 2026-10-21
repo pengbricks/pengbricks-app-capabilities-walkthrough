@@ -214,9 +214,31 @@ databricks auth profiles`,
           text: 'The pipeline uses ${resources.schemas.starter.name}, which includes the dev prefix. ${var.schema} would point at a schema that does not exist.',
         },
       ],
+      options: {
+        caption: 'Where a bundle is deployed from',
+        rows: [
+          {
+            option: 'Databricks CLI on your machine',
+            when: 'The dev target while you iterate.',
+            tradeoffs: 'Fast loop under your own OAuth identity, and development mode keeps your copy separate. The result depends on your CLI version and local files, and nothing records who deployed what to a shared target.',
+          },
+          {
+            option: 'CI under a service principal',
+            when: 'Test, stage, and prod.',
+            tradeoffs: 'The same reviewed commit deploys every time, with no personal credentials and a run log. You must set up the workflow, a federation policy, and GitHub environments first, and you debug failures from logs.',
+          },
+          {
+            option: 'Bundle editor in the workspace',
+            when: 'Developing in the workspace on serverless, with no local setup.',
+            tradeoffs: 'You edit, commit, deploy, and run from a Git folder in the UI. It cannot deploy to another workspace, so promotion still goes through CI.',
+          },
+        ],
+        recommendation: 'Deploy dev from the CLI or the workspace editor, and deploy every shared target from CI so each release is a reviewed commit.',
+      },
       links: [
         { label: 'Deployment modes', url: 'https://docs.databricks.com/aws/en/dev-tools/bundles/deployment-modes' },
         { label: 'Bundle resources', url: 'https://docs.databricks.com/aws/en/dev-tools/bundles/resources' },
+        { label: 'Bundles in the workspace', url: 'https://docs.databricks.com/aws/en/dev-tools/bundles/workspace-bundles' },
       ],
     },
     {
@@ -417,6 +439,27 @@ databricks bundle deploy -t prod --var catalog=<catalog> --var release=<previous
           text: 'One bundle per team and lifecycle lets you roll back one workload without touching the others.',
         },
       ],
+      options: {
+        caption: 'How many bundles to run',
+        rows: [
+          {
+            option: 'One bundle for the whole project',
+            when: 'One team ships its jobs, pipelines, and dashboards on the same cadence.',
+            tradeoffs: 'One validate and one deploy, with shared variables and targets. Any workload you roll back is rolled back with its neighbors, because you redeploy the whole commit.',
+          },
+          {
+            option: 'One bundle per team or lifecycle, in one repository',
+            when: 'Workloads with different owners, schedules, or release rhythm.',
+            tradeoffs: 'You can roll back one workload without touching the others, and each bundle gets its own permissions and run identities. You maintain more databricks.yml files and CI jobs, and shared code travels through sync.paths or a wheel. Databricks recommends one repository for multiple bundles.',
+          },
+          {
+            option: 'One repository per bundle',
+            when: 'Regulated teams that must keep code access and review rules apart.',
+            tradeoffs: 'The strongest separation of code access. Shared code has to ship as a package, and a change that spans bundles needs coordinated pull requests. The docs name regulated industries as the exception to the single-repository advice.',
+          },
+        ],
+        recommendation: 'Start with one bundle per team and lifecycle inside one repository. Split into separate repositories only when regulation requires it.',
+      },
       links: [
         { label: 'Developer best practices', url: 'https://docs.databricks.com/aws/en/developers/best-practices' },
         { label: 'Workload identity federation for GitHub Actions', url: 'https://docs.databricks.com/aws/en/dev-tools/auth/provider-github' },

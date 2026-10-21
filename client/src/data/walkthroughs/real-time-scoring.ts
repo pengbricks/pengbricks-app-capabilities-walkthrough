@@ -88,6 +88,39 @@ export const walkthrough: Walkthrough = {
         caption:
           'The model signature rejects malformed bodies and missing required inputs with a 400. Mark a feature optional only if the model can handle its absence.',
       },
+      options: {
+        caption: 'Real-time endpoint or another scoring mode',
+        rows: [
+          {
+            option: 'Model Serving endpoint',
+            when: 'An application needs an answer per request within a latency target.',
+            tradeoffs: 'An authenticated HTTPS endpoint with scaling, rate limits, and inference tables. You pay for provisioned capacity while it is up, size it for peak traffic, and own latency monitoring.',
+          },
+          {
+            option: 'Batch scoring in a Lakeflow Job',
+            when: 'Scores can be computed ahead of time, such as nightly churn or propensity, and consumers read a table.',
+            tradeoffs: 'No endpoint to size or secure beyond table grants, and job compute stops when the run ends. A score is as old as the last run, and the job cannot use values known only at request time.',
+          },
+          {
+            option: 'Streaming job over events',
+            when: 'Events arrive continuously and each one needs a score, but no caller waits for a reply.',
+            tradeoffs: 'Scores land in a table as events arrive, with no request and response. The job runs all the time, so compute is always on, and you manage the checkpoint.',
+          },
+        ],
+        recommendation: 'Use batch when a table of scores is enough. Add a serving endpoint when a person or application waits for the answer, or the input exists only at request time.',
+      },
+      links: [
+        {
+          label: 'Deploy models for batch inference and prediction',
+          url: 'https://docs.databricks.com/aws/en/machine-learning/model-inference/',
+          note: 'Batch scoring options.',
+        },
+        {
+          label: 'Create and manage serving endpoints',
+          url: 'https://docs.databricks.com/aws/en/machine-learning/model-serving/create-manage-serving-endpoints',
+          note: 'Endpoint settings and sizing.',
+        },
+      ],
     },
     {
       id: 'security',
@@ -157,6 +190,22 @@ export const walkthrough: Walkthrough = {
           text: 'Size above the estimate for bursts, and watch queue depth and p95 when traffic changes.',
         },
       ],
+      options: {
+        caption: 'Idle behavior of the endpoint',
+        rows: [
+          {
+            option: 'Scale to zero',
+            when: 'Dev and test endpoints, or rarely used internal tools.',
+            tradeoffs: 'Releases compute after idle time, so a quiet endpoint costs little. The next request waits for a cold start, and the docs say capacity is not guaranteed when scaled to zero.',
+          },
+          {
+            option: 'A nonzero minimum with provisioned concurrency',
+            when: 'Production endpoints with a latency target.',
+            tradeoffs: 'No cold start. You pay for the minimum around the clock, so size it from queries per second times latency, and requests above the maximum queue.',
+          },
+        ],
+        recommendation: 'Scale to zero in dev and test. Keep a nonzero minimum in production, because the docs advise against scale to zero there.',
+      },
       links: [
         {
           label: 'Optimize serving for production',
@@ -165,6 +214,11 @@ export const walkthrough: Walkthrough = {
         {
           label: 'Model Serving limits',
           url: 'https://docs.databricks.com/aws/en/machine-learning/model-serving/model-serving-limits',
+        },
+        {
+          label: 'Create and manage serving endpoints',
+          url: 'https://docs.databricks.com/aws/en/machine-learning/model-serving/create-manage-serving-endpoints',
+          note: 'Workload size and scale to zero.',
         },
       ],
     },
@@ -191,6 +245,27 @@ export const walkthrough: Walkthrough = {
           text: 'Values that exist only at call time, such as the current cart, come in the request and join the looked-up features.',
         },
       ],
+      options: {
+        caption: 'Where request-time features come from',
+        rows: [
+          {
+            option: 'Look up from the online store by key',
+            when: 'Features are aggregates or history for an entity, such as spend over 30 days.',
+            tradeoffs: 'The caller sends only the key, and the definition matches training. It adds an online store to run and pay for, and values are only as fresh as the last sync with the offline table.',
+          },
+          {
+            option: 'Send the values in the request',
+            when: 'The values exist only at call time, such as the current cart.',
+            tradeoffs: 'No lookup hop and no store. The caller must supply and compute every value, which makes payloads larger and risks differences from the training logic.',
+          },
+          {
+            option: 'Both: key plus request-time values',
+            when: 'Most models that combine history with the current event.',
+            tradeoffs: 'Looked-up and request values join at the endpoint. You keep two sources of inputs to document and test.',
+          },
+        ],
+        recommendation: 'Look up entity features by key and send only the values that exist at call time in the payload.',
+      },
       links: [
         {
           label: 'Online Feature Stores',

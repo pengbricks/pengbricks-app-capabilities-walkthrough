@@ -143,15 +143,54 @@ export const walkthrough: Walkthrough = {
     {
       id: 'choose',
       heading: 'Designer, Genie, or code',
-      table: {
-        columns: ['Need', 'Use'],
+      options: {
+        caption: 'Designer, Genie, or code',
         rows: [
-          ['Repeatable cleanup and joins by a business user', 'Lakeflow Designer'],
-          ['A one-off answer in plain language', 'Genie Agents or Genie One'],
-          ['Help writing or fixing SQL or Python', 'Genie Code'],
-          ['Tested, shared, or high-volume transformations', 'SQL or a Lakeflow Spark Declarative Pipeline, owned by data engineering'],
+          {
+            option: 'Lakeflow Designer',
+            when: 'Repeatable cleanup and joins by a business user.',
+            tradeoffs: 'Generally available. Visual steps save as a file you can version in Git, schedule, and promote. Outputs go to a sandbox schema, and logic that outgrows the operators belongs in code.',
+          },
+          {
+            option: 'Genie Agents or Genie One',
+            when: 'A one-off answer in plain language.',
+            tradeoffs: 'Quick answers with no saved pipeline. Accuracy depends on how well the space is set up, so check the SQL it shows. It does not produce a repeatable table.',
+          },
+          {
+            option: 'Genie Code',
+            when: 'Help writing or fixing SQL or Python.',
+            tradeoffs: 'It speeds up authors who can read and judge the code. The person still runs, reviews, and owns the result.',
+          },
+          {
+            option: 'SQL or a Lakeflow Spark Declarative Pipeline owned by data engineering',
+            when: 'Tested, shared, or high-volume transformations.',
+            tradeoffs: 'Review, tests, and scale controls. It takes engineering time and changes more slowly than a visual flow.',
+          },
         ],
+        recommendation: 'Let business users build repeatable cleanup in Designer and ask questions in Genie. Hand a flow to data engineering when it becomes shared or high volume.',
       },
+      links: [
+        {
+          label: 'Lakeflow Designer',
+          url: 'https://docs.databricks.com/aws/en/designer/',
+          note: 'Visual data prep for business users.',
+        },
+        {
+          label: 'Genie Agents',
+          url: 'https://docs.databricks.com/aws/en/genie-agents/',
+          note: 'Plain-language questions over governed data.',
+        },
+        {
+          label: 'Genie Code',
+          url: 'https://docs.databricks.com/aws/en/genie-code/',
+          note: 'AI help for writing and fixing code.',
+        },
+        {
+          label: 'Lakeflow Spark Declarative Pipelines',
+          url: 'https://docs.databricks.com/aws/en/ldp/',
+          note: 'Pipelines owned by data engineering.',
+        },
+      ],
     },
   ],
   related: [

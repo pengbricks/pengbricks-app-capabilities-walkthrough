@@ -166,10 +166,36 @@ export const walkthrough: Walkthrough = {
           notes: ['The code looks like pandas, but Spark runs it across the cluster, so the data does not have to fit on one machine.'],
         },
       ],
+      options: {
+        caption: 'Doing Python work on query results',
+        rows: [
+          {
+            option: 'Aggregate in Spark, then toPandas',
+            when: 'The result is small enough for the driver, such as a few hundred or a few thousand rows.',
+            tradeoffs: 'You get the full pandas and plotting ecosystem. The collected result has to fit in driver memory, so aggregate first. Databricks uses Arrow to speed the conversion.',
+          },
+          {
+            option: 'pandas API on Spark',
+            when: 'You want pandas syntax on data too large to collect.',
+            tradeoffs: 'The work runs distributed, so the data does not have to fit on one machine. Not every pandas function is available, and some behavior differs, so test a port before you rely on it.',
+          },
+          {
+            option: 'Spark SQL or DataFrames only',
+            when: 'The whole analysis fits in SQL or DataFrame operations.',
+            tradeoffs: 'Scales with no conversion and keeps the work on the warehouse or cluster. Reshaping and statistics take more code, and fewer plotting libraries apply.',
+          },
+        ],
+        recommendation: 'Aggregate in Spark and use toPandas for small results. Use the pandas API on Spark when the data will not fit on the driver.',
+      },
       links: [
         {
           label: 'Pandas API on Spark',
           url: 'https://docs.databricks.com/aws/en/pandas/pandas-on-spark',
+        },
+        {
+          label: 'Convert between PySpark and pandas DataFrames',
+          url: 'https://docs.databricks.com/aws/en/pandas/pyspark-pandas-conversion',
+          note: 'Arrow and conversion settings.',
         },
       ],
     },
@@ -232,6 +258,27 @@ export const walkthrough: Walkthrough = {
           text: 'Every path reads the same Unity Catalog tables, so permissions apply unchanged.',
         },
       ],
+      options: {
+        caption: 'How to work in R against Databricks',
+        rows: [
+          {
+            option: 'RStudio or Posit Workbench with sparklyr over Databricks Connect',
+            when: 'Spark-scale work from your own R IDE.',
+            tradeoffs: 'Spark runs on a Databricks cluster while you stay in your IDE. The integration is provided by the sparklyr project and supported through the Posit community, not directly by Databricks. Connect supports the DataFrame API only, so MLlib has limited compatibility.',
+          },
+          {
+            option: 'odbc::databricks() against a SQL warehouse',
+            when: 'Data pulls and dplyr queries from any R session.',
+            tradeoffs: 'Reads Unity Catalog tables on a serverless SQL warehouse with OAuth, with no cluster to manage. Results come into your local R session, so aggregate in SQL first, and you do not get the Spark DataFrame API.',
+          },
+          {
+            option: 'An R notebook on classic compute with sparklyr',
+            when: 'You want to work inside the workspace.',
+            tradeoffs: 'No local setup. R runs on classic compute only, since serverless does not run R. SparkR is deprecated on Databricks Runtime 16 and above, so write new code with sparklyr.',
+          },
+        ],
+        recommendation: 'Use odbc for pulling governed data into a local R session. Use sparklyr, through Databricks Connect or a classic compute notebook, when the work needs Spark.',
+      },
       links: [
         {
           label: 'Databricks for R developers',
@@ -240,6 +287,11 @@ export const walkthrough: Walkthrough = {
         {
           label: 'Databricks Connect for R',
           url: 'https://docs.databricks.com/aws/en/dev-tools/databricks-connect/r/',
+        },
+        {
+          label: 'Databricks ODBC driver',
+          url: 'https://docs.databricks.com/aws/en/integrations/odbc/',
+          note: 'Driver setup for odbc::databricks().',
         },
       ],
     },
