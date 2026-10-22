@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 1. Managed Iceberg table
 # MAGIC
-# MAGIC Creates the table with `USING ICEBERG`, appends a second batch, adds a column, and reads an earlier version. The table is dropped and rebuilt on each run, so a rerun gives the same row counts.
+# MAGIC Creates the table with `USING ICEBERG`, appends a second batch, adds a column, and reads an earlier version. Safe to rerun: the table is dropped and rebuilt, and the guide's rows in `iceberg_checks` are replaced.
 
 # COMMAND ----------
 

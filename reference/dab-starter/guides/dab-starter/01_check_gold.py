@@ -2,6 +2,8 @@
 # MAGIC %md
 # MAGIC # 1. Check the tables and the expectations
 # MAGIC
+# MAGIC Safe to rerun: it only reads the tables and the event log, and the pipeline generates the same orders from a fixed seed on every update.
+# MAGIC
 # MAGIC The pipeline has just updated. This notebook counts rows in bronze, silver, and gold and fails if they disagree: bronze must hold every generated order, silver can only hold fewer, and gold must count exactly the silver orders that are not cancelled. It then reads the pipeline's event log for the passed and failed rows of each expectation, and shows the top of the gold table.
 # MAGIC
 # MAGIC It only reads, so rerunning it changes nothing.

@@ -12,7 +12,7 @@ dbutils.library.restartPython()
 # MAGIC
 # MAGIC The silver pipeline (`silver/silver.sql`) builds three tables from bronze: current customers, plan history with validity windows, and orders joined to customer and product. Unity Catalog records the lineage from each bronze table to silver; this notebook reads it from `system.access.table_lineage`. Lineage system tables can lag by up to a few hours, so a first run may show fewer edges than Catalog Explorer.
 # MAGIC
-# MAGIC Then it creates or updates a Genie space over the silver tables, asks one business question, runs the SQL Genie wrote, and compares the answer with a hand-written query.
+# MAGIC Then it creates or updates a Genie space over the silver tables, asks one business question, runs the SQL Genie wrote, and compares the answer with a hand-written query. Safe to rerun: the Genie space is found by title and updated instead of created again, and this step's rows in `lfc_results` are replaced.
 
 # COMMAND ----------
 

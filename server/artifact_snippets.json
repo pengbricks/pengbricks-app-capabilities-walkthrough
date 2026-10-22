@@ -16,8 +16,8 @@
     {
       "path": "reference/governance/guides/access-management/04_verify_grants.py",
       "symbol": "verify_grants",
-      "startLine": 51,
-      "endLine": 80,
+      "startLine": 53,
+      "endLine": 82,
       "language": "py",
       "code": "def verify_grants(args, spark) -> None:\n    spec = load_spec(args.use_case_file)\n    principal = run_sql_rows(spark, f\"SELECT grantee_used FROM {qualified(args.catalog, args.schema, 'access_group')}\")[0][\"grantee_used\"]\n    info = f\"{qualified(args.catalog)}.information_schema\"\n    rows: list[dict] = []\n    for env, schema in env_schemas(args).items():\n        for r in run_sql_rows(spark, f\"SELECT grantee, privilege_type, inherited_from FROM {info}.schema_privileges WHERE schema_name = '{schema}'\"):\n            rows.append({\"environment\": env, \"securable\": f\"schema {schema}\", \"grantee\": r[\"grantee\"], \"privilege\": r[\"privilege_type\"], \"inherited_from\": r[\"inherited_from\"]})\n        for r in run_sql_rows(spark, f\"SELECT grantee, table_name, privilege_type, inherited_from FROM {info}.table_privileges WHERE table_schema = '{schema}'\"):\n            rows.append({\"environment\": env, \"securable\": f\"table {schema}.{r['table_name']}\", \"grantee\": r[\"grantee\"], \"privilege\": r[\"privilege_type\"], \"inherited_from\": r[\"inherited_from\"]})\n    write_rows(spark, args.catalog, args.schema, \"access_effective_grants\", rows,\n               \"environment string, securable string, grantee string, privilege string, inherited_from string\")\n\n    def held(env: str, kind: str = \"\") -> set[str]:\n        return {r[\"privilege\"] for r in rows if r[\"environment\"] == env and r[\"grantee\"] == principal\n                and r[\"inherited_from\"] == \"NONE\" and r[\"securable\"].startswith(kind)}\n\n    # Group-based: no person holds an explicit grant (inherited_from NONE) on either schema.\n    # The catalog owner shows up with privileges inherited from the catalog; those are not grants made here.\n    people = sorted({r[\"grantee\"] for r in rows if principal_kind(r[\"grantee\"]) == \"user\" and r[\"inherited_from\"] == \"NONE\"})\n    assert not people, f\"grants to individual users: {people}\"\n    # Environment difference.\n    assert {\"SELECT\", \"MODIFY\", \"CREATE_TABLE\"} <= held(\"dev\", \"schema\"), held(\"dev\", \"schema\")\n    assert not {\"MODIFY\", \"CREATE_TABLE\", \"SELECT\"} & held(\"prod\", \"schema\"), held(\"prod\", \"schema\")\n    # Object-level: prod reader gets orders only.\n    granted_tables = {r[\"securable\"] for r in rows if r[\"environment\"] == \"prod\" and r[\"grantee\"] == principal\n                      and r[\"inherited_from\"] == \"NONE\" and r[\"securable\"].startswith(\"table\")}\n    expected = {f\"table {args.prod_schema}.{t}\" for t in spec[\"access\"][\"environments\"][\"prod\"][\"table_privileges\"]}\n    assert granted_tables == expected, (granted_tables, expected)\n    print(f\"verified: {principal} dev={sorted(held('dev', 'schema'))} prod tables={sorted(granted_tables)}\")",
       "functions": {
@@ -28,8 +28,8 @@
     {
       "path": "reference/governance/guides/access-management/01_ensure_group.py",
       "symbol": "resolve_grantee",
-      "startLine": 83,
-      "endLine": 98,
+      "startLine": 85,
+      "endLine": 100,
       "language": "py",
       "code": "def resolve_grantee(spark, args) -> tuple[str, bool]:\n    \"\"\"Return (principal, grantable). Workspace-local groups are not Unity Catalog principals.\n\n    Only account-level groups can receive grants. When the configured group is workspace-local, fall\n    back to the built-in account-level group so the demo still grants through a group.\n    \"\"\"\n    probe = qualified(args.catalog, args.dev_schema)\n    try:\n        spark.sql(grant_sql([\"USE_SCHEMA\"], \"SCHEMA\", probe, args.reader_group))\n        return args.reader_group, True\n    except Exception as exc:  # noqa: BLE001\n        if \"PRINCIPAL_DOES_NOT_EXIST\" not in str(exc):\n            raise\n        print(f\"{args.reader_group} is a workspace-local group and cannot receive Unity Catalog grants; \"\n              f\"using {FALLBACK_GROUP}\")\n        return FALLBACK_GROUP, False",
       "functions": {
@@ -49,8 +49,8 @@
     {
       "path": "reference/governance/guides/access-management/03_apply_grants.py",
       "symbol": "apply_grants",
-      "startLine": 51,
-      "endLine": 68,
+      "startLine": 53,
+      "endLine": 70,
       "language": "py",
       "code": "def apply_grants(args, spark) -> None:\n    spec = load_spec(args.use_case_file)\n    group = run_sql_rows(spark, f\"SELECT grantee_used FROM {qualified(args.catalog, args.schema, 'access_group')}\")\n    principal = group[0][\"grantee_used\"]\n    assert principal_kind(principal) == \"group\", principal\n    applied = []\n    for env, schema in env_schemas(args).items():\n        config = spec[\"access\"][\"environments\"][env]\n        statements = [grant_sql([\"USE_CATALOG\"], \"CATALOG\", qualified(args.catalog), principal)]\n        statements.append(grant_sql(config[\"privileges\"], \"SCHEMA\", qualified(args.catalog, schema), principal))\n        for table, privileges in config[\"table_privileges\"].items():\n            statements.append(grant_sql(privileges, \"TABLE\", qualified(args.catalog, schema, table), principal))\n        for statement in statements:\n            spark.sql(statement)\n            applied.append({\"environment\": env, \"schema_name\": schema, \"principal\": principal, \"statement\": statement})\n            print(statement)\n    write_rows(spark, args.catalog, args.schema, \"access_grants_applied\", applied,\n               \"environment string, schema_name string, principal string, statement string\")",
       "functions": {
@@ -65,14 +65,14 @@
       "startLine": 1,
       "endLine": 18,
       "language": "sql",
-      "code": "-- Grant changes in one catalog over the last 30 days. Runs as a SQL task on the warehouse.\n-- Parameters: :catalog, :schema.\n-- Unity Catalog permission changes are metastore-level events, so the top-level workspace_id is 0.\n-- The catalog is the scope here. status_code 200 is a change that applied; other codes are refused attempts.\nCREATE OR REPLACE TABLE IDENTIFIER(:catalog || '.' || :schema || '.access_audit_grant_changes') AS\nSELECT event_time,\n       user_identity.email                   AS actor,\n       action_name,\n       request_params['securable_type']      AS securable_type,\n       request_params['securable_full_name'] AS securable,\n       request_params['changes']             AS changes,\n       response.status_code                  AS status_code\nFROM system.access.audit\nWHERE event_date >= current_date() - INTERVAL 30 DAYS\n  AND service_name = 'unityCatalog'\n  AND action_name IN ('updatePermissions', 'updateSharePermissions')\n  AND request_params['securable_full_name'] LIKE concat(:catalog, '.%')\nORDER BY event_time DESC;",
+      "code": "-- Grant changes in one catalog over the last 30 days. Runs as a SQL task on the warehouse.\n-- Safe to rerun: every table is created with CREATE OR REPLACE.\n-- Parameters: :catalog, :schema.\n-- Unity Catalog permission changes are metastore-level events, so the top-level workspace_id is 0.\n-- The catalog is the scope here. status_code 200 is a change that applied; other codes are refused attempts.\nCREATE OR REPLACE TABLE IDENTIFIER(:catalog || '.' || :schema || '.access_audit_grant_changes') AS\nSELECT event_time,\n       user_identity.email                   AS actor,\n       action_name,\n       request_params['securable_type']      AS securable_type,\n       request_params['securable_full_name'] AS securable,\n       request_params['changes']             AS changes,\n       response.status_code                  AS status_code\nFROM system.access.audit\nWHERE event_date >= current_date() - INTERVAL 30 DAYS\n  AND service_name = 'unityCatalog'\n  AND action_name IN ('updatePermissions', 'updateSharePermissions')\n  AND request_params['securable_full_name'] LIKE concat(:catalog, '.%')",
       "functions": {}
     },
     {
       "path": "reference/governance/guides/access-management/07_list_service_principals.py",
       "symbol": "list_service_principals",
-      "startLine": 48,
-      "endLine": 73,
+      "startLine": 50,
+      "endLine": 75,
       "language": "py",
       "code": "def list_service_principals(args, spark) -> None:\n    from databricks.sdk import WorkspaceClient\n\n    w = WorkspaceClient()\n    rows = []\n    for sp in w.service_principals.list():\n        try:\n            secrets = list(w.service_principal_secrets_proxy.list(service_principal_id=int(sp.id)))\n        except Exception:  # noqa: BLE001\n            secrets = []\n        expiry = [s.expire_time for s in secrets if s.expire_time]\n        created = [s.create_time for s in secrets if s.create_time]\n        rows.append({\n            \"display_name\": sp.display_name or \"\",\n            \"application_id\": sp.application_id or \"\",\n            \"active\": bool(sp.active),\n            \"roles\": \", \".join(sorted(g.display for g in (sp.groups or []) if g.display)) or \"(none)\",\n            \"entitlements\": \", \".join(sorted(e.value for e in (sp.entitlements or []))) or \"(none)\",\n            \"is_app_service_principal\": sp.application_id == args.app_service_principal,\n            \"oauth_secret_count\": len(secrets),\n            \"oldest_secret_created\": min(created) if created else \"\",\n            \"latest_secret_expires\": max(expiry) if expiry else \"\",\n        })\n    write_rows(spark, args.catalog, args.schema, \"access_service_principals\", rows,\n               \"display_name string, application_id string, active boolean, roles string, entitlements string, \"\n               \"is_app_service_principal boolean, oauth_secret_count int, oldest_secret_created string, latest_secret_expires string\")",
       "functions": {
@@ -111,11 +111,13 @@
     {
       "path": "reference/agents/guides/agent-build-deployment/03_deploy_endpoint.py",
       "symbol": null,
-      "startLine": 77,
-      "endLine": 93,
+      "startLine": 83,
+      "endLine": 99,
       "language": "py",
-      "code": "    entity = {\n        \"name\": \"assistant\",\n        \"entity_name\": model_name,\n        \"entity_version\": args.version,\n        \"workload_size\": build[\"workload_size\"],\n        \"scale_to_zero_enabled\": ac.to_bool(build[\"scale_to_zero\"]),\n        \"environment_vars\": {\"ENABLE_MLFLOW_TRACING\": \"true\", **({\"MLFLOW_EXPERIMENT_ID\": args.experiment_id} if args.experiment_id else {})},\n    }\n    config = {\"served_entities\": [entity], \"traffic_config\": {\"routes\": [{\"served_model_name\": \"assistant\", \"traffic_percentage\": 100}]}}\n    tags = [{\"key\": \"capability_guide\", \"value\": \"agent-build-deployment\"}, {\"key\": \"release\", \"value\": args.release}]\n    try:\n        state(w, name)\n        w.api_client.do(\"PUT\", f\"/api/2.0/serving-endpoints/{name}/config\", body=config)\n        print(f\"Updating endpoint {name} to version {args.version}\")\n    except NotFound:\n        w.api_client.do(\"POST\", \"/api/2.0/serving-endpoints\", body={\"name\": name, \"config\": config, \"tags\": tags})\n        print(f\"Creating endpoint {name} with version {args.version}\")",
-      "functions": {}
+      "code": "    entity = {\n        \"name\": \"assistant\",\n        \"entity_name\": model_name,\n        \"entity_version\": args.version,\n        \"workload_size\": build[\"workload_size\"],\n        \"scale_to_zero_enabled\": ac.to_bool(build[\"scale_to_zero\"]),\n        \"environment_vars\": {\"ENABLE_MLFLOW_TRACING\": \"true\", **({\"MLFLOW_EXPERIMENT_ID\": args.experiment_id} if args.experiment_id else {})},\n    }\n    config = {\"served_entities\": [entity], \"traffic_config\": {\"routes\": [{\"served_model_name\": \"assistant\", \"traffic_percentage\": 100}]}}\n    tags = [{\"key\": \"capability_guide\", \"value\": \"agent-build-deployment\"}, {\"key\": \"release\", \"value\": args.release}]\n    try:\n        wait_idle(w, name)\n        w.api_client.do(\"PUT\", f\"/api/2.0/serving-endpoints/{name}/config\", body=config)\n        print(f\"Updating endpoint {name} to version {args.version}\")\n    except NotFound:\n        w.api_client.do(\"POST\", \"/api/2.0/serving-endpoints\", body={\"name\": name, \"config\": config, \"tags\": tags})\n        print(f\"Creating endpoint {name} with version {args.version}\")",
+      "functions": {
+        "wait_idle": "Wait while a config update is running, so a rerun after a timeout does not collide with it. Raises NotFound if missing."
+      }
     },
     {
       "path": "reference/agents/src/agent/assistant.py",
@@ -174,9 +176,9 @@
       "path": "reference/agents/src/tool_setup.py",
       "symbol": "prepare_tool",
       "startLine": 41,
-      "endLine": 72,
+      "endLine": 76,
       "language": "py",
-      "code": "def prepare_tool(spark, spec: dict, catalog: str, schema: str) -> tuple[str, int]:\n    \"\"\"Create the sample table, the PII mask, and the tool function. Returns (function name, row count).\"\"\"\n    cat, sch = catalog, schema\n    table = ac.qualified(cat, sch, spec[\"data\"][\"table\"])\n    tool = spec[\"tool\"]\n    fn = ac.qualified(cat, sch, tool[\"function\"])\n    mask = ac.qualified(cat, sch, tool[\"mask_function\"])\n\n    if spark.catalog.tableExists(table):\n        spark.sql(f\"ALTER TABLE {table} ALTER COLUMN customer_email DROP MASK\")\n    build_orders(spark, spec).write.mode(\"overwrite\").option(\"overwriteSchema\", \"true\").saveAsTable(table)\n    spark.sql(\n        f\"\"\"CREATE OR REPLACE FUNCTION {mask}(email STRING)\n            RETURNS STRING\n            COMMENT 'Shows the address only to members of {tool[\"pii_group\"]}'\n            RETURN CASE WHEN is_account_group_member('{tool[\"pii_group\"]}') THEN email\n                        ELSE concat('***@', split(email, '@')[1]) END\"\"\"\n    )\n    spark.sql(f\"ALTER TABLE {table} ALTER COLUMN customer_email SET MASK {mask}\")\n    spark.sql(\n        f\"\"\"CREATE OR REPLACE FUNCTION {fn}({tool[\"parameter\"]} BIGINT COMMENT '{tool[\"parameter_comment\"]}')\n            RETURNS STRING\n            COMMENT '{tool[\"comment\"]}'\n            RETURN (SELECT concat('order ', o.order_id, ': status=', o.status, ', carrier=', o.carrier,\n                                  ', category=', o.category, ', days_since_order=', o.days_since_order,\n                                  ', customer=', o.customer_email)\n                    FROM {table} o WHERE o.order_id = {tool[\"parameter\"]} LIMIT 1)\"\"\"\n    )\n    sample = spark.sql(f\"SELECT {fn}({tool['sample_order_id']}) AS r\").first()[\"r\"]\n    rows = spark.table(table).count()\n    print(f\"table={table} rows={rows}\\nfunction={fn}\\nsample call: {sample}\")\n    return fn, rows",
+      "code": "def prepare_tool(spark, spec: dict, catalog: str, schema: str) -> tuple[str, int]:\n    \"\"\"Create the sample table, the PII mask, and the tool function. Returns (function name, row count).\"\"\"\n    cat, sch = catalog, schema\n    table = ac.qualified(cat, sch, spec[\"data\"][\"table\"])\n    tool = spec[\"tool\"]\n    fn = ac.qualified(cat, sch, tool[\"function\"])\n    mask = ac.qualified(cat, sch, tool[\"mask_function\"])\n\n    masked = spark.catalog.tableExists(table) and spark.sql(\n        f\"SELECT 1 FROM `{cat}`.information_schema.column_masks \"\n        f\"WHERE table_schema = '{sch}' AND table_name = '{spec['data']['table']}' AND column_name = 'customer_email'\"\n    ).count() > 0\n    if masked:  # an earlier run that stopped before SET MASK leaves none to drop\n        spark.sql(f\"ALTER TABLE {table} ALTER COLUMN customer_email DROP MASK\")\n    build_orders(spark, spec).write.mode(\"overwrite\").option(\"overwriteSchema\", \"true\").saveAsTable(table)\n    spark.sql(\n        f\"\"\"CREATE OR REPLACE FUNCTION {mask}(email STRING)\n            RETURNS STRING\n            COMMENT 'Shows the address only to members of {tool[\"pii_group\"]}'\n            RETURN CASE WHEN is_account_group_member('{tool[\"pii_group\"]}') THEN email\n                        ELSE concat('***@', split(email, '@')[1]) END\"\"\"\n    )\n    spark.sql(f\"ALTER TABLE {table} ALTER COLUMN customer_email SET MASK {mask}\")\n    spark.sql(\n        f\"\"\"CREATE OR REPLACE FUNCTION {fn}({tool[\"parameter\"]} BIGINT COMMENT '{tool[\"parameter_comment\"]}')\n            RETURNS STRING\n            COMMENT '{tool[\"comment\"]}'\n            RETURN (SELECT concat('order ', o.order_id, ': status=', o.status, ', carrier=', o.carrier,\n                                  ', category=', o.category, ', days_since_order=', o.days_since_order,\n                                  ', customer=', o.customer_email)\n                    FROM {table} o WHERE o.order_id = {tool[\"parameter\"]} LIMIT 1)\"\"\"\n    )\n    sample = spark.sql(f\"SELECT {fn}({tool['sample_order_id']}) AS r\").first()[\"r\"]\n    rows = spark.table(table).count()\n    print(f\"table={table} rows={rows}\\nfunction={fn}\\nsample call: {sample}\")\n    return fn, rows",
       "functions": {
         "build_orders": "Generate the orders with the sample-data generator. The same spec and seed give the same rows.",
         "prepare_tool": "Create the sample table, the PII mask, and the tool function. Returns (function name, row count)."
@@ -321,10 +323,10 @@
     {
       "path": "reference/ingestion/guides/batch-real-time-ingestion/03_record_metrics.py",
       "symbol": null,
-      "startLine": 42,
-      "endLine": 75,
+      "startLine": 44,
+      "endLine": 77,
       "language": "py",
-      "code": "metrics = spark.sql(\n    f\"\"\"\n    SELECT\n      :run_id AS job_run_id,\n      :update_id AS pipeline_update_id,\n      :update_state AS pipeline_update_state,\n      current_timestamp() AS recorded_at,\n      (SELECT count(*) FROM {prefix}.events_bronze) AS bronze_events_total,\n      (SELECT count(*) FROM {prefix}.events_silver) AS silver_events_total,\n      (SELECT count(*) FROM {prefix}.events_bronze) - (SELECT count(*) FROM {prefix}.events_silver) AS dropped_by_expectations,\n      (SELECT percentile_approx(latency_seconds, 0.5) FROM {prefix}.events_silver\n         WHERE ingested_at >= current_timestamp() - INTERVAL 1 HOUR) AS p50_latency_seconds,\n      (SELECT percentile_approx(latency_seconds, 0.95) FROM {prefix}.events_silver\n         WHERE ingested_at >= current_timestamp() - INTERVAL 1 HOUR) AS p95_latency_seconds,\n      (SELECT max(events) / 60.0 FROM {prefix}.ingestion_latency_by_minute) AS peak_events_per_second,\n      (SELECT count(*) FROM {prefix}.transactions_daily_summary) AS batch_summary_rows\n    \"\"\",\n    args={\n        \"run_id\": job_run_id,\n        \"update_id\": update.update_id if update else \"\",\n        \"update_state\": str(update.state.value) if update and update.state else \"\",\n    },\n)\n\n# COMMAND ----------\n\n# MAGIC %md\n# MAGIC ## Append to the metrics history\n# MAGIC\n# MAGIC `ingestion_run_metrics` is a history table: each run adds one row.\n\n# COMMAND ----------\n\nmetrics.write.mode(\"append\").option(\"mergeSchema\", \"true\").saveAsTable(f\"{prefix}.ingestion_run_metrics\")",
+      "code": "metrics = spark.sql(\n    f\"\"\"\n    SELECT\n      :run_id AS job_run_id,\n      :update_id AS pipeline_update_id,\n      :update_state AS pipeline_update_state,\n      current_timestamp() AS recorded_at,\n      (SELECT count(*) FROM {prefix}.events_bronze) AS bronze_events_total,\n      (SELECT count(*) FROM {prefix}.events_silver) AS silver_events_total,\n      (SELECT count(*) FROM {prefix}.events_bronze) - (SELECT count(*) FROM {prefix}.events_silver) AS dropped_by_expectations,\n      (SELECT percentile_approx(latency_seconds, 0.5) FROM {prefix}.events_silver\n         WHERE ingested_at >= current_timestamp() - INTERVAL 1 HOUR) AS p50_latency_seconds,\n      (SELECT percentile_approx(latency_seconds, 0.95) FROM {prefix}.events_silver\n         WHERE ingested_at >= current_timestamp() - INTERVAL 1 HOUR) AS p95_latency_seconds,\n      (SELECT max(events) / 60.0 FROM {prefix}.ingestion_latency_by_minute) AS peak_events_per_second,\n      (SELECT count(*) FROM {prefix}.transactions_daily_summary) AS batch_summary_rows\n    \"\"\",\n    args={\n        \"run_id\": job_run_id,\n        \"update_id\": update.update_id if update else \"\",\n        \"update_state\": str(update.state.value) if update and update.state else \"\",\n    },\n)\n\n# COMMAND ----------\n\n# MAGIC %md\n# MAGIC ## Append to the metrics history\n# MAGIC\n# MAGIC `ingestion_run_metrics` is a history table: each job run adds one row, and a rerun in the same job run replaces it.\n\n# COMMAND ----------\n\nmetrics.write.mode(\"overwrite\").option(\"replaceWhere\", f\"job_run_id = '{job_run_id}'\").option(\"mergeSchema\", \"true\").saveAsTable(f\"{prefix}.ingestion_run_metrics\")",
       "functions": {}
     },
     {
@@ -560,8 +562,8 @@
     {
       "path": "reference/governance/guides/compute-capacity-management/03_generate_load.py",
       "symbol": "generate_load",
-      "startLine": 59,
-      "endLine": 97,
+      "startLine": 61,
+      "endLine": 99,
       "language": "py",
       "code": "def generate_load(args, spark) -> None:\n    \"\"\"Fire many heavy statements at once so the single-cluster warehouse has to queue.\"\"\"\n    from databricks.sdk import WorkspaceClient\n    from databricks.sdk.service.sql import ExecuteStatementRequestOnWaitTimeout, StatementState\n\n    w = WorkspaceClient()\n    warehouse_id = _test_warehouse_id(args, spark)\n    count = int(args.queries)\n    statement = (\n        \"/* \" + LOAD_TAG + \" */ SELECT g, count(*) AS n, sum(len(h)) AS total FROM (\"\n        \"SELECT id % 997 AS g, sha2(cast(id AS STRING), 256) AS h FROM range(0, \" + args.range_rows + \")) GROUP BY g\"\n    )\n\n    def submit(_: int) -> str:\n        response = w.statement_execution.execute_statement(\n            statement=statement, warehouse_id=warehouse_id, wait_timeout=\"0s\",\n            on_wait_timeout=ExecuteStatementRequestOnWaitTimeout.CONTINUE)\n        return response.statement_id\n\n    with futures.ThreadPoolExecutor(max_workers=count) as pool:\n        ids = list(pool.map(submit, range(count)))\n    print(f\"submitted {count} concurrent statements\")\n\n    deadline = time.time() + 1500\n    pending = set(ids)\n    final: dict[str, str] = {}\n    while pending and time.time() < deadline:\n        for statement_id in list(pending):\n            state = w.statement_execution.get_statement(statement_id).status.state\n            if state in (StatementState.SUCCEEDED, StatementState.FAILED, StatementState.CANCELED, StatementState.CLOSED):\n                final[statement_id] = state.value\n                pending.discard(statement_id)\n        time.sleep(5)\n    assert not pending, f\"{len(pending)} statements did not finish\"\n    failed = {s: v for s, v in final.items() if v != \"SUCCEEDED\"}\n    assert not failed, failed\n    spark.createDataFrame([(s,) for s in ids], \"statement_id string\").write.mode(\"overwrite\").saveAsTable(\n        qualified(args.catalog, args.schema, \"capacity_load_statements\"))\n    print(f\"{len(ids)} statements succeeded\")",
       "functions": {
@@ -571,8 +573,8 @@
     {
       "path": "reference/governance/guides/compute-capacity-management/04_analyze_load.py",
       "symbol": "analyze_load",
-      "startLine": 59,
-      "endLine": 98,
+      "startLine": 61,
+      "endLine": 100,
       "language": "py",
       "code": "def analyze_load(args, spark) -> None:\n    \"\"\"Read the load back from system.query.history and system.compute.warehouse_events.\"\"\"\n    q = lambda name: qualified(args.catalog, args.schema, name)  # noqa: E731\n    expected = spark.table(q(\"capacity_load_statements\")).count()\n    warehouse_id = _test_warehouse_id(args, spark)\n    wid = workspace_id()\n    query = f\"\"\"SELECT h.statement_id, h.start_time, h.end_time, h.total_duration_ms, h.waiting_for_compute_duration_ms,\n                       h.waiting_at_capacity_duration_ms, h.execution_duration_ms\n                FROM system.query.history h JOIN {q('capacity_load_statements')} s USING (statement_id)\n                WHERE h.workspace_id = '{wid}'\"\"\"\n    rows: list[dict] = []\n    deadline = time.time() + 1200\n    while time.time() < deadline:\n        rows = run_sql_rows(spark, query)\n        finished = [r for r in rows if r[\"end_time\"] is not None]\n        print(f\"system.query.history has {len(finished)} of {expected} load statements\")\n        if len(finished) >= expected:\n            break\n        time.sleep(30)\n    assert len(rows) >= expected, f\"system.query.history returned {len(rows)} of {expected} statements\"\n\n    spark.createDataFrame(rows).write.mode(\"overwrite\").saveAsTable(q(\"capacity_load_queries\"))\n    waits = [(r[\"waiting_at_capacity_duration_ms\"] or 0) / 1000 for r in rows]\n    totals = [(r[\"total_duration_ms\"] or 0) / 1000 for r in rows]\n    # Queries run from (end - execution time) to end; queue time sits before that.\n    intervals = [(r[\"end_time\"].timestamp() - (r[\"execution_duration_ms\"] or 0) / 1000, r[\"end_time\"].timestamp()) for r in rows]\n    waiting_intervals = [(r[\"start_time\"].timestamp(), r[\"end_time\"].timestamp()) for r in rows]\n    summary = [{\n        \"warehouse_id\": warehouse_id, \"statements\": len(rows),\n        \"queued_statements\": sum(1 for w_ in waits if w_ > 0),\n        \"p50_wait_at_capacity_s\": percentile(waits, 50), \"p95_wait_at_capacity_s\": percentile(waits, 95),\n        \"max_wait_at_capacity_s\": max(waits), \"p50_total_s\": percentile(totals, 50), \"p95_total_s\": percentile(totals, 95),\n        \"peak_running\": max_concurrency(intervals), \"peak_submitted\": max_concurrency(waiting_intervals),\n    }]\n    write_rows(spark, args.catalog, args.schema, \"capacity_load_summary\", summary,\n               \"warehouse_id string, statements long, queued_statements long, p50_wait_at_capacity_s double, \"\n               \"p95_wait_at_capacity_s double, max_wait_at_capacity_s double, p50_total_s double, p95_total_s double, \"\n               \"peak_running long, peak_submitted long\")\n    print(summary[0])\n    assert summary[0][\"queued_statements\"] > 0, \"expected some statements to wait for capacity\"",
       "functions": {
@@ -603,8 +605,8 @@
     {
       "path": "reference/governance/guides/compute-capacity-management/01_read_settings.py",
       "symbol": "read_settings",
-      "startLine": 66,
-      "endLine": 93,
+      "startLine": 68,
+      "endLine": 95,
       "language": "py",
       "code": "def read_settings(args, spark) -> None:\n    \"\"\"Read every warehouse's settings (read only) and create the workspace-scoped views.\"\"\"\n    from databricks.sdk import WorkspaceClient\n\n    w = WorkspaceClient()\n    rows = [_settings_row(wh, \"shared target\" if wh.id == args.warehouse_id else \"other\")\n            for wh in w.warehouses.list() if wh.name != TEST_WAREHOUSE]\n    write_rows(spark, args.catalog, args.schema, \"warehouse_settings\", rows, SETTINGS_DDL)\n    target = next(r for r in rows if r[\"warehouse_id\"] == args.warehouse_id)\n    print(\"target warehouse settings:\", target)\n\n    wid = workspace_id()\n    q = lambda name: qualified(args.catalog, args.schema, name)  # noqa: E731\n    spark.sql(f\"\"\"CREATE OR REPLACE VIEW {q('capacity_query_history')} AS\n        SELECT h.statement_id, h.compute.warehouse_id AS warehouse_id, coalesce(s.name, h.compute.warehouse_id) AS warehouse_name,\n               h.executed_by, h.execution_status, h.statement_type, h.start_time, h.end_time,\n               h.total_duration_ms, h.waiting_for_compute_duration_ms, h.waiting_at_capacity_duration_ms,\n               h.execution_duration_ms, h.statement_text\n        FROM system.query.history h\n        LEFT JOIN {q('warehouse_settings')} s ON s.warehouse_id = h.compute.warehouse_id\n        WHERE h.workspace_id = '{wid}' AND h.compute.warehouse_id IS NOT NULL\n          AND h.start_time >= current_timestamp() - INTERVAL 14 DAYS\"\"\")\n    spark.sql(f\"\"\"CREATE OR REPLACE VIEW {q('capacity_warehouse_events')} AS\n        SELECT e.event_time, e.warehouse_id, coalesce(s.name, e.warehouse_id) AS warehouse_name, e.event_type, e.cluster_count\n        FROM system.compute.warehouse_events e\n        LEFT JOIN {q('warehouse_settings')} s ON s.warehouse_id = e.warehouse_id\n        WHERE e.workspace_id = '{wid}' AND e.event_time >= current_timestamp() - INTERVAL 14 DAYS\"\"\")\n    print(\"created views capacity_query_history and capacity_warehouse_events\")",
       "functions": {
@@ -615,10 +617,54 @@
     {
       "path": "reference/governance/guides/compute-capacity-management/02_create_load_warehouse.py",
       "symbol": "create_load_warehouse",
-      "startLine": 66,
-      "endLine": 82,
+      "startLine": 68,
+      "endLine": 87,
       "language": "py",
-      "code": "def create_load_warehouse(args, spark) -> None:\n    from databricks.sdk import WorkspaceClient\n    from databricks.sdk.service.sql import CreateWarehouseRequestWarehouseType\n\n    w = WorkspaceClient()\n    for stale in w.warehouses.list():\n        if stale.name == TEST_WAREHOUSE:\n            w.warehouses.delete(stale.id)\n    wh = w.warehouses.create_and_wait(\n        name=TEST_WAREHOUSE, cluster_size=\"2X-Small\", min_num_clusters=1, max_num_clusters=1, auto_stop_mins=5,\n        enable_serverless_compute=True, warehouse_type=CreateWarehouseRequestWarehouseType.PRO)\n    wh = w.warehouses.get(wh.id)\n    row = _settings_row(wh, \"test warehouse (deleted at end of run)\")\n    spark.createDataFrame([row], SETTINGS_DDL).write.mode(\"append\").saveAsTable(qualified(args.catalog, args.schema, \"warehouse_settings\"))\n    spark.createDataFrame([(wh.id,)], \"warehouse_id string\").write.mode(\"overwrite\").saveAsTable(\n        qualified(args.catalog, args.schema, \"capacity_test_warehouse\"))\n    print(\"created\", row)",
+      "code": "def create_load_warehouse(args, spark) -> None:\n    from databricks.sdk import WorkspaceClient\n    from databricks.sdk.service.sql import CreateWarehouseRequestWarehouseType\n\n    w = WorkspaceClient()\n    for stale in w.warehouses.list():\n        if stale.name == TEST_WAREHOUSE:\n            w.warehouses.delete(stale.id)\n    wh = w.warehouses.create_and_wait(\n        name=TEST_WAREHOUSE, cluster_size=\"2X-Small\", min_num_clusters=1, max_num_clusters=1, auto_stop_mins=5,\n        enable_serverless_compute=True, warehouse_type=CreateWarehouseRequestWarehouseType.PRO)\n    wh = w.warehouses.get(wh.id)\n    row = _settings_row(wh, \"test warehouse (deleted at end of run)\")\n    settings = qualified(args.catalog, args.schema, \"warehouse_settings\")\n    if spark.catalog.tableExists(settings):\n        spark.sql(f\"DELETE FROM {settings} WHERE name = '{TEST_WAREHOUSE}'\")  # replace the row, never add a second\n    spark.createDataFrame([row], SETTINGS_DDL).write.mode(\"append\").saveAsTable(settings)\n    spark.createDataFrame([(wh.id,)], \"warehouse_id string\").write.mode(\"overwrite\").saveAsTable(\n        qualified(args.catalog, args.schema, \"capacity_test_warehouse\"))\n    print(\"created\", row)",
+      "functions": {}
+    },
+    {
+      "path": "reference/governance/guides/compute-capacity-management/06_warehouse_type_audit.py",
+      "symbol": "warehouse_type_audit",
+      "startLine": 48,
+      "endLine": 69,
+      "language": "py",
+      "code": "def warehouse_type_audit(args, spark) -> list[dict]:\n    \"\"\"List every warehouse with its type and flag the ones that are not serverless or stop too late.\"\"\"\n    from databricks.sdk import WorkspaceClient\n\n    w = WorkspaceClient()\n    now = dt.datetime.now(dt.timezone.utc).replace(tzinfo=None)\n    rows = []\n    for item in w.warehouses.list():\n        wh = item if item.enable_serverless_compute is not None else w.warehouses.get(item.id)\n        row = audit_row(\n            wh.id, wh.name, wh.warehouse_type.value if wh.warehouse_type else None, wh.enable_serverless_compute,\n            wh.cluster_size, wh.min_num_clusters, wh.max_num_clusters, wh.auto_stop_mins, wh.state.value if wh.state else None)\n        rows.append({**row, \"audited_at\": now})\n    write_rows(spark, args.catalog, args.schema, \"governance_warehouse_types\", rows, AUDIT_DDL)\n    for row in rows:\n        mark = \"FLAG\" if row[\"flagged\"] else \"ok  \"\n        print(f\"{mark} {row['name']}: {row['warehouse_class']}, {row['size']}, {row['min_clusters']}-{row['max_clusters']} clusters, \"\n              f\"auto-stop {row['auto_stop_minutes']} min, {row['state']}\")\n        if row[\"flags\"]:\n            print(\"     \" + row[\"flags\"].replace(\" | \", \"\\n     \"))\n    print(f\"{sum(r['flagged'] for r in rows)} of {len(rows)} warehouses flagged\")\n    return rows",
+      "functions": {
+        "warehouse_type_audit": "List every warehouse with its type and flag the ones that are not serverless or stop too late.",
+        "write_rows": "Overwrite a small result table from Python rows."
+      }
+    },
+    {
+      "path": "reference/governance/guides/compute-capacity-management/06_warehouse_type_audit.py",
+      "symbol": "show_serverless_request",
+      "startLine": 71,
+      "endLine": 77,
+      "language": "py",
+      "code": "def show_serverless_request() -> None:\n    \"\"\"Print the request that creates a serverless warehouse explicitly. Nothing is created here.\"\"\"\n    body = serverless_request_body(\"bi-serverless\", size=\"Medium\", min_clusters=1, max_clusters=4, auto_stop_minutes=10)\n    print(\"POST /api/2.0/sql/warehouses  (printed, not sent)\")\n    print(json.dumps(body, indent=2))\n    print(\"\\nSDK equivalent:  w.warehouses.create(name=..., cluster_size=..., warehouse_type=CreateWarehouseRequestWarehouseType.PRO, \"\n          \"enable_serverless_compute=True)\")",
+      "functions": {
+        "serverless_request_body": "The POST /api/2.0/sql/warehouses body that creates a serverless warehouse explicitly.",
+        "show_serverless_request": "Print the request that creates a serverless warehouse explicitly. Nothing is created here."
+      }
+    },
+    {
+      "path": "reference/governance/src/governance_lib/warehouses.py",
+      "symbol": "warehouse_class",
+      "startLine": 15,
+      "endLine": 25,
+      "language": "py",
+      "code": "def warehouse_class(warehouse_type: str | None, serverless: bool | None) -> str:\n    \"\"\"Return serverless, pro, classic, or unknown.\n\n    The API reports a serverless warehouse as warehouse_type PRO with enable_serverless_compute true.\n    \"\"\"\n    kind = (warehouse_type or \"\").upper()\n    if kind == \"PRO\":\n        return \"serverless\" if serverless else \"pro\"\n    if kind == \"CLASSIC\":\n        return \"classic\"\n    return \"unknown\"",
+      "functions": {
+        "warehouse_class": "Return serverless, pro, classic, or unknown."
+      }
+    },
+    {
+      "path": "reference/governance/resources/compute_capacity.job.yml",
+      "symbol": null,
+      "startLine": 57,
+      "endLine": 61,
+      "language": "yml",
+      "code": "        - task_key: warehouse_type_audit\n          depends_on:\n            - task_key: read_settings\n          notebook_task:\n            notebook_path: ../guides/compute-capacity-management/06_warehouse_type_audit.py",
       "functions": {}
     }
   ],
@@ -750,8 +796,8 @@
     {
       "path": "reference/governance/guides/cost-chargeback/01_build_views.py",
       "symbol": "build_views",
-      "startLine": 49,
-      "endLine": 69,
+      "startLine": 51,
+      "endLine": 71,
       "language": "py",
       "code": "def build_views(args, spark) -> None:\n    \"\"\"Usage x list price, scoped to this workspace. The shared system tables hold every workspace.\"\"\"\n    wid = workspace_id()\n    spark.sql(f\"\"\"CREATE OR REPLACE VIEW {q(args, VIEW)} AS\n        SELECT u.usage_date, u.sku_name, u.billing_origin_product AS product, u.usage_unit,\n               u.custom_tags['capability_guide_job'] AS guide_job,\n               u.custom_tags['capability_guide_use_case'] AS use_case,\n               coalesce(u.identity_metadata.run_as, u.identity_metadata.created_by, u.identity_metadata.owned_by, 'unattributed') AS usage_user,\n               u.usage_metadata.job_id AS job_id, u.usage_metadata.job_run_id AS job_run_id,\n               u.usage_metadata.job_name AS job_name, u.usage_metadata.dlt_pipeline_id AS pipeline_id,\n               u.usage_metadata.warehouse_id AS warehouse_id,\n               u.usage_quantity, p.pricing.default AS list_price,\n               u.usage_quantity * p.pricing.default AS cost_usd\n        FROM system.billing.usage u\n        LEFT JOIN system.billing.list_prices p\n          ON u.sku_name = p.sku_name AND u.cloud = p.cloud AND p.currency_code = 'USD'\n         AND u.usage_end_time >= p.price_start_time AND (p.price_end_time IS NULL OR u.usage_end_time < p.price_end_time)\n        WHERE u.workspace_id = '{wid}' AND u.usage_date >= date_sub(current_date(), 90)\"\"\")\n    row = spark.sql(f\"SELECT count(*) AS n, round(sum(cost_usd), 2) AS usd, min(usage_date) AS first_day FROM {q(args, VIEW)}\").first()\n    print(f\"{VIEW}: {row['n']} usage rows, ${row['usd']} at list price since {row['first_day']}\")\n    assert row[\"n\"] > 0",
       "functions": {
@@ -762,9 +808,9 @@
       "path": "reference/governance/guides/cost-chargeback/04_forecast.sql",
       "symbol": null,
       "startLine": 1,
-      "endLine": 20,
+      "endLine": 21,
       "language": "sql",
-      "code": "-- 30-day spend forecast with ai_forecast. Runs as a SQL task on the warehouse.\n-- Parameters: :catalog, :schema.\nCREATE OR REPLACE TABLE IDENTIFIER(:catalog || '.' || :schema || '.cost_forecast_30d') AS\nSELECT CAST(ds AS DATE) AS ds,\n       y_forecast AS cost_forecast_usd,\n       y_lower AS cost_lower_usd,\n       y_upper AS cost_upper_usd\nFROM ai_forecast(\n  TABLE(SELECT usage_date AS ds, cost_usd AS y FROM IDENTIFIER(:catalog || '.' || :schema || '.cost_daily')),\n  horizon => CAST(date_add(current_date(), 31) AS STRING),\n  time_col => 'ds',\n  value_col => 'y',\n  frequency => 'day');\n\nCREATE OR REPLACE TABLE IDENTIFIER(:catalog || '.' || :schema || '.cost_actual_vs_forecast') AS\nSELECT usage_date AS ds, 'actual' AS series, cost_usd\nFROM IDENTIFIER(:catalog || '.' || :schema || '.cost_daily')\nUNION ALL\nSELECT ds, 'forecast' AS series, round(cost_forecast_usd, 2) AS cost_usd\nFROM IDENTIFIER(:catalog || '.' || :schema || '.cost_forecast_30d');",
+      "code": "-- 30-day spend forecast with ai_forecast. Runs as a SQL task on the warehouse.\n-- Safe to rerun: every table is created with CREATE OR REPLACE.\n-- Parameters: :catalog, :schema.\nCREATE OR REPLACE TABLE IDENTIFIER(:catalog || '.' || :schema || '.cost_forecast_30d') AS\nSELECT CAST(ds AS DATE) AS ds,\n       y_forecast AS cost_forecast_usd,\n       y_lower AS cost_lower_usd,\n       y_upper AS cost_upper_usd\nFROM ai_forecast(\n  TABLE(SELECT usage_date AS ds, cost_usd AS y FROM IDENTIFIER(:catalog || '.' || :schema || '.cost_daily')),\n  horizon => CAST(date_add(current_date(), 31) AS STRING),\n  time_col => 'ds',\n  value_col => 'y',\n  frequency => 'day');\n\nCREATE OR REPLACE TABLE IDENTIFIER(:catalog || '.' || :schema || '.cost_actual_vs_forecast') AS\nSELECT usage_date AS ds, 'actual' AS series, cost_usd\nFROM IDENTIFIER(:catalog || '.' || :schema || '.cost_daily')\nUNION ALL\nSELECT ds, 'forecast' AS series, round(cost_forecast_usd, 2) AS cost_usd\nFROM IDENTIFIER(:catalog || '.' || :schema || '.cost_forecast_30d');",
       "functions": {}
     },
     {
@@ -788,8 +834,8 @@
     {
       "path": "reference/governance/guides/cost-chargeback/06_optimization.py",
       "symbol": "optimization",
-      "startLine": 49,
-      "endLine": 88,
+      "startLine": 51,
+      "endLine": 90,
       "language": "py",
       "code": "def optimization(args, spark) -> None:\n    from databricks.sdk import WorkspaceClient\n\n    wid = workspace_id()\n    settings = {w.id: w for w in WorkspaceClient().warehouses.list()}\n    stats = run_sql_rows(spark, f\"\"\"\n        WITH spend AS (SELECT warehouse_id, sum(cost_usd) AS cost_usd FROM {q(args, VIEW)}\n                       WHERE usage_date >= date_sub(current_date(), 30) AND warehouse_id IS NOT NULL GROUP BY warehouse_id),\n             queries AS (SELECT compute.warehouse_id AS warehouse_id, count(*) AS statements FROM system.query.history\n                         WHERE workspace_id = '{wid}' AND start_time >= current_timestamp() - INTERVAL 30 DAYS\n                           AND compute.warehouse_id IS NOT NULL GROUP BY 1)\n        SELECT coalesce(s.warehouse_id, q.warehouse_id) AS warehouse_id, coalesce(s.cost_usd, 0) AS cost_usd_30d,\n               coalesce(q.statements, 0) AS statements_30d\n        FROM spend s FULL OUTER JOIN queries q ON s.warehouse_id = q.warehouse_id\"\"\")\n    rows = []\n    for r in stats:\n        w = settings.get(r[\"warehouse_id\"])\n        auto_stop = w.auto_stop_mins if w else None\n        usd_per_statement = round(float(r[\"cost_usd_30d\"]) / r[\"statements_30d\"], 4) if r[\"statements_30d\"] else None\n        flags = []\n        if w and (auto_stop == 0 or (auto_stop or 0) > 10):\n            flags.append(\"auto-stop above 10 minutes or disabled\")\n        if r[\"statements_30d\"] < 100 and float(r[\"cost_usd_30d\"]) > 0:\n            flags.append(\"fewer than 100 statements in 30 days\")\n        if w is None:\n            flags.append(\"warehouse deleted\")\n        rows.append({\"warehouse_id\": r[\"warehouse_id\"], \"warehouse_name\": w.name if w else r[\"warehouse_id\"], \"cost_usd_30d\": round(float(r[\"cost_usd_30d\"]), 2),\n                     \"statements_30d\": int(r[\"statements_30d\"]), \"usd_per_statement\": usd_per_statement,\n                     \"auto_stop_minutes\": auto_stop, \"flags\": \"; \".join(flags) or \"none\"})\n    write_rows(spark, args.catalog, args.schema, \"opt_idle_warehouses\", rows,\n               \"warehouse_id string, warehouse_name string, cost_usd_30d double, statements_30d long, \"\n               \"usd_per_statement double, auto_stop_minutes int, flags string\")\n\n    spark.sql(f\"\"\"CREATE OR REPLACE TABLE {q(args, 'opt_costly_jobs')} AS\n        SELECT job_id, max(job_name) AS job_name, count(DISTINCT job_run_id) AS runs, round(sum(cost_usd), 2) AS cost_usd_30d,\n               round(sum(cost_usd) / nullif(count(DISTINCT job_run_id), 0), 3) AS usd_per_run,\n               round(sum(usage_quantity), 1) AS dbus\n        FROM {q(args, VIEW)} WHERE usage_date >= date_sub(current_date(), 30) AND job_id IS NOT NULL\n        GROUP BY job_id ORDER BY usd_per_run DESC LIMIT 20\"\"\")\n    for name in (\"opt_idle_warehouses\", \"opt_costly_jobs\"):",
       "functions": {
@@ -996,14 +1042,16 @@
       "startLine": 51,
       "endLine": 58,
       "language": "py",
-      "code": "before = snapshot(spark, catalog, schema, TABLE)\nif add[\"name\"] in before:\n    raise RuntimeError(f\"{TABLE} already has {add['name']}. Run 01_build_chain to reset the chain, then run this notebook again.\")\nversion_before = latest_version(spark, full)\n\nspark.sql(f\"ALTER TABLE {full} ADD COLUMNS ({add['name']} {add['type']})\")\nspark.sql(f\"ALTER TABLE {full} SET TBLPROPERTIES ('delta.enableTypeWidening' = 'true')\")\nspark.sql(f\"ALTER TABLE {full} ALTER COLUMN {widen['name']} TYPE {widen['to_type']}\")",
-      "functions": {}
+      "code": "before = snapshot(spark, catalog, schema, TABLE)\nif add[\"name\"] in before:  # a rerun: reset silver from the source first, as 01_build_chain does\n    g.rebuild_silver(spark, full, prefix); before = snapshot(spark, catalog, schema, TABLE)\nversion_before = latest_version(spark, full)\n\nspark.sql(f\"ALTER TABLE {full} ADD COLUMNS ({add['name']} {add['type']})\")\nspark.sql(f\"ALTER TABLE {full} SET TBLPROPERTIES ('delta.enableTypeWidening' = 'true')\")\nspark.sql(f\"ALTER TABLE {full} ALTER COLUMN {widen['name']} TYPE {widen['to_type']}\")",
+      "functions": {
+        "rebuild_silver": "Recreate the silver table from the source table, the same statement as 01_build_chain."
+      }
     },
     {
       "path": "reference/orchestration/src/guide_lib.py",
       "symbol": "diff_schemas",
-      "startLine": 108,
-      "endLine": 120,
+      "startLine": 123,
+      "endLine": 135,
       "language": "py",
       "code": "def diff_schemas(before: dict[str, str], after: dict[str, str]) -> list[dict[str, str | None]]:\n    \"\"\"Compare {column: data_type} snapshots and list column-level drift events.\"\"\"\n    events: list[dict[str, str | None]] = []\n    for name in sorted(after.keys() - before.keys()):\n        events.append({\"change_type\": \"COLUMN_ADDED\", \"column_name\": name, \"old_type\": None, \"new_type\": after[name]})\n    for name in sorted(before.keys() - after.keys()):\n        events.append({\"change_type\": \"COLUMN_DROPPED\", \"column_name\": name, \"old_type\": before[name], \"new_type\": None})\n    for name in sorted(before.keys() & after.keys()):\n        if before[name] != after[name]:\n            events.append(\n                {\"change_type\": \"TYPE_CHANGED\", \"column_name\": name, \"old_type\": before[name], \"new_type\": after[name]}\n            )\n    return events",
       "functions": {
@@ -1016,7 +1064,7 @@
       "startLine": 66,
       "endLine": 90,
       "language": "py",
-      "code": "def run_monitor_baseline(w, spark, catalog, schema, assets_dir):\n    from databricks.sdk.service.dataquality import DataProfilingConfig, Monitor, Refresh, SnapshotConfig\n\n    table = w.tables.get(f\"{catalog}.{schema}.{TABLE}\")\n    schema_info = w.schemas.get(f\"{catalog}.{schema}\")\n    try:\n        w.data_quality.delete_monitor(object_type=\"table\", object_id=table.table_id)\n        time.sleep(15)\n    except Exception:  # noqa: BLE001 - no monitor yet\n        pass\n    w.workspace.mkdirs(assets_dir)\n    monitor = w.data_quality.create_monitor(\n        monitor=Monitor(\n            object_type=\"table\",\n            object_id=table.table_id,\n            data_profiling_config=DataProfilingConfig(\n                assets_dir=assets_dir, output_schema_id=schema_info.schema_id, snapshot=SnapshotConfig()\n            ),\n        )\n    )\n    time.sleep(10)\n    w.data_quality.create_refresh(\n        object_type=\"table\", object_id=table.table_id, refresh=Refresh(object_type=\"table\", object_id=table.table_id)\n    )\n    return table.table_id, monitor",
+      "code": "def run_monitor_baseline(w, spark, catalog, schema, assets_dir):\n    from databricks.sdk.service.dataquality import DataProfilingConfig, Monitor, Refresh, SnapshotConfig\n\n    table = w.tables.get(f\"{catalog}.{schema}.{TABLE}\")\n    schema_info = w.schemas.get(f\"{catalog}.{schema}\")\n    try:  # earlier refreshes stay in the history, so remember them and wait only for new ones\n        KNOWN_REFRESHES.update(r.refresh_id for r in w.data_quality.list_refresh(object_type=\"table\", object_id=table.table_id))\n    except Exception:  # noqa: BLE001 - no monitor yet\n        pass\n    w.workspace.mkdirs(assets_dir)\n    try:  # reuse the monitor: deleting it would leave its metric tables behind with the old windows\n        monitor = w.data_quality.get_monitor(object_type=\"table\", object_id=table.table_id)\n    except Exception:  # noqa: BLE001 - no monitor yet\n        monitor = w.data_quality.create_monitor(\n            monitor=Monitor(\n                object_type=\"table\",\n                object_id=table.table_id,\n                data_profiling_config=DataProfilingConfig(\n                    assets_dir=assets_dir, output_schema_id=schema_info.schema_id, snapshot=SnapshotConfig()\n                ),\n            )\n        )\n    time.sleep(10)\n    w.data_quality.create_refresh(object_type=\"table\", object_id=table.table_id, refresh=Refresh(object_type=\"table\", object_id=table.table_id))\n    return table.table_id, monitor",
       "functions": {}
     },
     {
@@ -1130,8 +1178,8 @@
     {
       "path": "reference/data-validation/src/dv_lib.py",
       "symbol": "aggregate_sql",
-      "startLine": 201,
-      "endLine": 207,
+      "startLine": 209,
+      "endLine": 215,
       "language": "py",
       "code": "def aggregate_sql(dialect: str, table: str, metrics: list[str], columns: list[Column], grain: str | None = None) -> str:\n    \"\"\"One row per slice (or one row, 'all'), with one column per metric. The source side runs through remote_query.\"\"\"\n    cast_text = \"text\" if dialect == \"postgres\" else \"STRING\"\n    slice_sql = f\"CAST({ident(grain)} AS {cast_text})\" if grain else \"'all'\"\n    select = \", \".join(f\"{_metric_sql(m, columns, dialect)} AS {metric_alias(m)}\" for m in metrics)\n    group = \" GROUP BY 1\" if grain else \"\"\n    return f\"SELECT {slice_sql} AS slice, {select} FROM {table}{group}\"",
       "functions": {
@@ -1164,8 +1212,8 @@
     {
       "path": "reference/data-validation/src/dv_lib.py",
       "symbol": "checksum_expr",
-      "startLine": 168,
-      "endLine": 174,
+      "startLine": 176,
+      "endLine": 182,
       "language": "py",
       "code": "def checksum_expr(columns: list[Column], dialect: str) -> str:\n    \"\"\"Sum of the first 8 hex digits of md5 over a canonical row string. Equal on both sides when the rows are equal.\"\"\"\n    if dialect == \"postgres\":\n        row = \" || '|' || \".join(f\"coalesce({_pg_expr(c)}, '')\" for c in columns)\n        return f\"coalesce(sum(('x' || substr(md5({row}), 1, 8))::bit(32)::bigint), 0)\"\n    row = \", '|', \".join(f\"coalesce({_spark_expr(c)}, '')\" for c in columns)\n    return f\"coalesce(sum(CAST(conv(substr(md5(concat({row})), 1, 8), 16, 10) AS BIGINT)), 0)\"",
       "functions": {
@@ -1175,8 +1223,8 @@
     {
       "path": "reference/data-validation/src/dv_lib.py",
       "symbol": "diff_slices",
-      "startLine": 220,
-      "endLine": 233,
+      "startLine": 228,
+      "endLine": 241,
       "language": "py",
       "code": "def diff_slices(\n    source: dict[str, dict[str, Decimal]], target: dict[str, dict[str, Decimal]], tolerance: Decimal = Decimal(0)\n) -> list[dict[str, Any]]:\n    \"\"\"Slices whose metrics differ by more than the tolerance, or that exist on one side only.\"\"\"\n    mismatches = []\n    for key in sorted(set(source) | set(target)):\n        left, right = source.get(key), target.get(key)\n        if left is None or right is None:\n            mismatches.append({\"slice\": key, \"missing\": \"source\" if left is None else \"target\"})\n            continue\n        bad = {m: (left[m], right[m]) for m in left if abs(left[m] - right[m]) > tolerance}\n        if bad:\n            mismatches.append({\"slice\": key, \"metrics\": bad})\n    return mismatches",
       "functions": {
@@ -1213,8 +1261,8 @@
     {
       "path": "reference/data-validation/src/dv_lib.py",
       "symbol": "run_check",
-      "startLine": 376,
-      "endLine": 395,
+      "startLine": 384,
+      "endLine": 403,
       "language": "py",
       "code": "def run_check(check: dict[str, Any], ctx: Context) -> Result:\n    \"\"\"Run one check from the spec. A check that cannot run is recorded as status `error`, not skipped.\"\"\"\n    kind = check[\"type\"]\n    op = check.get(\"op\", DEFAULT_OPERATOR[kind])\n    threshold = float(check[\"threshold\"])\n    base = dict(\n        check_name=check[\"name\"], check_type=kind, dataset=check[\"dataset\"], severity=check[\"severity\"],\n        operator=OPERATOR_TEXT[op], expected=threshold,\n    )\n    try:\n        if kind == \"reconciliation\":\n            observed, details = _reconcile(check, ctx)\n        else:\n            row = ctx.spark.sql(single_value_sql(check, ctx.ns)).first()\n            observed = None if row[\"observed\"] is None else float(row[\"observed\"])\n            details = \"no values to measure\" if observed is None else f\"observed {observed:g}, expected {OPERATOR_TEXT[op]} {threshold:g}\"\n    except Exception as exc:  # recorded, so one broken check does not hide the others\n        return Result(observed=None, status=\"error\", details=f\"{type(exc).__name__}: {str(exc).splitlines()[0][:300]}\", **base)\n    status = \"pass\" if passes(observed, op, threshold) else \"fail\"\n    return Result(observed=observed, status=status, details=details, **base)",
       "functions": {
@@ -1225,8 +1273,8 @@
     {
       "path": "reference/data-validation/src/dv_lib.py",
       "symbol": "single_value_sql",
-      "startLine": 317,
-      "endLine": 343,
+      "startLine": 325,
+      "endLine": 351,
       "language": "py",
       "code": "def single_value_sql(check: dict[str, Any], ns: str) -> str:\n    \"\"\"SQL that returns one `observed` value, for every type except reconciliation.\"\"\"\n    kind = check[\"type\"]\n    table = f\"{ns}.{ident(check['dataset'])}\"\n    if kind == \"row_count\":\n        return f\"SELECT count(*) AS observed FROM {table}\"\n    if kind == \"unique\":\n        cols = \", \".join(ident(c) for c in check[\"columns\"])\n        return f\"SELECT count(*) AS observed FROM (SELECT {cols} FROM {table} GROUP BY {cols} HAVING count(*) > 1)\"\n    if kind == \"null_rate\":\n        column = ident(check[\"column\"])\n        return f\"SELECT coalesce(avg(CASE WHEN {column} IS NULL THEN 1.0 ELSE 0.0 END), 0) AS observed FROM {table}\"\n    if kind == \"referential\":\n        column, ref_column = ident(check[\"column\"]), ident(check[\"ref_column\"])\n        ref = f\"{ns}.{ident(check['ref_dataset'])}\"\n        return (\n            f\"SELECT count(*) AS observed FROM {table} d LEFT ANTI JOIN {ref} r \"\n            f\"ON d.{column} = r.{ref_column} WHERE d.{column} IS NOT NULL\"\n        )\n    if kind == \"freshness\":\n        column = ident(check[\"column\"])\n        return (\n            f\"SELECT (unix_timestamp(current_timestamp()) - unix_timestamp(max({column}))) / 3600.0 AS observed FROM {table}\"\n        )\n    if kind == \"custom_sql\":\n        return check[\"sql\"].replace(\"{ns}\", ns)\n    raise ValueError(f\"no single-value SQL for {kind}\")",
       "functions": {
@@ -1246,8 +1294,8 @@
     {
       "path": "reference/data-validation/src/dv_lib.py",
       "symbol": "blocking",
-      "startLine": 273,
-      "endLine": 280,
+      "startLine": 281,
+      "endLine": 288,
       "language": "py",
       "code": "def blocking(results: list[Result], block_on: str) -> list[Result]:\n    \"\"\"Results that should stop the next task. block_on: error (default), warn (any failure), or none.\"\"\"\n    if block_on == \"none\":\n        return []\n    if block_on not in SEVERITIES:\n        raise ValueError(f\"block_on must be error, warn, or none, not {block_on!r}\")\n    levels = (\"error\",) if block_on == \"error\" else SEVERITIES\n    return [r for r in results if r.status != \"pass\" and r.severity in levels]",
       "functions": {
@@ -1300,6 +1348,110 @@
       "language": "py",
       "code": "try:\n    spark.sql(f\"SET TAG ON VIEW {view} `system.certification_status` = `certified`\")\n    certified = \"certified\"\nexcept Exception as exc:\n    certified = \"not set: \" + str(exc).splitlines()[0][:160]\nprint(f\"Certification: {certified}\")",
       "functions": {}
+    }
+  ],
+  "databricks-apps": [
+    {
+      "path": "reference/databricks-apps/app/app.yaml",
+      "symbol": null,
+      "startLine": 1,
+      "endLine": 9,
+      "language": "yaml",
+      "code": "# Databricks does not run this command in a shell, so app.py reads DATABRICKS_APP_PORT itself.\ncommand: ['python', 'app.py']\nenv:\n  # valueFrom reads the resource key declared in resources/databricks_apps.app.yml.\n  - name: WAREHOUSE_ID\n    valueFrom: 'sql-warehouse'\n  # A LIKE pattern, so the same file matches the shared schema in dev (dev_<user>_capability_guides) and test.\n  - name: SHARED_SCHEMA_PATTERN\n    value: '%capability_guides'",
+      "functions": {}
+    },
+    {
+      "path": "reference/databricks-apps/resources/databricks_apps.app.yml",
+      "symbol": null,
+      "startLine": 14,
+      "endLine": 19,
+      "language": "yml",
+      "code": "      # The key (sql-warehouse) is what app.yaml reads with valueFrom. The grant goes to the app service principal.\n      resources:\n        - name: sql-warehouse\n          sql_warehouse:\n            id: ${var.warehouse_id}\n            permission: CAN_USE",
+      "functions": {}
+    },
+    {
+      "path": "reference/databricks-apps/resources/databricks_apps.app.yml",
+      "symbol": null,
+      "startLine": 5,
+      "endLine": 19,
+      "language": "yml",
+      "code": "    databricks_apps_demo:\n      # Development mode does not prefix app names, so each target sets its own name through app_name.\n      name: ${var.app_name}\n      description: Shows app authorization and user authorization side by side\n      source_code_path: ../app\n      compute_size: MEDIUM\n      # The sql scope lets the app run queries as the signed-in user with x-forwarded-access-token.\n      user_api_scopes:\n        - sql\n      # The key (sql-warehouse) is what app.yaml reads with valueFrom. The grant goes to the app service principal.\n      resources:\n        - name: sql-warehouse\n          sql_warehouse:\n            id: ${var.warehouse_id}\n            permission: CAN_USE",
+      "functions": {}
+    },
+    {
+      "path": "reference/databricks-apps/resources/databricks_apps.app.yml",
+      "symbol": null,
+      "startLine": 10,
+      "endLine": 10,
+      "language": "yml",
+      "code": "      compute_size: MEDIUM",
+      "functions": {}
+    },
+    {
+      "path": "reference/databricks-apps/app/app.py",
+      "symbol": "whoami_app",
+      "startLine": 45,
+      "endLine": 51,
+      "language": "py",
+      "code": "@app.get(\"/whoami/app\")\ndef whoami_app() -> JSONResponse:\n    \"\"\"Uses the credentials the platform injects for the app service principal.\"\"\"\n    try:\n        return JSONResponse({\"route\": \"app\", \"acts_as\": \"app service principal\", **run_query(WorkspaceClient())})\n    except Exception as error:  # report it; the health check reads this field\n        return JSONResponse({\"route\": \"app\", \"error\": str(error)}, status_code=500)",
+      "functions": {
+        "whoami_app": "Uses the credentials the platform injects for the app service principal."
+      }
+    },
+    {
+      "path": "reference/databricks-apps/app/app.py",
+      "symbol": "whoami_user",
+      "startLine": 54,
+      "endLine": 64,
+      "language": "py",
+      "code": "@app.get(\"/whoami/user\")\ndef whoami_user(x_forwarded_access_token: Optional[str] = Header(default=None)) -> JSONResponse:\n    \"\"\"Builds a client from the forwarded user token. The token is never stored or shared across requests.\"\"\"\n    if not x_forwarded_access_token:\n        return JSONResponse({\"route\": \"user\", \"error\": \"no x-forwarded-access-token header\"}, status_code=401)\n    try:\n        # auth_type=\"pat\" stops the SDK from also reading the app's own client id and secret from the environment.\n        client = WorkspaceClient(token=x_forwarded_access_token, auth_type=\"pat\")\n        return JSONResponse({\"route\": \"user\", \"acts_as\": \"signed-in user\", **run_query(client)})\n    except Exception as error:\n        return JSONResponse({\"route\": \"user\", \"error\": str(error)}, status_code=500)",
+      "functions": {
+        "whoami_user": "Builds a client from the forwarded user token. The token is never stored or shared across requests."
+      }
+    },
+    {
+      "path": "reference/databricks-apps/guides/databricks-apps/02_health_check.py",
+      "symbol": null,
+      "startLine": 51,
+      "endLine": 53,
+      "language": "py",
+      "code": "for route in (\"/health\", \"/whoami/app\", \"/whoami/user\"):\n    # Redirects are off: a redirect to the sign-in page means the app did not accept this token.\n    r = requests.get(base + route, headers=headers, allow_redirects=False, timeout=90)",
+      "functions": {}
+    },
+    {
+      "path": "reference/databricks-apps/src/apps_lib.py",
+      "symbol": "is_idle",
+      "startLine": 163,
+      "endLine": 172,
+      "language": "py",
+      "code": "def is_idle(app: dict, now: datetime, idle_days: int) -> bool:\n    \"\"\"Running, and no deployment or update for idle_days.\n\n    The Apps API exposes no request count, so this is a proxy. Confirm with the app's Insights tab\n    (Beta) before you stop an app that flags here.\n    \"\"\"\n    if not is_billing(app):\n        return False\n    changed = last_change(app)\n    return changed is None or now - changed >= timedelta(days=idle_days)",
+      "functions": {
+        "is_billing": "An app bills compute while it is running. Stopped, deploying, and crashed apps do not.",
+        "is_idle": "Running, and no deployment or update for idle_days.",
+        "last_change": "Latest of the app update time and the active deployment update time, as a UTC datetime."
+      }
+    },
+    {
+      "path": "reference/databricks-apps/guides/databricks-apps/04_app_spaces.py",
+      "symbol": null,
+      "startLine": 38,
+      "endLine": 43,
+      "language": "py",
+      "code": "spaces, error = [], None\ntry:\n    spaces = [s.as_dict() for s in w.apps.list_spaces()]\nexcept Exception as exc:  # preview off, no permission, or an SDK without the call\n    error = exc\nprint(\"App Spaces preview:\", lib.spaces_preview_status(error))",
+      "functions": {
+        "spaces_preview_status": "Read the result of listing App Spaces: 'on' when the call worked, else 'off or no access'."
+      }
+    },
+    {
+      "path": "reference/databricks-apps/src/apps_lib.py",
+      "symbol": "cleanup_action",
+      "startLine": 197,
+      "endLine": 211,
+      "language": "py",
+      "code": "def cleanup_action(app: dict | None, stop_app: str) -> str:\n    \"\"\"Decide what the cleanup task does. Only 'stop' changes anything.\n\n    keep                  stop_app is not \"true\"\n    noop_missing          the app does not exist\n    noop_already_stopped  compute is STOPPED, or already STOPPING\n    stop                  the app is running or starting\n    \"\"\"\n    if str(stop_app).strip().lower() != \"true\":\n        return \"keep\"\n    if app is None:\n        return \"noop_missing\"\n    if compute_state(app) in (\"STOPPED\", \"STOPPING\"):\n        return \"noop_already_stopped\"\n    return \"stop\"",
+      "functions": {
+        "cleanup_action": "Decide what the cleanup task does. Only 'stop' changes anything."
+      }
     }
   ],
   "dataops": [
@@ -1424,8 +1576,8 @@
     {
       "path": "reference/documentation/guides/documentation-generation/02_generate_docs.py",
       "symbol": "profile",
-      "startLine": 40,
-      "endLine": 50,
+      "startLine": 42,
+      "endLine": 52,
       "language": "py",
       "code": "def profile(fq, columns):\n    \"\"\"Row count, per-column null rate, and uniqueness of the first id-like column.\"\"\"\n    exprs = [\"COUNT(*) AS n\"] + [f\"AVG(CASE WHEN `{c}` IS NULL THEN 1.0 ELSE 0.0 END) AS nr_{i}\"\n                                 for i, c in enumerate(columns)]\n    key = next((c for c in columns if c.lower().endswith(\"id\") or c.lower() == \"id\"), columns[0])\n    exprs.append(f\"COUNT(DISTINCT `{key}`) AS key_distinct\")\n    r = spark.sql(f\"SELECT {', '.join(exprs)} FROM {fq}\").first()\n    n = int(r[\"n\"])\n    return {\"row_count\": n, \"null_rates\": {c: (float(r[f\"nr_{i}\"]) if n else None) for i, c in enumerate(columns)},\n            \"key_column\": key, \"key_distinct\": int(r[\"key_distinct\"]),\n            \"key_unique\": n > 0 and int(r[\"key_distinct\"]) == n}",
       "functions": {
@@ -1435,8 +1587,8 @@
     {
       "path": "reference/documentation/guides/documentation-generation/02_generate_docs.py",
       "symbol": "draft_descriptions",
-      "startLine": 53,
-      "endLine": 64,
+      "startLine": 55,
+      "endLine": 66,
       "language": "py",
       "code": "def draft_descriptions(fq, cols, prof, upstream):\n    col_lines = \"\\n\".join(f\"- {n} ({t}), null rate {prof['null_rates'][n]:.1%}\" if prof[\"null_rates\"][n] is not None\n                          else f\"- {n} ({t})\" for n, t in cols)\n    prompt = (\n        f\"You document Unity Catalog tables. Table: {fq}\\nRows: {prof['row_count']}\\n\"\n        f\"Upstream tables: {', '.join(upstream) or 'none (source table)'}\\nColumns:\\n{col_lines}\\n\\n\"\n        \"Return only a JSON object: {\\\"table\\\": \\\"one or two sentence table description\\\", \"\n        \"\\\"columns\\\": {\\\"<column name>\\\": \\\"short column description\\\"}, \"\n        \"\\\"usage_guidance\\\": \\\"two or three sentences on how to use this table and what to watch for\\\"}. \"\n        \"Be specific and plain. No marketing language.\")\n    rows = safe(f\"SELECT ai_query('{sql_str(endpoint)}', '{sql_str(prompt)}') AS r\")\n    return parse_ai_json(rows[0][\"r\"]) if rows else {}",
       "functions": {
@@ -1504,7 +1656,7 @@
       "startLine": 12,
       "endLine": 17,
       "language": "sh",
-      "code": "# 1. One storage credential per environment, each on its own cloud role (AWS shown; Azure and GCP use\n#    azure_managed_identity and databricks_gcp_service_account in the same JSON slot).\nfor env in dev test stage prod; do\n  databricks storage-credentials create \"${env}_storage\" --profile \"$PROFILE\" \\\n    --json \"{\\\"aws_iam_role\\\": {\\\"role_arn\\\": \\\"arn:aws:iam::${ACCOUNT_ID}:role/${env}-unity-storage\\\"}}\"\ndone",
+      "code": "# 1. One storage credential per environment, each on its own cloud role (AWS shown; Azure and GCP use\n#    azure_managed_identity and databricks_gcp_service_account in the same JSON slot).\nfor env in dev test stage prod; do\n  databricks storage-credentials get \"${env}_storage\" --profile \"$PROFILE\" >/dev/null 2>&1 || databricks storage-credentials create \"${env}_storage\" --profile \"$PROFILE\" \\\n    --json \"{\\\"aws_iam_role\\\": {\\\"role_arn\\\": \\\"arn:aws:iam::${ACCOUNT_ID}:role/${env}-unity-storage\\\"}}\"\ndone",
       "functions": {}
     },
     {
@@ -2309,6 +2461,160 @@
       }
     }
   ],
+  "lakebase-apps": [
+    {
+      "path": "reference/lakebase-apps/src/lakebase_lib.py",
+      "symbol": "make_token_connection_class",
+      "startLine": 396,
+      "endLine": 406,
+      "language": "py",
+      "code": "def make_token_connection_class(mint_token: Callable[[], str]):\n    \"\"\"A psycopg Connection that asks `mint_token` for the password every time it opens a connection.\"\"\"\n    import psycopg\n\n    class TokenConnection(psycopg.Connection):\n        @classmethod\n        def connect(cls, conninfo: str = \"\", **kwargs):\n            kwargs[\"password\"] = mint_token()\n            return super().connect(conninfo, **kwargs)\n\n    return TokenConnection",
+      "functions": {
+        "make_token_connection_class": "A psycopg Connection that asks `mint_token` for the password every time it opens a connection."
+      }
+    },
+    {
+      "path": "reference/lakebase-apps/src/lakebase_lib.py",
+      "symbol": "make_pool",
+      "startLine": 409,
+      "endLine": 424,
+      "language": "py",
+      "code": "def make_pool(workspace: Any, endpoint: str, user: str, dbname: str = \"databricks_postgres\", max_size: int = 4):\n    \"\"\"A psycopg pool that mints an OAuth token for each new connection and checks one out only if it is alive.\"\"\"\n    from psycopg_pool import ConnectionPool\n\n    host = workspace.postgres.get_endpoint(name=endpoint).status.hosts.host\n    pool = ConnectionPool(\n        conninfo=conninfo(host, user, dbname),\n        connection_class=make_token_connection_class(lambda: workspace.postgres.generate_database_credential(endpoint=endpoint).token),\n        min_size=1,\n        max_size=max_size,\n        max_lifetime=pool_max_lifetime(),\n        check=ConnectionPool.check_connection,\n        open=False,\n    )\n    pool.open(wait=False)\n    return pool",
+      "functions": {
+        "conninfo": "A libpq connection string without the password. A fresh OAuth token is the password.",
+        "make_pool": "A psycopg pool that mints an OAuth token for each new connection and checks one out only if it is alive.",
+        "make_token_connection_class": "A psycopg Connection that asks `mint_token` for the password every time it opens a connection.",
+        "pool_max_lifetime": "A pool connection lifetime that recycles connections well inside the 3-day server limit."
+      }
+    },
+    {
+      "path": "reference/lakebase-apps/src/lakebase_lib.py",
+      "symbol": "token_needs_refresh",
+      "startLine": 71,
+      "endLine": 83,
+      "language": "py",
+      "code": "def token_needs_refresh(\n    issued_at: float,\n    now: float,\n    lifetime: float = TOKEN_LIFETIME_SECONDS,\n    margin: float = TOKEN_REFRESH_MARGIN_SECONDS,\n) -> bool:\n    \"\"\"True when a token is inside the refresh margin of its expiry.\n\n    Expiry is checked only at login, so an open connection keeps working. Code that holds a token\n    and reuses it for new connections must call this before each one. A pool that mints a token for\n    every new connection never needs it.\n    \"\"\"\n    return now >= issued_at + lifetime - margin",
+      "functions": {
+        "token_needs_refresh": "True when a token is inside the refresh margin of its expiry."
+      }
+    },
+    {
+      "path": "reference/lakebase-apps/src/lakebase_lib.py",
+      "symbol": "connect_with_retry",
+      "startLine": 427,
+      "endLine": 440,
+      "language": "py",
+      "code": "def connect_with_retry(pool: Any, policy: RetryPolicy = RetryPolicy(), timeout: float = 30.0, sleep: Callable[[float], None] = time.sleep):\n    \"\"\"Wait for the pool's first connection. A suspended compute needs a few seconds to resume.\"\"\"\n    def attempt():\n        pool.wait(timeout=timeout)\n        with pool.connection(timeout=timeout) as conn:\n            conn.execute(\"SELECT 1\")\n        return pool\n\n    def report(number: int, delay: float, error: BaseException) -> None:\n        print(f\"Compute is waking up (attempt {number}): {str(error).splitlines()[0][:100]}. Retrying in {delay:.1f}s\")\n\n    # pool.wait raises PoolTimeout, whose text says \"pool initialization incomplete\".\n    retryable = lambda error: is_wake_up_error(error) or \"pool initialization incomplete\" in str(error).lower()  # noqa: E731\n    return retry_call(attempt, policy, retryable, sleep, report)",
+      "functions": {
+        "RetryPolicy": "Exponential backoff for the first query after scale to zero.",
+        "connect_with_retry": "Wait for the pool's first connection. A suspended compute needs a few seconds to resume.",
+        "is_wake_up_error": "True for the errors a suspended or resuming compute produces. Authentication errors are not retried.",
+        "retry_call": "Call `fn`, retrying errors that `retryable` accepts. The last error is raised."
+      }
+    },
+    {
+      "path": "reference/lakebase-apps/src/lakebase_lib.py",
+      "symbol": "RetryPolicy",
+      "startLine": 104,
+      "endLine": 119,
+      "language": "py",
+      "code": "@dataclass(frozen=True)\nclass RetryPolicy:\n    \"\"\"Exponential backoff for the first query after scale to zero.\"\"\"\n\n    attempts: int = 6\n    base_delay: float = 0.5\n    factor: float = 2.0\n    max_delay: float = 8.0\n\n    def delays(self) -> Iterator[float]:\n        \"\"\"The wait before each retry. There is one fewer delay than attempts.\"\"\"\n        for index in range(max(self.attempts - 1, 0)):\n            yield min(self.base_delay * self.factor**index, self.max_delay)\n\n    def total_wait(self) -> float:\n        return sum(self.delays())",
+      "functions": {
+        "delays": "The wait before each retry. There is one fewer delay than attempts."
+      }
+    },
+    {
+      "path": "reference/lakebase-apps/guides/lakebase-apps/02_sync_delta_table.py",
+      "symbol": null,
+      "startLine": 89,
+      "endLine": 103,
+      "language": "py",
+      "code": "if action == \"create\":\n    table = w.postgres.create_synced_table(\n        synced_table=SyncedTable(\n            spec=SyncedTableSyncedTableSpec(\n                source_table_full_name=source,\n                branch=branch,\n                primary_key_columns=[\"product_id\"],\n                scheduling_policy=Policy.TRIGGERED,\n                postgres_database=lb.DATABASE,\n                create_database_objects_if_missing=True,\n                new_pipeline_spec=NewPipelineSpec(storage_catalog=catalog, storage_schema=schema),\n            )\n        ),\n        synced_table_id=synced,\n    ).wait()",
+      "functions": {}
+    },
+    {
+      "path": "reference/lakebase-apps/src/lakebase_lib.py",
+      "symbol": "synced_table_action",
+      "startLine": 228,
+      "endLine": 230,
+      "language": "py",
+      "code": "def synced_table_action(state: str | None) -> str:\n    \"\"\"create when missing, recreate when the pipeline failed, reuse when online, otherwise wait.\"\"\"\n    return decide(state, SYNCED_READY, broken=SYNCED_BROKEN)",
+      "functions": {
+        "decide": "What a rerun does with a resource: create, wait, reuse, or recreate.",
+        "synced_table_action": "create when missing, recreate when the pipeline failed, reuse when online, otherwise wait."
+      }
+    },
+    {
+      "path": "reference/lakebase-apps/guides/lakebase-apps/03_write_back.py",
+      "symbol": null,
+      "startLine": 76,
+      "endLine": 83,
+      "language": "py",
+      "code": "if action == \"create\":\n    try:\n        w.postgres.create_cdf_config(\n            parent=database_path,\n            cdf_config=CdfConfig(catalog=catalog, schema=schema, postgres_schema=app_schema),\n            cdf_config_id=app_schema,\n        ).wait()\n        print(f\"Started the feed: {app_schema} -> {catalog}.{schema}\")",
+      "functions": {}
+    },
+    {
+      "path": "reference/lakebase-apps/src/lakebase_lib.py",
+      "symbol": "cdf_missing_changes",
+      "startLine": 262,
+      "endLine": 264,
+      "language": "py",
+      "code": "def cdf_missing_changes(before: dict[str, int], after: dict[str, int], expected: Iterable[str] = CHANGE_TYPES[1:]) -> list[str]:\n    \"\"\"Change types in `expected` whose count has not grown since `before` was taken.\"\"\"\n    return [kind for kind in expected if after.get(kind, 0) <= before.get(kind, 0)]",
+      "functions": {
+        "cdf_missing_changes": "Change types in `expected` whose count has not grown since `before` was taken."
+      }
+    },
+    {
+      "path": "reference/lakebase-apps/guides/lakebase-apps/06_register_in_unity_catalog.py",
+      "symbol": null,
+      "startLine": 60,
+      "endLine": 69,
+      "language": "py",
+      "code": "if action == \"create\":\n    try:\n        w.postgres.create_catalog(\n            catalog=Catalog(spec=CatalogCatalogSpec(branch=branch, postgres_database=lb.DATABASE, create_database_if_missing=False)),\n            catalog_id=catalog_id,\n        ).wait()\n        registered = True\n        print(\"Registered\", catalog_id)\n    except DatabricksError as error:\n        print(f\"Could not register the catalog: {type(error).__name__}: {str(error)[:300]}\\n\\n{HAND_STEPS}\")",
+      "functions": {}
+    },
+    {
+      "path": "reference/lakebase-apps/guides/lakebase-apps/04_dev_branch.py",
+      "symbol": null,
+      "startLine": 88,
+      "endLine": 93,
+      "language": "py",
+      "code": "created = w.postgres.create_branch(\n    parent=lb.project_name(project),\n    branch=Branch(spec=BranchSpec(source_branch=production, ttl=Duration(seconds=3600))),\n    branch_id=params[\"dev_branch\"],\n).wait()\nprint(\"Created\", created.name, \"| expires\", created.status.expire_time)",
+      "functions": {}
+    },
+    {
+      "path": "reference/lakebase-apps/resources/lakebase.postgres.yml",
+      "symbol": null,
+      "startLine": 12,
+      "endLine": 39,
+      "language": "yml",
+      "code": "  postgres_projects:\n    lakebase_apps:\n      project_id: ${var.lakebase_project}\n      display_name: Capability guides, app development with Lakebase\n      pg_version: 17\n      # Delete the project's data when the bundle is destroyed, so a destroy leaves nothing billing.\n      purge_on_delete: true\n      default_endpoint_settings:\n        autoscaling_limit_min_cu: 0.5\n        autoscaling_limit_max_cu: 2\n        # Scale to zero after five idle minutes. The default is 24 hours, which suits production.\n        suspend_timeout_duration: 300s\n\n  postgres_branches:\n    dev:\n      parent: ${resources.postgres_projects.lakebase_apps.id}\n      branch_id: dev\n      source_branch: ${resources.postgres_projects.lakebase_apps.id}/branches/production\n      ttl: 604800s\n\n  postgres_endpoints:\n    dev_rw:\n      parent: ${resources.postgres_branches.dev.id}\n      endpoint_id: primary\n      endpoint_type: ENDPOINT_TYPE_READ_WRITE\n      autoscaling_limit_min_cu: 0.5\n      autoscaling_limit_max_cu: 2\n      suspend_timeout_duration: 300s",
+      "functions": {}
+    },
+    {
+      "path": "reference/lakebase-apps/src/lakebase_lib.py",
+      "symbol": "vector_schema_sql",
+      "startLine": 349,
+      "endLine": 359,
+      "language": "py",
+      "code": "def vector_schema_sql(schema: str, dimensions: int = VECTOR_DIMENSIONS) -> list[str]:\n    \"\"\"pgvector setup. IF NOT EXISTS on the extension, the table, and the index makes a rerun a no-op.\"\"\"\n    s = ident(schema)\n    if not 1 <= int(dimensions) <= 16000:\n        raise ValueError(\"vector dimensions must be between 1 and 16000\")\n    return [\n        \"CREATE EXTENSION IF NOT EXISTS vector\",\n        f\"CREATE SCHEMA IF NOT EXISTS {s}\",\n        f\"CREATE TABLE IF NOT EXISTS {s}.docs (id integer PRIMARY KEY, body text NOT NULL, embedding vector({int(dimensions)}) NOT NULL)\",\n        f\"CREATE INDEX IF NOT EXISTS docs_embedding_idx ON {s}.docs USING hnsw (embedding vector_cosine_ops)\",\n    ]",
+      "functions": {
+        "ident": "A schema, table, or column name that is safe to put in SQL.",
+        "vector_schema_sql": "pgvector setup. IF NOT EXISTS on the extension, the table, and the index makes a rerun a no-op."
+      }
+    },
+    {
+      "path": "reference/lakebase-apps/src/lakebase_lib.py",
+      "symbol": "nearest_sql",
+      "startLine": 370,
+      "endLine": 375,
+      "language": "py",
+      "code": "def nearest_sql(schema: str, limit: int = 3) -> str:\n    s = ident(schema)\n    return (\n        f\"SELECT id, body, embedding <=> %s::vector AS cosine_distance FROM {s}.docs \"\n        f\"ORDER BY embedding <=> %s::vector LIMIT {int(limit)}\"\n    )",
+      "functions": {
+        "ident": "A schema, table, or column name that is safe to put in SQL."
+      }
+    }
+  ],
   "legacy-conversion": [
     {
       "path": "reference/legacy-conversion/src/lc_helpers.py",
@@ -2809,7 +3115,7 @@
       "startLine": 1,
       "endLine": 32,
       "language": "py",
-      "code": "# Databricks notebook source\n# MAGIC %md\n# MAGIC # 3. Verify the conformed table\n# MAGIC\n# MAGIC Every row has a `source_system`, counts match the inputs, and `(source_system, source_id)` is unique.\n\n# COMMAND ----------\n\nimport sys, os\nsys.path.insert(0, os.path.abspath(\"../../src\"))\nfrom guide_params import bundle_root, load_params\nparams = load_params(dbutils, \"capability_guides_multi_source\", ['catalog', 'schema', 'use_case'])\ncatalog, schema = params[\"catalog\"], params[\"schema\"]\nns = f\"{catalog}.{schema}\"\nSPEC_FILE = bundle_root() / \"use_cases\" / f\"{params['use_case']}.yml\"\n\n# COMMAND ----------\n\nfrom source_ingestion.spec import load_spec\n\nms = load_spec(SPEC_FILE)[\"multi_source\"]\ncounts = {r[\"source_system\"]: r[\"n\"] for r in spark.sql(f\"SELECT source_system, count(*) n FROM {ns}.customers_conformed GROUP BY 1\").collect()}\ntotal = sum(counts.values())\nnulls = spark.sql(f\"SELECT count(*) FROM {ns}.customers_conformed WHERE source_system IS NULL\").first()[0]\ndistinct = spark.sql(f\"SELECT count(DISTINCT source_system, source_id) FROM {ns}.customers_conformed\").first()[0]\napi_rows = spark.sql(f\"SELECT count(*) FROM {ns}.stg_api_users\").first()[0]\nprint(f\"rows by source_system: {counts}; total={total}; null source_system={nulls}; distinct keys={distinct}\")\nassert counts.get(\"database\") == ms[\"db_rows\"], counts\nassert counts.get(\"files\") == ms[\"file_rows\"], counts\nassert counts.get(\"api\") == api_rows > 0, counts\nassert nulls == 0 and distinct == total\nprint(\"Conformed table matches all three sources\")",
+      "code": "# Databricks notebook source\n# MAGIC %md\n# MAGIC # 3. Verify the conformed table\n# MAGIC\n# MAGIC Every row has a `source_system`, counts match the inputs, and `(source_system, source_id)` is unique. Safe to rerun: it only reads.\n\n# COMMAND ----------\n\nimport sys, os\nsys.path.insert(0, os.path.abspath(\"../../src\"))\nfrom guide_params import bundle_root, load_params\nparams = load_params(dbutils, \"capability_guides_multi_source\", ['catalog', 'schema', 'use_case'])\ncatalog, schema = params[\"catalog\"], params[\"schema\"]\nns = f\"{catalog}.{schema}\"\nSPEC_FILE = bundle_root() / \"use_cases\" / f\"{params['use_case']}.yml\"\n\n# COMMAND ----------\n\nfrom source_ingestion.spec import load_spec\n\nms = load_spec(SPEC_FILE)[\"multi_source\"]\ncounts = {r[\"source_system\"]: r[\"n\"] for r in spark.sql(f\"SELECT source_system, count(*) n FROM {ns}.customers_conformed GROUP BY 1\").collect()}\ntotal = sum(counts.values())\nnulls = spark.sql(f\"SELECT count(*) FROM {ns}.customers_conformed WHERE source_system IS NULL\").first()[0]\ndistinct = spark.sql(f\"SELECT count(DISTINCT source_system, source_id) FROM {ns}.customers_conformed\").first()[0]\napi_rows = spark.sql(f\"SELECT count(*) FROM {ns}.stg_api_users\").first()[0]\nprint(f\"rows by source_system: {counts}; total={total}; null source_system={nulls}; distinct keys={distinct}\")\nassert counts.get(\"database\") == ms[\"db_rows\"], counts\nassert counts.get(\"files\") == ms[\"file_rows\"], counts\nassert counts.get(\"api\") == api_rows > 0, counts\nassert nulls == 0 and distinct == total\nprint(\"Conformed table matches all three sources\")",
       "functions": {
         "bundle_root": "The bundle's files folder: guide notebooks live in <root>/guides/<slug>/.",
         "load_params": "Read the notebook's widgets, filling blanks from the deployed job, then from `defaults`."
@@ -3077,7 +3383,7 @@
       "startLine": 18,
       "endLine": 50,
       "language": "yml",
-      "code": "      tasks:\n        - task_key: prepare\n          notebook_task:\n            notebook_path: ../guides/orchestration-patterns/08_bulk_pause_prepare.py\n            base_parameters:\n              run_id: \"{{job.run_id}}\"\n        - task_key: pause_all\n          depends_on:\n            - task_key: prepare\n          notebook_task:\n            notebook_path: ../guides/orchestration-patterns/09_bulk_pause_pause_all.py\n            base_parameters:\n              run_id: \"{{job.run_id}}\"\n        - task_key: resume_all\n          depends_on:\n            - task_key: pause_all\n          notebook_task:\n            notebook_path: ../guides/orchestration-patterns/10_bulk_pause_resume_all.py\n            base_parameters:\n              run_id: \"{{job.run_id}}\"\n        - task_key: cleanup_probe\n          depends_on:\n            - task_key: resume_all\n          run_if: ALL_DONE\n          notebook_task:\n            notebook_path: ../guides/orchestration-patterns/11_bulk_pause_cleanup_probe.py\n            base_parameters:\n              run_id: \"{{job.run_id}}\"",
+      "code": "      tasks:\n        - task_key: prepare\n          notebook_task:\n            notebook_path: ../guides/orchestration-patterns/08_bulk_pause_prepare.py\n            base_parameters:\n              run_id: \"{{job.run_id}}\"\n        - task_key: pause_all\n          depends_on:\n            - task_key: prepare\n          notebook_task:\n            notebook_path: ../guides/orchestration-patterns/09_bulk_pause_pause_all.py\n            base_parameters:\n              run_id: \"{{job.run_id}}\"\n        - task_key: resume_all\n          depends_on:\n            - task_key: pause_all\n          run_if: ALL_DONE\n          notebook_task:\n            notebook_path: ../guides/orchestration-patterns/10_bulk_pause_resume_all.py\n            base_parameters:\n              run_id: \"{{job.run_id}}\"\n        - task_key: cleanup_probe\n          depends_on:\n            - task_key: resume_all\n          run_if: ALL_DONE\n          notebook_task:\n            notebook_path: ../guides/orchestration-patterns/11_bulk_pause_cleanup_probe.py\n            base_parameters:\n              run_id: \"{{job.run_id}}\"",
       "functions": {}
     },
     {
@@ -3182,9 +3488,9 @@
       "path": "reference/realtime-scoring/guides/real-time-scoring/02_deploy_endpoint.py",
       "symbol": null,
       "startLine": 79,
-      "endLine": 97,
+      "endLine": 101,
       "language": "py",
-      "code": "action = \"updated\"\nroute_optimized = False\ntry:\n    existing = w.serving_endpoints.get(endpoint_name)\n    route_optimized = bool(existing.route_optimized)\n    w.serving_endpoints.update_config(name=endpoint_name, served_entities=config.served_entities)\n    print(f\"Updating existing endpoint {endpoint_name} to version {version}\")\nexcept NotFound:\n    action = \"created\"\n    wanted = bool(settings.get(\"route_optimized\"))\n    try:\n        w.serving_endpoints.create(name=endpoint_name, config=config, route_optimized=wanted)\n        route_optimized = wanted\n    except DatabricksError as error:\n        if not wanted:\n            raise\n        print(f\"Route optimization unavailable ({error}); creating without it\")\n        w.serving_endpoints.create(name=endpoint_name, config=config)\n    print(f\"Creating endpoint {endpoint_name} (route_optimized={route_optimized})\")",
+      "code": "action = \"updated\"\nroute_optimized = False\ntry:\n    existing = w.serving_endpoints.get(endpoint_name)\n    busy_until = time.time() + int(settings[\"ready_timeout_seconds\"])\n    while str(existing.state.config_update).endswith(\"IN_PROGRESS\") and time.time() < busy_until:\n        time.sleep(30)  # a rerun after a timeout would otherwise collide with the running update\n        existing = w.serving_endpoints.get(endpoint_name)\n    route_optimized = bool(existing.route_optimized)\n    w.serving_endpoints.update_config(name=endpoint_name, served_entities=config.served_entities)\n    print(f\"Updating existing endpoint {endpoint_name} to version {version}\")\nexcept NotFound:\n    action = \"created\"\n    wanted = bool(settings.get(\"route_optimized\"))\n    try:\n        w.serving_endpoints.create(name=endpoint_name, config=config, route_optimized=wanted)\n        route_optimized = wanted\n    except DatabricksError as error:\n        if not wanted:\n            raise\n        print(f\"Route optimization unavailable ({error}); creating without it\")\n        w.serving_endpoints.create(name=endpoint_name, config=config)\n    print(f\"Creating endpoint {endpoint_name} (route_optimized={route_optimized})\")",
       "functions": {}
     },
     {
@@ -3307,7 +3613,7 @@
       "startLine": 61,
       "endLine": 100,
       "language": "py",
-      "code": "\n# COMMAND ----------\n\n# MAGIC %md\n# MAGIC ## Land the records (overwritten each run)\n\n# COMMAND ----------\n\nspark.createDataFrame(\n    users,\n    \"user_id int, first_name string, last_name string, email string, username string, phone string, \"\n    \"city string, country string, company string, birth_date string, raw_json string\",\n).write.mode(\"overwrite\").saveAsTable(f\"{ns}.api_users\")\n\n# COMMAND ----------\n\n# MAGIC %md\n# MAGIC ## Write the request log and the run summary\n\n# COMMAND ----------\n\nrun_id = params[\"run_id\"]\nlog_rows = [\n    (run_id, r[\"page\"], r[\"skip\"], r[\"limit\"], r[\"attempt\"], r[\"http_status\"], r[\"error\"], r[\"records\"],\n     r[\"latency_ms\"], r[\"token_refreshes\"])\n    for r in result.log\n]\nspark.createDataFrame(\n    log_rows,\n    \"run_id string, page int, skip int, page_limit int, attempt int, http_status int, error string, \"\n    \"records int, latency_ms int, token_refreshes int\",\n).write.mode(\"append\").saveAsTable(f\"{ns}.api_request_log\")\n\nsummary = (\n    run_id, started, datetime.now(timezone.utc), pages, len(result.log), ok_requests, result.retries,\n    result.token_logins, result.token_refreshes, len(users), distinct, result.total,\n)\nspark.createDataFrame(\n    [summary],\n    \"run_id string, started_at timestamp, finished_at timestamp, pages int, http_attempts int, ok_requests int, \"",
+      "code": "\n# COMMAND ----------\n\n# MAGIC %md\n# MAGIC ## Land the records (overwritten each run)\n\n# COMMAND ----------\n\nspark.createDataFrame(\n    users,\n    \"user_id int, first_name string, last_name string, email string, username string, phone string, \"\n    \"city string, country string, company string, birth_date string, raw_json string\",\n).write.mode(\"overwrite\").saveAsTable(f\"{ns}.api_users\")\n\n# COMMAND ----------\n\n# MAGIC %md\n# MAGIC ## Write the request log and the run summary\n\n# COMMAND ----------\n\nrun_id = params[\"run_id\"]\nlog_rows = [\n    (run_id, r[\"page\"], r[\"skip\"], r[\"limit\"], r[\"attempt\"], r[\"http_status\"], r[\"error\"], r[\"records\"],\n     r[\"latency_ms\"], r[\"token_refreshes\"])\n    for r in result.log\n]\nspark.createDataFrame(\n    log_rows,\n    \"run_id string, page int, skip int, page_limit int, attempt int, http_status int, error string, \"\n    \"records int, latency_ms int, token_refreshes int\",\n).write.mode(\"overwrite\").option(\"replaceWhere\", f\"run_id = '{run_id}'\").saveAsTable(f\"{ns}.api_request_log\")\n\nsummary = (\n    run_id, started, datetime.now(timezone.utc), pages, len(result.log), ok_requests, result.retries,\n    result.token_logins, result.token_refreshes, len(users), distinct, result.total,\n)\nspark.createDataFrame(\n    [summary],\n    \"run_id string, started_at timestamp, finished_at timestamp, pages int, http_attempts int, ok_requests int, \"",
       "functions": {}
     },
     {
@@ -3429,8 +3735,8 @@
     {
       "path": "reference/governance/guides/row-column-security/02_create_policies.py",
       "symbol": "create_policies",
-      "startLine": 55,
-      "endLine": 92,
+      "startLine": 57,
+      "endLine": 94,
       "language": "py",
       "code": "def create_policies(args, spark) -> None:\n    spec = load_spec(args.use_case_file)\n    policy, q = names(args, spec)\n    role, admin = policy[\"restricted_role\"], policy[\"admin_group\"]\n    mapping = policy[\"dynamic_filter\"][\"mapping_table\"]\n\n    # Mapping table: principal -> region. Changing access is an INSERT, not a policy rewrite.\n    spark.sql(f\"\"\"CREATE OR REPLACE TABLE {q(mapping)} (\n        principal STRING COMMENT 'What session_user() returns: a user email, a service principal ID, or a role name',\n        region STRING COMMENT 'Region this principal may see',\n        granted_at TIMESTAMP)\"\"\")\n    now = dt.datetime.now(dt.timezone.utc).replace(tzinfo=None)\n    rows = [\n        (args.app_service_principal if m[\"principal\"] == \"app_service_principal\" else m[\"principal\"], region, now)\n        for m in policy[\"mapping\"] for region in m[\"regions\"]\n    ]\n    spark.createDataFrame(rows, \"principal string, region string, granted_at timestamp\").write.mode(\"append\").saveAsTable(\n        qualified(args.catalog, args.schema, mapping))\n\n    # Column masks: one function per mask kind, attached to each sensitive column.\n    for item in policy[\"masked_columns\"]:\n        function = q(f\"mask_{item['column']}\")\n        spark.sql(mask_function_sql(function, item[\"mask\"], role, admin))\n        spark.sql(f\"ALTER TABLE {q(shared_table(spec, item['table']))} ALTER COLUMN {qualified(item['column'])} SET MASK {function}\")\n        print(f\"mask {function} on {shared_table(spec, item['table'])}.{item['column']}\")\n\n    # Row filter by attribute.\n    attribute = policy[\"attribute_filter\"]\n    function = q(f\"filter_{attribute['table']}_{attribute['column']}\")\n    spark.sql(attribute_filter_sql(function, attribute[\"hidden_value\"], admin))\n    spark.sql(f\"ALTER TABLE {q(shared_table(spec, attribute['table']))} SET ROW FILTER {function} ON ({qualified(attribute['column'])})\")\n\n    # Dynamic row filter: permitted regions come from the mapping table, keyed on session_user().\n    dynamic = policy[\"dynamic_filter\"]\n    function = q(f\"filter_{dynamic['table']}_{dynamic['column']}\")\n    spark.sql(dynamic_filter_sql(function, q(mapping), role, admin))\n    spark.sql(f\"ALTER TABLE {q(shared_table(spec, dynamic['table']))} SET ROW FILTER {function} ON ({qualified(dynamic['column'])})\")\n    print(\"policies applied\")",
       "functions": {
@@ -3440,8 +3746,8 @@
     {
       "path": "reference/governance/guides/row-column-security/03_test_policies.py",
       "symbol": "test_policies",
-      "startLine": 94,
-      "endLine": 116,
+      "startLine": 96,
+      "endLine": 118,
       "language": "py",
       "code": "def test_policies(args, spark) -> None:\n    spec = load_spec(args.use_case_file)\n    results = _identity_rows(args, spark, spec)\n    ddl = (\"identity string, mode string, customers_visible long, orders_visible long, regions string, \"\n           \"email_sample string, national_id_sample string\")\n    write_rows(spark, args.catalog, args.schema, \"policy_test_results\", results, ddl)\n    for row in results:\n        print(row)\n    by = {r[\"identity\"]: r for r in results}\n    actual, twin = by[\"job identity\"], by[\"job identity (twin)\"]\n    total_customers = spec[\"tables\"][\"customers\"][\"rows\"]\n    # The job identity is an admin: it sees every row and the real values.\n    assert actual[\"customers_visible\"] == total_customers, actual\n    assert actual[\"email_sample\"] == \"user000001@example.com\", actual\n    # The twin logic must reproduce the real policy for the identity we can run as.\n    for key in (\"customers_visible\", \"orders_visible\", \"regions\", \"email_sample\", \"national_id_sample\"):\n        assert actual[key] == twin[key], (key, actual[key], twin[key])\n    restricted = next(r for r in results if r[\"identity\"].startswith(\"role:\"))\n    sp = by[\"app service principal\"]\n    assert restricted[\"customers_visible\"] < total_customers and restricted[\"email_sample\"] is None, restricted\n    assert restricted[\"regions\"] == \"EMEA,NA\", restricted\n    assert sp[\"regions\"] == \"APAC\" and sp[\"email_sample\"].endswith(\"@example.com\") and sp[\"email_sample\"] != actual[\"email_sample\"], sp\n    assert sp[\"orders_visible\"] < actual[\"orders_visible\"], (sp, actual)",
       "functions": {
@@ -3619,7 +3925,7 @@
       "startLine": 1,
       "endLine": 40,
       "language": "py",
-      "code": "# Databricks notebook source\n# MAGIC %pip install -q -r ../../requirements.txt\n\n# COMMAND ----------\n\ndbutils.library.restartPython()\n\n# COMMAND ----------\n\n# MAGIC %md\n# MAGIC # 4. Refetch finds nothing\n# MAGIC\n# MAGIC Runs the fetch again after ingestion and fails if it copies anything. This proves a file is not copied twice.\n\n# COMMAND ----------\n\nimport sys, os\nsys.path.insert(0, os.path.abspath(\"../../src\"))\nfrom guide_params import bundle_root, load_params\nparams = load_params(dbutils, \"capability_guides_sftp\", ['catalog', 'schema', 'use_case', 'run_id'], defaults={'run_id': 'manual'})\ncatalog, schema = params[\"catalog\"], params[\"schema\"]\nns = f\"{catalog}.{schema}\"\nSPEC_FILE = bundle_root() / \"use_cases\" / f\"{params['use_case']}.yml\"\n\n# COMMAND ----------\n\n# MAGIC %md\n# MAGIC ## Fetch\n# MAGIC\n# MAGIC `fetch_new_files` (in `src/source_ingestion/sftp_fetch.py`) connects with the credentials from the secret scope, lists the remote roots, and plans transfers with `plan_transfers`: a file is new when its (path, size, mtime) is not in `sftp_transfer_log`. If the server is unreachable, the same logic runs against a folder in the volume and the run records mode `volume_fallback` with the connection error.\n\n# COMMAND ----------\n\nfrom source_ingestion.sftp_fetch import fetch_new_files\nfrom source_ingestion.spec import load_spec\n\ncfg = load_spec(SPEC_FILE)[\"sftp\"]\ncopied = fetch_new_files(\n    spark, dbutils, cfg, catalog, schema, run_id=params[\"run_id\"], task=\"refetch_finds_nothing\", allow_volume_fallback=True,\n)",
+      "code": "# Databricks notebook source\n# MAGIC %pip install -q -r ../../requirements.txt\n\n# COMMAND ----------\n\ndbutils.library.restartPython()\n\n# COMMAND ----------\n\n# MAGIC %md\n# MAGIC # 4. Refetch finds nothing\n# MAGIC\n# MAGIC Runs the fetch again after ingestion and fails if it copies anything. This proves a file is not copied twice. Safe to rerun: it copies nothing when the transfer log is current, and the run log keeps one row per run and task.\n\n# COMMAND ----------\n\nimport sys, os\nsys.path.insert(0, os.path.abspath(\"../../src\"))\nfrom guide_params import bundle_root, load_params\nparams = load_params(dbutils, \"capability_guides_sftp\", ['catalog', 'schema', 'use_case', 'run_id'], defaults={'run_id': 'manual'})\ncatalog, schema = params[\"catalog\"], params[\"schema\"]\nns = f\"{catalog}.{schema}\"\nSPEC_FILE = bundle_root() / \"use_cases\" / f\"{params['use_case']}.yml\"\n\n# COMMAND ----------\n\n# MAGIC %md\n# MAGIC ## Fetch\n# MAGIC\n# MAGIC `fetch_new_files` (in `src/source_ingestion/sftp_fetch.py`) connects with the credentials from the secret scope, lists the remote roots, and plans transfers with `plan_transfers`: a file is new when its (path, size, mtime) is not in `sftp_transfer_log`. If the server is unreachable, the same logic runs against a folder in the volume and the run records mode `volume_fallback` with the connection error.\n\n# COMMAND ----------\n\nfrom source_ingestion.sftp_fetch import fetch_new_files\nfrom source_ingestion.spec import load_spec\n\ncfg = load_spec(SPEC_FILE)[\"sftp\"]\ncopied = fetch_new_files(\n    spark, dbutils, cfg, catalog, schema, run_id=params[\"run_id\"], task=\"refetch_finds_nothing\", allow_volume_fallback=True,\n)",
       "functions": {
         "bundle_root": "The bundle's files folder: guide notebooks live in <root>/guides/<slug>/.",
         "fetch_new_files": "Copy files not yet in sftp_transfer_log; return the log rows of the files copied.",
@@ -3738,7 +4044,7 @@
       "startLine": 113,
       "endLine": 126,
       "language": "sql",
-      "code": "-- 4 \u00b7 Change capture, per table. CDC for the history table, Change Tracking for the rest.\n--     Never enable both on one table: with both on, the connector uses Change Tracking and history is lost.\nEXEC dbo.lakeflowSetupChangeDataCapture @Tables = 'dbo.customers', @User = 'lakeflow_ingest';\nEXEC dbo.lakeflowSetupChangeTracking\n     @Tables = 'dbo.orders,dbo.products',\n     @User = 'lakeflow_ingest',\n     @Retention = '3 DAYS',\n     @CreateDdlSupportingObjects = 1;  -- captures DDL so new columns flow through\nEXEC dbo.lakeflowFixPermissions @User = 'lakeflow_ingest', @Tables = 'SCHEMAS:dbo';\nGO\n\n-- CDC cleanup retention, in minutes (20160 = 14 days). Size it to the longest gateway outage you can absorb.\nIF SERVERPROPERTY('EngineEdition') <> 5\n    EXEC sys.sp_cdc_change_job @job_type = N'cleanup', @retention = 20160;",
+      "code": "-- 4 \u00b7 Change capture, per table. CDC for the history table, Change Tracking for the rest.\n--     Never enable both on one table: with both on, the connector uses Change Tracking and history is lost.\nIF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('dbo.customers') AND is_tracked_by_cdc = 1) EXEC dbo.lakeflowSetupChangeDataCapture @Tables = 'dbo.customers', @User = 'lakeflow_ingest';\nIF (SELECT COUNT(*) FROM sys.change_tracking_tables WHERE object_id IN (OBJECT_ID('dbo.orders'), OBJECT_ID('dbo.products'))) < 2 EXEC dbo.lakeflowSetupChangeTracking\n     @Tables = 'dbo.orders,dbo.products',\n     @User = 'lakeflow_ingest',\n     @Retention = '3 DAYS',\n     @CreateDdlSupportingObjects = 1;  -- captures DDL so new columns flow through\nEXEC dbo.lakeflowFixPermissions @User = 'lakeflow_ingest', @Tables = 'SCHEMAS:dbo';\nGO\n\n-- CDC cleanup retention, in minutes (20160 = 14 days). Size it to the longest gateway outage you can absorb.\nIF SERVERPROPERTY('EngineEdition') <> 5\n    EXEC sys.sp_cdc_change_job @job_type = N'cleanup', @retention = 20160;",
       "functions": {}
     },
     {
@@ -3936,6 +4242,144 @@
       "endLine": 71,
       "language": "py",
       "code": "run_ts = datetime.now(timezone.utc).isoformat(timespec=\"seconds\")\nrows, failures = [], []\nfor view, pattern, expected_sql in CHECKS:\n    actual = spark.sql(f\"SELECT count(*) FROM {scope}.{view}\").first()[0]\n    expected = spark.sql(expected_sql.format(s=scope)).first()[0]\n    passed = actual == expected and actual > 0\n    rows.append((run_ts, view, pattern, int(actual), int(expected), passed))\n    print(f\"{'ok  ' if passed else 'FAIL'} {view:<22} rows={actual:<7} expected={expected}\")\n    if not passed:\n        failures.append(view)",
+      "functions": {}
+    }
+  ],
+  "unity-catalog-edm": [
+    {
+      "path": "reference/governance/guides/unity-catalog-edm/02_apply_tags.py",
+      "symbol": "apply_tags",
+      "startLine": 93,
+      "endLine": 132,
+      "language": "py",
+      "code": "def apply_tags(args, spark) -> None:\n    from databricks.sdk import WorkspaceClient\n\n    w = WorkspaceClient()\n    q = lambda name: qualified(args.catalog, args.schema, name)  # noqa: E731\n    if args.tag_mode == \"plain\":\n        governed, reason = False, \"tag_mode is plain\"\n        print(\"MODE plain (requested): no governed tags are created, so nothing is created at the account level.\")\n        print(\"Governed mode would add tag policies with allowed values and ASSIGN control, and let step 3 use ABAC.\")\n    else:\n        governed, reason = ensure_governed_tags(w)\n    if args.tag_mode == \"plain\":\n        pass\n    elif governed:\n        print(\"MODE governed: the job identity can manage the governed tags, so step 3 can use ABAC\")\n    else:\n        print(f\"MODE plain (fallback): could not create governed tags ({reason}).\")\n        print(\"Falling back to plain tags. Step 3 will use a column mask and row filter instead of ABAC.\")\n        try:\n            if args.tag_mode == \"plain\":\n                raise LookupError\n            names = sorted(p.tag_key for p in w.tag_policies.list_tag_policies() if not p.tag_key.startswith((\"class.\", \"system.\")))\n            print(\"governed tags that already exist in this account:\", names[:20] or \"none\")\n        except LookupError:\n            pass\n        except Exception as exc:  # noqa: BLE001\n            print(\"could not list existing governed tags:\", type(exc).__name__)\n\n    rows = []\n    for tag in edm.COLUMN_TAGS:\n        kind, ok, note = apply_tag(spark, q(tag[\"table\"]), tag[\"key\"], tag[\"value\"], tag[\"column\"], governed)\n        rows.append({\"table_name\": tag[\"table\"], \"column_name\": tag[\"column\"], \"tag_key\": tag[\"key\"],\n                     \"tag_value\": tag[\"value\"], \"tag_kind\": kind, \"applied\": ok, \"note\": note})\n    for tag in edm.TABLE_TAGS:\n        kind, ok, note = apply_tag(spark, q(tag[\"table\"]), tag[\"key\"], tag[\"value\"], None, False)\n        rows.append({\"table_name\": tag[\"table\"], \"column_name\": None, \"tag_key\": tag[\"key\"],\n                     \"tag_value\": tag[\"value\"], \"tag_kind\": kind, \"applied\": ok, \"note\": note})\n    write_rows(spark, args.catalog, args.schema, \"edm_tag_contract\", rows, CONTRACT_DDL)\n    for row in rows:\n        print(row)",
+      "functions": {
+        "apply_tag": "Set one tag. Governed tags use SET TAG ON; plain tags and any failure fall back to ALTER ... SET TAGS.",
+        "ensure_governed_tags": "Create each governed tag if missing, update it in place if present. Returns (available, reason).",
+        "write_rows": "Overwrite a small result table from Python rows."
+      }
+    },
+    {
+      "path": "reference/governance/guides/unity-catalog-edm/02_apply_tags.py",
+      "symbol": "ensure_governed_tags",
+      "startLine": 47,
+      "endLine": 74,
+      "language": "py",
+      "code": "def ensure_governed_tags(w) -> tuple[bool, str]:\n    \"\"\"Create each governed tag if missing, update it in place if present. Returns (available, reason).\"\"\"\n    from databricks.sdk.errors import AlreadyExists, ResourceAlreadyExists\n    from databricks.sdk.service.tags import TagPolicy, Value\n\n    try:\n        existing = {p.tag_key for p in w.tag_policies.list_tag_policies()}\n    except Exception:  # noqa: BLE001\n        existing = set()\n    plan = edm.plan_upsert(existing, [t[\"key\"] for t in edm.GOVERNED_TAGS])\n    for tag in edm.GOVERNED_TAGS:\n        policy = TagPolicy(tag_key=tag[\"key\"], description=tag[\"description\"],\n                           values=[Value(name=v) for v in tag[\"values\"]] or None)\n        try:\n            if tag[\"key\"] in plan[\"update\"]:\n                w.tag_policies.update_tag_policy(tag[\"key\"], policy, update_mask=\"description,values\")\n                print(f\"governed tag {tag['key']}: exists, updated in place\")\n            else:\n                w.tag_policies.create_tag_policy(policy)\n                print(f\"governed tag {tag['key']}: created\")\n        except (AlreadyExists, ResourceAlreadyExists):\n            print(f\"governed tag {tag['key']}: already exists\")\n        except Exception as exc:  # noqa: BLE001\n            if tag[\"key\"] in plan[\"update\"]:\n                print(f\"governed tag {tag['key']}: exists, left as is ({type(exc).__name__})\")\n            else:\n                return False, f\"{type(exc).__name__}: {str(exc)[:200]}\"\n    return True, \"\"",
+      "functions": {
+        "ensure_governed_tags": "Create each governed tag if missing, update it in place if present. Returns (available, reason).",
+        "plan_upsert": "Decide create or update by name: what to create, what to update in place, what is extra."
+      }
+    },
+    {
+      "path": "reference/governance/src/governance_lib/edm.py",
+      "symbol": "mask_policy_sql",
+      "startLine": 92,
+      "endLine": 94,
+      "language": "py",
+      "code": "def mask_policy_sql(name: str, table: str, function: str, principal: str, tag: str, value: str) -> str:\n    return (f\"CREATE POLICY {quote(name)}\\n  ON TABLE {table}\\n  COLUMN MASK {function}\\n  TO {quote(principal)}\\n\"\n            f\"  FOR TABLES\\n  MATCH COLUMNS has_tag_value('{_lit(tag)}', '{_lit(value)}') AS id_col\\n  ON COLUMN id_col\")",
+      "functions": {}
+    },
+    {
+      "path": "reference/governance/src/governance_lib/edm.py",
+      "symbol": "row_filter_policy_sql",
+      "startLine": 97,
+      "endLine": 99,
+      "language": "py",
+      "code": "def row_filter_policy_sql(name: str, table: str, function: str, principal: str, tag: str) -> str:\n    return (f\"CREATE POLICY {quote(name)}\\n  ON TABLE {table}\\n  ROW FILTER {function}\\n  TO {quote(principal)}\\n\"\n            f\"  FOR TABLES\\n  MATCH COLUMNS has_tag('{_lit(tag)}') AS region\\n  USING COLUMNS (region)\")",
+      "functions": {}
+    },
+    {
+      "path": "reference/governance/guides/unity-catalog-edm/03_abac_policy.py",
+      "symbol": "abac_policy",
+      "startLine": 74,
+      "endLine": 105,
+      "language": "py",
+      "code": "def abac_policy(args, spark) -> None:\n    from databricks.sdk import WorkspaceClient\n\n    q = lambda name: qualified(args.catalog, args.schema, name)  # noqa: E731\n    contract = [r.asDict() for r in spark.table(q(\"edm_tag_contract\")).collect()]\n    mode = edm.contract_mode(contract)\n    how = create_policies(args, spark, mode)\n    if mode == \"governed\":\n        try:\n            names = [p.name for p in WorkspaceClient().policies.list_policies(\"TABLE\", f\"{args.catalog}.{args.schema}.{edm.CUSTOMERS}\")]\n            print(\"policies on\", edm.CUSTOMERS, names)\n        except Exception as exc:  # noqa: BLE001\n            print(\"could not list policies:\", type(exc).__name__)\n\n    who = spark.sql(\"SELECT current_user() AS me\").first()[\"me\"]\n    base = spark.table(q(\"edm_baseline_counts\")).first()\n    seen = spark.sql(f\"SELECT count(*) AS n, count_if(region = '{edm.HIDDEN_REGION}') AS hidden FROM {q(edm.CUSTOMERS)}\").first()\n    sample = spark.sql(f\"SELECT email, national_id FROM {q(edm.CUSTOMERS)} WHERE customer_id = 'CUST-000001'\").first()\n    print(f\"queried as {who} through the {how}\")\n    print(\"row sample:\", spark.sql(f\"SELECT customer_id, email, national_id, region FROM {q(edm.CUSTOMERS)} ORDER BY customer_id LIMIT 3\").collect())\n    expected_rows = base[\"customers_total\"] - base[\"customers_hidden_region\"]\n    checks = [\n        (\"rows visible\", str(expected_rows), str(seen[\"n\"]), seen[\"n\"] == expected_rows),\n        (f\"{edm.HIDDEN_REGION} rows visible\", \"0\", str(seen[\"hidden\"]), seen[\"hidden\"] == 0),\n        (\"national_id masked\", \"starts with *\", sample[\"national_id\"], str(sample[\"national_id\"]).startswith(\"*\")),\n        (\"email unmasked (not tagged id_number)\", \"user000001@example.com\", sample[\"email\"], sample[\"email\"] == \"user000001@example.com\"),\n    ]\n    write_rows(spark, args.catalog, args.schema, \"edm_policy_check\",\n               [{\"check_name\": a, \"expected\": b, \"actual\": c, \"passed\": bool(d)} for a, b, c, d in checks], CHECK_DDL)\n    for a, b, c, d in checks:\n        print(\"PASS\" if d else \"FAIL\", a, \"expected\", b, \"actual\", c)\n    assert all(c[3] for c in checks), \"the policy did not change what the job identity sees\"",
+      "functions": {
+        "contract_mode": "'governed' when every column tag in the contract was applied as a governed tag, otherwise 'plain'.",
+        "write_rows": "Overwrite a small result table from Python rows."
+      }
+    },
+    {
+      "path": "reference/governance/src/governance_lib/edm.py",
+      "symbol": "feed_queries",
+      "startLine": 126,
+      "endLine": 148,
+      "language": "py",
+      "code": "def feed_queries(catalog: str, schema: str, tables: Iterable[str] = SAMPLE_TABLES, days: int = 30) -> dict[str, str]:\n    \"\"\"SELECT statements for the edm_metadata_feed_* tables, keyed by table name.\"\"\"\n    names = _in_list(tables)\n    info = f\"{qualified(catalog)}.information_schema\"\n    scope = f\"table_catalog = '{_lit(catalog)}' AND table_schema = '{_lit(schema)}' AND table_name IN ({names})\"\n    tag_scope = f\"catalog_name = '{_lit(catalog)}' AND schema_name = '{_lit(schema)}' AND table_name IN ({names})\"\n    full = lambda col: f\"concat('{_lit(catalog)}.{_lit(schema)}.', {col})\"  # noqa: E731\n    sys_scope = lambda col: f\"{col} IN ({', '.join(repr(catalog + '.' + schema + '.' + t) for t in tables)})\"  # noqa: E731\n    window = f\"event_time >= current_timestamp() - INTERVAL {int(days)} DAYS\"\n    return {\n        \"edm_metadata_feed_tables\": f\"SELECT table_catalog, table_schema, table_name, table_type, table_owner, comment, created, last_altered, current_timestamp() AS exported_at FROM {info}.tables WHERE {scope}\",\n        \"edm_metadata_feed_columns\": f\"SELECT table_catalog, table_schema, table_name, column_name, ordinal_position, data_type, is_nullable, comment, current_timestamp() AS exported_at FROM {info}.columns WHERE {scope}\",\n        \"edm_metadata_feed_tags\": (\n            f\"SELECT 'table' AS object_level, table_name, CAST(NULL AS STRING) AS column_name, tag_name, tag_value, current_timestamp() AS exported_at FROM {info}.table_tags WHERE {tag_scope} \"\n            f\"UNION ALL SELECT 'column', table_name, column_name, tag_name, tag_value, current_timestamp() FROM {info}.column_tags WHERE {tag_scope}\"),\n        \"edm_metadata_feed_privileges\": f\"SELECT grantor, grantee, table_catalog, table_schema, table_name, privilege_type, is_grantable, inherited_from, current_timestamp() AS exported_at FROM {info}.table_privileges WHERE {scope}\",\n        \"edm_metadata_feed_table_lineage\": (\n            \"SELECT source_table_full_name, target_table_full_name, source_type, target_type, event_time, created_by, current_timestamp() AS exported_at \"\n            f\"FROM system.access.table_lineage WHERE {window} AND ({sys_scope('source_table_full_name')} OR {sys_scope('target_table_full_name')})\"),\n        \"edm_metadata_feed_column_lineage\": (\n            \"SELECT source_table_full_name, source_column_name, target_table_full_name, target_column_name, event_time, created_by, current_timestamp() AS exported_at \"\n            f\"FROM system.access.column_lineage WHERE {window} AND ({sys_scope('source_table_full_name')} OR {sys_scope('target_table_full_name')})\"),\n    }",
+      "functions": {
+        "feed_queries": "SELECT statements for the edm_metadata_feed_* tables, keyed by table name."
+      }
+    },
+    {
+      "path": "reference/governance/src/governance_lib/edm.py",
+      "symbol": "scanner_grants",
+      "startLine": 106,
+      "endLine": 119,
+      "language": "py",
+      "code": "def scanner_grants(scanner: str, catalog: str, schema: str, tables: Iterable[str] = SAMPLE_TABLES) -> list[str]:\n    \"\"\"Least-privilege GRANT statements for a read-only EDM scanner. Printed, never run by the guide.\"\"\"\n    stmts = [\n        grant_sql([\"USE_CATALOG\"], \"CATALOG\", qualified(catalog), scanner),\n        grant_sql([\"USE_SCHEMA\"], \"SCHEMA\", qualified(catalog, schema), scanner),\n    ]\n    stmts += [grant_sql([\"SELECT\"], \"TABLE\", qualified(catalog, schema, t), scanner) for t in tables]\n    stmts += [\n        grant_sql([\"USE_CATALOG\"], \"CATALOG\", qualified(\"system\"), scanner),\n        grant_sql([\"USE_SCHEMA\"], \"SCHEMA\", qualified(\"system\", \"access\"), scanner),\n        grant_sql([\"SELECT\"], \"TABLE\", qualified(\"system\", \"access\", \"table_lineage\"), scanner),\n        grant_sql([\"SELECT\"], \"TABLE\", qualified(\"system\", \"access\", \"column_lineage\"), scanner),\n    ]\n    return stmts",
+      "functions": {
+        "grant_sql": "Build a GRANT statement. Refuses individual users: access goes through groups.",
+        "scanner_grants": "Least-privilege GRANT statements for a read-only EDM scanner. Printed, never run by the guide."
+      }
+    },
+    {
+      "path": "reference/governance/guides/unity-catalog-edm/05_external_lineage.py",
+      "symbol": "register_external_lineage",
+      "startLine": 77,
+      "endLine": 113,
+      "language": "py",
+      "code": "def register_external_lineage(args, spark) -> None:\n    from databricks.sdk import WorkspaceClient\n    from databricks.sdk.service.catalog import LineageDirection\n\n    w = WorkspaceClient()\n    plan = edm.external_objects(args.catalog, args.schema)\n    rows = []\n    try:\n        existing = {m.name for m in w.external_metadata.list_external_metadata()}\n        for spec in plan[\"metadata\"]:\n            rows.append({\"object_kind\": \"external metadata\", \"name\": spec[\"name\"], \"direction\": \"\", \"related\": spec[\"system_type\"],\n                         \"status\": upsert_metadata(w, spec, existing), \"note\": spec[\"url\"]})\n        for rel in plan[\"relationships\"]:\n            status = upsert_relationship(w, rel)\n            rows.append({\"object_kind\": \"relationship\", \"name\": ref_name(rel[\"source\"]), \"direction\": \"feeds\",\n                         \"related\": ref_name(rel[\"target\"]), \"status\": status, \"note\": \"\"})\n    except Exception as exc:  # noqa: BLE001\n        print(f\"SKIPPED: {type(exc).__name__}: {str(exc)[:200]}\")\n        print(\"Creating external metadata needs CREATE EXTERNAL METADATA on the metastore. Ask a metastore admin to grant it, then rerun.\")\n        rows.append({\"object_kind\": \"external metadata\", \"name\": \"(all)\", \"direction\": \"\", \"related\": \"\", \"status\": \"SKIPPED\", \"note\": str(exc)[:200]})\n        write_rows(spark, args.catalog, args.schema, \"edm_external_lineage\", rows, LINEAGE_DDL)\n        return\n\n    # Read it back: each anchor in both directions.\n    full = lambda t: f\"{args.catalog}.{args.schema}.{t}\"  # noqa: E731\n    anchors = [{\"table\": full(edm.CUSTOMERS)}, {\"table\": full(edm.GOLD)}]\n    for ref in anchors:\n        for direction in (LineageDirection.UPSTREAM, LineageDirection.DOWNSTREAM):\n            for name in sorted(related_names(w, ref, direction)):\n                rows.append({\"object_kind\": \"read back\", \"name\": ref[\"table\"], \"direction\": direction.value, \"related\": name,\n                             \"status\": \"found\", \"note\": \"\"})\n    write_rows(spark, args.catalog, args.schema, \"edm_external_lineage\", rows, LINEAGE_DDL)\n    for row in rows:\n        print(row)\n    found = {(r[\"name\"].split(\".\")[-1], r[\"direction\"], r[\"related\"]) for r in rows if r[\"status\"] == \"found\"}\n    assert (edm.CUSTOMERS, \"UPSTREAM\", f\"{edm.EXTERNAL_PREFIX}crm_customers\") in found, \"external source not read back\"\n    assert (edm.GOLD, \"DOWNSTREAM\", f\"{edm.EXTERNAL_PREFIX}revenue_report\") in found, \"BI report not read back\"",
+      "functions": {
+        "external_objects": "The external source and BI report the guide registers, and how they relate to Unity Catalog tables.",
+        "related_names": "Names of the tables and external objects related to `ref` in one direction.",
+        "write_rows": "Overwrite a small result table from Python rows."
+      }
+    },
+    {
+      "path": "reference/governance/guides/unity-catalog-edm/05_external_lineage.py",
+      "symbol": "upsert_relationship",
+      "startLine": 57,
+      "endLine": 75,
+      "language": "py",
+      "code": "def upsert_relationship(w, rel: dict) -> str:\n    from databricks.sdk.errors import AlreadyExists, ResourceAlreadyExists\n    from databricks.sdk.service.catalog import (ColumnRelationship, CreateRequestExternalLineage, LineageDirection,\n                                                UpdateRequestExternalLineage)\n\n    target_name = ref_name(rel[\"target\"])\n    present = related_names(w, rel[\"source\"], LineageDirection.DOWNSTREAM)\n    columns = [ColumnRelationship(source=c[\"source\"], target=c[\"target\"]) for c in rel[\"columns\"]] or None\n    source, target = lineage_object(rel[\"source\"]), lineage_object(rel[\"target\"])\n    if target_name in present:\n        if columns:\n            w.external_lineage.update_external_lineage_relationship(\n                UpdateRequestExternalLineage(source=source, target=target, columns=columns), update_mask=\"columns\")\n        return \"updated\"\n    try:\n        w.external_lineage.create_external_lineage_relationship(CreateRequestExternalLineage(source=source, target=target, columns=columns))\n        return \"created\"\n    except (AlreadyExists, ResourceAlreadyExists):\n        return \"updated\"",
+      "functions": {
+        "lineage_object": "Build a lineage endpoint from {'table': full_name} or {'external': name}.",
+        "related_names": "Names of the tables and external objects related to `ref` in one direction."
+      }
+    },
+    {
+      "path": "reference/governance/guides/unity-catalog-edm/06_certify_gold.py",
+      "symbol": "certify_gold",
+      "startLine": 40,
+      "endLine": 56,
+      "language": "py",
+      "code": "def certify_gold(args, spark) -> None:\n    table = qualified(args.catalog, args.schema, edm.GOLD)\n    try:\n        spark.sql(edm.certification_sql(table))\n        outcome = \"set\"\n    except Exception as exc:  # noqa: BLE001\n        outcome = \"not permitted\"\n        print(f\"could not set {edm.CERTIFICATION_TAG}: {type(exc).__name__}: {str(exc)[:200]}\")\n        print(\"The job identity needs ASSIGN on the tag and APPLY TAG on the table.\")\n    info = f\"{qualified(args.catalog)}.information_schema.table_tags\"\n    shown = spark.sql(f\"\"\"SELECT table_name, tag_name, tag_value FROM {info}\n        WHERE schema_name = '{args.schema}' AND table_name = '{edm.GOLD}' AND tag_name = '{edm.CERTIFICATION_TAG}'\"\"\").collect()\n    value = shown[0][\"tag_value\"] if shown else \"\"\n    print(\"certification tag on the gold table:\", [r.asDict() for r in shown] or \"not set\")\n    write_rows(spark, args.catalog, args.schema, \"edm_certification_status\",\n               [{\"table_name\": edm.GOLD, \"tag_name\": edm.CERTIFICATION_TAG, \"tag_value\": value, \"outcome\": outcome}],\n               \"table_name string, tag_name string, tag_value string, outcome string\")",
+      "functions": {
+        "write_rows": "Overwrite a small result table from Python rows."
+      }
+    },
+    {
+      "path": "reference/governance/guides/unity-catalog-edm/07_cleanup.py",
+      "symbol": "cleanup",
+      "startLine": 43,
+      "endLine": 82,
+      "language": "py",
+      "code": "def cleanup(args, spark) -> None:\n    from databricks.sdk import WorkspaceClient\n    from databricks.sdk.service.catalog import DeleteRequestExternalLineage, LineageDirection\n\n    w = WorkspaceClient()\n    table = qualified(args.catalog, args.schema, edm.CUSTOMERS)\n    try:\n        names = edm.plan_removal([m.name for m in w.external_metadata.list_external_metadata()], edm.EXTERNAL_PREFIX)\n    except Exception as exc:  # noqa: BLE001\n        print(f\"could not list external metadata ({type(exc).__name__}); skipping those\")\n        names = []\n    has_table = spark.catalog.tableExists(table)\n    print(f\"cleanup = {args.cleanup}\")\n    print(\"policies to drop:\", [edm.MASK_POLICY, edm.REGION_POLICY] if has_table else \"none (table is gone)\")\n    print(\"external metadata to delete:\", names or \"none\")\n    if args.cleanup == \"keep\":\n        print(\"Nothing changed. Set the cleanup parameter to drop to remove these.\")\n        return\n\n    if has_table:\n        for policy in (edm.MASK_POLICY, edm.REGION_POLICY):\n            spark.sql(edm.drop_policy_sql(policy, table))\n        # The plain-mode fallback attached a mask and a row filter; drop them if they are there.\n        for statement in (f\"ALTER TABLE {table} ALTER COLUMN `national_id` DROP MASK\", f\"ALTER TABLE {table} DROP ROW FILTER\"):\n            try:\n                spark.sql(statement)\n            except Exception as exc:  # noqa: BLE001\n                print(\"nothing to drop:\", statement.split(table)[-1].strip(), f\"({type(exc).__name__})\")\n    full = lambda t: f\"{args.catalog}.{args.schema}.{t}\"  # noqa: E731\n    for ref in ({\"table\": full(edm.CUSTOMERS)}, {\"table\": full(edm.GOLD)}) if names else ():\n        for direction in (LineageDirection.UPSTREAM, LineageDirection.DOWNSTREAM):\n            for other in sorted(related_names(w, ref, direction) & set(names)):\n                src, dst = (ref, {\"external\": other}) if direction == LineageDirection.DOWNSTREAM else ({\"external\": other}, ref)\n                try:\n                    w.external_lineage.delete_external_lineage_relationship(\n                        DeleteRequestExternalLineage(source=lineage_object(src), target=lineage_object(dst)))\n                    print(\"deleted relationship\", src, \"->\", dst)\n                except Exception as exc:  # noqa: BLE001\n                    print(\"relationship already gone:\", type(exc).__name__)\n    for name in names:",
+      "functions": {
+        "lineage_object": "Build a lineage endpoint from {'table': full_name} or {'external': name}.",
+        "plan_removal": "Names to delete: only those with the guide prefix. An empty list makes cleanup a no-op.",
+        "related_names": "Names of the tables and external objects related to `ref` in one direction."
+      }
+    },
+    {
+      "path": "reference/governance/resources/unity_catalog_edm.job.yml",
+      "symbol": null,
+      "startLine": 10,
+      "endLine": 24,
+      "language": "yml",
+      "code": "      timeout_seconds: 3600\n      parameters:\n        - name: catalog\n          default: ${var.catalog}\n        - name: schema\n          default: ${var.schema}\n        - name: scanner_principal\n          default: edm-scanner\n        - name: tag_mode\n          default: governed\n        - name: cleanup\n          default: keep\n      tasks:\n        - task_key: create_sample_tables\n          notebook_task:",
       "functions": {}
     }
   ],

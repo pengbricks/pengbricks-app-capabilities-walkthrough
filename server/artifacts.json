@@ -411,8 +411,8 @@
             "The pipeline update ID and state link each metrics row to the pipeline update."
           ],
           "lines": [
-            42,
-            75
+            44,
+            77
           ],
           "section": "evidence"
         },
@@ -849,7 +849,10 @@
         "branch": "main",
         "folder": "vscode-starter",
         "path": "reference/vscode-starter",
-        "exclude": ["resources/app_access.yml", "guides/vscode-databricks/README.md"]
+        "exclude": [
+          "resources/app_access.yml",
+          "guides/vscode-databricks/README.md"
+        ]
       },
       "code": [
         {
@@ -4176,20 +4179,6 @@
           "label": "Compute and capacity job"
         }
       ],
-      "recordedRuns": [
-        {
-          "label": "Capacity load run",
-          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/119779867494286/runs/279684926081927",
-          "workspace": "Reference workspace",
-          "recordedAt": "2026-10-16T17:06:54Z"
-        },
-        {
-          "label": "Capacity dashboard",
-          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/dashboardsv3/01f1c81ba0e9195ba142ee3a1fedb55a/published",
-          "workspace": "Reference workspace",
-          "recordedAt": "2026-10-14T22:00:00Z"
-        }
-      ],
       "docs": [
         {
           "label": "SQL warehouses",
@@ -4206,6 +4195,14 @@
         {
           "label": "Warehouse events",
           "url": "https://docs.databricks.com/aws/en/admin/system-tables/warehouse-events"
+        },
+        {
+          "label": "SQL warehouse types",
+          "url": "https://docs.databricks.com/aws/en/compute/sql-warehouse/warehouse-types"
+        },
+        {
+          "label": "Warehouses API: create",
+          "url": "https://docs.databricks.com/api/workspace/warehouses/create"
         }
       ],
       "highlights": [
@@ -4270,6 +4267,61 @@
           ],
           "symbol": "create_load_warehouse",
           "section": "sizing"
+        },
+        {
+          "label": "Audit every warehouse's type",
+          "path": "reference/governance/guides/compute-capacity-management/06_warehouse_type_audit.py",
+          "notes": [
+            "Lists type, size, clusters, auto-stop, and state through the SDK.",
+            "Flags warehouses that are not serverless and auto-stop above the documented default, with the reason."
+          ],
+          "symbol": "warehouse_type_audit",
+          "section": "warehouse-types"
+        },
+        {
+          "label": "Create a serverless warehouse explicitly",
+          "path": "reference/governance/guides/compute-capacity-management/06_warehouse_type_audit.py",
+          "notes": [
+            "Prints the request body with warehouse_type PRO and enable_serverless_compute true.",
+            "Nothing is created."
+          ],
+          "symbol": "show_serverless_request",
+          "section": "warehouse-types"
+        },
+        {
+          "label": "Classify classic, pro, and serverless",
+          "path": "reference/governance/src/governance_lib/warehouses.py",
+          "notes": [
+            "The API reports serverless as type PRO with enable_serverless_compute true."
+          ],
+          "symbol": "warehouse_class",
+          "section": "warehouse-types"
+        },
+        {
+          "label": "Read-only audit task",
+          "path": "reference/governance/resources/compute_capacity.job.yml",
+          "notes": [
+            "Runs after read_settings and changes nothing."
+          ],
+          "lines": [
+            57,
+            61
+          ],
+          "section": null
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "Capacity load run",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/jobs/119779867494286/runs/279684926081927",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-16T17:06:54Z"
+        },
+        {
+          "label": "Capacity dashboard",
+          "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/dashboardsv3/01f1c81ba0e9195ba142ee3a1fedb55a/published",
+          "workspace": "Reference workspace",
+          "recordedAt": "2026-10-14T22:00:00Z"
         }
       ]
     },
@@ -5000,7 +5052,7 @@
           ],
           "lines": [
             79,
-            97
+            101
           ],
           "section": "scaling"
         },
@@ -6490,8 +6542,8 @@
             "Model Serving agent deployment is Legacy."
           ],
           "lines": [
-            77,
-            93
+            83,
+            99
           ],
           "section": "legacy"
         },
@@ -8302,6 +8354,589 @@
           ]
         }
       ]
+    },
+    "unity-catalog-edm": {
+      "bundle": "reference/governance",
+      "onePager": "reference/governance/guides/unity-catalog-edm/README.md",
+      "code": [
+        {
+          "label": "Notebooks, one per job task",
+          "path": "reference/governance/guides/unity-catalog-edm"
+        },
+        {
+          "label": "Job",
+          "path": "reference/governance/resources/unity_catalog_edm.job.yml"
+        },
+        {
+          "label": "Policy, tag, and grant SQL",
+          "path": "reference/governance/src/governance_lib/edm.py"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_unity_catalog_edm",
+          "label": "Unity Catalog and EDM job"
+        }
+      ],
+      "docs": [
+        {
+          "label": "Governed tags",
+          "url": "https://docs.databricks.com/aws/en/admin/tag-policies/"
+        },
+        {
+          "label": "Attribute-based access control",
+          "url": "https://docs.databricks.com/aws/en/data-governance/unity-catalog/abac/"
+        },
+        {
+          "label": "CREATE POLICY",
+          "url": "https://docs.databricks.com/aws/en/data-governance/unity-catalog/abac/policies"
+        },
+        {
+          "label": "External lineage",
+          "url": "https://docs.databricks.com/aws/en/data-governance/unity-catalog/external-lineage"
+        },
+        {
+          "label": "Certify or deprecate data",
+          "url": "https://docs.databricks.com/aws/en/data-governance/unity-catalog/certify-deprecate-data"
+        },
+        {
+          "label": "Information schema",
+          "url": "https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-information-schema"
+        },
+        {
+          "label": "System tables",
+          "url": "https://docs.databricks.com/aws/en/admin/system-tables/"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Apply tags as the EDM contract",
+          "path": "reference/governance/guides/unity-catalog-edm/02_apply_tags.py",
+          "notes": [
+            "tag_mode governed creates account-level governed tags; plain creates nothing at the account level and applies plain tags.",
+            "A governed tag that exists is updated in place, so reruns end in the same state."
+          ],
+          "symbol": "apply_tags",
+          "section": "enforcement"
+        },
+        {
+          "label": "Governed tags with an in-place update",
+          "path": "reference/governance/guides/unity-catalog-edm/02_apply_tags.py",
+          "notes": [
+            "A tag policy that exists is updated, not recreated, so reruns end in the same state."
+          ],
+          "symbol": "ensure_governed_tags",
+          "section": "enforcement"
+        },
+        {
+          "label": "Tag-driven ABAC policy",
+          "path": "reference/governance/src/governance_lib/edm.py",
+          "notes": [
+            "MATCH COLUMNS reads a governed tag, so the policy covers any table that carries it.",
+            "No column name appears in the policy."
+          ],
+          "symbol": "mask_policy_sql",
+          "section": "enforcement"
+        },
+        {
+          "label": "Row filter policy on a tag",
+          "path": "reference/governance/src/governance_lib/edm.py",
+          "notes": [
+            "USING COLUMNS passes the tagged column to the filter function."
+          ],
+          "symbol": "row_filter_policy_sql",
+          "section": "enforcement"
+        },
+        {
+          "label": "Create the policy and query as the job identity",
+          "path": "reference/governance/guides/unity-catalog-edm/03_abac_policy.py",
+          "notes": [
+            "tag_mode governed: drops a same-named policy, creates it again, and checks what the job identity sees.",
+            "tag_mode plain: attaches the same functions with SET MASK and SET ROW FILTER."
+          ],
+          "symbol": "abac_policy",
+          "section": "enforcement"
+        },
+        {
+          "label": "Metadata feed from information_schema and lineage",
+          "path": "reference/governance/src/governance_lib/edm.py",
+          "notes": [
+            "The same tables a scanner reads, written as edm_metadata_feed_* tables.",
+            "Lineage comes from system.access.table_lineage and column_lineage."
+          ],
+          "symbol": "feed_queries",
+          "section": "read"
+        },
+        {
+          "label": "Least-privilege scanner grants",
+          "path": "reference/governance/src/governance_lib/edm.py",
+          "notes": [
+            "Read-only grants on the catalog, the schema, the tables in scope, and the two lineage tables.",
+            "The notebook prints them and does not run them."
+          ],
+          "symbol": "scanner_grants",
+          "section": "read"
+        },
+        {
+          "label": "Register external lineage",
+          "path": "reference/governance/guides/unity-catalog-edm/05_external_lineage.py",
+          "notes": [
+            "Upserts external metadata objects by name, then relates them to Unity Catalog tables.",
+            "Reads the relationships back in both directions."
+          ],
+          "symbol": "register_external_lineage",
+          "section": "lineage"
+        },
+        {
+          "label": "Create or update a lineage relationship",
+          "path": "reference/governance/guides/unity-catalog-edm/05_external_lineage.py",
+          "notes": [
+            "Looks up existing relationships first, so a rerun updates instead of adding a duplicate."
+          ],
+          "symbol": "upsert_relationship",
+          "section": "lineage"
+        },
+        {
+          "label": "Certify the gold table",
+          "path": "reference/governance/guides/unity-catalog-edm/06_certify_gold.py",
+          "notes": [
+            "Sets system.certification_status to certified, or records not permitted."
+          ],
+          "symbol": "certify_gold",
+          "section": "classification"
+        },
+        {
+          "label": "Cleanup gated by a parameter",
+          "path": "reference/governance/guides/unity-catalog-edm/07_cleanup.py",
+          "notes": [
+            "Defaults to keep and only prints the plan.",
+            "With drop it removes the edm_ policies and external metadata and does nothing when they are gone."
+          ],
+          "symbol": "cleanup",
+          "section": null
+        },
+        {
+          "label": "Job tasks and parameters",
+          "path": "reference/governance/resources/unity_catalog_edm.job.yml",
+          "notes": [
+            "A chain of seven tasks; cleanup runs last with run_if ALL_DONE."
+          ],
+          "lines": [
+            10,
+            24
+          ],
+          "section": null
+        }
+      ],
+      "recordedRuns": []
+    },
+    "lakebase-apps": {
+      "bundle": "reference/lakebase-apps",
+      "onePager": "reference/lakebase-apps/guides/lakebase-apps/README.md",
+      "code": [
+        {
+          "label": "Notebooks, one per job task",
+          "path": "reference/lakebase-apps/guides/lakebase-apps"
+        },
+        {
+          "label": "Lakebase helpers",
+          "path": "reference/lakebase-apps/src/lakebase_lib.py"
+        },
+        {
+          "label": "Project, branch, and endpoint resources",
+          "path": "reference/lakebase-apps/resources/lakebase.postgres.yml"
+        },
+        {
+          "label": "Job",
+          "path": "reference/lakebase-apps/resources/lakebase_apps.job.yml"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_lakebase_apps",
+          "label": "Lakebase apps job"
+        }
+      ],
+      "docs": [
+        {
+          "label": "Lakebase Postgres overview",
+          "url": "https://docs.databricks.com/aws/en/oltp/projects/"
+        },
+        {
+          "label": "Authenticate to Lakebase Postgres",
+          "url": "https://docs.databricks.com/aws/en/oltp/projects/authentication"
+        },
+        {
+          "label": "Scale to zero",
+          "url": "https://docs.databricks.com/aws/en/oltp/projects/scale-to-zero"
+        },
+        {
+          "label": "Synced tables",
+          "url": "https://docs.databricks.com/aws/en/oltp/projects/sync-tables"
+        },
+        {
+          "label": "Lakebase Change Data Feed (Public Preview)",
+          "url": "https://docs.databricks.com/aws/en/oltp/projects/lakebase-cdf"
+        },
+        {
+          "label": "Register a Lakebase database in Unity Catalog",
+          "url": "https://docs.databricks.com/aws/en/oltp/projects/register-uc"
+        },
+        {
+          "label": "Manage branches",
+          "url": "https://docs.databricks.com/aws/en/oltp/projects/manage-branches"
+        },
+        {
+          "label": "Bundle resources",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/bundles/resources"
+        },
+        {
+          "label": "Postgres extensions",
+          "url": "https://docs.databricks.com/aws/en/oltp/projects/extensions"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "A pool that mints a token per connection",
+          "path": "reference/lakebase-apps/src/lakebase_lib.py",
+          "symbol": "make_token_connection_class",
+          "section": "connections",
+          "notes": [
+            "Postgres checks the token at login only, so each new connection gets a fresh one.",
+            "Open connections keep working after the token expires."
+          ]
+        },
+        {
+          "label": "Build the pool",
+          "path": "reference/lakebase-apps/src/lakebase_lib.py",
+          "symbol": "make_pool",
+          "section": "connections",
+          "notes": [
+            "Connections recycle after 30 minutes and are checked when borrowed, so one that died during a suspension is replaced."
+          ]
+        },
+        {
+          "label": "Refresh timing",
+          "path": "reference/lakebase-apps/src/lakebase_lib.py",
+          "symbol": "token_needs_refresh",
+          "section": "connections",
+          "notes": [
+            "For code that holds one token: refresh within two minutes of the one-hour expiry."
+          ]
+        },
+        {
+          "label": "Retry the first connection",
+          "path": "reference/lakebase-apps/src/lakebase_lib.py",
+          "symbol": "connect_with_retry",
+          "section": "scale",
+          "notes": [
+            "The first connection after scale to zero waits for the compute to resume.",
+            "Authentication errors are not retried."
+          ]
+        },
+        {
+          "label": "Retry policy",
+          "path": "reference/lakebase-apps/src/lakebase_lib.py",
+          "symbol": "RetryPolicy",
+          "section": "scale",
+          "notes": [
+            "Exponential backoff with a cap."
+          ]
+        },
+        {
+          "label": "Create a Triggered synced table",
+          "path": "reference/lakebase-apps/guides/lakebase-apps/02_sync_delta_table.py",
+          "lines": [
+            89,
+            103
+          ],
+          "section": "synced-tables",
+          "notes": [
+            "The first sync runs on creation. A rerun starts a pipeline update instead.",
+            "The Unity Catalog schema name becomes the Postgres schema name."
+          ]
+        },
+        {
+          "label": "Create or reuse the synced table",
+          "path": "reference/lakebase-apps/src/lakebase_lib.py",
+          "symbol": "synced_table_action",
+          "section": "synced-tables",
+          "notes": [
+            "Decides create, reuse, recreate, or wait from the table state."
+          ]
+        },
+        {
+          "label": "Start Change Data Feed on a schema",
+          "path": "reference/lakebase-apps/guides/lakebase-apps/03_write_back.py",
+          "lines": [
+            76,
+            83
+          ],
+          "section": "write-back",
+          "notes": [
+            "Public Preview. One feed per Postgres schema, and it cannot be edited after creation."
+          ]
+        },
+        {
+          "label": "Compare change counts",
+          "path": "reference/lakebase-apps/src/lakebase_lib.py",
+          "symbol": "cdf_missing_changes",
+          "section": "write-back",
+          "notes": [
+            "An update adds update_preimage and update_postimage rows. A delete adds a delete row."
+          ]
+        },
+        {
+          "label": "Register the database in Unity Catalog",
+          "path": "reference/lakebase-apps/guides/lakebase-apps/06_register_in_unity_catalog.py",
+          "lines": [
+            60,
+            69
+          ],
+          "section": "register-uc",
+          "notes": [
+            "Beta. Needs CREATE CATALOG, and queries need a serverless warehouse."
+          ]
+        },
+        {
+          "label": "Create an expiring branch",
+          "path": "reference/lakebase-apps/guides/lakebase-apps/04_dev_branch.py",
+          "lines": [
+            88,
+            93
+          ],
+          "section": "branches",
+          "notes": [
+            "The ttl deletes the branch after an hour. Storage is billed only for data that differs from production."
+          ]
+        },
+        {
+          "label": "Project, branch, and endpoint in a bundle",
+          "path": "reference/lakebase-apps/resources/lakebase.postgres.yml",
+          "lines": [
+            12,
+            39
+          ],
+          "section": "bundles",
+          "notes": [
+            "Beta resources. The project sets scale to zero after 300 seconds.",
+            "The production branch comes with the project, so only the dev branch is declared."
+          ]
+        },
+        {
+          "label": "Install pgvector and build an hnsw index",
+          "path": "reference/lakebase-apps/src/lakebase_lib.py",
+          "symbol": "vector_schema_sql",
+          "section": "pgvector",
+          "notes": [
+            "IF NOT EXISTS on every statement, so a rerun changes nothing."
+          ]
+        },
+        {
+          "label": "Nearest-neighbour query",
+          "path": "reference/lakebase-apps/src/lakebase_lib.py",
+          "symbol": "nearest_sql",
+          "section": "pgvector",
+          "notes": [
+            "<=> is cosine distance. Smaller is closer."
+          ]
+        }
+      ],
+      "recordedRuns": []
+    },
+    "databricks-apps": {
+      "bundle": "reference/databricks-apps",
+      "onePager": "reference/databricks-apps/guides/databricks-apps/README.md",
+      "code": [
+        {
+          "label": "Notebooks, one per job task",
+          "path": "reference/databricks-apps/guides/databricks-apps"
+        },
+        {
+          "label": "App source: FastAPI routes for the two identities",
+          "path": "reference/databricks-apps/app/app.py"
+        },
+        {
+          "label": "app.yaml: start command and valueFrom",
+          "path": "reference/databricks-apps/app/app.yaml"
+        },
+        {
+          "label": "Bundle apps resource",
+          "path": "reference/databricks-apps/resources/databricks_apps.app.yml"
+        },
+        {
+          "label": "Helpers: app.yaml parsing, idle detection, cleanup decision",
+          "path": "reference/databricks-apps/src/apps_lib.py"
+        },
+        {
+          "label": "Tests for the helpers, the bundle, and the notebooks",
+          "path": "reference/databricks-apps/tests/test_apps_lib.py"
+        },
+        {
+          "label": "Databricks Apps job",
+          "path": "reference/databricks-apps/resources/databricks_apps.job.yml"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_databricks_apps",
+          "label": "Databricks Apps job"
+        }
+      ],
+      "docs": [
+        {
+          "label": "Databricks Apps",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/databricks-apps/"
+        },
+        {
+          "label": "Configure app execution with app.yaml",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/databricks-apps/app-runtime"
+        },
+        {
+          "label": "Add resources to a Databricks app",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/databricks-apps/resources"
+        },
+        {
+          "label": "Deploy a Databricks app",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/databricks-apps/deploy"
+        },
+        {
+          "label": "Databricks Apps authorization",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/databricks-apps/auth"
+        },
+        {
+          "label": "Configure compute resources for an app",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/databricks-apps/compute-size"
+        },
+        {
+          "label": "App Spaces (Beta)",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/databricks-apps/app-spaces"
+        },
+        {
+          "label": "Genie App Builder (Beta)",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/databricks-apps/genie-app-builder"
+        },
+        {
+          "label": "Monitor a Databricks app",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/databricks-apps/monitor"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Start command and valueFrom",
+          "path": "reference/databricks-apps/app/app.yaml",
+          "lines": [
+            1,
+            9
+          ],
+          "section": "app-yaml",
+          "notes": [
+            "The command is not run in a shell, so app.py reads DATABRICKS_APP_PORT itself.",
+            "valueFrom points at a resource key, so no warehouse ID sits in code."
+          ]
+        },
+        {
+          "label": "Warehouse resource with CAN_USE",
+          "path": "reference/databricks-apps/resources/databricks_apps.app.yml",
+          "lines": [
+            14,
+            19
+          ],
+          "section": "resources",
+          "notes": [
+            "The key sql-warehouse is the contract with app.yaml.",
+            "The permission goes to the app service principal."
+          ]
+        },
+        {
+          "label": "Bundle apps resource",
+          "path": "reference/databricks-apps/resources/databricks_apps.app.yml",
+          "lines": [
+            5,
+            19
+          ],
+          "section": "deploy",
+          "notes": [
+            "Source path, compute size, scopes, and resources sit in one reviewed file.",
+            "Each target sets its own app_name because development mode does not prefix app names."
+          ]
+        },
+        {
+          "label": "Medium compute size",
+          "path": "reference/databricks-apps/resources/databricks_apps.app.yml",
+          "lines": [
+            10,
+            10
+          ],
+          "section": "compute",
+          "notes": [
+            "Medium bills about 0.5 DBU per hour while the app runs."
+          ]
+        },
+        {
+          "label": "Query as the app service principal",
+          "path": "reference/databricks-apps/app/app.py",
+          "symbol": "whoami_app",
+          "section": "authorization",
+          "notes": [
+            "WorkspaceClient() picks up the credentials the platform injects for the app."
+          ]
+        },
+        {
+          "label": "Query as the signed-in user",
+          "path": "reference/databricks-apps/app/app.py",
+          "symbol": "whoami_user",
+          "section": "authorization",
+          "notes": [
+            "The token comes from x-forwarded-access-token on each request and is never cached.",
+            "auth_type=\"pat\" keeps the SDK from also reading the app's own client credentials."
+          ]
+        },
+        {
+          "label": "Check the app with the job identity's token",
+          "path": "reference/databricks-apps/guides/databricks-apps/02_health_check.py",
+          "lines": [
+            51,
+            53
+          ],
+          "section": "authorization",
+          "notes": [
+            "The two whoami routes report different identities from the same URL."
+          ]
+        },
+        {
+          "label": "Idle means running with no change",
+          "path": "reference/databricks-apps/src/apps_lib.py",
+          "symbol": "is_idle",
+          "section": "compute",
+          "notes": [
+            "Stopped apps never flag, because they do not bill.",
+            "The API has no request count, so the flag is a prompt to check Insights."
+          ]
+        },
+        {
+          "label": "List App Spaces (Beta) read-only",
+          "path": "reference/databricks-apps/guides/databricks-apps/04_app_spaces.py",
+          "lines": [
+            38,
+            43
+          ],
+          "section": "governance",
+          "notes": [
+            "If the call fails, the preview is off or this identity lacks access, and the notebook prints the UI steps."
+          ]
+        },
+        {
+          "label": "Stop or no-op",
+          "path": "reference/databricks-apps/src/apps_lib.py",
+          "symbol": "cleanup_action",
+          "section": "limits-logs",
+          "notes": [
+            "Only a running app is stopped, so a second run changes nothing."
+          ]
+        }
+      ],
+      "recordedRuns": []
     }
   }
 }

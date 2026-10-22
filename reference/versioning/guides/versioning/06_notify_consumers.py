@@ -10,6 +10,8 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 6. Notify consumers
 # MAGIC
+# MAGIC Safe to rerun: the notifications table is overwritten.
+# MAGIC
 # MAGIC Writes one notification row per consumer named in the spec: which of its columns the breaking change touches, what to do, and by when.
 
 # COMMAND ----------

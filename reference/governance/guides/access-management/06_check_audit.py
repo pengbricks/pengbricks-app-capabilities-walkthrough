@@ -12,6 +12,8 @@ dbutils.library.restartPython()
 # MAGIC
 # MAGIC Reads back `access_audit_grant_changes`, which the SQL task `05_audit_grant_changes.sql` writes from `system.access.audit`.
 
+# MAGIC
+# MAGIC Safe to rerun: it only reads the audit table.
 # COMMAND ----------
 
 import sys, os

@@ -1,4 +1,5 @@
 -- Grant changes in one catalog over the last 30 days. Runs as a SQL task on the warehouse.
+-- Safe to rerun: every table is created with CREATE OR REPLACE.
 -- Parameters: :catalog, :schema.
 -- Unity Catalog permission changes are metastore-level events, so the top-level workspace_id is 0.
 -- The catalog is the scope here. status_code 200 is a change that applied; other codes are refused attempts.

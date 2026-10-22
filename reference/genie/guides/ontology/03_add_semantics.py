@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # 3. Add the semantic layer
 # MAGIC
-# MAGIC Adds what Genie needs to read the cryptic columns: table and column comments, tags, and a Unity Catalog metric view (`sales_metrics`) that defines revenue, dimensions and synonyms once. Comments and tags are set in place, and the metric view is created or replaced, so a rerun gives the same result.
+# MAGIC Adds what Genie needs to read the cryptic columns: table and column comments, tags, and a Unity Catalog metric view (`sales_metrics`) that defines revenue, dimensions and synonyms once. Safe to rerun: comments and tags are set in place, and the metric view is created or replaced.
 
 # COMMAND ----------
 

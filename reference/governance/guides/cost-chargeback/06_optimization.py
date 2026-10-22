@@ -12,6 +12,8 @@ dbutils.library.restartPython()
 # MAGIC
 # MAGIC Flags warehouses with auto-stop above 10 minutes or too few statements, and lists the costliest jobs per run.
 
+# MAGIC
+# MAGIC Safe to rerun: both result tables are replaced.
 # COMMAND ----------
 
 import sys, os

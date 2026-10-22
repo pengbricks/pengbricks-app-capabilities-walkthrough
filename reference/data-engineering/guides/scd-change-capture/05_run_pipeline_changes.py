@@ -10,6 +10,8 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 5. Run the pipeline on the change batch
 # MAGIC
+# MAGIC Safe to rerun: it checks that the initial load and the change batch exist before it starts an update; an update with no new rows changes nothing.
+# MAGIC
 # MAGIC Starts an incremental update, so the pipeline applies only the new `change_seq` 2 rows.
 
 # COMMAND ----------
@@ -38,6 +40,9 @@ from de_common.pipelines import find_pipeline_id, latest_expectations, run_updat
 w = WorkspaceClient()
 pipeline_id = find_pipeline_id(w, "capability-guides-scd")
 print(f"pipeline {pipeline_id}: {w.config.host.rstrip('/')}/pipelines/{pipeline_id}")
+from de_common.scd import batch_in_changes, initial_loaded
+if not initial_loaded(spark, scope) or batch_in_changes(spark, scope) == 0:
+    raise RuntimeError("The initial load or the change batch is missing. Run 01 to 04 first, or rerun the job. Nothing was changed.")
 if params["run_pipeline"].lower() == "true":
     run_update(w, pipeline_id, full_refresh=False)
 else:

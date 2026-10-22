@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # 3. What only the table formats do
 # MAGIC
-# MAGIC Plain files are bytes in a folder. This notebook tries the same operations on a Parquet folder, a Delta table and a managed Iceberg table, each built from the same 20,000 orders, and records what each does. The main tables stay untouched; every change goes to small `ff_work_*` copies that are rebuilt on each run.
+# MAGIC Plain files are bytes in a folder. This notebook tries the same operations on a Parquet folder, a Delta table and a managed Iceberg table, each built from the same 20,000 orders, and records what each does. The main tables stay untouched; every change goes to small `ff_work_*` copies that are rebuilt on each run. Safe to rerun: the step's `features` rows in `ff_results` are replaced. Working tables and folders are replaced.
 
 # COMMAND ----------
 
@@ -239,7 +239,7 @@ for fmt, table in (("delta", N["delta"]), ("iceberg", N["iceberg"])):
     rows = spark.table(table).count()
     expected = int(params["rows"])
     record(fmt, "main_table_rows_unchanged", "PASS" if rows == expected else "FAIL", f"{table} has {rows} rows, expected {expected}")
-append_rows(spark, N["results"], results, RESULT_COLUMNS)
+append_rows(spark, N["results"], results, RESULT_COLUMNS, replace_where="step = 'features'")
 failed = [r["metric"] + ":" + r["format"] for r in results if r["value"] == "FAIL"]
 if failed:
     raise Exception(f"Failed checks: {failed}")

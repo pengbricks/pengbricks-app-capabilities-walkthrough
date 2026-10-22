@@ -20,7 +20,7 @@ dbutils.library.restartPython()
 # MAGIC | 2 cancelled orders deleted | `orders` | Rows gone |
 # MAGIC | 2 shipped orders cancelled | `orders` | `status = 'CANCELLED'` (next run's deletes) |
 # MAGIC
-# MAGIC Every run picks the rows touched least recently, so a rerun changes different rows. The expected result of each change is saved to `lfc_expected_changes` for the next step to check.
+# MAGIC Every run picks the rows touched least recently, so a rerun changes different rows. The expected result of each change is saved to `lfc_expected_changes` for the next step to check. Safe to rerun: `lfc_expected_changes` is overwritten and this step's rows in `lfc_results` are replaced. Each run changes new source rows by design, so `dbo.orders` grows by 8 rows per run.
 
 # COMMAND ----------
 

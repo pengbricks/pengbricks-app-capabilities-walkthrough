@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # 3. SQL checks
 # MAGIC
-# MAGIC `assert_true` fails the cell, and so the task, when a check does not hold. The query is the same one you would run in a SQL editor; the widgets fill in the table and column names.
+# MAGIC `assert_true` fails the cell, and so the task, when a check does not hold. The query is the same one you would run in a SQL editor; the widgets fill in the table and column names. Safe to rerun: it only reads.
 
 # COMMAND ----------
 

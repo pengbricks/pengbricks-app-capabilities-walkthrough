@@ -28,7 +28,7 @@ print(f"job_id = {job_id}, run_id = {run_id}")
 # MAGIC %md
 # MAGIC ## Task attempts for this run
 # MAGIC
-# MAGIC Each task's attempt number and result, from the Jobs API. The ingest task shows attempt 0 failed and attempt 1 succeeded.
+# MAGIC Each task's attempt number and result, from the Jobs API. The ingest task shows attempt 0 failed and attempt 1 succeeded. Safe to rerun: this run's rows are deleted and rewritten, and the run history table is overwritten.
 
 # COMMAND ----------
 

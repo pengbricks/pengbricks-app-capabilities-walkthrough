@@ -2,6 +2,8 @@
 # MAGIC %md
 # MAGIC # 8. Bulk pause: prepare
 # MAGIC
+# MAGIC Safe to rerun: the probe job is deleted and recreated by name, and this run's log rows are replaced; each job run adds its own rows to `bulk_pause_log`, a run log.
+# MAGIC
 # MAGIC Creates a small scheduled probe job, so there is at least one unpaused schedule to pause, and records the "before" state of every job tagged `capability_guide_job` that has a schedule. The probe job is replaced on each run, never duplicated. Every state goes to `bulk_pause_log`.
 
 # COMMAND ----------

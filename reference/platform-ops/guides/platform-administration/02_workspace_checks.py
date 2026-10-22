@@ -13,6 +13,8 @@ dbutils.library.restartPython()
 # MAGIC Records the caller identity, workspace ID, metastore and the workspace settings listed in the spec. Read only.
 # MAGIC
 # MAGIC Each row is written to `admin_actions` with a merge keyed on the run, category, action and target, so a retried or repeated task updates its own rows.
+# MAGIC
+# MAGIC Safe to rerun: it only reads. A retry updates its own ledger rows.
 
 # COMMAND ----------
 

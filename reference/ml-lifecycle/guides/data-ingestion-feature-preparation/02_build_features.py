@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 2. Build the feature table
 # MAGIC
-# MAGIC Builds the feature table in Unity Catalog from the source table, then runs quality checks: key not null and unique, no nulls, and inclusive ranges from the spec. The table is dropped and rebuilt on each run, and the check results for it are replaced. The notebook fails if a check fails.
+# MAGIC Builds the feature table in Unity Catalog from the source table, then runs quality checks: key not null and unique, no nulls, and inclusive ranges from the spec. The table is dropped and rebuilt on each run, and the check results for it are replaced. The notebook fails if a check fails. Safe to rerun: the feature table is rebuilt and this table's check rows are deleted before they are rewritten.
 
 # COMMAND ----------
 

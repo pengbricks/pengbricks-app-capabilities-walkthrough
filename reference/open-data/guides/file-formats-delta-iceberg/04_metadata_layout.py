@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 4. Where the metadata lives
 # MAGIC
-# MAGIC Delta and Iceberg both store rows as Parquet. What differs is the metadata around the files. Delta keeps a `_delta_log` folder of JSON commits and Parquet checkpoints next to the data. Iceberg keeps a `metadata.json` that points to a manifest list, which points to manifests, which list the data files. This notebook lists those files, then shows a UniForm table that carries both sets of metadata over one set of Parquet files.
+# MAGIC Delta and Iceberg both store rows as Parquet. What differs is the metadata around the files. Delta keeps a `_delta_log` folder of JSON commits and Parquet checkpoints next to the data. Iceberg keeps a `metadata.json` that points to a manifest list, which points to manifests, which list the data files. This notebook lists those files, then shows a UniForm table that carries both sets of metadata over one set of Parquet files. Safe to rerun: the step's `metadata` rows in `ff_results` are replaced. The layout folder is cleared and the UniForm table is replaced.
 
 # COMMAND ----------
 
@@ -214,7 +214,7 @@ record("uniform", "row_count_matches", "PASS" if iceberg_rows == delta_rows else
 
 # COMMAND ----------
 
-append_rows(spark, N["results"], results, RESULT_COLUMNS)
+append_rows(spark, N["results"], results, RESULT_COLUMNS, replace_where="step = 'metadata'")
 failed = [r["metric"] for r in results if r["value"] == "FAIL"]
 if failed:
     raise Exception(f"Failed checks: {failed}")

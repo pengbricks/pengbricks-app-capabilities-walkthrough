@@ -10,6 +10,8 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 4. Inspect the incremental update
 # MAGIC
+# MAGIC Safe to rerun: it checks that the initial update ran and batch 2 is landed, starts an update only if none has run since the last full refresh, and only reads the event log; `cdc_refresh_metrics` is a run log.
+# MAGIC
 # MAGIC The second update is **not** a full refresh. Each streaming flow resumes from its checkpoint, so it reads only what is new since the first update. This notebook shows the evidence: the rows each dataset wrote, and the offset each flow started from, which is where the first update stopped.
 
 # COMMAND ----------
@@ -17,7 +19,7 @@ dbutils.library.restartPython()
 import sys, os
 sys.path.insert(0, os.path.abspath("../../src"))
 from guide_params import bundle_root, load_params
-params = load_params(dbutils, "capability_guides_cdc", ['catalog', 'schema', 'rows', 'inserts', 'updates', 'deletes', 'run_pipeline'], defaults={'run_pipeline': 'true'})
+params = load_params(dbutils, "capability_guides_cdc", ['catalog', 'schema', 'volume', 'rows', 'inserts', 'updates', 'deletes', 'run_pipeline'], defaults={'run_pipeline': 'true'})
 catalog, schema = params["catalog"], params["schema"]
 scope = f"{catalog}.{schema}"
 rows, inserts, updates, deletes = (int(params[k]) for k in ("rows", "inserts", "updates", "deletes"))
@@ -37,7 +39,15 @@ from de_common.pipelines import find_pipeline_id, run_update
 w = WorkspaceClient()
 pipeline_id = find_pipeline_id(w, "capability-guides-cdc")
 print(f"pipeline {pipeline_id}: {w.config.host.rstrip('/')}/pipelines/{pipeline_id}")
-if params["run_pipeline"].lower() == "true":
+from de_common import cdc_metrics
+LANDING = f"/Volumes/{catalog}/{schema}/{params['volume']}/cdc_orders_events"
+events_before = cdc_metrics.read_events(spark, pipeline_id)
+cdc_metrics.require_updates(events_before, "full_refresh")
+if not any(n.startswith("batch2") for n in (os.listdir(LANDING) if os.path.isdir(LANDING) else [])):
+    raise RuntimeError("Change batch 2 is not in the landing folder. Run 03_apply_changes first. Nothing was changed.")
+if params["run_pipeline"].lower() == "true" and cdc_metrics.incremental_done(events_before):
+    print("An incremental update already ran after the last full refresh, so no new update is started. Inspecting it.")
+elif params["run_pipeline"].lower() == "true":
     run_update(w, pipeline_id, full_refresh=False)
 else:
     print("run_pipeline = false: the job's pipeline task already ran, so this notebook only inspects.")

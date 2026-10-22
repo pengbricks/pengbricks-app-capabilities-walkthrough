@@ -12,6 +12,8 @@ dbutils.library.restartPython()
 # MAGIC
 # MAGIC Reads `information_schema` back and asserts three things: no person holds an explicit grant, dev and prod differ as intended, and prod exposes only the named tables.
 
+# MAGIC
+# MAGIC Safe to rerun: it only reads `information_schema`, and `access_effective_grants` is replaced.
 # COMMAND ----------
 
 import sys, os

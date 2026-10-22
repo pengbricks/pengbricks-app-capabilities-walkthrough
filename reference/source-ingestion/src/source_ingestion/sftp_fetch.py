@@ -78,7 +78,7 @@ def fetch_new_files(spark, dbutils, cfg: dict, catalog: str, schema: str, run_id
     spark.createDataFrame(
         [(run_id, task, datetime.now(timezone.utc), mode, cfg["host"], len(listing), len(copied), error)],
         "run_id string, task string, finished_at timestamp, mode string, host string, remote_files int, new_files int, error string",
-    ).write.mode("append").saveAsTable(f"{ns}.sftp_transfer_runs")
+    ).write.mode("overwrite").option("replaceWhere", f"run_id = '{run_id}' AND task = '{task}'").saveAsTable(f"{ns}.sftp_transfer_runs")
 
     if transport is not None:
         transport.close()

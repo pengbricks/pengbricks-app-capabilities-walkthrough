@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # 3. Verify the conformed table
 # MAGIC
-# MAGIC Every row has a `source_system`, counts match the inputs, and `(source_system, source_id)` is unique.
+# MAGIC Every row has a `source_system`, counts match the inputs, and `(source_system, source_id)` is unique. Safe to rerun: it only reads.
 
 # COMMAND ----------
 

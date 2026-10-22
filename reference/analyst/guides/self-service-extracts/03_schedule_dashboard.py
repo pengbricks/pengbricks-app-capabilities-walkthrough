@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 3. Schedule the dashboard
 # MAGIC
-# MAGIC Schedules the published dashboard and subscribes an address. The bundle cannot declare either, so this notebook creates them and records their IDs. It looks up the schedule by name and the subscriber by user, so a rerun reuses both.
+# MAGIC Schedules the published dashboard and subscribes an address. The bundle cannot declare either, so this notebook creates them and records their IDs. Safe to rerun: the schedule is found by name and the subscriber by user, so a rerun reuses both.
 
 # COMMAND ----------
 

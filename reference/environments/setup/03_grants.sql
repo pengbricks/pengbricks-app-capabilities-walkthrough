@@ -1,4 +1,4 @@
--- Grants for layout (a). Not executed by this repo: replace the group names and the <placeholders>.
+-- Grants for layout (a). Not executed by this repo: replace the group names and the <placeholders>. Safe to rerun: a grant or owner change that is already in place changes nothing.
 -- Grant to groups, never to individual users. Groups are account-level, so every workspace sees them.
 
 -- dev: engineers build freely, including a schema of their own for a sandbox.

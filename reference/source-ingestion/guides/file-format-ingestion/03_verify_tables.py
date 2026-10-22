@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 3. Verify the tables
 # MAGIC
-# MAGIC Checks each format's table against the spec: row counts, rescued data, column types and nested content. Every check is written to `format_ingestion_checks`, and the notebook fails if any check fails.
+# MAGIC Checks each format's table against the spec: row counts, rescued data, column types and nested content. Every check is written to `format_ingestion_checks`, and the notebook fails if any check fails. Safe to rerun: it replaces the rows for its own `run_id`, so a task retry does not duplicate them.
 
 # COMMAND ----------
 
@@ -125,7 +125,7 @@ now = datetime.now(timezone.utc)
 rows = [(params["run_id"], now, *c) for c in checks]
 spark.createDataFrame(
     rows, "run_id string, checked_at timestamp, table_name string, check_name string, expected string, actual string, passed boolean"
-).write.mode("append").saveAsTable(f"{ns}.format_ingestion_checks")
+).write.mode("overwrite").option("replaceWhere", f"run_id = '{params['run_id']}'").saveAsTable(f"{ns}.format_ingestion_checks")
 
 for _, _, table, name, expected, actual, passed in rows:
     print(f"{'PASS' if passed else 'FAIL'} {table}.{name}: expected {expected}, actual {actual}")

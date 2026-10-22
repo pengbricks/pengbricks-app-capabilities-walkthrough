@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 2. Append new data
 # MAGIC
-# MAGIC Adds the customers who are new by the 2010-12-01 snapshot (945 in the reference run) so the table moves past the version the tracked run recorded. It adds only keys that are not in the table yet (a left anti join), so running it again adds nothing.
+# MAGIC Adds the customers who are new by the 2010-12-01 snapshot (945 in the reference run) so the table moves past the version the tracked run recorded. Safe to rerun: it adds only keys that are not in the table yet (a left anti join), so running it again adds nothing.
 
 # COMMAND ----------
 

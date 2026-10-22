@@ -11,6 +11,8 @@ dbutils.library.restartPython()
 # MAGIC # 1. Assess
 # MAGIC
 # MAGIC Splits the legacy script into steps and classifies each by its main construct (MERGE, cursor, temp table and so on). The classification decides which steps can convert automatically.
+# MAGIC
+# MAGIC Safe to rerun: `assessment_classification` is overwritten, so a second run gives one row per step.
 
 # COMMAND ----------
 

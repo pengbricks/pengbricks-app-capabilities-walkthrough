@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 3. Import the legacy model
 # MAGIC
-# MAGIC Logs the pickle as a pyfunc model, registers it in Unity Catalog as `churn_classifier_imported`, and reloads it to score the same holdout rows the baseline used (the training table at the version recorded in the sidecar JSON). The notebook fails if the reproduced AUC differs from the recorded baseline by more than the tolerance. `model_compatibility_log` lists the package versions recorded against the current ones; it is a log, so each run adds rows.
+# MAGIC Logs the pickle as a pyfunc model, registers it in Unity Catalog as `churn_classifier_imported`, and reloads it to score the same holdout rows the baseline used (the training table at the version recorded in the sidecar JSON). The notebook fails if the reproduced AUC differs from the recorded baseline by more than the tolerance. `model_compatibility_log` lists the package versions recorded against the current ones; it is a log, so each run adds rows. Safe to rerun: the experiment is reused and `imported` is set, not added; each run registers a new model version (versions are history).
 
 # COMMAND ----------
 

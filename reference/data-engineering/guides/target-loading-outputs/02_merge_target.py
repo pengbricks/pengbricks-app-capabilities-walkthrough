@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 2. MERGE into the target
 # MAGIC
-# MAGIC One MERGE inserts, updates and deletes. The operation metrics come from Delta history and go to `target_merge_metrics`, a run log that gains one run's rows per run. Run `01_prepare_target` first, which resets the target.
+# MAGIC Safe to rerun: the target is rebuilt from the initial snapshot before the MERGE, so every run applies the same batch to the same rows. One MERGE inserts, updates and deletes. The operation metrics come from Delta history and go to `target_merge_metrics`, a run log that gains one run's rows per run. Run `01_prepare_target` first, which writes the source batch.
 
 # COMMAND ----------
 
@@ -31,7 +31,7 @@ USE_CASE_FILE = ROOT / "use_cases" / f"{params['use_case']}.yml"
 # COMMAND ----------
 
 from delta.tables import DeltaTable
-from de_common.accounts import entity_columns
+from de_common.accounts import entity_columns, initial_snapshot
 from de_common.files import merge_metrics
 from de_common.spec import load_use_case
 
@@ -39,7 +39,7 @@ spec = load_use_case(USE_CASE_FILE)
 key = spec["accounts"]["key"]
 columns = entity_columns(spec)
 target_name, source_name = f"{scope}.accounts_target", f"{scope}.accounts_source_batch"
-
+initial_snapshot(spark, spec).write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(target_name)  # same start every run
 before = spark.table(target_name).count()
 source = spark.table(source_name)
 target = DeltaTable.forName(spark, target_name)

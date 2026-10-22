@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 3. Write the file outputs
 # MAGIC
-# MAGIC Writes the merged target to a volume as CSV, pipe-delimited text, Excel and JSON. Files keep a fixed name, so a rerun overwrites them, and `target_output_files` is overwritten too.
+# MAGIC Safe to rerun: the four files keep fixed names and are overwritten, and `target_output_files` is overwritten. Writes the merged target to a volume as CSV, pipe-delimited text, Excel and JSON. Files keep a fixed name, so a rerun overwrites them, and `target_output_files` is overwritten too.
 
 # COMMAND ----------
 

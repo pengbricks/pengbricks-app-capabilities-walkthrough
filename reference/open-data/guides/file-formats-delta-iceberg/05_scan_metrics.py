@@ -3,6 +3,8 @@
 # MAGIC # 5. Scan metrics: files read, files skipped, bytes read
 # MAGIC
 # MAGIC The strongest evidence for column pruning and data skipping is what the scan actually read. Unity Catalog records that for each query in `system.query.history`, about ten minutes after the query finishes. This notebook runs last so the metrics are there. It pairs them with the timed queries from `02_compare_reads` and records files read, files pruned and bytes read per format.
+# MAGIC
+# MAGIC Safe to rerun: the step's `scans` rows in `ff_results` are replaced.
 
 # COMMAND ----------
 
@@ -99,5 +101,5 @@ for fmt in FORMATS:
 
 # COMMAND ----------
 
-append_rows(spark, N["results"], results, RESULT_COLUMNS)
+append_rows(spark, N["results"], results, RESULT_COLUMNS, replace_where="step = 'scans'")
 display(spark.sql(f"SELECT format, metric, value, detail FROM {N['results']} WHERE run_id = '{RUN_ID}' AND step = 'scans' ORDER BY metric, format"))

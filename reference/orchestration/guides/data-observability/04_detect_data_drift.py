@@ -10,13 +10,13 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 4. Detect data drift
 # MAGIC
-# MAGIC Detects a distribution shift between a baseline batch and a later batch.
+# MAGIC Safe to rerun: the batch table is overwritten, the monitor is reused if it exists (deleting it would leave its metric tables behind), drift is read from the newest window, and the rows for a `run_id` are replaced. Each job run adds its own rows to `obs_drift_results` and `obs_monitor_status`, which are run logs. Detects a distribution shift between a baseline batch and a later batch.
 # MAGIC
 # MAGIC 1. Write the baseline batch and create a Unity Catalog data profiling monitor. Creating the monitor starts a refresh, and the notebook requests one more, so the first two windows both see the baseline (drift 0).
 # MAGIC 2. Append the shifted batch and refresh again. The monitor compares this window with the previous one.
 # MAGIC 3. Compute PSI and mean shift here as an independent check, and record every result.
 # MAGIC
-# MAGIC The monitor step is best effort: if it cannot be created, the in-notebook statistics still run. The batch table is overwritten and the monitor is recreated on each run, so a rerun does not stack batches or monitors.
+# MAGIC The monitor step is best effort: if it cannot be created, the in-notebook statistics still run. The batch table is overwritten on each run and the monitor is reused, so a rerun does not stack batches or monitors.
 
 # COMMAND ----------
 
@@ -41,7 +41,7 @@ spec = g.load_spec(str(bundle_root() / "use_cases" / f"{params['use_case']}.yml"
 obs = spec["observability"]
 base_cfg, shifted_cfg = obs["batches"][0], obs["batches"][1]
 now = datetime.now(timezone.utc)
-
+KNOWN_REFRESHES: set = set()  # refreshes from earlier runs, ignored while waiting
 # COMMAND ----------
 
 # MAGIC %md
@@ -52,7 +52,7 @@ now = datetime.now(timezone.utc)
 def wait_for_refreshes(w, object_id: str, successes: int, timeout_s: int = 1500) -> str:
     deadline = time.time() + timeout_s
     while time.time() < deadline:
-        refreshes = list(w.data_quality.list_refresh(object_type="table", object_id=object_id))
+        refreshes = [r for r in w.data_quality.list_refresh(object_type="table", object_id=object_id) if r.refresh_id not in KNOWN_REFRESHES]
         states = [r.state.value.replace("MONITOR_REFRESH_STATE_", "") if r.state else "UNKNOWN" for r in refreshes]
         if "FAILED" in states:
             failed = next(r for r in refreshes if r.state and r.state.value.endswith("FAILED"))
@@ -68,25 +68,25 @@ def run_monitor_baseline(w, spark, catalog, schema, assets_dir):
 
     table = w.tables.get(f"{catalog}.{schema}.{TABLE}")
     schema_info = w.schemas.get(f"{catalog}.{schema}")
-    try:
-        w.data_quality.delete_monitor(object_type="table", object_id=table.table_id)
-        time.sleep(15)
+    try:  # earlier refreshes stay in the history, so remember them and wait only for new ones
+        KNOWN_REFRESHES.update(r.refresh_id for r in w.data_quality.list_refresh(object_type="table", object_id=table.table_id))
     except Exception:  # noqa: BLE001 - no monitor yet
         pass
     w.workspace.mkdirs(assets_dir)
-    monitor = w.data_quality.create_monitor(
-        monitor=Monitor(
-            object_type="table",
-            object_id=table.table_id,
-            data_profiling_config=DataProfilingConfig(
-                assets_dir=assets_dir, output_schema_id=schema_info.schema_id, snapshot=SnapshotConfig()
-            ),
+    try:  # reuse the monitor: deleting it would leave its metric tables behind with the old windows
+        monitor = w.data_quality.get_monitor(object_type="table", object_id=table.table_id)
+    except Exception:  # noqa: BLE001 - no monitor yet
+        monitor = w.data_quality.create_monitor(
+            monitor=Monitor(
+                object_type="table",
+                object_id=table.table_id,
+                data_profiling_config=DataProfilingConfig(
+                    assets_dir=assets_dir, output_schema_id=schema_info.schema_id, snapshot=SnapshotConfig()
+                ),
+            )
         )
-    )
     time.sleep(10)
-    w.data_quality.create_refresh(
-        object_type="table", object_id=table.table_id, refresh=Refresh(object_type="table", object_id=table.table_id)
-    )
+    w.data_quality.create_refresh(object_type="table", object_id=table.table_id, refresh=Refresh(object_type="table", object_id=table.table_id))
     return table.table_id, monitor
 
 # COMMAND ----------
@@ -175,6 +175,7 @@ if object_id and monitor_status == "baseline refresh SUCCESS":
                        MAX(ks_test) AS ks_test_stat, MAX(avg_delta) AS avg_delta, MAX(chi_squared_test.statistic) AS chi_sq
                 FROM {drift_table}
                 WHERE column_name IN ('amount', 'region', 'quantity') AND drift_type = 'CONSECUTIVE'
+                  AND window.end = (SELECT MAX(window.end) FROM {drift_table} WHERE drift_type = 'CONSECUTIVE')
                 GROUP BY column_name
                 """
             ).collect()

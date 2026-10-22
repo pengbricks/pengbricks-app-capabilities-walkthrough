@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # 8. Read lineage for impact analysis
 # MAGIC
-# MAGIC For every dataset the checks cover, lists what it feeds, using `system.access.table_lineage`: downstream tables and views (up to three hops), and the other entities that read the table, such as notebooks and dashboards. When a check fails, that list is the blast radius. The notebook also lists the upstream tables of the silver table.
+# MAGIC Safe to rerun: it stops with a message if the silver table or this run's check results are missing. The impact rows for a `run_id` are replaced, and each job run adds its own rows to `dv_lineage_impact`, a history table. For every dataset the checks cover, lists what it feeds, using `system.access.table_lineage`: downstream tables and views (up to three hops), and the other entities that read the table, such as notebooks and dashboards. When a check fails, that list is the blast radius. The notebook also lists the upstream tables of the silver table.
 # MAGIC
 # MAGIC Lineage reaches the system tables several minutes after the writes, so the notebook polls. The job runs this task even when validation blocked the metric view (`run_if: ALL_DONE`), because impact analysis matters most after a failure.
 
@@ -26,7 +26,7 @@ SPEC_FILE = bundle_root() / "use_cases" / f"{params['use_case']}.yml"
 
 import time
 import dv_lib
-
+dv_lib.require_ready(spark, ns, "read_lineage", run_id)
 spec = dv_lib.load_spec(SPEC_FILE)
 MAX_WAIT_MINUTES = 30
 low = lambda table: f"{ns}.{table}".lower()

@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # 5. Compute and capacity
 # MAGIC
-# MAGIC Serverless DBUs by workload type per day, and SQL warehouse scale and start/stop events per day, in one long table. The table uses `CREATE OR REPLACE`, so a rerun replaces it.
+# MAGIC Serverless DBUs by workload type per day, and SQL warehouse scale and start/stop events per day, in one long table. Safe to rerun: the table uses `CREATE OR REPLACE`, so a rerun replaces it.
 
 # COMMAND ----------
 

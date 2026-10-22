@@ -2,6 +2,8 @@
 # MAGIC %md
 # MAGIC # 6. Publish or hold
 # MAGIC
+# MAGIC Safe to rerun: the outcome row for a `run_id` is replaced and the published table is rebuilt; each new job run adds one row to `orch_branch_outcomes`, a run log.
+# MAGIC
 # MAGIC The job's condition task compares the validate task's `valid_rows` with `min_valid_rows`. It runs this notebook with `outcome = publish` when the condition is true and `outcome = hold` when it is false. Run by hand with `outcome` blank, the notebook makes the same comparison itself.
 
 # COMMAND ----------

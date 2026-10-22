@@ -10,6 +10,8 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 2. Run the pipeline on the initial snapshot
 # MAGIC
+# MAGIC Safe to rerun: a full refresh rebuilds both SCD tables from `accounts_changes`.
+# MAGIC
 # MAGIC Starts a full refresh of the SCD pipeline, so both tables are built from the snapshot.
 
 # COMMAND ----------

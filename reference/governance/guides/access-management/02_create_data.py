@@ -12,6 +12,8 @@ dbutils.library.restartPython()
 # MAGIC
 # MAGIC Writes the same sample tables into the dev-like and the prod-like schema. Tables are overwritten, so a rerun keeps the row counts.
 
+# MAGIC
+# MAGIC Safe to rerun: both sample tables are regenerated from a fixed seed and replaced in each schema.
 # COMMAND ----------
 
 import sys, os

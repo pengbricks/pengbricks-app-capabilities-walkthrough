@@ -12,6 +12,8 @@ dbutils.library.restartPython()
 # MAGIC
 # MAGIC Joins `system.billing.usage` with list prices into `cost_usage_enriched`, scoped to this workspace, with the guide tags, user and job attached.
 
+# MAGIC
+# MAGIC Safe to rerun: the view is created with `CREATE OR REPLACE`.
 # COMMAND ----------
 
 import sys, os

@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # Reusable ingestion templates
 # MAGIC
-# MAGIC The second feed, provider B, was onboarded without new code: it is a block in the use-case spec, and a renderer turns that block into a feed config. This guide shares its job and notebooks with *Configuration-driven ingestion*, so it has no notebooks of its own.
+# MAGIC The second feed, provider B, was onboarded without new code: it is a block in the use-case spec, and a renderer turns that block into a feed config. This guide shares its job and notebooks with *Configuration-driven ingestion*, so it has no notebooks of its own. Safe to rerun: it has no notebooks of its own, and the shared notebooks it points to replace their output.
 # MAGIC
 # MAGIC ## Notebooks, in run order
 # MAGIC

@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 2. Test, log and register the agent
 # MAGIC
-# MAGIC Test the agent locally with tracing, log it from code, and register a version in Unity Catalog.
+# MAGIC Test the agent locally with tracing, log it from code, and register a version in Unity Catalog. Safe to rerun: the experiment is reused, `champion` is set, not added, and each run registers a new model version (versions are history).
 
 # COMMAND ----------
 

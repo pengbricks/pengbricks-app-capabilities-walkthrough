@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 4. Record
 # MAGIC
-# MAGIC Writes the statement list, the summary and the role-based effort estimate, then logs the run. The three assessment tables are overwritten. `etl_log` gets one row per run. Needs the tables from `02_convert` and `03_reconcile`.
+# MAGIC Writes the statement list, the summary and the role-based effort estimate, then logs the run. The three assessment tables are overwritten. Safe to rerun: the assessment tables are overwritten and this step's row in `etl_log` is replaced, so `etl_log` keeps one row for it. Needs the tables from `02_convert` and `03_reconcile`.
 
 # COMMAND ----------
 
@@ -70,11 +70,12 @@ display(spark.table(fq(cat, sch, "assessment_effort")))
 # MAGIC %md
 # MAGIC ## Log the run
 # MAGIC
-# MAGIC The equivalent of the legacy TRY/CATCH logging. This table keeps one row per run.
+# MAGIC The equivalent of the legacy TRY/CATCH logging. This table keeps one row for this step: a rerun replaces it.
 
 # COMMAND ----------
 
 spark.sql(f"CREATE TABLE IF NOT EXISTS {fq(cat, sch, 'etl_log')} (run_at TIMESTAMP, step_name STRING, rows_loaded INT, message STRING)")
 msg = "completed" if passed == len(tests) else f"{len(tests) - passed} checks failed"
+spark.sql(f"DELETE FROM {fq(cat, sch, 'etl_log')} WHERE step_name = 'legacy_conversion_assessment'")  # a rerun replaces this step's row
 spark.sql(f"INSERT INTO {fq(cat, sch, 'etl_log')} VALUES (current_timestamp(), 'legacy_conversion_assessment', {len(conv)}, '{msg}')")
 print(summary, f"tests passed={passed} failed={len(tests) - passed}", sep="\n")

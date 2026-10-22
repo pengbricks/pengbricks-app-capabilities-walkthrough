@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # Explore dx_demo
 # MAGIC
-# MAGIC Interactive authoring: import the package, run a transform, and inspect the result. Set a breakpoint in `clean_records` and use the notebook debugger to step into it. This notebook is not a job task.
+# MAGIC Interactive authoring: import the package, run a transform, and inspect the result. Set a breakpoint in `clean_records` and use the notebook debugger to step into it. This notebook is not a job task. Safe to rerun: it builds a small DataFrame in memory and writes nothing.
 
 # COMMAND ----------
 

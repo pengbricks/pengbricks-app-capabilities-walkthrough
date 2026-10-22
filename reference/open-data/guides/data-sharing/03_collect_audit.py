@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 3. Collect the audit events
 # MAGIC
-# MAGIC `system.access.audit` lags events by several minutes, so this notebook polls until the closing event shows up or the wait budget runs out. The job passes `started_epoch` and `final_action` from `02_share_and_read`. Run on its own, it looks back one hour and waits for `deleteRecipient`.
+# MAGIC `system.access.audit` lags events by several minutes, so this notebook polls until the closing event shows up or the wait budget runs out. The job passes `started_epoch` and `final_action` from `02_share_and_read`. Run on its own, it looks back one hour and waits for `deleteRecipient`. Safe to rerun: the events table is overwritten.
 
 # COMMAND ----------
 

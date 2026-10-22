@@ -11,6 +11,8 @@ dbutils.library.restartPython()
 # MAGIC # 1. Set up the on-call table
 # MAGIC
 # MAGIC Overwrites `on_call` from the spec, so the table always matches the committed ownership map, and makes sure `support_incidents` exists. Rerunning replaces the table with the same rows.
+# MAGIC
+# MAGIC Safe to rerun: `on_call` is overwritten and `support_incidents` is created only if missing.
 
 # COMMAND ----------
 

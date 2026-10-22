@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # 3. Join the upload to the governed table
 # MAGIC
-# MAGIC A full outer join keeps keys from both sides. Each key gets a `match_status`: `matched`, `upload_only` or `governed_only`. Run `02_simulate_upload` first.
+# MAGIC A full outer join keeps keys from both sides. Each key gets a `match_status`: `matched`, `upload_only` or `governed_only`. Run `02_simulate_upload` first. Safe to rerun: both result tables are overwritten.
 
 # COMMAND ----------
 

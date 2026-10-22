@@ -17,7 +17,7 @@ dbutils.library.restartPython()
 # MAGIC - which environment schemas exist, and whether a dev schema is a personal sandbox
 # MAGIC - the schema's owner, its `environment` tag, and the grants on it (in prod, a person who owns or can write to the schema is a warn)
 # MAGIC
-# MAGIC The notebook only reads. Findings go to `environment_layout_audit` in the environment schema; each run replaces the table. A warn never fails the task: the audit reports, it does not enforce.
+# MAGIC The notebook only reads. Findings go to `environment_layout_audit` in the environment schema; each run replaces the table. A warn never fails the task: the audit reports, it does not enforce. Safe to rerun: the notebook only reads, and `environment_layout_audit` is replaced.
 
 # COMMAND ----------
 

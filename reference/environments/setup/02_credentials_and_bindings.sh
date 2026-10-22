@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Storage credentials and workspace-catalog bindings for layout (a). Not executed by this repo: set the
 # variables below, then run each section as a metastore admin (or the catalog owner for the bindings).
-# Order: section 1 here (credentials), then 01_catalogs.sql, then sections 2 to 5 here, then 03_grants.sql.
+# Order: section 1 here (credentials), then 01_catalogs.sql, then sections 2 to 5 here, then 03_grants.sql. Safe to rerun: a credential that exists is skipped; the rest re-applies the same settings.
 set -euo pipefail
 
 PROFILE="${PROFILE:?databricks CLI profile of a metastore admin}"
@@ -12,7 +12,7 @@ DEV_WS="${DEV_WS:?}"; TEST_WS="${TEST_WS:?}"; STAGE_WS="${STAGE_WS:?}"; PROD_WS=
 # 1. One storage credential per environment, each on its own cloud role (AWS shown; Azure and GCP use
 #    azure_managed_identity and databricks_gcp_service_account in the same JSON slot).
 for env in dev test stage prod; do
-  databricks storage-credentials create "${env}_storage" --profile "$PROFILE" \
+  databricks storage-credentials get "${env}_storage" --profile "$PROFILE" >/dev/null 2>&1 || databricks storage-credentials create "${env}_storage" --profile "$PROFILE" \
     --json "{\"aws_iam_role\": {\"role_arn\": \"arn:aws:iam::${ACCOUNT_ID}:role/${env}-unity-storage\"}}"
 done
 

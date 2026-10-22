@@ -1,0 +1,9 @@
+# Databricks does not run this command in a shell, so app.py reads DATABRICKS_APP_PORT itself.
+command: ['python', 'app.py']
+env:
+  # valueFrom reads the resource key declared in resources/databricks_apps.app.yml.
+  - name: WAREHOUSE_ID
+    valueFrom: 'sql-warehouse'
+  # A LIKE pattern, so the same file matches the shared schema in dev (dev_<user>_capability_guides) and test.
+  - name: SHARED_SCHEMA_PATTERN
+    value: '%capability_guides'

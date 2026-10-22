@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # SQL Server ingestion with Lakeflow Connect
 # MAGIC
-# MAGIC This guide ingests three SQL Server tables with Lakeflow Connect, then proves the parts customers ask about. Inserts, updates, and deletes made on the source land in bronze. A table with CDC keeps its full history. A new source column flows through with no pipeline change. A full refresh of one table leaves the others alone. Silver tables built on bronze show lineage, and a Genie space answers a question about them.
+# MAGIC This guide ingests three SQL Server tables with Lakeflow Connect, then proves the parts customers ask about. Inserts, updates, and deletes made on the source land in bronze. A table with CDC keeps its full history. A new source column flows through with no pipeline change. A full refresh of one table leaves the others alone. Silver tables built on bronze show lineage, and a Genie space answers a question about them. Safe to rerun: results are replaced per step, the Genie space is found by title and updated, and the source setup script keeps existing objects. The source changes by design: each run touches the least recently changed rows and adds 10 orders.
 # MAGIC
 # MAGIC > **Needs classic compute.** The ingestion gateway runs on classic compute. A workspace that allows only serverless compute, like the reference workspace for these guides, cannot start it, so this job does not run there. Deploy to a workspace that allows classic compute.
 # MAGIC

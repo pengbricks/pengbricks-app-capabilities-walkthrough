@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
 from typing import Any, Callable
@@ -87,6 +87,14 @@ def late_change_ids(spec: dict[str, Any]) -> list[int]:
     change = d["late_change"]
     ids = [i for i in range(1, d["orders"] + 1) if i % d["days"] == change["from_day_offset"]]
     return ids[: change["order_count"]]
+
+
+def restore_late_change(workspace: Any, cfg: dict[str, Any], spec: dict[str, Any]) -> None:
+    """Put the orders that `late_change_ids` names back on their original day, so a rerun copies the same source."""
+    today = datetime.now(timezone.utc).date()
+    from_day = today - timedelta(days=spec["data"]["late_change"]["from_day_offset"])
+    with connect(connection_settings(workspace, cfg)) as conn, conn.cursor() as cur:
+        cur.execute(f"UPDATE {ident(cfg['schema'])}.orders SET order_date = %s WHERE order_id = ANY(%s)", (from_day, late_change_ids(spec)))
 
 
 SOURCE_DDL = """
@@ -393,3 +401,27 @@ def run_check(check: dict[str, Any], ctx: Context) -> Result:
         return Result(observed=None, status="error", details=f"{type(exc).__name__}: {str(exc).splitlines()[0][:300]}", **base)
     status = "pass" if passes(observed, op, threshold) else "fail"
     return Result(observed=observed, status=status, details=details, **base)
+
+
+def require_ready(spark: Any, ns: str, stage: str, run_id: str, spec: dict[str, Any] | None = None) -> None:
+    """Stop with a plain message, before anything changes, when an earlier task has not left its output.
+
+    stage is run_validations, publish_metric_view, or read_lineage.
+    """
+    exists = lambda name: spark.catalog.tableExists(f"{ns}.{name}")  # noqa: E731
+    problems = []
+    if stage == "run_validations":
+        problems += [f"{t} is missing (run 03_load_target and the pipeline)" for t in ("dv_orders_landed", "dv_customers_landed", "dv_orders_silver") if not exists(t)]
+        wanted = [c["name"] for c in (spec or {}).get("checks", []) if c.get("type") == "reconciliation" and c.get("source") == "snapshot"]
+        if wanted:
+            have = set()
+            if exists("dv_source_snapshot"):
+                have = {r[0] for r in spark.sql(f"SELECT DISTINCT check_name FROM {ns}.dv_source_snapshot WHERE run_id = '{run_id}'").collect()}
+            problems += [f"no source snapshot for {n} in run {run_id} (run 04_snapshot_source with the same run_id)" for n in wanted if n not in have]
+    else:
+        if not exists("dv_orders_silver"):
+            problems.append("dv_orders_silver is missing (run the pipeline)")
+        if not exists("dv_check_results") or spark.sql(f"SELECT count(*) FROM {ns}.dv_check_results WHERE run_id = '{run_id}'").first()[0] == 0:
+            problems.append(f"no check results for run {run_id} (run 06_run_validations with the same run_id)")
+    if problems:
+        raise RuntimeError("An earlier task has not run: " + "; ".join(problems) + ". Nothing was changed.")

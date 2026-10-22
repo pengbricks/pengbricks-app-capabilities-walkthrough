@@ -14,7 +14,7 @@ dbutils.library.restartPython()
 # MAGIC
 # MAGIC No A2A endpoint exists on the workspace, so the handoff is a supervisor pattern: the supervisor model
 # MAGIC calls a `handoff` tool, and each specialist is its own model call with its own prompt and tools. The
-# MAGIC orders agent calls the Unity Catalog function over MCP. Every step lands in `agent_handoff_trace`.
+# MAGIC orders agent calls the Unity Catalog function over MCP. Every step lands in `agent_handoff_trace`. Safe to rerun: `agent_handoff_trace` is overwritten.
 
 # COMMAND ----------
 

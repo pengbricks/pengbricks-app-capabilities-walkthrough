@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 3. Deploy the endpoint
 # MAGIC
-# MAGIC Deploy the registered agent to a small scale-to-zero Model Serving endpoint and wait for READY.
+# MAGIC Deploy the registered agent to a small scale-to-zero Model Serving endpoint and wait for READY. Safe to rerun: the endpoint is created if missing and updated in place if it exists.
 
 # COMMAND ----------
 
@@ -61,6 +61,12 @@ READY_TIMEOUT_S = 45 * 60
 def state(w: WorkspaceClient, name: str) -> dict:
     return w.api_client.do("GET", f"/api/2.0/serving-endpoints/{name}")
 
+def wait_idle(w: WorkspaceClient, name: str) -> None:
+    """Wait while a config update is running, so a rerun after a timeout does not collide with it. Raises NotFound if missing."""
+    deadline = time.time() + READY_TIMEOUT_S
+    while state(w, name)["state"].get("config_update") == "IN_PROGRESS" and time.time() < deadline:
+        time.sleep(30)
+
 # COMMAND ----------
 
 # MAGIC %md
@@ -85,7 +91,7 @@ def main() -> None:
     config = {"served_entities": [entity], "traffic_config": {"routes": [{"served_model_name": "assistant", "traffic_percentage": 100}]}}
     tags = [{"key": "capability_guide", "value": "agent-build-deployment"}, {"key": "release", "value": args.release}]
     try:
-        state(w, name)
+        wait_idle(w, name)
         w.api_client.do("PUT", f"/api/2.0/serving-endpoints/{name}/config", body=config)
         print(f"Updating endpoint {name} to version {args.version}")
     except NotFound:

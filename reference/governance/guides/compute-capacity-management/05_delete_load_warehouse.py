@@ -12,6 +12,8 @@ dbutils.library.restartPython()
 # MAGIC
 # MAGIC Deletes the test warehouse. The job runs this step with `run_if: ALL_DONE`, so the warehouse is removed even when an earlier step fails.
 
+# MAGIC
+# MAGIC Safe to rerun: it deletes the test warehouse only if one exists and does nothing otherwise.
 # COMMAND ----------
 
 import sys, os
@@ -62,7 +64,9 @@ def delete_load_warehouse(args, spark) -> None:
         if wh.name == TEST_WAREHOUSE:
             w.warehouses.delete(wh.id)
             removed += 1
-    spark.sql(f"UPDATE {qualified(args.catalog, args.schema, 'warehouse_settings')} SET state = 'DELETED' WHERE name = '{TEST_WAREHOUSE}'")
+    settings = qualified(args.catalog, args.schema, 'warehouse_settings')
+    if spark.catalog.tableExists(settings):
+        spark.sql(f"UPDATE {settings} SET state = 'DELETED' WHERE name = '{TEST_WAREHOUSE}'")
     print(f"deleted {removed} test warehouse(s)")
 
 # COMMAND ----------

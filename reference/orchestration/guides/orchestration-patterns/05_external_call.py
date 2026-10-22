@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # 5. Call an external process
 # MAGIC
-# MAGIC Runs a shell command from Python and an HTTP request to a public endpoint.
+# MAGIC Safe to rerun: the call rows for a `run_id` are replaced; a new job run adds its own rows to `orch_external_calls` and `orch_attempt_marker`, which are run logs. Runs a shell command from Python and an HTTP request to a public endpoint.
 # MAGIC
 # MAGIC The job sets `fail_first_attempt = true`, so attempt 0 fails on purpose and the task retry policy runs it again. A marker row per job run tells the second attempt that it is a retry. Run by hand, `fail_first_attempt` defaults to `false`.
 

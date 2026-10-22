@@ -13,7 +13,7 @@ dbutils.library.restartPython()
 # MAGIC Call one Unity Catalog function as an MCP tool and record the call.
 # MAGIC
 # MAGIC The call goes to the managed MCP server for the schema with an OAuth token from the Databricks SDK, so
-# MAGIC Unity Catalog checks the caller's grants. Records tools/list, the tool result, UC grants, and latency.
+# MAGIC Unity Catalog checks the caller's grants. Records tools/list, the tool result, UC grants, and latency. Safe to rerun: `mcp_tool_call` is overwritten.
 
 # COMMAND ----------
 

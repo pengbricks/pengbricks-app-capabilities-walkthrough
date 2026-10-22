@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # 1. Write one dataset five ways
 # MAGIC
-# MAGIC The same seeded orders go to JSON, CSV and Parquet folders in a volume, a managed Delta table, and a managed Iceberg table. Every write overwrites, so a rerun gives the same files and row counts. Rows are range-partitioned and sorted by `order_date` in every format, so the file layout is the same everywhere and only the format differs.
+# MAGIC The same seeded orders go to JSON, CSV and Parquet folders in a volume, a managed Delta table, and a managed Iceberg table. Safe to rerun: every write overwrites, and the step's rows in `ff_results` are replaced. Rows are range-partitioned and sorted by `order_date` in every format, so the file layout is the same everywhere and only the format differs.
 
 # COMMAND ----------
 
@@ -140,5 +140,5 @@ if wrong:
 
 # COMMAND ----------
 
-append_rows(spark, N["results"], results, RESULT_COLUMNS)
+append_rows(spark, N["results"], results, RESULT_COLUMNS, replace_where="step = 'write'")
 display(spark.sql(f"SELECT format, metric, value, detail FROM {N['results']} WHERE run_id = '{RUN_ID}' AND step = 'write' AND metric IN ('rows', 'files', 'bytes') ORDER BY metric, format"))

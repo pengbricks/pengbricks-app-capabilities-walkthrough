@@ -1,0 +1,53 @@
+bundle:
+  name: capability-guides-lakebase-apps
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Unity Catalog catalog that holds the guide schema
+  warehouse_id:
+    description: Serverless SQL warehouse that queries the registered Lakebase catalog
+  app_service_principal:
+    description: Application ID of the Databricks App service principal that triggers quick runs
+  schema:
+    description: Schema for this bundle's Delta tables, shared with the other guides
+    default: capability_guides
+  lakebase_project:
+    description: Lakebase project ID for this guide. Lowercase letters, digits, and hyphens. Development mode does not prefix it.
+    default: capability-guides-lakebase-apps
+  app_schema:
+    description: Postgres schema that holds the app-owned tables
+    default: lakebase_apps
+  dev_branch:
+    description: ID of the dev branch that notebook 04 creates and deletes
+    default: dev-demo
+  lakebase_catalog:
+    description: Unity Catalog catalog that notebook 06 registers over the Lakebase database
+    default: lakebase_apps_demo
+  release:
+    description: Release identifier recorded in resource tags
+    default: local
+
+permissions:
+  - level: CAN_MANAGE
+    user_name: ${workspace.current_user.userName}
+  - level: CAN_RUN
+    service_principal_name: ${var.app_service_principal}
+
+targets:
+  dev:
+    default: true
+    mode: development
+    presets:
+      tags:
+        release: ${var.release}
+    variables:
+      schema: dev_${workspace.current_user.short_name}_capability_guides
+  test:
+    presets:
+      name_prefix: "[test] "
+      tags:
+        environment: test
+        release: ${var.release}

@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 1. Prepare the data
 # MAGIC
-# MAGIC Creates each sample table from the use-case spec with the sample-data generator (`src/sample_data.py`) and a fixed seed. A table that already exists is kept, so a rerun changes nothing.
+# MAGIC Creates each sample table from the use-case spec with the sample-data generator (`src/sample_data.py`) and a fixed seed. Safe to rerun: a table that already exists is kept, so a rerun changes nothing.
 
 # COMMAND ----------
 

@@ -10,6 +10,8 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 3. Apply v1.0.0, then v1.1.0
 # MAGIC
+# MAGIC Safe to rerun: the guide's tables and view are dropped and its registry rows cleared before it rebuilds them.
+# MAGIC
 # MAGIC Creates the table from the v1.0.0 contract, then evolves it in place to v1.1.0 (nonbreaking). Objects from an earlier run are dropped first, so the job can run again.
 
 # COMMAND ----------

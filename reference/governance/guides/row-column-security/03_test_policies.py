@@ -12,6 +12,8 @@ dbutils.library.restartPython()
 # MAGIC
 # MAGIC Reads the tables as the job identity and evaluates the same policy logic for a restricted role and for the app service principal. It asserts that the job identity (an admin) sees everything, that the logic reproduces the real policy, and that the other identities see less.
 
+# MAGIC
+# MAGIC Safe to rerun: it only reads the tables, and `policy_test_results` is replaced.
 # COMMAND ----------
 
 import sys, os

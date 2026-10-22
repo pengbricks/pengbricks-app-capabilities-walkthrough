@@ -23,7 +23,7 @@ from capability_framework.use_case import load_use_case
 # MAGIC %md
 # MAGIC ## Read the streaming settings
 # MAGIC
-# MAGIC The spec's `streaming` block sets the feed folder, how many batches to land, and how many events each holds.
+# MAGIC The spec's `streaming` block sets the feed folder, how many batches to land, and how many events each holds. Safe to rerun: each batch has a fixed file name and id range, and a batch already in the landing folder is skipped.
 
 # COMMAND ----------
 

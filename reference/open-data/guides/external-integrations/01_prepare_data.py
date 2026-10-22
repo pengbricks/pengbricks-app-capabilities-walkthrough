@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 1. Prepare the sample data
 # MAGIC
-# MAGIC Writes `sharing_orders` and `sharing_products` from the use-case spec. Each table is overwritten, so a rerun replaces the data.
+# MAGIC Writes `sharing_orders` and `sharing_products` from the use-case spec. Safe to rerun: each table is overwritten, so a rerun replaces the data.
 
 # COMMAND ----------
 

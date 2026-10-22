@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 4. Refetch finds nothing
 # MAGIC
-# MAGIC Runs the fetch again after ingestion and fails if it copies anything. This proves a file is not copied twice.
+# MAGIC Runs the fetch again after ingestion and fails if it copies anything. This proves a file is not copied twice. Safe to rerun: it copies nothing when the transfer log is current, and the run log keeps one row per run and task.
 
 # COMMAND ----------
 

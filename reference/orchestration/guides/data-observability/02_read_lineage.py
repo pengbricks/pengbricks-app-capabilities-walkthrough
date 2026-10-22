@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # 2. Read the lineage
 # MAGIC
-# MAGIC Reads the chain back from `system.access.table_lineage` and `column_lineage`. Lineage lands in system tables a few minutes after the writes, so the notebook polls. It replaces any rows already recorded for the same `run_id`.
+# MAGIC Safe to rerun: the lineage rows for a `run_id` are replaced; each job run adds its own rows to `obs_lineage_edges` and `obs_column_lineage`, which are run logs. Reads the chain back from `system.access.table_lineage` and `column_lineage`. Lineage lands in system tables a few minutes after the writes, so the notebook polls. It replaces any rows already recorded for the same `run_id`.
 
 # COMMAND ----------
 

@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 1. Create the source database
 # MAGIC
-# MAGIC Creates the source schema, tables and database function in Lakebase Postgres and loads sample rows. The DDL recreates the tables, so a rerun reloads the same rows.
+# MAGIC Creates the source schema, tables and database function in Lakebase Postgres and loads sample rows. Safe to rerun: the DDL drops and recreates the schema, so a rerun reloads the same rows.
 
 # COMMAND ----------
 

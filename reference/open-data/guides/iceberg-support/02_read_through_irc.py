@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 2. Read through the Iceberg REST catalog
 # MAGIC
-# MAGIC PyIceberg gets the catalog URI, a bearer token for the current identity, and asks for vended credentials so it can read the data files. Without the vended-credentials header the data read is denied.
+# MAGIC PyIceberg gets the catalog URI, a bearer token for the current identity, and asks for vended credentials so it can read the data files. Without the vended-credentials header the data read is denied. Safe to rerun: its rows in `iceberg_checks` are replaced.
 
 # COMMAND ----------
 
@@ -88,7 +88,7 @@ record("external_snapshots", "INFO", str(len(snapshots)), f"Iceberg metadata lis
 
 # COMMAND ----------
 
-append_rows(spark, f"{prefix}.iceberg_checks", rows, COLUMNS, replace_where="`check` LIKE 'external_%' OR `check` = 'irc_configuration'")
+append_rows(spark, f"{prefix}.iceberg_checks", rows, COLUMNS, replace_where="`check` IN ('irc_configuration', 'external_schema', 'external_read', 'external_filter_pushdown', 'external_snapshots')")
 failed = [r["check"] for r in rows if r["status"] == "FAIL"]
 if failed:
     raise Exception(f"Failed checks: {failed}")

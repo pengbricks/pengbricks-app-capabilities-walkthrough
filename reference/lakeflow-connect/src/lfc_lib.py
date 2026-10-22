@@ -258,12 +258,17 @@ def write_results(spark: Any, catalog: str, schema: str, run_id: str, step: str,
 # ---------- Genie ----------
 
 
+def _stable_id(text: str) -> str:
+    """A 32-character hex id that depends only on the text, so a rerun sends the same space definition."""
+    return uuid.uuid5(uuid.NAMESPACE_URL, text).hex
+
+
 def serialized_space(tables: list[str], instructions: str, sample_questions: list[str]) -> str:
     space: dict[str, Any] = {
         "version": 2,
         "data_sources": {"tables": [{"identifier": name} for name in sorted(tables)]},
-        "config": {"sample_questions": sorted(({"id": uuid.uuid4().hex, "question": [q]} for q in sample_questions), key=lambda q: q["id"])},
-        "instructions": {"text_instructions": [{"id": uuid.uuid4().hex, "content": [instructions]}]},
+        "config": {"sample_questions": sorted(({"id": _stable_id(q), "question": [q]} for q in sample_questions), key=lambda q: q["id"])},
+        "instructions": {"text_instructions": [{"id": _stable_id(instructions), "content": [instructions]}]},
     }
     return json.dumps(space)
 

@@ -12,6 +12,8 @@ dbutils.library.restartPython()
 # MAGIC
 # MAGIC Fires many heavy statements at once so the single-cluster test warehouse has to queue, and waits until they finish. The statement ids are saved to `capacity_load_statements`.
 
+# MAGIC
+# MAGIC Safe to rerun: the statement list table is replaced. Each run sends a new burst of statements, which is the point of the load.
 # COMMAND ----------
 
 import sys, os

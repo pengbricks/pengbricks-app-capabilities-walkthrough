@@ -10,6 +10,8 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 1. Create the source
 # MAGIC
+# MAGIC Safe to rerun: the DDL drops and recreates both source tables, then loads the same rows.
+# MAGIC
 # MAGIC Builds the stand-in source in Lakebase Postgres: `orders` and `customers` in the `dv_source` schema. A few orders break the pipeline rules on purpose (a negative amount, a missing customer, an unknown status). The DDL drops and recreates both tables, so a rerun reloads the same rows.
 
 # COMMAND ----------

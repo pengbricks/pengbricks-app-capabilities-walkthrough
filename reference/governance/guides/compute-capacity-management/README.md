@@ -12,6 +12,7 @@ The job reads the settings of the shared SQL warehouse without changing them, th
 | Workload isolation layout | A separate warehouse per workload (see Isolation below) and the test warehouse used for the load |
 | Capacity dashboard over query history | `Capability guides capacity` dashboard over `system.query.history` and `system.compute.warehouse_events` |
 | Queueing under load | `capacity_load_summary` and `capacity_load_queries` |
+| Warehouse type audit | `governance_warehouse_types` table: type (classic, pro, serverless), size, clusters, auto-stop, state, and flags |
 
 In the reference run, the shared warehouse reported `Small`, 1 to 1 clusters, auto-stop 10 minutes, PRO, serverless. The test warehouse took 40 concurrent statements: 30 waited for capacity, the median wait at capacity was 61.1 s, the 95th percentile was 117.0 s, and at most 10 ran at once.
 
@@ -32,8 +33,9 @@ flowchart LR
 
 ## Reference code
 
-- `resources/compute_capacity.job.yml`: five tasks. `delete_load_warehouse` uses `run_if: ALL_DONE` and depends on the create, load, and analyze tasks, so it runs after a failure too.
-- `guides/compute-capacity-management/`: `00_start_here` plus `01_read_settings` (SDK settings and the workspace-scoped views), `02_create_load_warehouse`, `03_generate_load` (async statement execution through a thread pool), `04_analyze_load`, `05_delete_load_warehouse`. Each notebook also runs on its own with Run all.
+- `resources/compute_capacity.job.yml`: six tasks, the sixth a read-only audit. `delete_load_warehouse` uses `run_if: ALL_DONE` and depends on the create, load, and analyze tasks, so it runs after a failure too.
+- `guides/compute-capacity-management/`: `00_start_here` plus `01_read_settings` (SDK settings and the workspace-scoped views), `02_create_load_warehouse`, `03_generate_load` (async statement execution through a thread pool), `04_analyze_load`, `05_delete_load_warehouse`, and `06_warehouse_type_audit` (lists every warehouse with its type, flags non-serverless warehouses and auto-stop above the default, and prints the API request that creates a serverless warehouse without sending it). Each notebook also runs on its own with Run all.
+- `src/governance_lib/warehouses.py`: `warehouse_class`, `auto_stop_flag`, `audit_row`, and `serverless_request_body`, unit tested.
 - `src/governance_lib/analysis.py`: `max_concurrency` and `percentile`, unit tested.
 - `src/capacity.lvdash.json` and `resources/capacity.dashboard.yml`: the dashboard.
 - `sql/capacity_queries.sql`: the queueing and event queries.
@@ -61,11 +63,15 @@ flowchart LR
    ```
 6. Open the capacity dashboard. The statements chart shows the burst on `capability-guides-capacity-test`; the wait chart shows the longest wait at capacity per hour.
 7. Show that `delete_load_warehouse` ran and the test warehouse is gone from the warehouse list.
+8. Query the audit and read the flags: pro and classic warehouses, and auto-stop above 45 minutes (pro, classic) or 10 minutes (serverless):
+   ```sql
+   SELECT name, warehouse_class, size, auto_stop_minutes, state, flags FROM <catalog>.<schema>.governance_warehouse_types ORDER BY flagged DESC, name;
+   ```
 
 ## Artifacts produced
 
 - Job `capability-guides-compute-capacity` (key `capability_guides_compute_capacity`)
-- Tables and views: `warehouse_settings`, `capacity_test_warehouse`, `capacity_load_statements`, `capacity_load_queries`, `capacity_load_summary`, `capacity_load_events`, views `capacity_query_history` and `capacity_warehouse_events`
+- Tables and views: `warehouse_settings`, `governance_warehouse_types`, `capacity_test_warehouse`, `capacity_load_statements`, `capacity_load_queries`, `capacity_load_summary`, `capacity_load_events`, views `capacity_query_history` and `capacity_warehouse_events`
 - Dashboard `Capability guides capacity`
 
 ## Reference run

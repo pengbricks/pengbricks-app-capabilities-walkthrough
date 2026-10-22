@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 2. Build the extracts
 # MAGIC
-# MAGIC Writes a filtered extract as a formatted Excel workbook and a pipe-delimited file for external partners. Files are named by date, so a rerun on the same day replaces them. The table behind the dashboard is overwritten too.
+# MAGIC Writes a filtered extract as a formatted Excel workbook and a pipe-delimited file for external partners. Safe to rerun: the extract table is overwritten, today's files replace any from an earlier run, and files from other dates are deleted.
 
 # COMMAND ----------
 
@@ -147,6 +147,9 @@ if not (xlsx_rows == count == pipe_rows == len(pdf)):
 
 # COMMAND ----------
 
+for old in os.listdir(folder):
+    if old.startswith("orders_extract_") and old not in (os.path.basename(xlsx_path), os.path.basename(pipe_path)):
+        os.remove(os.path.join(folder, old))  # extracts from earlier days, so the folder holds one set
 manifest = [
     (os.path.basename(p), p, kind, len(pdf), os.path.getsize(p), params["run_id"])
     for p, kind in ((xlsx_path, "xlsx"), (pipe_path, "pipe-delimited"))

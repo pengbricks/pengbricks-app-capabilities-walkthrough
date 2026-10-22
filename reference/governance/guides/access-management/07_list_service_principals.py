@@ -12,6 +12,8 @@ dbutils.library.restartPython()
 # MAGIC
 # MAGIC Writes the workspace's service principals, their roles and OAuth secret counts and expiry to `access_service_principals`. It reads secret metadata only and never creates or changes a secret.
 
+# MAGIC
+# MAGIC Safe to rerun: it only reads the workspace's service principals, and `access_service_principals` is replaced.
 # COMMAND ----------
 
 import sys, os

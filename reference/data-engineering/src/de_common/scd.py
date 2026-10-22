@@ -51,3 +51,27 @@ def problems(values: dict[str, dict[str, int]], spec: dict[str, Any], phase: str
     if values["scd2"]["history_rows"] != want_history:
         found.append(f"scd2.history_rows={values['scd2']['history_rows']}, expected {want_history}")
     return found
+
+
+def batch_in_changes(spark, scope: str) -> int:
+    """Rows of the change batch (change_seq 2) in accounts_changes; 0 when the table or the batch is missing."""
+    try:
+        return int(spark.sql(f"SELECT count(*) FROM {scope}.accounts_changes WHERE change_seq = 2").first()[0])
+    except Exception:  # noqa: BLE001 - table not created yet
+        return 0
+
+
+def batch_consumed(spark, scope: str) -> bool:
+    """True once the pipeline has applied the change batch: the type 2 table holds versions that start or end at change_seq 2."""
+    try:
+        return spark.sql(f"SELECT count(*) FROM {scope}.accounts_scd2 WHERE __START_AT >= 2 OR __END_AT >= 2").first()[0] > 0
+    except Exception:  # noqa: BLE001 - pipeline has not built the table
+        return False
+
+
+def initial_loaded(spark, scope: str) -> bool:
+    """True when the type 2 table exists and holds rows, so the initial update has run."""
+    try:
+        return spark.table(f"{scope}.accounts_scd2").limit(1).count() > 0
+    except Exception:  # noqa: BLE001
+        return False

@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 3. Load the target
 # MAGIC
-# MAGIC Copies `orders` and `customers` from the source into Delta tables with `remote_query`. These tables play the bronze role: a faithful copy that the pipeline cleans and the checks compare with the source. Each table is overwritten, so a rerun replaces it.
+# MAGIC Safe to rerun: the landed tables are overwritten, and the late source change is undone before each copy so every run copies the same source. Copies `orders` and `customers` from the source into Delta tables with `remote_query`. These tables play the bronze role: a faithful copy that the pipeline cleans and the checks compare with the source. Each table is overwritten, so a rerun replaces it.
 # MAGIC
 # MAGIC After the copy, the notebook changes the source the way a late correction would: it moves six orders from one day to the previous day. Whole-table count and sum do not change. Only a per-day comparison can see it.
 
@@ -32,7 +32,7 @@ from databricks.sdk import WorkspaceClient
 spec = dv_lib.load_spec(SPEC_FILE)
 cfg = {**spec["source"], **({"lakebase_project": params["lakebase_project"]} if params["lakebase_project"] else {})}
 src = dv_lib.ident(cfg["schema"])
-
+dv_lib.restore_late_change(WorkspaceClient(), cfg, spec)  # a rerun copies the original source, not the moved one
 def remote(sql: str):
     return dv_lib.remote_query(spark, cfg["connection_name"], cfg["lakebase_database"], sql)
 

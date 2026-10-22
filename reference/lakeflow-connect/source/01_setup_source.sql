@@ -9,7 +9,7 @@
 --
 -- It creates three tables with sample rows, two logins, CDC on customers (history, SCD type 2),
 -- Change Tracking on orders and products (latest row, SCD type 1), and the connector's grants.
--- Safe to rerun: existing tables, rows, and logins are kept.
+-- Safe to rerun: existing tables, rows, and logins are kept, and change capture is enabled only where it is missing.
 
 SET NOCOUNT ON;
 GO
@@ -112,8 +112,8 @@ GO
 
 -- 4 · Change capture, per table. CDC for the history table, Change Tracking for the rest.
 --     Never enable both on one table: with both on, the connector uses Change Tracking and history is lost.
-EXEC dbo.lakeflowSetupChangeDataCapture @Tables = 'dbo.customers', @User = 'lakeflow_ingest';
-EXEC dbo.lakeflowSetupChangeTracking
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('dbo.customers') AND is_tracked_by_cdc = 1) EXEC dbo.lakeflowSetupChangeDataCapture @Tables = 'dbo.customers', @User = 'lakeflow_ingest';
+IF (SELECT COUNT(*) FROM sys.change_tracking_tables WHERE object_id IN (OBJECT_ID('dbo.orders'), OBJECT_ID('dbo.products'))) < 2 EXEC dbo.lakeflowSetupChangeTracking
      @Tables = 'dbo.orders,dbo.products',
      @User = 'lakeflow_ingest',
      @Retention = '3 DAYS',

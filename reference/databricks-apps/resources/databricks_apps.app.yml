@@ -1,0 +1,19 @@
+# A small FastAPI app that reports which identity runs each query. It bills about 0.5 DBU per hour while it
+# is running (Medium). Stop it with the cleanup task (stop_app=true) or `databricks apps stop <name>`.
+resources:
+  apps:
+    databricks_apps_demo:
+      # Development mode does not prefix app names, so each target sets its own name through app_name.
+      name: ${var.app_name}
+      description: Shows app authorization and user authorization side by side
+      source_code_path: ../app
+      compute_size: MEDIUM
+      # The sql scope lets the app run queries as the signed-in user with x-forwarded-access-token.
+      user_api_scopes:
+        - sql
+      # The key (sql-warehouse) is what app.yaml reads with valueFrom. The grant goes to the app service principal.
+      resources:
+        - name: sql-warehouse
+          sql_warehouse:
+            id: ${var.warehouse_id}
+            permission: CAN_USE

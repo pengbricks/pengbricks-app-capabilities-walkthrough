@@ -31,6 +31,7 @@ resources:
         - task_key: resume_all
           depends_on:
             - task_key: pause_all
+          run_if: ALL_DONE
           notebook_task:
             notebook_path: ../guides/orchestration-patterns/10_bulk_pause_resume_all.py
             base_parameters:

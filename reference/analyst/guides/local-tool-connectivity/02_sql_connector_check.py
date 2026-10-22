@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 2. SQL connector check
 # MAGIC
-# MAGIC Connects with the Databricks SQL connector and queries a governed table. With `DATABRICKS_CLIENT_ID` and `DATABRICKS_CLIENT_SECRET` set, `Config()` performs OAuth M2M, as it would on a laptop. Here it uses the notebook's own identity.
+# MAGIC Connects with the Databricks SQL connector and queries a governed table. With `DATABRICKS_CLIENT_ID` and `DATABRICKS_CLIENT_SECRET` set, `Config()` performs OAuth M2M, as it would on a laptop. Here it uses the notebook's own identity. Safe to rerun: the check table is overwritten.
 
 # COMMAND ----------
 

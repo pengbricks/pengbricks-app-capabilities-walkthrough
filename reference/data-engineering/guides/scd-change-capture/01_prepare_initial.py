@@ -10,6 +10,8 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 1. Prepare the initial snapshot
 # MAGIC
+# MAGIC Safe to rerun: `accounts_changes` is overwritten with the same snapshot every run.
+# MAGIC
 # MAGIC Replaces `accounts_changes` with the initial snapshot: every row is an INSERT with `change_seq` 1.
 
 # COMMAND ----------

@@ -2,6 +2,8 @@
 # MAGIC %md
 # MAGIC # Versioning data contracts
 # MAGIC
+# MAGIC Safe to rerun: it only lists links to the deployed job and writes nothing.
+# MAGIC
 # MAGIC This guide publishes three versions of a `customers` data contract. A nonbreaking change (v1.1.0) evolves the table in place. A breaking change (v2.0.0) ships as a new table, and the old name becomes a deprecated compatibility view. A gate rejects any change whose version bump is wrong, a registry records every version, and a notification row tells each consumer what to change.
 # MAGIC
 # MAGIC ## Notebooks, in run order

@@ -10,6 +10,8 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 5. Show traceability
 # MAGIC
+# MAGIC Safe to rerun: it only reads.
+# MAGIC
 # MAGIC Shows the contract registry, the Delta history of each physical table, and the Unity Catalog tags. Then it checks that the compatibility view exposes exactly the v1.1.0 columns and types.
 
 # COMMAND ----------

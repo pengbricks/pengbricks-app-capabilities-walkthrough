@@ -15,7 +15,7 @@ print(f"version = {version or '(blank: undo the latest write)'}")
 # MAGIC %md
 # MAGIC ## Read the table's history
 # MAGIC
-# MAGIC `DESCRIBE HISTORY` lists every Delta version, newest first.
+# MAGIC `DESCRIBE HISTORY` lists every Delta version, newest first. Safe to rerun: a table whose latest version is already a `RESTORE` is left alone.
 
 # COMMAND ----------
 

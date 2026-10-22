@@ -10,6 +10,8 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 1. Build the sample tables
 # MAGIC
+# MAGIC Safe to rerun: every table is overwritten or replaced from a fixed seed, and tags and properties are set rather than added.
+# MAGIC
 # MAGIC Builds the table chain defined in the use-case spec so Unity Catalog records lineage. Generated tables come from the sample-data generator (`src/sample_data.py`) with a fixed seed. Derived tables are `CREATE OR REPLACE TABLE ... AS` statements. Every table is replaced, so a rerun gives the same rows.
 
 # COMMAND ----------

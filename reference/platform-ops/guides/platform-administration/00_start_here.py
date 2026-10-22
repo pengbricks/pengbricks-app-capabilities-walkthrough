@@ -30,6 +30,8 @@
 # MAGIC | `run_id` | Task notebooks only. Set by the job to the job run id. Blank uses `manual-<date>`. |
 # MAGIC
 # MAGIC Every variable is a widget. Leave one blank and it takes the default of the deployed job's parameter with the same name. Type a value to override it for one run.
+# MAGIC
+# MAGIC Safe to rerun: this notebook only reads and links the deployed job.
 
 # COMMAND ----------
 

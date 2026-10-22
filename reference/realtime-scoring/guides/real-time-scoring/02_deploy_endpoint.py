@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 2. Deploy the endpoint
 # MAGIC
-# MAGIC Creates the Model Serving endpoint, or updates it in place when it already exists, so a rerun never makes a second endpoint. It is Small with scale-to-zero on. Route optimization is requested only if the spec asks for it and the workspace allows it. The notebook then waits until the endpoint is ready.
+# MAGIC Creates the Model Serving endpoint, or updates it in place when it already exists, so a rerun never makes a second endpoint. It is Small with scale-to-zero on. Route optimization is requested only if the spec asks for it and the workspace allows it. The notebook then waits until the endpoint is ready. Safe to rerun: the endpoint is created if missing and updated in place if it exists.
 
 # COMMAND ----------
 
@@ -80,6 +80,10 @@ action = "updated"
 route_optimized = False
 try:
     existing = w.serving_endpoints.get(endpoint_name)
+    busy_until = time.time() + int(settings["ready_timeout_seconds"])
+    while str(existing.state.config_update).endswith("IN_PROGRESS") and time.time() < busy_until:
+        time.sleep(30)  # a rerun after a timeout would otherwise collide with the running update
+        existing = w.serving_endpoints.get(endpoint_name)
     route_optimized = bool(existing.route_optimized)
     w.serving_endpoints.update_config(name=endpoint_name, served_entities=config.served_entities)
     print(f"Updating existing endpoint {endpoint_name} to version {version}")

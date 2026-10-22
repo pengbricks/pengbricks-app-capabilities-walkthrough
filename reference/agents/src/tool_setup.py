@@ -46,7 +46,11 @@ def prepare_tool(spark, spec: dict, catalog: str, schema: str) -> tuple[str, int
     fn = ac.qualified(cat, sch, tool["function"])
     mask = ac.qualified(cat, sch, tool["mask_function"])
 
-    if spark.catalog.tableExists(table):
+    masked = spark.catalog.tableExists(table) and spark.sql(
+        f"SELECT 1 FROM `{cat}`.information_schema.column_masks "
+        f"WHERE table_schema = '{sch}' AND table_name = '{spec['data']['table']}' AND column_name = 'customer_email'"
+    ).count() > 0
+    if masked:  # an earlier run that stopped before SET MASK leaves none to drop
         spark.sql(f"ALTER TABLE {table} ALTER COLUMN customer_email DROP MASK")
     build_orders(spark, spec).write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(table)
     spark.sql(

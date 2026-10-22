@@ -11,6 +11,8 @@ dbutils.library.restartPython()
 # MAGIC # 3. Ask questions through the Conversation API
 # MAGIC
 # MAGIC Deletes the conversations this user started in the agent on earlier runs, so the agent does not collect one set per run, then asks the questions in the spec's `genie_agent.ask` list: a question, a follow-up in the same conversation, a second question in a new conversation, and a vague one the instruction says to answer with a clarifying question. Answers with an expected query are compared by rows. The first answer gets a thumbs-up. Each answer is recorded in `genie_agents_results` with its conversation and message IDs, which the next task reads back.
+# MAGIC
+# MAGIC Safe to rerun: earlier conversations are deleted first, and the step's rows in `genie_agents_results` are replaced.
 
 # COMMAND ----------
 

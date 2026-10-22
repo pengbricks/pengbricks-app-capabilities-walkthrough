@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 2. Score the batches
 # MAGIC
-# MAGIC Loads the `prod` model and scores one batch per later snapshot date: the whole customer base as of that month, with the churn label that followed. Nothing is shifted by hand; the customer base changes on its own. Three tables record the results: `batch_scores`, `ops_metrics` (speed and null rate) and `model_metrics` (AUC, accuracy and positive rates). All three are overwritten on each run.
+# MAGIC Loads the `prod` model and scores one batch per later snapshot date: the whole customer base as of that month, with the churn label that followed. Nothing is shifted by hand; the customer base changes on its own. Three tables record the results: `batch_scores`, `ops_metrics` (speed and null rate) and `model_metrics` (AUC, accuracy and positive rates). All three are overwritten on each run. Safe to rerun: all three tables are replaced, so the row counts stay the same.
 
 # COMMAND ----------
 

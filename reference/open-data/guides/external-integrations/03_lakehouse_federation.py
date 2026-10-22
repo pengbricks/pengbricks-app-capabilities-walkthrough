@@ -12,7 +12,7 @@ dbutils.library.restartPython()
 # MAGIC
 # MAGIC Reads an external Postgres database through a Unity Catalog connection and foreign catalog. The "external" database is the Lakebase Postgres project named in the `lakebase_project` widget.
 # MAGIC
-# MAGIC The notebook seeds a table over a direct Postgres connection, registers the connection, and creates a foreign catalog. If the workspace blocks `CREATE CATALOG`, it reads through `remote_query` on the same connection instead. It queries the table in place, joins it to a Unity Catalog table, and drops the connection and any foreign catalog at the end so no credential is left behind.
+# MAGIC The notebook seeds a table over a direct Postgres connection, registers the connection, and creates a foreign catalog. If the workspace blocks `CREATE CATALOG`, it reads through `remote_query` on the same connection instead. It queries the table in place, joins it to a Unity Catalog table, and drops the connection and any foreign catalog at the end so no credential is left behind. Safe to rerun: the Postgres table is dropped and reseeded, the connection and foreign catalog are dropped before and after, and the pattern's rows in `integration_checks` are replaced.
 
 # COMMAND ----------
 

@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # 3. Failures
 # MAGIC
-# MAGIC Failed, errored and timed-out runs, derived from `ops_job_runs`. Run `02_ops_job_runs` first. The table uses `CREATE OR REPLACE`, so a rerun replaces it.
+# MAGIC Failed, errored and timed-out runs, derived from `ops_job_runs`. Run `02_ops_job_runs` first. Safe to rerun: the table uses `CREATE OR REPLACE`, so a rerun replaces it.
 
 # COMMAND ----------
 

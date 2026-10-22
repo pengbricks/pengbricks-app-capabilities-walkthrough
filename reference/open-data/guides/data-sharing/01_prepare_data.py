@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 1. Prepare the governed data
 # MAGIC
-# MAGIC Creates the source tables from the use-case spec and the view the share exposes. The view keeps one region and leaves out `customer_email`. Every table is overwritten, so a rerun replaces the data.
+# MAGIC Creates the source tables from the use-case spec and the view the share exposes. The view keeps one region and leaves out `customer_email`. Safe to rerun: every table is overwritten, and the previous share is dropped so the view can be rebuilt.
 
 # COMMAND ----------
 

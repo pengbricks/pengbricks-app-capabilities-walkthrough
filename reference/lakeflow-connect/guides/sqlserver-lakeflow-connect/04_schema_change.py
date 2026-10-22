@@ -12,7 +12,7 @@ dbutils.library.restartPython()
 # MAGIC
 # MAGIC The application team adds `loyalty_tier` to `dbo.customers` and fills it for 20 customers. Nobody touches the pipeline. The DDL capture the setup procedures installed records the change, and the next ingestion run adds the column to `lfc_customers` and loads the values. Because `customers` keeps history, each of those 20 customers gets a new version.
 # MAGIC
-# MAGIC Renaming a column or changing its type is different: that needs a full refresh of the table (step 5).
+# MAGIC Renaming a column or changing its type is different: that needs a full refresh of the table (step 5). Safe to rerun: the column is added only if it is missing, and the same 20 customers get a tier from their plan.
 
 # COMMAND ----------
 

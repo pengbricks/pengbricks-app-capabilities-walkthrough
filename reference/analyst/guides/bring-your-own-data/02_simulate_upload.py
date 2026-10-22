@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # 2. Simulate the upload
 # MAGIC
-# MAGIC Writes a CSV to a folder named after the current user. In real use the analyst drops the file there from the UI. The file name is fixed, so a rerun replaces it.
+# MAGIC Writes a CSV to a folder named after the current user. In real use the analyst drops the file there from the UI. Safe to rerun: the file name is fixed, so a rerun replaces it.
 
 # COMMAND ----------
 

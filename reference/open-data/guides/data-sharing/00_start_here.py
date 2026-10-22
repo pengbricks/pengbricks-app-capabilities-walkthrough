@@ -29,6 +29,8 @@
 # MAGIC | `final_action` | Set by the job on `03_collect_audit`: the audit action that ends the wait. Blank means `deleteRecipient`. |
 # MAGIC
 # MAGIC Every variable is a widget. Leave one blank and it takes the default of the deployed job's parameter with the same name. Type a value to override it for one run.
+# MAGIC
+# MAGIC Safe to rerun: tables and the view are rebuilt, the share and recipient are dropped before they are created, and the audit tables are replaced.
 
 # COMMAND ----------
 

@@ -12,7 +12,7 @@ dbutils.library.restartPython()
 # MAGIC
 # MAGIC Finds or creates the workspace group named in the spec, then tries to grant it schema access. Unity Catalog accepts only account-level groups, so the grant may be refused and recorded as `not_allowed`; the notebook then sets `CAN_USE` on the guide's cluster policy instead.
 # MAGIC
-# MAGIC Each row is written to `admin_actions` with a merge keyed on the run, category, action and target, so a retried or repeated task updates its own rows.
+# MAGIC Each row is written to `admin_actions` with a merge keyed on the run, category, action and target, so a retried or repeated task updates its own rows. Safe to rerun: the group is reused if it exists, the schema grant is issued only when a privilege is missing, and the policy permission update is additive.
 
 # COMMAND ----------
 

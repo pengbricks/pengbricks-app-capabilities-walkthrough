@@ -12,6 +12,8 @@ dbutils.library.restartPython()
 # MAGIC
 # MAGIC Creates the workspace group if it is missing, adds the app service principal to it (never a person), and tests whether Unity Catalog can grant to it. Workspace-local groups cannot receive grants, so the notebook falls back to the built-in `account users` group and records which one it used in `access_group`.
 
+# MAGIC
+# MAGIC Safe to rerun: the group is reused if it exists, the service principal is added only when it is missing, and the `access_group` table is replaced.
 # COMMAND ----------
 
 import sys, os

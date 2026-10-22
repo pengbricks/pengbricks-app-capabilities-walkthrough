@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 2. Compatibility gate
 # MAGIC
-# MAGIC Fails when a contract change is mislabeled by its version bump. Part 1 checks every consecutive pair of published contracts. Part 2 is a dry run: it relabels the breaking v2.0.0 as a minor release and confirms the gate rejects it.
+# MAGIC Safe to rerun: it only reads the contract files and the dry run changes nothing. Fails when a contract change is mislabeled by its version bump. Part 1 checks every consecutive pair of published contracts. Part 2 is a dry run: it relabels the breaking v2.0.0 as a minor release and confirms the gate rejects it.
 
 # COMMAND ----------
 

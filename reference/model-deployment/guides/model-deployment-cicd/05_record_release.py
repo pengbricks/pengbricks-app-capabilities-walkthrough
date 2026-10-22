@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 5. Record the release
 # MAGIC
-# MAGIC Appends one row to `model_release_history` (an audit table, so it grows by one row per run) and links the model version back to it with tags.
+# MAGIC Appends one row to `model_release_history` (an audit table, so it grows by one row per run) and links the model version back to it with tags. Safe to rerun: the history table grows by design, and the tags are set, not added.
 
 # COMMAND ----------
 

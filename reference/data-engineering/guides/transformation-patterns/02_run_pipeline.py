@@ -10,6 +10,8 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 2. Run the pipeline
 # MAGIC
+# MAGIC Safe to rerun: a full refresh rebuilds every view from the source tables.
+# MAGIC
 # MAGIC Starts a full refresh of the transformation patterns pipeline and shows what it produced.
 
 # COMMAND ----------

@@ -2,6 +2,8 @@
 # MAGIC %md
 # MAGIC # Transformation patterns
 # MAGIC
+# MAGIC Safe to rerun: it only lists links to the deployed job and pipeline and writes nothing.
+# MAGIC
 # MAGIC This guide shows ten common transformation patterns as Lakeflow Declarative Pipeline materialized views: lookup enrichment, joins, string functions, null handling, dates, casting with a reject path, running totals, pivot and unpivot, last record per group, and per-group iteration. Each view is checked against an independent query on the source tables.
 # MAGIC
 # MAGIC ## Notebooks, in run order

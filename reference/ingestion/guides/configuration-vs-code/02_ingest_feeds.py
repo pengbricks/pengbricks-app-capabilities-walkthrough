@@ -29,7 +29,7 @@ from capability_framework.use_case import feed_names, load_use_case
 # MAGIC %md
 # MAGIC ## Choose the feeds
 # MAGIC
-# MAGIC In the job, `feed` holds one feed name per `for_each` iteration. Standalone, a blank `feed` widget processes every feed in the use case.
+# MAGIC In the job, `feed` holds one feed name per `for_each` iteration. Standalone, a blank `feed` widget processes every feed in the use case. Safe to rerun: silver is merged by feed and key, and `audit_log` adds one row per feed run.
 
 # COMMAND ----------
 

@@ -2,6 +2,8 @@
 # MAGIC %md
 # MAGIC # Orchestration patterns
 # MAGIC
+# MAGIC Safe to rerun: it only lists links to the deployed jobs and writes nothing.
+# MAGIC
 # MAGIC This guide shows one Lakeflow job that chains tasks with passed values, fans out to two parallel branches, calls an external process with a retry policy, and branches on a condition. A second job pauses every scheduled guide job in one operation and restores only the ones it paused.
 # MAGIC
 # MAGIC ## Notebooks, in run order

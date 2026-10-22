@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # 3. Snapshot the training set
 # MAGIC
-# MAGIC Freezes a versioned training set: the feature table at one Delta version joined to the labels at one source version. In the job, the versions come from `02_build_features`. Run by hand, the notebook uses the latest version of each table. The snapshot name carries the feature version, and each snapshot has one entry in `training_set_versions`.
+# MAGIC Freezes a versioned training set: the feature table at one Delta version joined to the labels at one source version. In the job, the versions come from `02_build_features`. Run by hand, the notebook uses the latest version of each table. The snapshot name carries the feature version, and each snapshot has one entry in `training_set_versions`. Safe to rerun: the snapshot table is overwritten and its registry entry is replaced.
 
 # COMMAND ----------
 

@@ -10,6 +10,8 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 2. Set up federation
 # MAGIC
+# MAGIC Safe to rerun: the connection is reused if it exists, and only its token is replaced.
+# MAGIC
 # MAGIC Creates or refreshes the Unity Catalog connection that exposes the source. The connection stores a Lakebase OAuth token as its password. Tokens last about an hour, so every run replaces the token. A production setup uses a long-lived credential from a secret store and, for SQL Server, the SQL Server connection type instead.
 
 # COMMAND ----------

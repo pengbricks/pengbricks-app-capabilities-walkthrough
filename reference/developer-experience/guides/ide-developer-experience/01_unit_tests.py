@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 1. Unit tests
 # MAGIC
-# MAGIC Runs the same pytest suite you run in your IDE, here on serverless. The task fails on any test failure, so a bad change never reaches the transform step.
+# MAGIC Runs the same pytest suite you run in your IDE, here on serverless. The task fails on any test failure, so a bad change never reaches the transform step. Safe to rerun: it only runs tests.
 
 # COMMAND ----------
 

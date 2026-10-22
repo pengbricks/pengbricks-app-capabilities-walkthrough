@@ -12,6 +12,8 @@ dbutils.library.restartPython()
 # MAGIC
 # MAGIC Reads back `cost_forecast_30d`, which the SQL task `04_forecast.sql` writes with `ai_forecast`, and asserts at least 30 forecast days.
 
+# MAGIC
+# MAGIC Safe to rerun: it only reads the forecast table.
 # COMMAND ----------
 
 import sys, os

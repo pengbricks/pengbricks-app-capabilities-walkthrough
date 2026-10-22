@@ -10,6 +10,8 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 3. Apply the changes
 # MAGIC
+# MAGIC Safe to rerun: it checks that the source table and the batch 1 files exist, the MERGE sets rows to the same values the second time, batch 2 files keep fixed names, and the snapshot is overwritten.
+# MAGIC
 # MAGIC Changes all three sources, so the next pipeline update has something new to find:
 # MAGIC
 # MAGIC - `cdc_orders_source`: a MERGE applies inserts, updates and deletes. The change data feed records each row change.
@@ -26,6 +28,8 @@ catalog, schema, volume = params["catalog"], params["schema"], params["volume"]
 scope = f"{catalog}.{schema}"
 rows, inserts, updates, deletes = (int(params[k]) for k in ("rows", "inserts", "updates", "deletes"))
 LANDING = f"/Volumes/{catalog}/{schema}/{volume}/cdc_orders_events"
+if not spark.catalog.tableExists(f"{scope}.cdc_orders_source") or not any(n.startswith("batch1") for n in (os.listdir(LANDING) if os.path.isdir(LANDING) else [])):
+    raise RuntimeError("cdc_orders_source or the batch 1 landing files are missing. Run 01_reset_sources first. Nothing was changed.")
 
 # COMMAND ----------
 

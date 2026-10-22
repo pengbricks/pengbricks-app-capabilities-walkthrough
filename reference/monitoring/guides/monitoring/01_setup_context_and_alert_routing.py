@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 1. Set up context and alert routing
 # MAGIC
-# MAGIC Records the workspace ID and builds `ops_alert_routing`. `system.lakeflow.jobs` has health rules but not `email_notifications`, so alert routing comes from the Jobs API. SQL alert subscriptions come from the Alerts v2 API. Both tables use `CREATE OR REPLACE`, so a rerun replaces them.
+# MAGIC Records the workspace ID and builds `ops_alert_routing`. `system.lakeflow.jobs` has health rules but not `email_notifications`, so alert routing comes from the Jobs API. SQL alert subscriptions come from the Alerts v2 API. Safe to rerun: both tables use `CREATE OR REPLACE`, so a rerun replaces them.
 
 # COMMAND ----------
 

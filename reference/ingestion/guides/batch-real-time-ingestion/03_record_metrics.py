@@ -24,6 +24,8 @@ print(f"job_run_id = {job_run_id}, pipeline_id = {pipeline_id}")
 
 # MAGIC %md
 # MAGIC ## Latest pipeline update
+# MAGIC
+# MAGIC Safe to rerun: the metrics row is keyed on the job run id, so a rerun in the same job run replaces its row instead of adding one.
 
 # COMMAND ----------
 
@@ -68,9 +70,9 @@ metrics = spark.sql(
 # MAGIC %md
 # MAGIC ## Append to the metrics history
 # MAGIC
-# MAGIC `ingestion_run_metrics` is a history table: each run adds one row.
+# MAGIC `ingestion_run_metrics` is a history table: each job run adds one row, and a rerun in the same job run replaces it.
 
 # COMMAND ----------
 
-metrics.write.mode("append").option("mergeSchema", "true").saveAsTable(f"{prefix}.ingestion_run_metrics")
+metrics.write.mode("overwrite").option("replaceWhere", f"job_run_id = '{job_run_id}'").option("mergeSchema", "true").saveAsTable(f"{prefix}.ingestion_run_metrics")
 display(metrics)

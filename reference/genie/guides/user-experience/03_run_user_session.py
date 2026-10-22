@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 3. Run the user session
 # MAGIC
-# MAGIC Updates the assistant Genie space in place by title, then plays the scripted session through the Conversation API. Each task goes to `ux_session_log` with its outcome, any issue found, and the training need from the spec. The log keeps one set of rows per `run_id`, so a rerun with the same `run_id` replaces its own rows. The notebook fails if a task does not complete.
+# MAGIC Updates the assistant Genie space in place by title, then plays the scripted session through the Conversation API. Each task goes to `ux_session_log` with its outcome, any issue found, and the training need from the spec. Safe to rerun: the space is updated in place by title, the log's rows are replaced, and conversations from earlier runs are deleted. The notebook fails if a task does not complete.
 
 # COMMAND ----------
 
@@ -67,6 +67,8 @@ LOG_SCHEMA = (
 )
 done: dict[str, dict] = {}
 log = []
+for old_id in client.list_conversation_ids(space_id):
+    client.delete_conversation(space_id, old_id)  # conversations from earlier runs
 conversation_id = None
 for number, step in enumerate(script["steps"], start=1):
     if step["task_type"] == "feedback":
@@ -125,7 +127,7 @@ for number, step in enumerate(script["steps"], start=1):
 # COMMAND ----------
 
 spark.sql(f"CREATE TABLE IF NOT EXISTS {base}.ux_session_log ({LOG_SCHEMA})")
-spark.sql(f"DELETE FROM {base}.ux_session_log WHERE run_id = '{run_id}'")
+spark.sql(f"DELETE FROM {base}.ux_session_log")  # keep one session: a rerun replaces the previous rows
 spark.createDataFrame(log, LOG_SCHEMA).write.mode("append").saveAsTable(f"{base}.ux_session_log")
 failed = [row for row in log if row[7] in {"FAILED", "CANCELLED", "TIMEOUT"}]
 if failed:

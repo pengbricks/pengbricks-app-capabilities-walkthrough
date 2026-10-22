@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 1. Train the baseline model
 # MAGIC
-# MAGIC Writes the training data, trains the baseline model, and registers it in Unity Catalog with the `prod` alias. The table is overwritten. Each run adds a model version and moves `prod` to it.
+# MAGIC Writes the training data, trains the baseline model, and registers it in Unity Catalog with the `prod` alias. The table is overwritten. Each run adds a model version and moves `prod` to it. Safe to rerun: the experiment is reused, each run registers a new model version (versions are history) and `prod` is set, not added.
 
 # COMMAND ----------
 

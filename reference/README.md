@@ -18,7 +18,7 @@ Each folder under `reference/` is a self-contained Declarative Automation Bundle
 | `data-validation/` | Data validation framework (a stand-in Postgres source in Lakebase, reconciliation through Federation, expectations with quarantine, a spec-driven results table, lineage, and a metric view) |
 | `analyst/` | SQL and notebooks at scale, Bring your own data, Connecting local tools, No-code data preparation, Self-service extracts and subscriptions, Charts and dashboards in the platform |
 | `metric-views/` | Metric views (two metric views deployed by SQL tasks, queried with `MEASURE()`, and checked against hand-written SQL; bundles have no metric view resource, so the views are created by SQL files kept in the repo) |
-| `governance/` | Access management, Row and column security, Compute and capacity management, Cost tracking and chargeback |
+| `governance/` | Access management, Row and column security, Compute and capacity management (including a read-only SQL warehouse type audit), Cost tracking and chargeback, Unity Catalog with an enterprise data management program (a second job, `capability_guides_unity_catalog_edm`: tags as the EDM contract, a tag-driven policy, an EDM metadata feed, external lineage and certification; `tag_mode=plain` creates nothing at account level) |
 | `ml-lifecycle/` | Feature preparation from source data, Training and bringing existing models, Reproducible experiments, Model quality and drift |
 | `realtime-scoring/` | Online model scoring |
 | `genie/` | Business terms and synonyms, Assistant user experience, Genie Agents |
@@ -31,6 +31,8 @@ Each folder under `reference/` is a self-contained Declarative Automation Bundle
 | `environments/` | Workspaces and catalogs across dev, test, stage, and prod (four targets that map to environment schemas in one catalog, plus a layout audit job; the four-workspace, four-catalog setup is in `setup/` as commands that the bundle does not run. It creates its own schemas) |
 | `geospatial/` | Geospatial analytics (a fictional water network: GIS file loading, spatial joins, H3 aggregation, inspection PDFs joined to pipe geometry, a district row filter, and an AI/BI map dashboard) |
 | `lakeflow-connect/` | SQL Server connections with Lakeflow Connect (needs a reachable SQL Server and classic compute for the gateway) |
+| `lakebase-apps/` | App development with Lakebase (a Lakebase project from `postgres_*` bundle resources with scale to zero: an OAuth connection pool, a Triggered synced table, Change Data Feed write-back (Public Preview), an expiring dev branch, pgvector, Unity Catalog registration, gated cleanup) |
+| `databricks-apps/` | Databricks Apps, App Spaces and Serverless Micro Apps (a small FastAPI app on Medium compute that shows app and user authorization, plus a job that reads the app through the SDK, health-checks it, flags idle running apps, lists App Spaces (Beta) read-only, and stops the app on request; the app bills about 0.5 DBU an hour while running) |
 
 The GitHub integration and CI/CD guide deploys the `ingestion/` bundle through `.github/workflows/reference-cicd.yml`.
 
