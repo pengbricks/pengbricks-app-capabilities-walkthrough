@@ -23,7 +23,10 @@ params = load_params(dbutils, "capability_guides_ai_runtime", ['catalog', 'schem
 catalog, schema = params["catalog"], params["schema"]
 
 import pandas as pd
-import torch
+try:
+    import torch
+except ModuleNotFoundError as error:  # torch ships in the AI Runtime (serverless GPU) environment
+    raise RuntimeError("PyTorch is missing. Attach this notebook to AI Runtime (serverless GPU) compute as Required setup describes. Nothing was changed.") from error
 import mlflow
 from mlflow.models import infer_signature
 from mlflow.tracking import MlflowClient

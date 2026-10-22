@@ -446,8 +446,8 @@
     {
       "path": "reference/ml-lifecycle/guides/ai-runtime/01_train_on_gpu.py",
       "symbol": null,
-      "startLine": 48,
-      "endLine": 69,
+      "startLine": 51,
+      "endLine": 72,
       "language": "py",
       "code": "torch.manual_seed(spec[\"seed\"] % 2**31)\nmlflow.set_registry_uri(\"databricks-uc\")\nmlflow.set_experiment(params[\"experiment\"])\nmodel_name = f\"{catalog}.{schema}.{g.GPU_MODEL_NAME}\"\n\nwith mlflow.start_run(run_name=\"train-gpu\"):\n    model = g.build_model(len(features)).to(device)\n    losses = g.fit(model, x_train, y_train, device, epochs, seed=spec[\"seed\"])\n    auc = g.holdout_auc(model, x_hold, y_hold, device)\n    mlflow.log_params({\"seed\": spec[\"seed\"], \"rows\": len(pdf), \"epochs\": epochs, \"features\": \",\".join(features),\n                       \"gpu\": torch.cuda.get_device_name(0), \"gpu_count\": 1})\n    mlflow.log_metric(\"holdout_auc\", auc)\n    for step, loss in enumerate(losses):\n        mlflow.log_metric(\"train_loss\", loss, step=step)\n    mlflow.set_tags({\"release\": params[\"release\"], \"torch\": torch.__version__})\n    model = model.cpu()\n    info = mlflow.pytorch.log_model(\n        model, name=\"model\", registered_model_name=model_name,\n        signature=infer_signature(x_hold[:3], model(torch.from_numpy(x_hold[:3])).detach().numpy()),\n        input_example=x_hold[:3],\n    )\nMlflowClient(registry_uri=\"databricks-uc\").set_registered_model_alias(model_name, g.ALIAS_SINGLE, info.registered_model_version)",
       "functions": {
@@ -457,8 +457,8 @@
     {
       "path": "reference/ml-lifecycle/guides/ai-runtime/02_distributed.py",
       "symbol": null,
-      "startLine": 54,
-      "endLine": 83,
+      "startLine": 57,
+      "endLine": 86,
       "language": "py",
       "code": "def train_rank(parquet, features, label, key, holdout_mod, epochs, seed, src):\n    \"\"\"Runs once per GPU. Loads its own data, trains one shard under DDP, and returns the result from rank 0.\"\"\"\n    import os, sys\n    import pandas as pd\n    import torch\n    import torch.distributed as dist\n    from torch.nn.parallel import DistributedDataParallel as DDP\n\n    sys.path.insert(0, src)\n    import gpu_churn as g\n\n    local_rank = int(os.environ[\"LOCAL_RANK\"])\n    torch.cuda.set_device(local_rank)\n    dist.init_process_group(backend=\"nccl\")\n    try:\n        rank, world = dist.get_rank(), dist.get_world_size()\n        x_train, y_train, x_hold, y_hold = g.split_arrays(pd.read_parquet(parquet), features, label, key, holdout_mod)\n        torch.manual_seed(seed % 2**31)\n        model = DDP(g.build_model(len(features)).to(\"cuda\"), device_ids=[local_rank])\n        xs, ys = g.shard(x_train, y_train, rank, world)\n        # DDP all-reduces every step, so each rank must run the same number of batches. Trim shards to equal length.\n        keep = len(x_train) // world\n        xs, ys = xs[:keep], ys[:keep]\n        losses = g.fit(model, xs, ys, \"cuda\", epochs, seed=seed + rank)\n        if rank != 0:\n            return None\n        return {\"world_size\": world, \"gpu\": torch.cuda.get_device_name(local_rank), \"losses\": losses,\n                \"auc\": g.holdout_auc(model.module, x_hold, y_hold, \"cuda\"), \"state\": g.state_to_lists(model.module)}\n    finally:\n        dist.destroy_process_group()",
       "functions": {
@@ -472,8 +472,8 @@
     {
       "path": "reference/ml-lifecycle/guides/ai-runtime/02_distributed.py",
       "symbol": null,
-      "startLine": 92,
-      "endLine": 99,
+      "startLine": 95,
+      "endLine": 102,
       "language": "py",
       "code": "with mlflow.start_run(run_name=f\"train-ddp-{gpus if use_distributed else 1}gpu\"):\n    if use_distributed:\n        from databricks.air import distributed\n\n        # num_accelerators defaults to every GPU on the node. Each .distributed() call also creates an MLflow run (a child of this one).\n        train = distributed(num_accelerators=gpus)(train_rank)\n        results = train.distributed(parquet, features, label, key, holdout_mod, epochs, seed, SRC)\n        result = next(r for r in (results if isinstance(results, (list, tuple)) else [results]) if r)",
       "functions": {}

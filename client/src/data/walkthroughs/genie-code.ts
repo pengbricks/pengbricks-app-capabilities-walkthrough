@@ -65,7 +65,7 @@ export const walkthrough: Walkthrough = {
   prerequisites: [
     {
       slug: 'no-code-data-prep',
-      title: 'No-code data preparation',
+      title: 'Lakeflow Designer: no-code data preparation',
       why: 'Step 1 builds the flow in Lakeflow Designer. That guide covers operators, outputs and promoting a flow to production.',
     },
   ],
@@ -854,7 +854,7 @@ export const walkthrough: Walkthrough = {
     },
   ],
   related: [
-    { slug: 'no-code-data-prep', title: 'No-code data preparation' },
+    { slug: 'no-code-data-prep', title: 'Lakeflow Designer: no-code data preparation' },
     { slug: 'sql-notebook-analysis', title: 'SQL and notebooks at scale' },
     { slug: 'in-platform-visualization', title: 'Charts and dashboards in the platform' },
     { slug: 'ai-functions', title: 'AI Functions in SQL' },

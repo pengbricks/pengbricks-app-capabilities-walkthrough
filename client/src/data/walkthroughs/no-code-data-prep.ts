@@ -3,7 +3,7 @@ import type { Walkthrough } from './types.ts';
 export const walkthrough: Walkthrough = {
   slug: 'no-code-data-prep',
   area: 'Analyst Guides',
-  title: 'No-code data preparation',
+  title: 'Lakeflow Designer: no-code data preparation',
   intro:
     'Lakeflow Designer (GA) lets a business user prepare data on a drag-and-drop canvas or in natural language, with every step governed by Unity Catalog. Each visual data prep is backed by real code, so it can move to production without a rebuild. This page covers how to build a flow, how to govern who builds and publishes, and when to hand work to an engineer.',
   businessValue: {

@@ -957,7 +957,7 @@ export const guides: readonly Guide[] = [
   },
   {
     slug: 'no-code-data-prep',
-    title: 'No-code data preparation',
+    title: 'Lakeflow Designer: no-code data preparation',
     category: 'Analyst Guides',
     difficulty: 1,
     summary: 'Prepare data visually with Lakeflow Designer, governed by Unity Catalog.',
