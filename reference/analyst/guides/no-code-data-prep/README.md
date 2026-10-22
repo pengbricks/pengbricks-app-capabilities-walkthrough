@@ -28,6 +28,7 @@ flowchart LR
 
 - `guides/no-code-data-prep/00_start_here`: what the guide shows, the notebooks in order, and the variables
 - `guides/no-code-data-prep/02_build_flow_output`: the SQL version of the flow, plus `prep_flow_summary`
+- `guides/no-code-data-prep/prompts.md`: the Designer prompt to keep in Git
 - `resources/no_code_prep.job.yml`: generates data and runs the SQL
 
 ## Demo steps
@@ -46,6 +47,31 @@ flowchart LR
    SELECT COUNT(*), SUM(order_total) FROM <catalog>.<schema>.prep_flow_output_designer;
    ```
    Save the flow with the editor's save control. Use **Schedule** to rerun it.
+
+## Run it
+
+1. From `reference/analyst`, run `databricks bundle deploy --target dev`, then `databricks bundle run capability_guides_no_code_prep --only generate_data --target dev`.
+2. Click the plus icon (**New**) and choose **Visual data prep**. Paste this into the Genie Code prompt above the canvas, with `<catalog>` and `<schema>` replaced. The same text is in `prompts.md`.
+
+```text
+Sources: <catalog>.<schema>.analyst_orders and <catalog>.<schema>.analyst_customers.
+Filter analyst_orders to rows where status is equal to completed and order_ts is on or after 2026-01-01.
+Join the filtered orders to analyst_customers on customer_id (inner join).
+Add Custom columns: order_date = order_ts cast to a date, order_total = quantity * unit_price cast to decimal(12,2), and order_size = 'large' when quantity * unit_price is 1000 or more, otherwise 'standard'.
+Add a Select operator that keeps only these columns, in this order: order_number (renamed from order_id), customer_id, sales_region (renamed from region), customer_segment (renamed from segment), order_date, quantity, unit_price, order_total, order_size.
+Write the result to the table <catalog>.<schema>.prep_flow_output_designer, overwrite mode.
+```
+
+3. Select each operator to check it, then click **Run all**.
+4. Run `databricks bundle run capability_guides_no_code_prep --only build_flow_output --target dev`, then compare:
+
+```sql
+SELECT * FROM <catalog>.<schema>.prep_flow_summary;
+SELECT COUNT(*), SUM(order_total) FROM <catalog>.<schema>.prep_flow_output_designer;
+SELECT * FROM <catalog>.<schema>.prep_flow_output EXCEPT SELECT * FROM <catalog>.<schema>.prep_flow_output_designer;
+```
+
+If the flow differs, edit the operator that is off or re-prompt with the exact condition.
 
 ## Artifacts produced
 

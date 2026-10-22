@@ -36,4 +36,15 @@ export const faqs: Faq[] = [
       'Use Designer for repeatable cleanup that must produce a table. Use Genie Agents or Genie One for a one-off answer in plain language, since they save no pipeline and do not produce a repeatable table. Check the SQL Genie shows.',
     links: [{ label: 'Genie Agents', url: 'https://docs.databricks.com/aws/en/genie-agents/' }],
   },
+  {
+    question: 'Can I build a Designer flow from a prompt, or should I drag operators?',
+    answer:
+      'Both work. A new visual data prep has a Genie Code prompt above the canvas, and Genie Code adds and connects operators from your description. Use a prompt for a first draft with several operators, and name the tables, filters, join keys and output table so the result is checkable. Use the canvas for a small change to an existing flow. The docs say the output may need adjustment, so check each operator and compare row counts and totals with a known-good query.',
+    links: [
+      {
+        label: 'Build a transformation in Designer',
+        url: 'https://docs.databricks.com/aws/en/designer/build-transformation',
+      },
+    ],
+  },
 ];

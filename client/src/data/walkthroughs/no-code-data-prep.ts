@@ -211,6 +211,54 @@ export const walkthrough: Walkthrough = {
       ],
     },
     {
+      id: 'run-it',
+      heading: 'Run it: build the flow from a prompt',
+      prose:
+        'The bundle job generates the sample tables, and one pre-written prompt rebuilds the same flow in Lakeflow Designer. The prompt names the two source tables, each operator, the filter, the join, the derived columns, the final column list and the output table, so the result can be checked against the SQL version.',
+      steps: [
+        {
+          title: '1. Deploy the bundle and generate the data',
+          body: 'From the reference/analyst folder, deploy the analyst bundle and run only the generate_data task, which is notebook 01_generate_data. It writes analyst_customers and analyst_orders with a fixed seed. Safe to rerun: each table is overwritten.',
+          code: 'databricks bundle deploy --target dev\ndatabricks bundle run capability_guides_no_code_prep --only generate_data --target dev',
+        },
+        {
+          title: '2. Open Lakeflow Designer',
+          body: 'Click the plus icon (New) in the sidebar and choose Visual data prep. The Genie Code prompt sits above the canvas in a new visual data prep.',
+        },
+        {
+          title: '3. Paste the prompt',
+          body: 'Replace <catalog> and <schema> with the values the job used, then paste the text into the Genie Code prompt. Genie Code adds and connects the operators. Select each operator and read its configuration and preview before you run.',
+          code: "Sources: <catalog>.<schema>.analyst_orders and <catalog>.<schema>.analyst_customers.\nFilter analyst_orders to rows where status is equal to completed and order_ts is on or after 2026-01-01.\nJoin the filtered orders to analyst_customers on customer_id (inner join).\nAdd Custom columns: order_date = order_ts cast to a date, order_total = quantity * unit_price cast to decimal(12,2), and order_size = 'large' when quantity * unit_price is 1000 or more, otherwise 'standard'.\nAdd a Select operator that keeps only these columns, in this order: order_number (renamed from order_id), customer_id, sales_region (renamed from region), customer_segment (renamed from segment), order_date, quantity, unit_price, order_total, order_size.\nWrite the result to the table <catalog>.<schema>.prep_flow_output_designer, overwrite mode.",
+        },
+        {
+          title: '4. Check the result against the SQL version',
+          body: 'Click Run all, then run the build_flow_output task, which is notebook 02_build_flow_output. It writes prep_flow_output and prep_flow_summary. The reference run has 99,710 rows, 5,000 customers and a total of 138,172,774.00. The two EXCEPT queries must return no rows.',
+          code: 'databricks bundle run capability_guides_no_code_prep --only build_flow_output --target dev\n\nSELECT * FROM <catalog>.<schema>.prep_flow_summary;\nSELECT COUNT(*) AS output_rows, SUM(order_total) AS output_total, COUNT(DISTINCT customer_id) AS customers\nFROM <catalog>.<schema>.prep_flow_output_designer;\n\nSELECT * FROM <catalog>.<schema>.prep_flow_output EXCEPT SELECT * FROM <catalog>.<schema>.prep_flow_output_designer;\nSELECT * FROM <catalog>.<schema>.prep_flow_output_designer EXCEPT SELECT * FROM <catalog>.<schema>.prep_flow_output;',
+        },
+        {
+          title: '5. Save, schedule or promote',
+          body: 'Save the file, then follow Save, schedule, and promote above. Use Schedule to rerun it, or place the file in a Git folder and run it as a job task.',
+        },
+      ],
+      points: [
+        {
+          strong: 'If the generated flow differs.',
+          text: 'Select the operator that is off and edit its configuration, usually a filter condition, a join type or a column name. A row count that differs points to the filter or join. Or re-prompt more specifically, naming the operator and the exact condition. The docs say the output may need adjustment, so always check the result.',
+        },
+        {
+          strong: 'Prompt or drag-and-drop.',
+          text: 'A prompt is faster for a first draft of a flow with several operators, since one paste adds and connects them. Drag-and-drop is faster for a small change to an existing flow, and you control each setting. Either way, check each operator.',
+        },
+      ],
+      links: [
+        {
+          label: 'Build a transformation in Designer',
+          url: 'https://docs.databricks.com/aws/en/designer/build-transformation',
+        },
+        { label: 'Lakeflow Designer', url: 'https://docs.databricks.com/aws/en/designer/' },
+      ],
+    },
+    {
       id: 'choose',
       heading: 'Designer, Genie, or code',
       options: {
