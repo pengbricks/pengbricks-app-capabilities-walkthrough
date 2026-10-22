@@ -88,10 +88,10 @@ def test_job_is_serverless_only():
         assert forbidden not in text
 
 
-def test_bundle_declares_project_branch_and_endpoint_with_scale_to_zero():
+def test_bundle_declares_project_and_branch_with_scale_to_zero():
     resources = yaml.safe_load((ROOT / "resources" / "lakebase.postgres.yml").read_text())["resources"]
     project = next(iter(resources["postgres_projects"].values()))
     assert project["default_endpoint_settings"]["suspend_timeout_duration"] == "300s"
     assert "ttl" in next(iter(resources["postgres_branches"].values()))
-    endpoint = next(iter(resources["postgres_endpoints"].values()))
-    assert endpoint["suspend_timeout_duration"] == "300s" and "no_suspension" not in endpoint
+    # Each branch gets its primary endpoint from the project's default settings; declaring it again fails.
+    assert "postgres_endpoints" not in resources

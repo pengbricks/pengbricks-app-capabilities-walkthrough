@@ -5,9 +5,11 @@
 # production branch is created by the platform, so it is not declared here: declaring it would try
 # to create a branch that already exists.
 #
-# The dev branch and its endpoint show the three resources together. The branch expires after seven
-# days and its endpoint suspends after five idle minutes, so it costs only the data you change on it.
-# Redeploy after it expires and the bundle creates it again.
+# The dev branch expires after seven days. Creating a branch also creates its read-write endpoint,
+# named primary, with the project's default endpoint settings (scale to zero after five idle
+# minutes), so the bundle declares no endpoint for it: declaring one fails with "read_write endpoint
+# already exists". Declare a postgres_endpoint only for an extra endpoint, such as a read replica.
+# Redeploy after the branch expires and the bundle creates it again.
 resources:
   postgres_projects:
     lakebase_apps:
@@ -29,11 +31,3 @@ resources:
       source_branch: ${resources.postgres_projects.lakebase_apps.id}/branches/production
       ttl: 604800s
 
-  postgres_endpoints:
-    dev_rw:
-      parent: ${resources.postgres_branches.dev.id}
-      endpoint_id: primary
-      endpoint_type: ENDPOINT_TYPE_READ_WRITE
-      autoscaling_limit_min_cu: 0.5
-      autoscaling_limit_max_cu: 2
-      suspend_timeout_duration: 300s

@@ -864,7 +864,7 @@ WHERE rn = 1 AND _pg_change_type <> 'delete';`,
       id: 'bundles',
       heading: 'Defining it in a bundle',
       prose:
-        'Declarative Automation Bundles can define the project, branches, and compute endpoints (Beta), added with Databricks CLI 0.287.0 on February 5, 2026. Define all three together, because a branch needs a project and an endpoint needs a branch. Newer resources cover roles, databases, catalogs, synced tables, and snapshot schedules, also in Beta. The older database_instance resource now creates Lakebase projects, and Databricks recommends postgres_projects for new work.',
+        'Declarative Automation Bundles can define the project, branches, and compute endpoints (Beta), added with Databricks CLI 0.287.0 on February 5, 2026. Creating a project or a branch also creates its read-write endpoint, named primary, with the default endpoint settings of the project, so set size and scale to zero once on the project and declare a postgres_endpoint only for an extra endpoint. Declaring primary again fails with read_write endpoint already exists. Newer resources cover roles, databases, catalogs, synced tables, and snapshot schedules, also in Beta. The older database_instance resource now creates Lakebase projects, and Databricks recommends postgres_projects for new work.',
       examples: [
         {
           label: 'Project, production and dev branches, and an app resource',
@@ -876,6 +876,11 @@ WHERE rn = 1 AND _pg_change_type <> 'delete';`,
       display_name: Orders app database
       pg_version: 17
       history_retention_duration: 604800s
+      # Applies to the primary endpoint each branch gets when it is created.
+      default_endpoint_settings:
+        autoscaling_limit_min_cu: 0.5
+        autoscaling_limit_max_cu: 4
+        suspend_timeout_duration: 1800s
 
   postgres_branches:
     main:
@@ -886,21 +891,6 @@ WHERE rn = 1 AND _pg_change_type <> 'delete';`,
       parent: \${resources.postgres_projects.orders_db.id}
       branch_id: dev
       ttl: 604800s  # expires after 7 days, billed only for changed data
-
-  postgres_endpoints:
-    main_rw:
-      parent: \${resources.postgres_branches.main.id}
-      endpoint_id: primary
-      endpoint_type: ENDPOINT_TYPE_READ_WRITE
-      autoscaling_limit_min_cu: 0.5
-      autoscaling_limit_max_cu: 4
-    dev_rw:
-      parent: \${resources.postgres_branches.dev.id}
-      endpoint_id: primary
-      endpoint_type: ENDPOINT_TYPE_READ_WRITE
-      autoscaling_limit_min_cu: 0.5
-      autoscaling_limit_max_cu: 2
-      suspend_timeout_duration: 1800s
 
   apps:
     orders_app:

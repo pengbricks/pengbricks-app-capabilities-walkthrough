@@ -8711,16 +8711,16 @@
           ]
         },
         {
-          "label": "Project, branch, and endpoint in a bundle",
+          "label": "Project and branch in a bundle",
           "path": "reference/lakebase-apps/resources/lakebase.postgres.yml",
           "lines": [
-            12,
-            39
+            13,
+            32
           ],
           "section": "bundles",
           "notes": [
-            "Beta resources. The project sets scale to zero after 300 seconds.",
-            "The production branch comes with the project, so only the dev branch is declared."
+            "Beta resources. The project's default endpoint settings give every branch's primary endpoint scale to zero after 300 seconds.",
+            "The production branch comes with the project, and each branch creates its own primary endpoint, so only the dev branch is declared."
           ]
         },
         {
