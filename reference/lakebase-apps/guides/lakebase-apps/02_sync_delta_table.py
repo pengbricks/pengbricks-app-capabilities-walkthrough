@@ -144,5 +144,6 @@ with pool.connection() as conn:
     rows = conn.execute(f"SELECT product_id, name, category, price, stock FROM {pg_table} ORDER BY product_id").fetchall()
 display(spark.createDataFrame([(r[0], r[1], r[2], float(r[3]), r[4]) for r in rows], "product_id INT, name STRING, category STRING, price DOUBLE, stock INT"))
 final = current_table()
-print("Sync state:", state_of(final), "| scheduling policy:", final.spec.scheduling_policy.value)
+policy = getattr(getattr(final, "spec", None), "scheduling_policy", None)  # get() can omit spec
+print("Sync state:", state_of(final), "| scheduling policy:", policy.value if policy else "TRIGGERED (as requested)")
 pool.close()
