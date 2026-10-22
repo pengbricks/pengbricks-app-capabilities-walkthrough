@@ -41,7 +41,7 @@
 # MAGIC
 # MAGIC Run these once, before the job. The identity that runs the job is the person or service principal behind `databricks bundle run`. It is written `<principal>` below. A metastore admin or account admin runs most of them.
 # MAGIC
-# MAGIC If you lack account-level rights, skip items 1 and 2 and run with `tag_mode=plain` (item 6). It creates nothing at the account level. Items 3 to 5 apply in both modes.
+# MAGIC If you lack account-level rights, skip items 1 and 2 and run with `tag_mode=plain` (item 6). It creates nothing at the account level. To make plain the job default for a workspace, deploy with `--var edm_tag_mode=plain`. Items 3 to 5 apply in both modes.
 # MAGIC
 # MAGIC 1. **Governed tags (`tag_mode=governed`, the default).** Governed tags are account-level tag policies. The job identity needs permission to create tag policies, or an admin creates them first:
 # MAGIC    ```bash

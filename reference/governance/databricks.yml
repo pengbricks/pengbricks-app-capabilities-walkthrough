@@ -19,6 +19,9 @@ variables:
   access_schema_base:
     description: Base name of the two access demo schemas (<base>_dev, <base>_prod); dev mode adds the user prefix once
     default: capability_guides_access
+  edm_tag_mode:
+    description: Default tag_mode for the Unity Catalog and EDM job. governed creates account-level governed tags and ABAC policies; plain creates nothing at account level
+    default: governed
   use_case:
     description: Use-case spec under use_cases/ that drives sample data, policies, and tags
     default: general
