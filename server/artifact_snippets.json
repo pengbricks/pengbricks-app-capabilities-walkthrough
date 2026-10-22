@@ -4381,7 +4381,7 @@
       "startLine": 10,
       "endLine": 24,
       "language": "yml",
-      "code": "      timeout_seconds: 3600\n      parameters:\n        - name: catalog\n          default: ${var.catalog}\n        - name: schema\n          default: ${var.schema}\n        - name: scanner_principal\n          default: edm-scanner\n        - name: tag_mode\n          default: governed\n        - name: cleanup\n          default: keep\n      tasks:\n        - task_key: create_sample_tables\n          notebook_task:",
+      "code": "      timeout_seconds: 3600\n      parameters:\n        - name: catalog\n          default: ${var.catalog}\n        - name: schema\n          default: ${var.schema}\n        - name: scanner_principal\n          default: edm-scanner\n        - name: tag_mode\n          default: ${var.edm_tag_mode}\n        - name: cleanup\n          default: keep\n      tasks:\n        - task_key: create_sample_tables\n          notebook_task:",
       "functions": {}
     }
   ],

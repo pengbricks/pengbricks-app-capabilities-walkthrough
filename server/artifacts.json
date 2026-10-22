@@ -4322,6 +4322,12 @@
           "url": "https://fevm-rpeng-demobricks.cloud.databricks.com/dashboardsv3/01f1c81ba0e9195ba142ee3a1fedb55a/published",
           "workspace": "Reference workspace",
           "recordedAt": "2026-10-14T22:00:00Z"
+        },
+        {
+          "label": "Warehouse type audit run",
+          "url": "https://adb-3438839487639471.11.azuredatabricks.net/?o=3438839487639471#job/723922515538129/run/428625480922371",
+          "workspace": "SLED demo workspace",
+          "recordedAt": "2026-10-22T01:38:49Z"
         }
       ]
     },
@@ -8528,7 +8534,14 @@
           "section": null
         }
       ],
-      "recordedRuns": []
+      "recordedRuns": [
+        {
+          "label": "EDM job run (tag_mode plain)",
+          "url": "https://adb-3438839487639471.11.azuredatabricks.net/?o=3438839487639471#job/492715621190647/run/972416404038046",
+          "workspace": "SLED demo workspace",
+          "recordedAt": "2026-10-22T08:41:17Z"
+        }
+      ]
     },
     "lakebase-apps": {
       "bundle": "reference/lakebase-apps",
@@ -8742,7 +8755,14 @@
           ]
         }
       ],
-      "recordedRuns": []
+      "recordedRuns": [
+        {
+          "label": "Lakebase apps job run",
+          "url": "https://adb-3438839487639471.11.azuredatabricks.net/?o=3438839487639471#job/52430389489256/run/342199255658683",
+          "workspace": "SLED demo workspace",
+          "recordedAt": "2026-10-22T03:57:02Z"
+        }
+      ]
     },
     "databricks-apps": {
       "bundle": "reference/databricks-apps",
@@ -8936,7 +8956,14 @@
           ]
         }
       ],
-      "recordedRuns": []
+      "recordedRuns": [
+        {
+          "label": "Databricks Apps job run",
+          "url": "https://adb-3438839487639471.11.azuredatabricks.net/?o=3438839487639471#job/1038496394421465/run/754186254528722",
+          "workspace": "SLED demo workspace",
+          "recordedAt": "2026-10-22T01:41:51Z"
+        }
+      ]
     }
   }
 }
