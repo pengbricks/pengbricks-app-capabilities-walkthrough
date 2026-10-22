@@ -12,6 +12,7 @@
 # MAGIC | `02_create_policies` | Creates the mapping table, mask and filter functions, and attaches them. |
 # MAGIC | `03_test_policies` | Evaluates the policies for the job identity, a restricted role and the app service principal. |
 # MAGIC | `04_policy_inventory` | Lists the masks and filters from `information_schema`. |
+# MAGIC | `05_masking_patterns` | Builds `rcs_customers`, applies six mask patterns and a row filter, queries as the job identity, and checks the output. |
 # MAGIC
 # MAGIC ## How to run
 # MAGIC
@@ -25,6 +26,9 @@
 # MAGIC | `schema` | Schema for this guide's tables. |
 # MAGIC | `use_case` | Spec under `use_cases/` with the tables, masked columns and filters. |
 # MAGIC | `app_service_principal` | Application id of the app's service principal, used in the access mapping. |
+# MAGIC | `pii_reader_group` | Account group that sees real values and all rows in `05_masking_patterns`. Default `rcs-pii-readers`. |
+# MAGIC | `salt_scope`, `salt_key` | Secret scope and key for the hash salt in `05_masking_patterns`. Defaults `rcs-demo` and `hash-salt`. |
+# MAGIC | `abac_mode` | `off` (default) creates nothing at account level. `governed` creates the governed tag `rcs_class` and an ABAC policy in `05_masking_patterns`. Bundle variable `rcs_abac_mode`. |
 # MAGIC
 # MAGIC Every variable is a widget. Leave one blank and it takes the default of the deployed job's parameter with the same name. Type a value to override it for one run.
 
@@ -52,6 +56,11 @@
 # MAGIC    databricks groups patch <admins-group-id> --json @add_member.json
 # MAGIC    ```
 # MAGIC    Without it `01_generate_data` stops before it changes anything.
+# MAGIC 2. **A secret scope for the hash salt (`05_masking_patterns`).** Optional. Without it the notebook uses a literal demo salt and prints a warning.
+# MAGIC    ```bash
+# MAGIC    databricks secrets create-scope rcs-demo
+# MAGIC    databricks secrets put-secret rcs-demo hash-salt --string-value "$(openssl rand -hex 16)"
+# MAGIC    ```
 
 # COMMAND ----------
 

@@ -181,6 +181,10 @@ WHERE grantee LIKE '%@%';`,
           text: 'Row filter and column mask policies are generally available, including cross-engine enforcement. GRANT policies give dynamic privileges based on tags. See the row and column security guide for the details.',
         },
         {
+          strong: 'Choosing between grants, ABAC, and per-table functions.',
+          text: 'The comparison and the masking patterns are in the row and column security guide, under Choose an approach.',
+        },
+        {
           strong: 'Combine with direct grants carefully.',
           text: "A principal's effective privileges are the union of direct grants and GRANT policies, so review both.",
         },
