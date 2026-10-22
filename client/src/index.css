@@ -149,7 +149,7 @@ body,
 /* Diagrams use the Genie Design databricks-architecture library; the rest of the app keeps its look. */
 .walkthrough .diagram {
   --d-oat: #F9F7F4; --d-oat-2: #EEEDE9; --d-line: #DAD6CE; --d-line-cool: #D5DDE0;
-  --d-ink: #1B3139; --d-ink-2: #44565D; --d-lava: #FF5F46; --d-lava-deep: #E22D17; --d-slate: #618794; --d-blue: #4359FF;
+  --d-ink: #1B3139; --d-ink-2: #44565D; --d-lava: #FF5F46; --d-lava-deep: #E22D17; --d-green: #007A52; --d-slate: #618794; --d-blue: #4359FF;
   --d-sans: 'DM Sans Variable', 'DM Sans', 'Helvetica Neue', Arial, sans-serif;
   --d-mono: 'DM Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   position: relative; margin-top: 1.5rem; border: 1px solid var(--d-line); border-radius: 16px; background: var(--d-oat); color: var(--d-ink); font-family: var(--d-sans);
@@ -172,6 +172,14 @@ body,
 
 /* Diagram primitives */
 .walkthrough .d-lane { fill: var(--d-oat-2); stroke: var(--d-line); }
+.walkthrough .d-boundary-line { fill: none; stroke: var(--d-green); stroke-width: 1.75; stroke-dasharray: 7 5; }
+.walkthrough .d-boundary.is-on .d-boundary-line { stroke-width: 2.5; }
+
+.walkthrough .t-halo-bg { paint-order: stroke; stroke: var(--d-oat); stroke-width: 6px; stroke-linejoin: round; }
+.walkthrough .d-hit { fill: transparent; }
+.walkthrough .d-label-bg { fill: var(--d-oat); }
+.walkthrough .d-area { cursor: default; }
+.walkthrough .d-tip-dot-boundary { background: var(--d-green); }
 .walkthrough .d-rule { fill: var(--d-lava); }
 .walkthrough .d-box { fill: #fff; stroke: var(--d-line-cool); stroke-width: 1; }
 .walkthrough .d-node .d-box, .walkthrough .d-node .d-surface-box { filter: drop-shadow(0 2px 4px rgba(20, 35, 41, 0.08)) drop-shadow(0 1px 1px rgba(20, 35, 41, 0.04)); }
@@ -210,12 +218,13 @@ body,
 .walkthrough .t-inv { font-size: 14px; font-weight: 600; fill: #fff; }
 .walkthrough .t-inv-m { font-family: var(--d-mono); font-size: 11.5px; fill: #D5DDE0; }
 .walkthrough .t-label { font-family: var(--d-mono); font-size: 11px; font-weight: 500; letter-spacing: 0.12em; fill: var(--d-ink-2); }
+.walkthrough .t-label.t-boundary { fill: var(--d-green); }
 
 /* Tooltip card, an HTML overlay inside .d-stage */
 .walkthrough .d-tip { position: absolute; z-index: 3; width: max-content; max-width: min(320px, calc(100% - 16px)); pointer-events: none; background: #fff; border: 1px solid var(--d-line-cool); border-radius: 12px; padding: 1rem; box-shadow: 0 6px 20px rgba(20, 35, 41, 0.14), 0 1px 3px rgba(20, 35, 41, 0.08); font: 400 0.8125rem/1.5 var(--d-sans); color: var(--d-ink); text-align: left; }
 .walkthrough .d-tip p { margin: 0; line-height: 1.45; }
 .walkthrough .d-tip-eyebrow { display: flex; align-items: center; gap: 0.4rem; font: 500 0.6875rem var(--d-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--d-ink-2); }
-.walkthrough .d-tip-dot { width: 8px; height: 8px; border-radius: 999px; flex: none; }
+.walkthrough .d-tip-dot { background: var(--d-ink-2); width: 8px; height: 8px; border-radius: 999px; flex: none; }
 .walkthrough .d-tip-swatch { width: 12px; height: 12px; border-radius: 3px; flex: none; border: 1px solid var(--d-line); }
 .walkthrough .d-tip-swatch-own { background: var(--d-ink); border-color: var(--d-ink); }
 .walkthrough .d-tip-swatch-optional { background: #FFEFEC; border: 1.5px dashed var(--d-lava-deep); }

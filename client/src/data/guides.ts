@@ -537,6 +537,36 @@ export const guides: readonly Guide[] = [
     ],
   },
   {
+    slug: 'databricks-apps',
+    title: 'Databricks Apps, App Spaces and Serverless Micro Apps',
+    category: 'General Guides',
+    difficulty: 2,
+    summary:
+      'Choose how to build and run an app on Databricks: custom code on Databricks Apps, Genie App Builder in an App Space, or the announced Serverless Micro Apps runtime.',
+    acceptanceCriteria:
+      'Each app runs on the option chosen for a stated reason, with its resources, authorization model and compute size declared, deployed from a bundle or Git, and governed either per app or through an App Space whose scopes and policies it inherits.',
+    evidence: [
+      'An app.yaml and bundle resource with declared resources and valueFrom references',
+      'The authorization model chosen (app, user, or both) with the scopes requested',
+      'An App Space with its scopes, usage policy and permissions, if Genie App Builder is used',
+    ],
+  },
+  {
+    slug: 'lakebase-apps',
+    title: 'App development with Lakebase',
+    category: 'General Guides',
+    difficulty: 3,
+    summary:
+      'Build an app on Lakebase Postgres: connect with the app identity and OAuth, keep it in step with lakehouse tables, and branch it for dev and test.',
+    acceptanceCriteria:
+      'An app reads and writes Lakebase through its database resource with OAuth token refresh and retries, reads lakehouse data from synced tables, sends its own writes back to Delta when analytics needs them, and uses branches for development.',
+    evidence: [
+      'A Databricks App with a Lakebase database resource and a pool that refreshes tokens',
+      'A synced table with a chosen sync mode, and Change Data Feed or another path back to Delta',
+      'A dev branch with an expiration, and the project defined in a bundle',
+    ],
+  },
+  {
     slug: 'geospatial-analytics',
     title: 'Geospatial analytics',
     category: 'General Guides',
@@ -767,11 +797,27 @@ export const guides: readonly Guide[] = [
     ],
   },
   {
+    slug: 'unity-catalog-edm',
+    title: 'Unity Catalog with an enterprise data management program',
+    category: 'Governance/Monitoring',
+    difficulty: 3,
+    summary:
+      'Split the work between Unity Catalog and an enterprise catalog or governance tool: who owns definitions, tags and policy, how metadata moves, and where enforcement happens.',
+    acceptanceCriteria:
+      'Each kind of metadata has one owning system, access policy is enforced in Unity Catalog through governed tags and ABAC, the enterprise tool reads Unity Catalog through a scoped service principal, and lineage outside Databricks is registered.',
+    evidence: [
+      'An ownership table for definitions, tags, policy, quality rules and certification',
+      'Governed tags and an ABAC policy driven by a classification from the enterprise tool',
+      'A scan or sync job with a least-privilege service principal, plus external lineage for outside systems',
+    ],
+  },
+  {
     slug: 'data-validation-framework',
     title: 'Data validation framework',
     category: 'Data Engineering Guides',
     difficulty: 3,
-    summary: 'Reconcile with the source, enforce rules with quarantine, and run every check from one spec into one results table.',
+    summary:
+      'Reconcile with the source, enforce rules with quarantine, and run every check from one spec into one results table.',
     acceptanceCriteria:
       'Validation logic is written once, in Databricks. The copy is reconciled with the source through Lakehouse Federation at the right grain. Row rules run as pipeline expectations with a quarantine table. All other checks run from one spec into one results table that drives an alert and can block downstream tasks. Lineage lists what a failure affects, and metric views hold the metric definitions.',
     evidence: [
@@ -909,11 +955,13 @@ export const guides: readonly Guide[] = [
     title: 'Compute and capacity management',
     category: 'Governance/Monitoring',
     difficulty: 3,
-    summary: 'Default to serverless, then size, isolate, tag, and monitor compute.',
+    summary:
+      'Default to serverless, choose the SQL warehouse type (Classic, Pro or Serverless) for each workload, then size, isolate, tag, and monitor compute.',
     acceptanceCriteria:
       'Workloads run on serverless SQL warehouses, jobs, and notebooks by default. Warehouses are sized for the query and scaled out for concurrency, with one warehouse per workload. Queries carry tags, classic compute is limited by policies, auto-termination, and pools, and queueing is read from query history.',
     evidence: [
       'Serverless defaults and performance modes',
+      'Warehouse type chosen per workload, with the reason',
       'Warehouse sizing and isolation layout',
       'Query tags and a queueing query over query history',
     ],

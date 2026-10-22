@@ -1,4 +1,4 @@
-import type { FlowDiagram, FlowNode } from '../data/walkthroughs/types.ts';
+import type { FlowBoundary, FlowDiagram, FlowNode } from '../data/walkthroughs/types.ts';
 
 // Grid layout for flow diagrams: nodes sit in columns and rows. Edges route only through the empty
 // channels between columns and rows, so a line never crosses a node or its text.
@@ -10,7 +10,7 @@ const ROW_GAP = 84;
 export const LANE_TOP = 36;
 export const LANE_BOTTOM = 14;
 // Horizontal channels between rows run in the middle of the space two lanes leave between them.
-const CHANNEL_BELOW = LANE_BOTTOM + (ROW_GAP - LANE_TOP - LANE_BOTTOM) / 2;
+const channelBelow = (L: Layout) => LANE_BOTTOM + (L.rowGap - LANE_TOP - LANE_BOTTOM) / 2;
 const TOP = 48;
 export const SIDE = 24;
 export const BOTTOM = 44;
@@ -23,7 +23,13 @@ export const PAD = 18; // horizontal padding inside a node
 export const CHAR_W = { label: 8.6, labelMono: 8.4, sub: 7.0, edge: 6.8 };
 export const textWidth = (text: string, perChar: number) => text.length * perChar;
 
-export type Layout = { colGap: number; colX: (col: number) => number; rowY: (row: number) => number };
+export type Layout = {
+  colGap: number;
+  side: number;
+  rowGap: number;
+  colX: (col: number) => number;
+  rowY: (row: number) => number;
+};
 
 export function layoutFor(diagram: FlowDiagram): Layout {
   // Labels on straight edges between neighbouring columns sit in the column gap, so it must fit them.
@@ -37,10 +43,16 @@ export function layoutFor(diagram: FlowDiagram): Layout {
       colGap = Math.max(colGap, Math.ceil(textWidth(edge.label, CHAR_W.edge)) + 2 * BEND + 24);
     }
   }
+  // A boundary line needs room outside the lanes: wider side margins and taller gaps between rows.
+  const hasBoundary = (diagram.boundaries?.length ?? 0) > 0;
+  const side = SIDE + (hasBoundary ? 28 : 0);
+  const rowGap = ROW_GAP + (hasBoundary ? 20 : 0);
   return {
     colGap,
-    colX: (col) => SIDE + col * (COL_W + colGap),
-    rowY: (row) => TOP + row * (ROW_H + ROW_GAP),
+    side,
+    rowGap,
+    colX: (col) => side + col * (COL_W + colGap),
+    rowY: (row) => TOP + row * (ROW_H + rowGap),
   };
 }
 
@@ -80,8 +92,8 @@ export function route(a: FlowNode, b: FlowNode, L: Layout, occupied: Set<string>
   const { ch } = off;
   const gapCol = (col: number, side: 1 | -1) =>
     side === 1 ? L.colX(col) + COL_W + L.colGap / 2 : L.colX(col) - L.colGap / 2;
-  const gapRowBelow = (row: number) => L.rowY(row) + ROW_H + CHANNEL_BELOW;
-  const gapRowAbove = (row: number) => L.rowY(row) - ROW_GAP + CHANNEL_BELOW;
+  const gapRowBelow = (row: number) => L.rowY(row) + ROW_H + channelBelow(L);
+  const gapRowAbove = (row: number) => L.rowY(row) - L.rowGap + channelBelow(L);
   const free = (cells: string[]) => cells.every((cell) => !occupied.has(cell));
   const between = (from: number, to: number) => {
     const list: number[] = [];
@@ -259,7 +271,7 @@ export function edgeLabelBox(r: Route, text: string): Box {
 const LANE_CHAR_W = 8; // 11px mono with 0.12em letter spacing
 
 /** Lane eyebrow (uppercase mono with letter spacing) plus the short lava rule under it, starting at x. */
-export function laneLabelBox(label: string, fromRow: number, L: Layout, x = 20): Box {
+export function laneLabelBox(label: string, fromRow: number, L: Layout, x = L.side - 4): Box {
   const baseline = L.rowY(fromRow) - 20;
   return {
     left: x,
@@ -278,6 +290,9 @@ export type TextPlan = {
   /** Left x of each lane eyebrow, in lane order. */
   laneX: number[];
   laneBoxes: Box[];
+  /** Left x and box of each boundary label, in boundary order. */
+  boundaryX: number[];
+  boundaryBoxes: Box[];
   gateAreas: Map<string, { placement: GatePlacement; area: Box }>;
 };
 
@@ -292,16 +307,15 @@ export function planText(diagram: FlowDiagram, L: Layout, width: number): TextPl
   const nodeBoxes = diagram.nodes.map((node) => inflate(box(node, L), 2));
   const hitsLine = (b: Box) => segs.some((seg) => segHitsBox(seg, inflate(b, 2)));
   const taken: Box[] = [];
-  for (const b of laneBorders(diagram, L)) {
-    taken.push({
-      left: Math.min(b.x1, b.x2),
-      right: Math.max(b.x1, b.x2),
-      top: Math.min(b.y1, b.y2) - 1,
-      bottom: Math.max(b.y1, b.y2) + 1,
-      cx: 0,
-      cy: 0,
-    });
-  }
+  const toBox = (b: Seg): Box => ({
+    left: Math.min(b.x1, b.x2),
+    right: Math.max(b.x1, b.x2),
+    top: Math.min(b.y1, b.y2) - 1,
+    bottom: Math.max(b.y1, b.y2) + 1,
+    cx: 0,
+    cy: 0,
+  });
+  for (const b of laneBorders(diagram, L)) taken.push(toBox(b));
   const free = (b: Box) =>
     !hitsLine(b) && !nodeBoxes.some((n) => boxesOverlap(n, b)) && !taken.some((t) => boxesOverlap(inflate(t, 2), b));
 
@@ -317,9 +331,10 @@ export function planText(diagram: FlowDiagram, L: Layout, width: number): TextPl
   const laneX: number[] = [];
   const laneBoxes: Box[] = [];
   for (const lane of diagram.lanes ?? []) {
-    const w = laneLabelBox(lane.label, lane.fromRow, L).right - 20;
-    let x = 20;
-    for (let candidate = 20; candidate <= width - 20 - w; candidate += 8) {
+    const start = L.side - 4;
+    const w = laneLabelBox(lane.label, lane.fromRow, L).right - start;
+    let x = start;
+    for (let candidate = start; candidate <= width - start - w; candidate += 8) {
       if (free(laneLabelBox(lane.label, lane.fromRow, L, candidate))) {
         x = candidate;
         break;
@@ -330,6 +345,29 @@ export function planText(diagram: FlowDiagram, L: Layout, width: number): TextPl
     laneBoxes.push(b);
     taken.push(b);
   }
+
+  const boundaryX: number[] = [];
+  const boundaryBoxes: Box[] = [];
+  for (const boundary of diagram.boundaries ?? []) {
+    const rect = boundaryRect(boundary, L, width);
+    let x = rect.left + 20;
+    for (
+      let candidate = rect.left + 20;
+      candidate <= rect.right - 20 - boundary.label.length * LANE_CHAR_W;
+      candidate += 8
+    ) {
+      if (free(boundaryLabelBox(boundary.label, rect, candidate))) {
+        x = candidate;
+        break;
+      }
+    }
+    const b = boundaryLabelBox(boundary.label, rect, x);
+    boundaryX.push(x);
+    boundaryBoxes.push(b);
+    taken.push(b);
+  }
+  // Boundary lines are obstacles for edge labels, once the boundary labels sit on them.
+  for (const b of boundaryBorders(diagram, L)) taken.push(toBox(b));
 
   const edgeLabels = diagram.edges.map((edge, i): PlacedLabel | undefined => {
     if (!edge.label) return undefined;
@@ -367,11 +405,18 @@ export function planText(diagram: FlowDiagram, L: Layout, width: number): TextPl
     return pick;
   });
 
-  return { routes, edgeLabels, laneX, laneBoxes, gateAreas };
+  return { routes, edgeLabels, laneX, laneBoxes, boundaryX, boundaryBoxes, gateAreas };
 }
 
 // Wide enough that an edge label fits between two parallel lines.
-const SLIDE = [0, 22, -22, 44, -44, 11, -11];
+// Slides stay inside the card edge (a card is 64 tall). The first tier keeps lines 16px apart; a node with
+// four or more edges on one side falls back to the second tier, which packs them 11px apart.
+const TIERS = [
+  { min: 16, slide: [0, 22, -22] },
+  { min: 10, slide: [0, 11, -11, 22, -22] },
+];
+/** The tightest spacing between parallel lines of different edges, used when a node side is crowded. */
+export const MIN_PARALLEL_DENSE = 10;
 const CHANNEL = [0, -16, 16, -32, 32];
 /** Parallel lines from different edges stay at least this far apart. */
 export const MIN_PARALLEL = 16;
@@ -411,7 +456,7 @@ export function parallelTooClose(p: Seg, q: Seg, min: number): boolean {
 
 export function diagramWidth(diagram: FlowDiagram, L: Layout): number {
   const cols = Math.max(...diagram.nodes.map((node) => node.col)) + 1;
-  return L.colX(cols - 1) + COL_W + SIDE;
+  return L.colX(cols - 1) + COL_W + L.side;
 }
 
 /** The rectangle a lane band covers, as drawn. */
@@ -440,6 +485,40 @@ export function laneBorders(diagram: FlowDiagram, L: Layout): Seg[] {
   });
 }
 
+export const BOUNDARY_MARGIN = 12;
+
+/** The rectangle of a boundary line: it wraps its lanes and nodes with room to spare. */
+export function boundaryRect(b: FlowBoundary, L: Layout, width: number): Box {
+  const edge = L.side - 30;
+  return {
+    left: b.fromCol === undefined ? edge : L.colX(b.fromCol) - 20,
+    right: b.toCol === undefined ? width - edge : L.colX(b.toCol) + COL_W + 20,
+    top: Math.max(2, L.rowY(b.fromRow) - LANE_TOP - BOUNDARY_MARGIN),
+    bottom: L.rowY(b.toRow) + ROW_H + LANE_BOTTOM + BOUNDARY_MARGIN,
+    cx: 0,
+    cy: 0,
+  };
+}
+
+/** The four border lines of every boundary. */
+export function boundaryBorders(diagram: FlowDiagram, L: Layout): Seg[] {
+  const width = diagramWidth(diagram, L);
+  return (diagram.boundaries ?? []).flatMap((b) => {
+    const r = boundaryRect(b, L, width);
+    return [
+      { x1: r.left, y1: r.top, x2: r.right, y2: r.top },
+      { x1: r.left, y1: r.bottom, x2: r.right, y2: r.bottom },
+      { x1: r.left, y1: r.top, x2: r.left, y2: r.bottom },
+      { x1: r.right, y1: r.top, x2: r.right, y2: r.bottom },
+    ];
+  });
+}
+
+/** Box of a boundary label, which sits on the top line of its rectangle like a fieldset legend. */
+export function boundaryLabelBox(label: string, rect: Box, x: number): Box {
+  return { left: x, right: x + label.length * LANE_CHAR_W + 4, top: rect.top - 10, bottom: rect.top + 7, cx: 0, cy: 0 };
+}
+
 /**
  * Routes every edge. Each edge takes the first slide offsets (where it leaves, where it enters, and
  * its channel) that put it on no line already used by an earlier edge and through no other node.
@@ -449,29 +528,32 @@ export function routeAll(diagram: FlowDiagram, L: Layout): Route[] {
   const occupied = new Set(diagram.nodes.map((node) => `${node.col},${node.row}`));
   const nodeBoxes = diagram.nodes.map((node) => ({ id: node.id, b: { ...box(node, L) } }));
   const used: Seg[] = [];
-  const borders = laneBorders(diagram, L);
+  const borders = [...laneBorders(diagram, L), ...boundaryBorders(diagram, L)];
   return diagram.edges.map((edge) => {
     const from = byId.get(edge.from)!;
     const to = byId.get(edge.to)!;
-    const ok = (r: Route) => {
+    const ok = (r: Route, min: number) => {
       const segs = pathSegments(r.d);
-      if (segs.some((seg) => used.some((u) => parallelTooClose(seg, u, MIN_PARALLEL)))) return false;
+      if (segs.some((seg) => used.some((u) => parallelTooClose(seg, u, min)))) return false;
       if (segs.some((seg) => borders.some((b) => parallelTooClose(seg, b, LANE_CLEAR)))) return false;
       return nodeBoxes.every(({ id, b }) => {
         if (id === edge.from || id === edge.to) return true;
+        // Keep a few pixels off cards the edge passes, so a line never hugs a card edge.
         return !segs.some((seg) =>
-          segHitsBox(seg, { ...b, left: b.left + 1, right: b.right - 1, top: b.top + 1, bottom: b.bottom - 1 })
+          segHitsBox(seg, { ...b, left: b.left - 8, right: b.right + 8, top: b.top - 8, bottom: b.bottom + 8 })
         );
       });
     };
     let chosen: Route | undefined;
-    search: for (const ch of CHANNEL) {
-      for (const out of SLIDE) {
-        for (const inn of SLIDE) {
-          const r = route(from, to, L, occupied, { out, inn, ch });
-          if (ok(r)) {
-            chosen = r;
-            break search;
+    search: for (const tier of TIERS) {
+      for (const ch of CHANNEL) {
+        for (const out of tier.slide) {
+          for (const inn of tier.slide) {
+            const r = route(from, to, L, occupied, { out, inn, ch });
+            if (ok(r, tier.min)) {
+              chosen = r;
+              break search;
+            }
           }
         }
       }

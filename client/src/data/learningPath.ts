@@ -73,6 +73,7 @@ export const learningPath: readonly LearningStage[] = [
       'row-column-security',
       'documentation-generation',
       'data-observability',
+      'unity-catalog-edm',
       'monitoring',
       'operational-support',
       'data-sharing',
@@ -81,7 +82,15 @@ export const learningPath: readonly LearningStage[] = [
   {
     title: 'Open formats and integrations',
     summary: 'Delta and Iceberg, other engines and tools, and migrating legacy workloads.',
-    slugs: ['file-formats-delta-iceberg', 'iceberg-support', 'external-integrations', 'geospatial-analytics', 'legacy-conversion'],
+    slugs: [
+      'file-formats-delta-iceberg',
+      'iceberg-support',
+      'external-integrations',
+      'databricks-apps',
+      'lakebase-apps',
+      'geospatial-analytics',
+      'legacy-conversion',
+    ],
   },
   {
     title: 'AI on your data',
@@ -109,5 +118,5 @@ export const learningPath: readonly LearningStage[] = [
 
 /** 1-based step number of each guide along the path. */
 export const learningStep: ReadonlyMap<string, number> = new Map(
-  learningPath.flatMap((stage) => stage.slugs).map((slug, index) => [slug, index + 1]),
+  learningPath.flatMap((stage) => stage.slugs).map((slug, index) => [slug, index + 1])
 );

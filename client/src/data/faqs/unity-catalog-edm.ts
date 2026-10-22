@@ -49,7 +49,7 @@ export const faqs: Faq[] = [
   {
     question: 'Which Unity Catalog governance features are Beta or Preview today?',
     answer:
-      'As of October 2026, governed tags (GA April 2, 2026), Data Classification for tables (GA April 20, 2026), external lineage (GA June 8, 2026), metric views, and the Discover page (GA October 8, 2026) are generally available. Pages for business terms (Beta, August 12, 2026), governed tag propagation (Beta, October 12, 2026), custom classifiers, classification of views (Beta, September 15, 2026) and metastore-level ABAC policies (Beta, September 17, 2026) are in Beta. Data quality anomaly detection is in Public Preview, and access requests were announced in Public Preview on August 11, 2025. Check the release notes before you plan around any of these.',
+      'As of October 2026, governed tags (GA April 2, 2026), Data Classification for tables (GA April 20, 2026), ABAC row filters and column masks (GA April 28, 2026), external lineage (GA June 8, 2026), the Discover page (GA October 8, 2026), and cross-engine ABAC (GA October 1, 2026) are generally available. Metric view window measures went GA on October 6, 2026, and the metric views docs page states no overall stage. Pages for business terms (Beta, August 12, 2026), governed tag propagation (Beta, October 12, 2026), custom classifiers, classification of views (Beta, September 15, 2026) and metastore-level ABAC policies (Beta, September 17, 2026) are in Beta. Data quality anomaly detection is in Public Preview, and access requests were announced in Public Preview on August 11, 2025. Check the release notes before you plan around any of these.',
     links: [
       {
         label: 'October 2026 release notes',
@@ -275,7 +275,7 @@ export const faqs: Faq[] = [
     kind: 'tradeoff',
     question: 'What should I expect for enforcement when other engines read the same tables?',
     answer:
-      'Reading through the Unity Catalog Iceberg REST catalog lets other engines use the same tables, but enforcement depends on client support. The Iceberg REST page points to cross-engine ABAC for the client versions and configuration needed to read tables with row filters or column masks. External Iceberg clients also cannot run table maintenance such as expiring snapshots. Test each engine against a masked table before you tell auditors that one policy covers every reader.',
+      'Reading through the Unity Catalog Iceberg REST catalog lets other engines use the same tables, but enforcement depends on client support. Cross-engine ABAC (GA October 1, 2026) has Databricks serverless compute filter the data before it reaches the engine. The docs name Apache Spark clients with specific Delta and Iceberg versions and a serverSidePlanning.enabled setting, and they bill the serverless compute. External Iceberg clients also cannot run table maintenance such as expiring snapshots. Test each engine against a masked table before you tell auditors that one policy covers every reader.',
     links: [
       { label: 'Iceberg REST catalog access', url: 'https://docs.databricks.com/aws/en/external-access/iceberg' },
       {

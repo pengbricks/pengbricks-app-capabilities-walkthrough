@@ -7,12 +7,14 @@ import {
   laneBorders,
   LANE_CLEAR,
   MIN_PARALLEL,
+  MIN_PARALLEL_DENSE,
   parallelTooClose,
-  COL_W,
+  boundaryBorders,
+  boundaryRect,
+  diagramWidth,
   layoutFor,
   pathSegments,
   planText,
-  SIDE,
   segHitsBox,
   wrapText,
   type Box,
@@ -29,8 +31,7 @@ const flows: [string, string, FlowDiagram][] = walkthroughs.flatMap((walkthrough
 // Text never sits on a line or on other text: every label gets its own clear box.
 describe.each(flows)('%s / %s text clearance', (_slug, _section, diagram) => {
   const L = layoutFor(diagram);
-  const cols = Math.max(...diagram.nodes.map((node) => node.col)) + 1;
-  const width = L.colX(cols - 1) + COL_W + SIDE;
+  const width = diagramWidth(diagram, L);
   const plan = planText(diagram, L, width);
   const segs = plan.routes.flatMap((r, i) => pathSegments(r.d).map((seg) => ({ seg, edge: diagram.edges[i] })));
   const labels: { name: string; box: Box }[] = [];
@@ -63,7 +64,7 @@ describe.each(flows)('%s / %s text clearance', (_slug, _section, diagram) => {
   });
 
   it('keeps edge and gate labels off lane borders', () => {
-    for (const border of laneBorders(diagram, L)) {
+    for (const border of [...laneBorders(diagram, L), ...boundaryBorders(diagram, L)]) {
       const thin = {
         left: Math.min(border.x1, border.x2),
         right: Math.max(border.x1, border.x2),
@@ -77,8 +78,8 @@ describe.each(flows)('%s / %s text clearance', (_slug, _section, diagram) => {
     }
   });
 
-  it('keeps edge lines away from lane borders along their length', () => {
-    for (const border of laneBorders(diagram, L)) {
+  it('keeps edge lines away from lane and boundary borders along their length', () => {
+    for (const border of [...laneBorders(diagram, L), ...boundaryBorders(diagram, L)]) {
       plan.routes.forEach((r, i) => {
         const edge = diagram.edges[i];
         const hit = pathSegments(r.d).some((seg) => parallelTooClose(seg, border, LANE_CLEAR));
@@ -87,11 +88,38 @@ describe.each(flows)('%s / %s text clearance', (_slug, _section, diagram) => {
     }
   });
 
-  it('keeps parallel edge lines at least 16px apart', () => {
+  it('draws boundaries around whole nodes, with their label clear of nodes and edges', () => {
+    for (const [i, boundary] of (diagram.boundaries ?? []).entries()) {
+      const rect = boundaryRect(boundary, L, width);
+      const lines = boundaryBorders(diagram, L).slice(i * 4, i * 4 + 4);
+      for (const node of diagram.nodes) {
+        const b = box(node, L);
+        expect(
+          lines.some((line) => segHitsBox(line, b)),
+          `boundary "${boundary.label}" cuts through ${node.id}`
+        ).toBe(false);
+        const inside = b.left >= rect.left && b.right <= rect.right && b.top >= rect.top && b.bottom <= rect.bottom;
+        const rowsIn = node.row >= boundary.fromRow && node.row <= boundary.toRow;
+        const colsIn = node.col >= (boundary.fromCol ?? 0) && node.col <= (boundary.toCol ?? Infinity);
+        expect(
+          inside,
+          `${node.id} should be ${rowsIn && colsIn ? 'inside' : 'outside'} boundary "${boundary.label}"`
+        ).toBe(rowsIn && colsIn);
+      }
+    }
+  });
+
+  it('keeps parallel edge lines at least 16px apart (10px where a node has four or more edges)', () => {
+    const crowded = diagram.nodes.some(
+      (n) =>
+        diagram.edges.filter((e) => e.from === n.id).length >= 4 ||
+        diagram.edges.filter((e) => e.to === n.id).length >= 4
+    );
+    const min = crowded ? MIN_PARALLEL_DENSE : MIN_PARALLEL;
     plan.routes.forEach((r, i) => {
       for (let j = i + 1; j < plan.routes.length; j += 1) {
         const hit = pathSegments(r.d).some((p) =>
-          pathSegments(plan.routes[j].d).some((q) => parallelTooClose(p, q, MIN_PARALLEL))
+          pathSegments(plan.routes[j].d).some((q) => parallelTooClose(p, q, min))
         );
         const [a, b] = [diagram.edges[i], diagram.edges[j]];
         expect(hit, `${a.from} -> ${a.to} runs too close to ${b.from} -> ${b.to}`).toBe(false);
