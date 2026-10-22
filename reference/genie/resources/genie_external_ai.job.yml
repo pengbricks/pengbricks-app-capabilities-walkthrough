@@ -1,0 +1,38 @@
+# Genie and Databricks MCP with outside assistants: reuse or create a Genie Agent, then call it through the managed MCP endpoint.
+resources:
+  jobs:
+    capability_guides_genie_external_ai:
+      name: capability-guides-genie-external-ai
+      description: Reuses the Genie Agent from the Genie Agents guide or creates one over the same sample tables, then connects to the managed MCP endpoint with the Databricks MCP Python client, lists the tools, asks a question, and records the answer and SQL. This is the call an outside assistant makes.
+      tags:
+        capability_guide_job: capability_guides_genie_external_ai
+        capability_guide_use_case: ${var.use_case}
+      max_concurrent_runs: 1
+      timeout_seconds: 3600
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${var.schema}
+        - name: use_case
+          default: ${var.use_case}
+        - name: warehouse_id
+          default: ${var.warehouse_id}
+        - name: mcp_server
+          default: ${var.mcp_server}
+        - name: mcp_question
+          default: ${var.mcp_question}
+      tasks:
+        - task_key: genie_agent_for_mcp
+          notebook_task:
+            notebook_path: ../guides/genie-external-ai/01_genie_agent_for_mcp.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
+
+        - task_key: call_mcp_from_python
+          depends_on:
+            - task_key: genie_agent_for_mcp
+          notebook_task:
+            notebook_path: ../guides/genie-external-ai/02_call_mcp_from_python.py
+            base_parameters:
+              run_id: "{{job.run_id}}"

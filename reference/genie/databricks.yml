@@ -17,6 +17,12 @@ variables:
   use_case:
     description: Use-case spec under use_cases/ that drives data, semantics, questions, and the user script
     default: general
+  mcp_server:
+    description: Managed MCP endpoint the external AI guide calls, genie_one (generally available) or genie_agent (preview, one agent per URL)
+    default: genie_one
+  mcp_question:
+    description: Question the external AI guide sends through the MCP endpoint
+    default: What is total revenue by customer segment for Q3 2026?
   release:
     description: Release identifier recorded in resource tags
     default: local

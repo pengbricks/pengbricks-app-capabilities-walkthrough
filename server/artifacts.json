@@ -9173,6 +9173,657 @@
         }
       ],
       "recordedRuns": []
+    },
+    "genie-code": {
+      "bundle": "reference/analyst",
+      "onePager": "reference/analyst/guides/genie-code/README.md",
+      "code": [
+        {
+          "label": "Prompt library",
+          "path": "reference/analyst/guides/genie-code/prompts.md"
+        },
+        {
+          "label": "Preflight sample data",
+          "path": "reference/analyst/guides/genie-code/01_preflight_sample_data.py"
+        },
+        {
+          "label": "Check outputs",
+          "path": "reference/analyst/guides/genie-code/02_check_outputs.py"
+        },
+        {
+          "label": "Install skills and instructions",
+          "path": "reference/analyst/guides/genie-code/03_install_skills.py"
+        },
+        {
+          "label": "Example skill",
+          "path": "reference/analyst/guides/genie-code/skills/gc-sample-data/SKILL.md"
+        },
+        {
+          "label": "Example instructions",
+          "path": "reference/analyst/guides/genie-code/instructions.md"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_genie_code",
+          "label": "Genie Code sample data and check job"
+        }
+      ],
+      "docs": [
+        {
+          "label": "Genie Code",
+          "url": "https://docs.databricks.com/aws/en/genie-code/"
+        },
+        {
+          "label": "Tips for Genie Code responses",
+          "url": "https://docs.databricks.com/aws/en/genie-code/tips"
+        },
+        {
+          "label": "Partner-powered AI features",
+          "url": "https://docs.databricks.com/aws/en/databricks-ai/partner-powered"
+        },
+        {
+          "label": "Lakeflow Designer",
+          "url": "https://docs.databricks.com/aws/en/designer/"
+        },
+        {
+          "label": "AI/BI dashboards",
+          "url": "https://docs.databricks.com/aws/en/dashboards/"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Sample data with a fixed seed",
+          "path": "reference/analyst/guides/genie-code/01_preflight_sample_data.py",
+          "notes": [
+            "CREATE OR REPLACE from a seeded generator, so every run gives the same rows."
+          ],
+          "lines": [
+            38,
+            47
+          ]
+        },
+        {
+          "label": "Reconcile revenue across tables",
+          "path": "reference/analyst/src/analyst_common/genie_code.py",
+          "symbol": "reconcile",
+          "notes": [
+            "Compares sample, silver and both gold totals to half a cent."
+          ]
+        },
+        {
+          "label": "Report what is missing",
+          "path": "reference/analyst/src/analyst_common/genie_code.py",
+          "symbol": "howto_for_missing",
+          "notes": [
+            "The check names the prompt for each interactive step that has no asset yet."
+          ]
+        },
+        {
+          "label": "Job: preflight then check",
+          "path": "reference/analyst/resources/genie_code.job.yml",
+          "notes": [
+            "Two serverless tasks, tagged for the app to find."
+          ],
+          "lines": [
+            3,
+            24
+          ]
+        },
+        {
+          "label": "Skill front matter and checks",
+          "path": "reference/analyst/src/analyst_common/genie_skills.py",
+          "symbol": "validate_skill",
+          "notes": [
+            "Checks name, folder match and description before a skill is copied."
+          ]
+        },
+        {
+          "label": "Documented skill and instruction locations",
+          "path": "reference/analyst/src/analyst_common/genie_skills.py",
+          "symbol": "skills_root",
+          "notes": [
+            "User skills in /Users/<you>/.assistant/skills, shared skills in /Workspace/.assistant/skills."
+          ]
+        },
+        {
+          "label": "Idempotent install",
+          "path": "reference/analyst/src/analyst_common/genie_skills.py",
+          "symbol": "needs_write",
+          "notes": [
+            "A rerun compares content and rewrites in place only when it differs."
+          ]
+        },
+        {
+          "label": "Example skill",
+          "path": "reference/analyst/guides/genie-code/skills/gc-sample-data/SKILL.md",
+          "notes": [
+            "Front matter, the gc_ tables with grain, revenue rules and prompt conventions."
+          ],
+          "lines": [
+            1,
+            12
+          ]
+        },
+        {
+          "label": "Publish to the shared folder",
+          "path": "reference/analyst/src/analyst_common/genie_skills.py",
+          "symbol": "publish_steps",
+          "notes": [
+            "Printed for a reviewer or CI. The notebook writes workspace-wide only when write_workspace_wide is yes."
+          ]
+        }
+      ],
+      "recordedRuns": []
+    },
+    "ai-functions-data-quality": {
+      "bundle": "reference/ai-functions",
+      "onePager": "reference/ai-functions/guides/ai-functions-data-quality/README.md",
+      "code": [
+        {
+          "label": "Notebooks, one per job task",
+          "path": "reference/ai-functions/guides/ai-functions-data-quality"
+        },
+        {
+          "label": "Use-case spec: tables, labels, patterns, thresholds",
+          "path": "reference/ai-functions/use_cases/data_quality.yml"
+        },
+        {
+          "label": "Sample generator, rule SQL, verdict parsing, and scoring",
+          "path": "reference/ai-functions/src/aidq_lib.py"
+        },
+        {
+          "label": "AI Functions for data quality job",
+          "path": "reference/ai-functions/resources/ai_functions_data_quality.job.yml"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_ai_functions_data_quality",
+          "label": "AI Functions for data quality job"
+        }
+      ],
+      "docs": [
+        {
+          "label": "AI Functions overview",
+          "url": "https://docs.databricks.com/aws/en/large-language-models/ai-functions"
+        },
+        {
+          "label": "ai_classify",
+          "url": "https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_classify"
+        },
+        {
+          "label": "ai_extract",
+          "url": "https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_extract"
+        },
+        {
+          "label": "ai_similarity",
+          "url": "https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_similarity"
+        },
+        {
+          "label": "ai_mask",
+          "url": "https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_mask"
+        },
+        {
+          "label": "ai_query",
+          "url": "https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_query"
+        },
+        {
+          "label": "Structured outputs",
+          "url": "https://docs.databricks.com/aws/en/machine-learning/model-serving/structured-outputs"
+        },
+        {
+          "label": "Billable usage system table",
+          "url": "https://docs.databricks.com/aws/en/admin/system-tables/billing"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Rule SQL returns pass, fail, or unknown",
+          "path": "reference/ai-functions/src/aidq_lib.py",
+          "symbol": "rule_queries",
+          "section": "flow",
+          "notes": [
+            "Unknown is the residue. Only those rows reach a model."
+          ]
+        },
+        {
+          "label": "Classify the residue with described labels and confidence",
+          "path": "reference/ai-functions/guides/ai-functions-data-quality/03_ai_checks.py",
+          "lines": [
+            62,
+            74
+          ],
+          "section": "classify",
+          "notes": [
+            "The join on aidq_rule_results keeps verdict = unknown.",
+            "Low confidence becomes review, not a guess."
+          ]
+        },
+        {
+          "label": "Extract address fields from the rows regex could not clear",
+          "path": "reference/ai-functions/guides/ai-functions-data-quality/03_ai_checks.py",
+          "lines": [
+            85,
+            96
+          ],
+          "section": "extract",
+          "notes": [
+            "A schema with a type and description per field; version 2.1."
+          ]
+        },
+        {
+          "label": "Score blocked pairs once with ai_similarity",
+          "path": "reference/ai-functions/guides/ai-functions-data-quality/03_ai_checks.py",
+          "lines": [
+            108,
+            126
+          ],
+          "section": "match",
+          "notes": [
+            "Blocking and LIMIT bound the number of model calls.",
+            "Scores are saved, and thresholds read the saved score."
+          ]
+        },
+        {
+          "label": "Detect sensitive text by comparing ai_mask output",
+          "path": "reference/ai-functions/guides/ai-functions-data-quality/03_ai_checks.py",
+          "lines": [
+            138,
+            147
+          ],
+          "section": "sensitive",
+          "notes": [
+            "A changed note held something sensitive."
+          ]
+        },
+        {
+          "label": "Structured pass or fail from ai_query",
+          "path": "reference/ai-functions/guides/ai-functions-data-quality/03_ai_checks.py",
+          "lines": [
+            158,
+            172
+          ],
+          "section": "validate",
+          "notes": [
+            "responseFormat carries the JSON schema; failOnError => false keeps errors as data."
+          ]
+        },
+        {
+          "label": "Parse a structured verdict, with review for anything unreadable",
+          "path": "reference/ai-functions/src/aidq_lib.py",
+          "symbol": "parse_verdict",
+          "section": "validate"
+        },
+        {
+          "label": "Combine rule and AI results, then quarantine",
+          "path": "reference/ai-functions/src/aidq_lib.py",
+          "symbol": "quarantine_sql",
+          "section": "pipeline",
+          "notes": [
+            "Any failed or review check puts the record in quarantine with its reasons."
+          ]
+        },
+        {
+          "label": "Precision and recall with review counted apart",
+          "path": "reference/ai-functions/src/aidq_lib.py",
+          "symbol": "confusion",
+          "section": "accuracy"
+        },
+        {
+          "label": "Threshold gate for a check",
+          "path": "reference/ai-functions/src/aidq_lib.py",
+          "symbol": "gate",
+          "section": "accuracy"
+        },
+        {
+          "label": "Billed usage for the AI window",
+          "path": "reference/ai-functions/guides/ai-functions-data-quality/04_accuracy_and_cost.py",
+          "lines": [
+            116,
+            130
+          ],
+          "section": "cost",
+          "notes": [
+            "AI_FUNCTIONS and MODEL_SERVING rows for this identity and window.",
+            "Billing lags, so the status can be partial or not_available."
+          ]
+        }
+      ],
+      "recordedRuns": []
+    },
+    "ai-runtime": {
+      "bundle": "reference/ml-lifecycle",
+      "onePager": "reference/ml-lifecycle/guides/ai-runtime/README.md",
+      "code": [
+        {
+          "label": "Notebooks, one per job task",
+          "path": "reference/ml-lifecycle/guides/ai-runtime"
+        },
+        {
+          "label": "Array prep, model, and training loop",
+          "path": "reference/ml-lifecycle/src/gpu_churn.py"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_ai_runtime",
+          "label": "AI Runtime training job"
+        }
+      ],
+      "docs": [
+        {
+          "label": "AI Runtime",
+          "url": "https://docs.databricks.com/aws/en/machine-learning/ai-runtime/"
+        },
+        {
+          "label": "Distributed training on AI Runtime",
+          "url": "https://docs.databricks.com/aws/en/machine-learning/ai-runtime/distributed-training"
+        },
+        {
+          "label": "Load data on AI Runtime",
+          "url": "https://docs.databricks.com/aws/en/machine-learning/ai-runtime/develop-workloads/dataloading"
+        },
+        {
+          "label": "Schedule AI Runtime workloads",
+          "url": "https://docs.databricks.com/aws/en/machine-learning/ai-runtime/monitor-deploy/productionizing-training-workloads"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "GPU environment and task compute in the job",
+          "path": "reference/ml-lifecycle/resources/ai_runtime.job.yml",
+          "notes": [
+            "The environment pins version 6, which includes databricks-sdk-air.",
+            "compute.hardware_accelerator picks the GPU per task and is Beta in the bundle schema."
+          ],
+          "lines": [
+            34,
+            66
+          ],
+          "section": "jobs"
+        },
+        {
+          "label": "Train on the attached GPU and register",
+          "path": "reference/ml-lifecycle/guides/ai-runtime/01_train_on_gpu.py",
+          "notes": [
+            "A stable experiment, a new model version per run, and the alias moved, not added."
+          ],
+          "lines": [
+            48,
+            69
+          ],
+          "section": "track"
+        },
+        {
+          "label": "One function per GPU with @distributed",
+          "path": "reference/ml-lifecycle/guides/ai-runtime/02_distributed.py",
+          "notes": [
+            "Each rank loads its own data and trains a shard under DDP; rank 0 returns the result."
+          ],
+          "lines": [
+            54,
+            83
+          ],
+          "section": "distribute"
+        },
+        {
+          "label": "Launch across the node's GPUs",
+          "path": "reference/ml-lifecycle/guides/ai-runtime/02_distributed.py",
+          "notes": [
+            "Gated by the distributed parameter, so the default run stays on one GPU."
+          ],
+          "lines": [
+            92,
+            99
+          ],
+          "section": "distribute"
+        },
+        {
+          "label": "Split and shard the arrays",
+          "path": "reference/ml-lifecycle/src/gpu_churn.py",
+          "notes": [
+            "Plain numpy, tested without a GPU."
+          ],
+          "symbol": "split_arrays",
+          "section": "data"
+        }
+      ],
+      "recordedRuns": []
+    },
+    "omnigent": {
+      "bundle": "reference/agents",
+      "onePager": "reference/agents/guides/omnigent/README.md",
+      "code": [
+        {
+          "label": "Notebooks, one per job task",
+          "path": "reference/agents/guides/omnigent"
+        },
+        {
+          "label": "Prompts for Omnigent",
+          "path": "reference/agents/guides/omnigent/prompts.md"
+        },
+        {
+          "label": "Helpers: raw files, names, check",
+          "path": "reference/agents/src/omnigent_lib.py"
+        },
+        {
+          "label": "Tests for the helpers",
+          "path": "reference/agents/tests/test_omnigent_lib.py"
+        },
+        {
+          "label": "Omnigent job",
+          "path": "reference/agents/resources/omnigent.job.yml"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_omnigent",
+          "label": "Omnigent preflight and check job"
+        }
+      ],
+      "docs": [
+        {
+          "label": "Connect GitHub (Omnigent)",
+          "url": "https://omnigent.ai/docs/deploy/github-connect"
+        },
+        {
+          "label": "Omnigent policy guide",
+          "url": "https://github.com/omnigent-ai/omnigent/blob/main/docs/POLICIES.md"
+        },
+        {
+          "label": "Connect your Git provider to Databricks",
+          "url": "https://docs.databricks.com/aws/en/repos/get-access-tokens-from-git-provider"
+        },
+        {
+          "label": "Omnigent on Databricks",
+          "url": "https://docs.databricks.com/aws/en/omnigent/"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Write the raw files",
+          "path": "reference/agents/guides/omnigent/01_preflight_raw_volume.py",
+          "symbol": "main",
+          "section": "run-it",
+          "notes": [
+            "Creates the volume if missing, then overwrites each file at its fixed path."
+          ]
+        },
+        {
+          "label": "Reconcile the pipeline to the raw files",
+          "path": "reference/agents/guides/omnigent/02_check_pipeline.py",
+          "symbol": "main",
+          "section": "run-it",
+          "notes": [
+            "Reports needs_manual_check when the Omnigent steps have not run, and fails only on wrong counts."
+          ]
+        },
+        {
+          "label": "Deterministic orders with planted defects",
+          "path": "reference/agents/src/omnigent_lib.py",
+          "symbol": "generate_orders",
+          "section": "run-it",
+          "notes": [
+            "A repeated order_id and a missing amount give the silver step something to clean."
+          ]
+        },
+        {
+          "label": "Pass, fail, or needs_manual_check",
+          "path": "reference/agents/src/omnigent_lib.py",
+          "symbol": "overall_status",
+          "section": "run-it",
+          "notes": [
+            "A missing layer is not a failure."
+          ]
+        }
+      ],
+      "recordedRuns": []
+    },
+    "genie-external-ai": {
+      "bundle": "reference/genie",
+      "onePager": "reference/genie/guides/genie-external-ai/README.md",
+      "code": [
+        {
+          "label": "Notebooks, one per job task",
+          "path": "reference/genie/guides/genie-external-ai"
+        },
+        {
+          "label": "Connector examples for ChatGPT, Gemini, Copilot Studio, and Teams",
+          "path": "reference/genie/guides/genie-external-ai/connectors"
+        },
+        {
+          "label": "MCP URLs, tool discovery, and reply parsing",
+          "path": "reference/genie/src/mcp_lib.py"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_genie_external_ai",
+          "label": "Genie external AI job"
+        }
+      ],
+      "docs": [
+        {
+          "label": "Genie One MCP server",
+          "url": "https://docs.databricks.com/aws/en/agents/mcp-tools/genie-mcp"
+        },
+        {
+          "label": "Genie Agent MCP server",
+          "url": "https://docs.databricks.com/aws/en/agents/mcp-tools/genie-agent"
+        },
+        {
+          "label": "Databricks-provided MCP services",
+          "url": "https://docs.databricks.com/aws/en/agents/mcp-tools/built-in-mcp-services"
+        },
+        {
+          "label": "Authentication for MCP clients",
+          "url": "https://docs.databricks.com/aws/en/agents/mcp-tools/authentication-networking"
+        },
+        {
+          "label": "Govern an MCP",
+          "url": "https://docs.databricks.com/aws/en/ai-gateway/govern-mcp-service"
+        },
+        {
+          "label": "Databricks Genie app in Microsoft Teams",
+          "url": "https://docs.databricks.com/aws/en/integrations/msft-teams"
+        },
+        {
+          "label": "Genie in Microsoft Copilot Studio",
+          "url": "https://docs.databricks.com/aws/en/integrations/msft-power-platform/copilot-studio"
+        },
+        {
+          "label": "Use MCP tools in a Python agent",
+          "url": "https://docs.databricks.com/aws/en/agents/custom-agents/use-mcp-tools"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Endpoint URLs and scopes",
+          "path": "reference/genie/src/mcp_lib.py",
+          "notes": [
+            "Genie One is a gateway path with scope ai-gateway. The Genie Agent path takes the agent ID and uses scope genie."
+          ],
+          "symbol": "mcp_url",
+          "section": "paths"
+        },
+        {
+          "label": "Connect and list the tools",
+          "path": "reference/genie/guides/genie-external-ai/02_call_mcp_from_python.py",
+          "notes": [
+            "The same client call an outside assistant makes after sign-in. list_tools returns only what the caller may see."
+          ],
+          "lines": [
+            56,
+            57
+          ],
+          "section": "flow"
+        },
+        {
+          "label": "Pick tools from tools/list",
+          "path": "reference/genie/src/mcp_lib.py",
+          "notes": [
+            "The Genie Agent server's tool names are not in the public docs, so the code reads them from the server."
+          ],
+          "symbol": "classify_tools",
+          "section": "tools"
+        },
+        {
+          "label": "Ask, poll one call at a time, read the SQL",
+          "path": "reference/genie/guides/genie-external-ai/02_call_mcp_from_python.py",
+          "notes": [
+            "The docs say to finish one poll before sending the next."
+          ],
+          "lines": [
+            79,
+            88
+          ],
+          "section": "run-it"
+        },
+        {
+          "label": "Audit the outside call",
+          "path": "reference/genie/src/mcp_lib.py",
+          "notes": [
+            "executed_as is the asking user, and the warehouse is the agent's."
+          ],
+          "symbol": "audit_sql",
+          "section": "audit"
+        },
+        {
+          "label": "Gateway MCP usage by tool",
+          "path": "reference/genie/src/mcp_lib.py",
+          "notes": [
+            "The query shape comes from the Govern an MCP docs."
+          ],
+          "symbol": "gateway_usage_sql",
+          "section": "audit"
+        },
+        {
+          "label": "Gemini CLI settings",
+          "path": "reference/genie/guides/genie-external-ai/connectors/gemini-settings.json",
+          "notes": [
+            "httpUrl for Streamable HTTP, an OAuth block with a client ID from the app connection, and includeTools to limit the tools."
+          ],
+          "lines": [
+            1,
+            17
+          ],
+          "section": "gemini"
+        },
+        {
+          "label": "The two-task job",
+          "path": "reference/genie/resources/genie_external_ai.job.yml",
+          "notes": [
+            "Parameters come from bundle variables, and run_id ties results to the run."
+          ],
+          "lines": [
+            14,
+            38
+          ],
+          "section": "run-it"
+        }
+      ],
+      "recordedRuns": []
     }
   }
 }

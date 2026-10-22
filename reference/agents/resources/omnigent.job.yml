@@ -1,0 +1,36 @@
+# Lands raw files in a volume, then checks the pipeline that Omnigent builds from them.
+resources:
+  jobs:
+    capability_guides_omnigent:
+      name: capability-guides-omnigent
+      description: Writes deterministic raw files to the omnigent_raw volume, then looks for the pipeline and omni_ tables that Omnigent builds and reconciles their row counts. Reports needs_manual_check until the interactive Omnigent steps have run.
+      tags:
+        capability_guide_job: capability_guides_omnigent
+      max_concurrent_runs: 1
+      timeout_seconds: 1800
+      email_notifications:
+        on_failure:
+          - ${var.notification_email}
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${var.schema}
+        - name: volume
+          default: omnigent_raw
+        - name: seed
+          default: "42"
+        - name: table_prefix
+          default: omni_
+        - name: pipeline_prefix
+          default: omnigent_
+      tasks:
+        - task_key: preflight_raw_volume
+          notebook_task:
+            notebook_path: ../guides/omnigent/01_preflight_raw_volume.py
+
+        - task_key: check_pipeline
+          depends_on:
+            - task_key: preflight_raw_volume
+          notebook_task:
+            notebook_path: ../guides/omnigent/02_check_pipeline.py

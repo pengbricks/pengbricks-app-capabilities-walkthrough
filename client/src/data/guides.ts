@@ -290,6 +290,21 @@ export const guides: readonly Guide[] = [
     ],
   },
   {
+    slug: 'genie-code',
+    title: 'Genie Code: from sample data to notebooks and dashboards',
+    category: 'AI Guides',
+    difficulty: 2,
+    summary:
+      'Tell the full story with Genie Code: generate a sample dataset, shape it with Lakeflow Designer, then prompt Genie Code to build the notebooks and the dashboard, checking each step.',
+    acceptanceCriteria:
+      'A preflight generates a governed sample dataset, a Lakeflow Designer flow and Genie Code prompts produce the pipeline, notebooks, and an AI/BI dashboard, and a check confirms every expected table and output exists and matches the sample.',
+    evidence: [
+      'Preflight sample tables with row counts and a fixed seed',
+      'The prompt library used for Lakeflow Designer and Genie Code, with what each produced',
+      'A check run confirming the tables, notebooks, and dashboard',
+    ],
+  },
+  {
     slug: 'ai-functions',
     title: 'AI Functions in SQL',
     category: 'AI Guides',
@@ -302,6 +317,21 @@ export const guides: readonly Guide[] = [
       'Task function, ai_query, or hand-built, chosen for each job',
       'Structured output, error handling, and evaluation against labeled rows',
       'Model, permission, residency, and compliance checks before regulated data',
+    ],
+  },
+  {
+    slug: 'ai-functions-data-quality',
+    title: 'AI Functions for data quality',
+    category: 'AI Guides',
+    difficulty: 3,
+    summary:
+      'Use AI Functions where rules fall short: classify and standardize free text, find duplicates, detect sensitive values, and validate records, with cost and accuracy kept in check.',
+    acceptanceCriteria:
+      'AI checks run only on the rows rules cannot judge, write structured results to a quality table next to the rule-based expectations, are measured against a labelled sample, and have a known cost per thousand rows.',
+    evidence: [
+      'A quality table with AI and rule-based results side by side',
+      'Accuracy against a labelled sample for each AI check',
+      'Cost per thousand rows and the filter that limits AI calls',
     ],
   },
   {
@@ -361,6 +391,21 @@ export const guides: readonly Guide[] = [
       'Metric view, example SQL, and a short text instruction with a trigger and an action',
       'Serverless warehouse, least-privilege grants, and a tested non-admin run',
       'Stored conversation fields, query history by asker and warehouse, and a bundle definition',
+    ],
+  },
+  {
+    slug: 'genie-external-ai',
+    title: 'Genie and Databricks MCP with ChatGPT, Gemini, and Copilot',
+    category: 'AI Guides',
+    difficulty: 3,
+    summary:
+      'Let outside assistants such as ChatGPT, Gemini, and Microsoft Copilot Studio or Teams ask governed questions of Genie and call Databricks MCP tools, with the permissions of the person asking.',
+    acceptanceCriteria:
+      'An outside assistant reaches a Genie Agent or Databricks MCP server through a documented connector, users sign in with their own identity so Unity Catalog permissions apply, the exposed tools are limited to what each assistant needs, and usage is audited.',
+    evidence: [
+      'A Genie Agent and the MCP endpoint an outside assistant connects to',
+      'A connector configuration for at least one assistant, with the sign-in flow',
+      'An audit query showing the outside calls and who made them',
     ],
   },
   {
@@ -436,6 +481,21 @@ export const guides: readonly Guide[] = [
     ],
   },
   {
+    slug: 'ai-runtime',
+    title: 'AI Runtime: serverless GPU for training and fine-tuning',
+    category: 'ML Guides',
+    difficulty: 3,
+    summary:
+      'Run training and fine-tuning on AI Runtime (serverless GPU compute): pick the GPU and environment, distribute with the AI Runtime SDK, schedule it as a job, and control cost.',
+    acceptanceCriteria:
+      'A training run uses AI Runtime with a chosen accelerator and environment version, distributes with the databricks.air APIs where it needs more than one GPU, logs to MLflow, runs as a scheduled job, and has a known cost per run.',
+    evidence: [
+      'A notebook or job on AI Runtime with the accelerator and environment version recorded',
+      'An MLflow run with parameters, metrics, and the model',
+      'The cost of the run and the settings that bound it',
+    ],
+  },
+  {
     slug: 'experiment-tracking',
     title: 'Reproducible experiments',
     category: 'ML Guides',
@@ -489,6 +549,21 @@ export const guides: readonly Guide[] = [
       'Retry, run_if, and repair settings for idempotent tasks',
       'Notifications, health rules, and destinations by severity',
       'Disaster recovery plan, runbooks, and escalation path',
+    ],
+  },
+  {
+    slug: 'genie-zeroops',
+    title: 'Genie ZeroOps: AI operations for data and AI workloads',
+    category: 'Governance/Monitoring',
+    difficulty: 2,
+    summary:
+      'What Genie ZeroOps monitors, how it investigates with lineage, tests fixes in sandboxes, and asks for approval, and how to fit it into on-call, CI, and change control.',
+    acceptanceCriteria:
+      'The team knows what ZeroOps watches and what it can change, has decided which workloads it covers and who approves its fixes, routes its proposals through existing CI and review, and keeps the runbooks and alerts it does not replace.',
+    evidence: [
+      'A coverage list of the jobs, pipelines, tables, and models in scope',
+      'An approval and change-control path for proposed fixes',
+      'What stays with on-call and existing alerting',
     ],
   },
   {

@@ -1,0 +1,66 @@
+# AI Functions for data quality: table names, rules, labels, schemas, and thresholds.
+# The messy sample is generated at run time from a fixed seed (src/aidq_lib.py), so it is the same on every run.
+# Every name, address, company, email, and phone number is made up (example.com, 555-01xx numbers).
+tables:
+  records: aidq_records            # inputs only; the AI checks never see the truth table
+  truth: aidq_truth                # the answer key, one row per record
+  rule_results: aidq_rule_results  # what the rules decided, with 'unknown' for the residue
+  ai_results: aidq_ai_results      # one row per AI call, with the raw response
+  ai_calls: aidq_ai_calls          # rows and characters sent to each AI check, and when
+  duplicate_pairs: aidq_duplicate_pairs
+  quality: aidq_quality_results    # rule and AI results side by side
+  quarantine: aidq_quarantine
+  accepted: aidq_records_accepted
+  results: aidq_results
+  billing: aidq_billing_usage
+
+sample:
+  rows: 300
+  seed: 42
+
+# The model behind the ai_query check. Pay-per-token endpoints differ in batch support, so confirm yours.
+endpoint: databricks-meta-llama-3-3-70b-instruct
+
+reason:
+  labels:
+    damaged: "The item arrived broken, cracked, crushed, or otherwise physically damaged"
+    wrong_item: "The customer received a different item, size, or color than ordered"
+    late: "The order arrived after the promised date"
+    changed_mind: "The customer no longer wants the item"
+  # A rule decides only when exactly one code's keywords match the text.
+  keywords:
+    damaged: "damaged|broken|cracked|crushed"
+    wrong_item: "wrong item|wrong size|wrong color"
+    late: "late|delayed"
+    changed_mind: "changed my mind|no longer need"
+  min_confidence: 0.7
+
+address:
+  canonical_pattern: "^[0-9]+ [A-Za-z0-9 .]+, [A-Za-z .]+, [A-Z]{2} [0-9]{5}$"
+
+pii:
+  labels: [person, email, phone, address]
+  patterns:
+    email: "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}"
+    phone: "[(]?[0-9]{3}[)]?[-. ][0-9]{3}[-. ][0-9]{4}"
+    ssn: "[0-9]{3}-[0-9]{2}-[0-9]{4}"
+
+duplicates:
+  block_chars: 3
+  fail_at: 0.85      # ai_similarity at or above this: duplicate
+  pass_below: 0.6    # below this: distinct. In between: review. ai_similarity scores rank pairs; tune on your labels.
+  max_pairs: 1500
+
+consistency:
+  statuses: [delivered, shipped, cancelled, returned]
+
+# Accuracy gates used by 04_accuracy_and_cost. Rules should be near-perfect; AI checks are measured, not assumed.
+thresholds:
+  min_precision: 0.8
+  min_recall: 0.8
+  max_review_share: 0.25
+
+cost:
+  chars_per_token: 4   # rule of thumb for English text, an assumption and not a documented figure
+  poll_minutes: 3
+  poll_seconds: 30

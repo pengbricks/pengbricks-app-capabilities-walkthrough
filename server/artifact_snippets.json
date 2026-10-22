@@ -301,6 +301,195 @@
       "functions": {}
     }
   ],
+  "ai-functions-data-quality": [
+    {
+      "path": "reference/ai-functions/src/aidq_lib.py",
+      "symbol": "rule_queries",
+      "startLine": 186,
+      "endLine": 225,
+      "language": "py",
+      "code": "def rule_queries(spec: dict[str, Any], records: str) -> dict[str, str]:\n    \"\"\"One SELECT per check returning (record_id, check_name, verdict, reason). verdict is pass, fail, or unknown.\"\"\"\n    kw = spec[\"reason\"][\"keywords\"]\n    hits = \", \".join(f\"if(lower(reason_text) RLIKE {a.sql_string(p)}, {a.sql_string(code)}, CAST(NULL AS STRING))\" for code, p in kw.items())\n    pii = \" OR \".join(f\"note RLIKE {a.sql_string(p)}\" for p in spec[\"pii\"][\"patterns\"].values())\n    key = f\"regexp_replace(regexp_replace(lower(company_raw), '(^| )(inc|llc|ltd|corp|co|company)[.,]?( |$)', ' '), '[^a-z0-9]', '')\"\n    return {\n        \"reason_code\": f\"\"\"\nSELECT record_id, 'reason_code' AS check_name,\n       CASE WHEN size(hits) <> 1 THEN 'unknown' WHEN hits[0] = reason_code THEN 'pass' ELSE 'fail' END AS verdict,\n       CASE WHEN size(hits) <> 1 THEN 'no single keyword match'\n            WHEN hits[0] = reason_code THEN 'keyword matches the submitted code'\n            ELSE concat('keyword says ', hits[0], ', submitted ', reason_code) END AS reason\nFROM (SELECT record_id, reason_code, filter(array({hits}), x -> x IS NOT NULL) AS hits FROM {records})\"\"\",\n        \"address\": f\"\"\"\nSELECT record_id, 'address' AS check_name,\n       CASE WHEN address_raw RLIKE {a.sql_string(spec['address']['canonical_pattern'])} THEN 'pass' ELSE 'unknown' END AS verdict,\n       CASE WHEN address_raw RLIKE {a.sql_string(spec['address']['canonical_pattern'])} THEN 'matches the canonical pattern'\n            ELSE 'not in canonical form' END AS reason\nFROM {records}\"\"\",\n        \"duplicate_company\": f\"\"\"\nWITH keyed AS (SELECT record_id, {key} AS k, left({key}, {int(spec['duplicates']['block_chars'])}) AS b FROM {records})\nSELECT r.record_id, 'duplicate_company' AS check_name,\n       CASE WHEN exists_exact THEN 'fail' WHEN has_candidate THEN 'unknown' ELSE 'pass' END AS verdict,\n       CASE WHEN exists_exact THEN 'same normalized name as an earlier record'\n            WHEN has_candidate THEN 'earlier record in the same block, names differ' ELSE 'no earlier record in the block' END AS reason\nFROM (SELECT k1.record_id,\n             exists(collect_list(k2.k), x -> x = k1.k) AS exists_exact,\n             count(k2.record_id) > 0 AS has_candidate\n      FROM keyed k1 LEFT JOIN keyed k2 ON k1.b = k2.b AND k2.record_id < k1.record_id\n      GROUP BY k1.record_id, k1.k) r\"\"\",\n        \"sensitive_note\": f\"\"\"\nSELECT record_id, 'sensitive_note' AS check_name,\n       CASE WHEN note IS NULL OR trim(note) = '' THEN 'pass' WHEN {pii} THEN 'fail' ELSE 'unknown' END AS verdict,\n       CASE WHEN note IS NULL OR trim(note) = '' THEN 'no note' WHEN {pii} THEN 'email, phone, or SSN pattern'\n            ELSE 'free text the patterns cannot clear' END AS reason\nFROM {records}\"\"\",\n        \"status_comment\": f\"\"\"\nSELECT record_id, 'status_comment' AS check_name,\n       CASE WHEN comment IS NULL OR trim(comment) = '' THEN 'pass' ELSE 'unknown' END AS verdict,",
+      "functions": {
+        "rule_queries": "One SELECT per check returning (record_id, check_name, verdict, reason). verdict is pass, fail, or unknown.",
+        "sql_string": "A single-quoted SQL string literal."
+      }
+    },
+    {
+      "path": "reference/ai-functions/guides/ai-functions-data-quality/03_ai_checks.py",
+      "symbol": null,
+      "startLine": 62,
+      "endLine": 74,
+      "language": "py",
+      "code": "labels = a.sql_string(q.classify_labels_json(spec))\nstarted = datetime.now(timezone.utc)\nrows = spark.sql(f\"\"\"\nSELECT record_id, reason_code, cast(r AS STRING) AS raw, chars FROM (\n  SELECT t.record_id, t.reason_code, length(t.reason_text) AS chars,\n         ai_classify(t.reason_text, {labels}, map('version', '2.1', 'enableConfidenceScores', 'true')) AS r\n  FROM {T['records']} t {residue('reason_code')} WHERE t.reason_text IS NOT NULL)\"\"\").collect()\nfloor = float(spec[\"reason\"][\"min_confidence\"])\nfor r in rows:\n    label, confidence, error = q.parse_classify(r.raw)\n    verdict, reason = q.classify_verdict(label, confidence, r.reason_code, floor)\n    ai_rows.append((r.record_id, \"reason_code\", verdict, error or reason, confidence, r.raw, \"ai_classify 2.1\"))\nlog_call(\"reason_code\", \"ai_classify\", len(rows), sum(r.chars for r in rows), started)",
+      "functions": {
+        "parse_classify": "Read ai_classify 2.1 output (the VARIANT cast to text) into (label, confidence, error).",
+        "residue": "The records of this check that the rules left unknown.",
+        "sql_string": "A single-quoted SQL string literal."
+      }
+    },
+    {
+      "path": "reference/ai-functions/guides/ai-functions-data-quality/03_ai_checks.py",
+      "symbol": null,
+      "startLine": 85,
+      "endLine": 96,
+      "language": "py",
+      "code": "schema_literal = a.sql_string(q.extract_schema_json())\nstarted = datetime.now(timezone.utc)\nrows = spark.sql(f\"\"\"\nSELECT record_id, cast(r AS STRING) AS raw, chars FROM (\n  SELECT t.record_id, length(t.address_raw) AS chars,\n         ai_extract(t.address_raw, {schema_literal}, map('version', '2.1', 'enableConfidenceScores', 'true')) AS r\n  FROM {T['records']} t {residue('address')} WHERE t.address_raw IS NOT NULL)\"\"\").collect()\nfor r in rows:\n    values, error = q.parse_extract(r.raw, [\"street\", \"city\", \"state\", \"postal_code\"])\n    verdict, reason = q.extract_verdict(values, error)\n    ai_rows.append((r.record_id, \"address\", verdict, reason, None, r.raw, \"ai_extract 2.1\"))\nlog_call(\"address\", \"ai_extract\", len(rows), sum(r.chars for r in rows), started)",
+      "functions": {
+        "parse_extract": "Read ai_extract 2.1 output into ({field: value}, error).",
+        "residue": "The records of this check that the rules left unknown.",
+        "sql_string": "A single-quoted SQL string literal."
+      }
+    },
+    {
+      "path": "reference/ai-functions/guides/ai-functions-data-quality/03_ai_checks.py",
+      "symbol": null,
+      "startLine": 108,
+      "endLine": 126,
+      "language": "py",
+      "code": "block = int(spec[\"duplicates\"][\"block_chars\"])\nstarted = datetime.now(timezone.utc)\nspark.sql(f\"\"\"\nCREATE OR REPLACE TABLE {T['duplicate_pairs']} AS\nSELECT record_id, earlier_id, ai_similarity(company_raw, earlier_name) AS score FROM (\n  SELECT t.record_id, t.company_raw, e.record_id AS earlier_id, e.company_raw AS earlier_name\n  FROM {T['records']} t {residue('duplicate_company')}\n  JOIN {T['records']} e ON e.record_id < t.record_id\n   AND left({key.format(c='e.company_raw')}, {block}) = left({key.format(c='t.company_raw')}, {block})\n  ORDER BY t.record_id, e.record_id LIMIT {int(spec['duplicates']['max_pairs'])})\"\"\")\nbest = spark.sql(f\"\"\"\nSELECT record_id, max_by(earlier_id, score) AS closest, max(score) AS score FROM {T['duplicate_pairs']} GROUP BY record_id\"\"\").collect()\npairs_scored = spark.table(T[\"duplicate_pairs\"]).count()\nchars = spark.sql(f\"SELECT coalesce(sum(length(t.company_raw) + length(e.company_raw)), 0) FROM {T['duplicate_pairs']} p JOIN {T['records']} t ON t.record_id = p.record_id JOIN {T['records']} e ON e.record_id = p.earlier_id\").first()[0]\nfail_at, pass_below = float(spec[\"duplicates\"][\"fail_at\"]), float(spec[\"duplicates\"][\"pass_below\"])\nfor r in best:\n    verdict = q.similarity_verdict(r.score, fail_at, pass_below)\n    ai_rows.append((r.record_id, \"duplicate_company\", verdict, f\"closest earlier record {r.closest} scored {r.score:.2f}\", r.score, None, \"ai_similarity\"))\nlog_call(\"duplicate_company\", \"ai_similarity\", pairs_scored, chars, started)",
+      "functions": {
+        "residue": "The records of this check that the rules left unknown."
+      }
+    },
+    {
+      "path": "reference/ai-functions/guides/ai-functions-data-quality/03_ai_checks.py",
+      "symbol": null,
+      "startLine": 138,
+      "endLine": 147,
+      "language": "py",
+      "code": "mask_labels = \"array(\" + \", \".join(a.sql_string(x) for x in spec[\"pii\"][\"labels\"]) + \")\"\nstarted = datetime.now(timezone.utc)\nrows = spark.sql(f\"\"\"\nSELECT record_id, note, masked, length(note) AS chars FROM (\n  SELECT t.record_id, t.note, ai_mask(t.note, {mask_labels}) AS masked\n  FROM {T['records']} t {residue('sensitive_note')} WHERE t.note IS NOT NULL)\"\"\").collect()\nfor r in rows:\n    verdict, reason = q.mask_verdict(r.note, r.masked)\n    ai_rows.append((r.record_id, \"sensitive_note\", verdict, reason, None, r.masked, \"ai_mask\"))\nlog_call(\"sensitive_note\", \"ai_mask\", len(rows), sum(r.chars for r in rows), started)",
+      "functions": {
+        "mask_verdict": "ai_mask replaces sensitive spans with [MASKED]. Any change means the note held sensitive text.",
+        "residue": "The records of this check that the rules left unknown.",
+        "sql_string": "A single-quoted SQL string literal."
+      }
+    },
+    {
+      "path": "reference/ai-functions/guides/ai-functions-data-quality/03_ai_checks.py",
+      "symbol": null,
+      "startLine": 158,
+      "endLine": 172,
+      "language": "py",
+      "code": "fmt = a.sql_string(q.response_format_json())\ninstructions = a.sql_string(q.VALIDATION_INSTRUCTIONS)\nendpoint = a.sql_string(spec[\"endpoint\"])\nstarted = datetime.now(timezone.utc)\nrows = spark.sql(f\"\"\"\nSELECT record_id, to_json(r) AS payload, chars FROM (\n  SELECT t.record_id, length(t.order_status) + length(t.comment) AS chars,\n         ai_query({endpoint}, concat({instructions}, ' Status: ', t.order_status, '. Comment: ', t.comment),\n                  responseFormat => {fmt}, failOnError => false) AS r\n  FROM {T['records']} t {residue('status_comment')} WHERE t.comment IS NOT NULL)\"\"\").collect()\nfor r in rows:\n    raw, error = q.split_query_struct(r.payload)\n    verdict, reason = q.parse_verdict(raw)\n    ai_rows.append((r.record_id, \"status_comment\", verdict, error or reason, None, raw, spec[\"endpoint\"]))\nlog_call(\"status_comment\", \"ai_query\", len(rows), sum(r.chars for r in rows), started)",
+      "functions": {
+        "parse_verdict": "Read ai_query's JSON text into (verdict, reason). Anything unreadable becomes ('review', why).",
+        "residue": "The records of this check that the rules left unknown.",
+        "response_format_json": "The JSON schema passed to ai_query as responseFormat for the status and comment check.",
+        "split_query_struct": "Read to_json(ai_query(..., failOnError => false)) into (response text, error). The docs name the field `response`; `result` is accepted too so an older runtime does not turn every row into review.",
+        "sql_string": "A single-quoted SQL string literal."
+      }
+    },
+    {
+      "path": "reference/ai-functions/src/aidq_lib.py",
+      "symbol": "parse_verdict",
+      "startLine": 331,
+      "endLine": 342,
+      "language": "py",
+      "code": "def parse_verdict(raw: str | None) -> tuple[str, str]:\n    \"\"\"Read ai_query's JSON text into (verdict, reason). Anything unreadable becomes ('review', why).\"\"\"\n    if not raw:\n        return \"review\", \"empty response\"\n    try:\n        data = json.loads(raw)\n        verdict = str(data[\"verdict\"]).lower()\n    except (ValueError, KeyError, TypeError):\n        return \"review\", \"response was not the expected JSON\"\n    if verdict not in (\"pass\", \"fail\"):\n        return \"review\", f\"unexpected verdict {verdict}\"\n    return verdict, str(data.get(\"reason\", \"\"))",
+      "functions": {
+        "parse_verdict": "Read ai_query's JSON text into (verdict, reason). Anything unreadable becomes ('review', why)."
+      }
+    },
+    {
+      "path": "reference/ai-functions/src/aidq_lib.py",
+      "symbol": "quarantine_sql",
+      "startLine": 416,
+      "endLine": 423,
+      "language": "py",
+      "code": "def quarantine_sql(quality: str) -> str:\n    return f\"\"\"\nSELECT record_id,\n       array_sort(collect_set(CASE WHEN verdict = 'fail' THEN check_name END)) AS failed_checks,\n       array_sort(collect_set(CASE WHEN verdict = 'review' THEN check_name END)) AS review_checks,\n       concat_ws('; ', collect_list(CASE WHEN verdict <> 'pass' THEN concat(check_name, ': ', reason) END)) AS reasons,\n       current_timestamp() AS quarantined_at\nFROM {quality} GROUP BY record_id HAVING max(CASE WHEN verdict IN ('fail', 'review') THEN 1 ELSE 0 END) = 1\"\"\"",
+      "functions": {}
+    },
+    {
+      "path": "reference/ai-functions/src/aidq_lib.py",
+      "symbol": "confusion",
+      "startLine": 364,
+      "endLine": 378,
+      "language": "py",
+      "code": "def confusion(pairs: list[tuple[bool, str]]) -> dict[str, float]:\n    \"\"\"pairs are (truth_is_bad, verdict). 'fail' is the positive class; 'review' rows are counted apart, not guessed.\"\"\"\n    tp = sum(bad and v == \"fail\" for bad, v in pairs)\n    fp = sum((not bad) and v == \"fail\" for bad, v in pairs)\n    fn = sum(bad and v == \"pass\" for bad, v in pairs)\n    tn = sum((not bad) and v == \"pass\" for bad, v in pairs)\n    review = sum(v == \"review\" for _, v in pairs)\n    bad_total = sum(bad for bad, _ in pairs)\n    return {\n        \"rows\": float(len(pairs)), \"tp\": float(tp), \"fp\": float(fp), \"fn\": float(fn), \"tn\": float(tn), \"review\": float(review),\n        \"precision\": tp / (tp + fp) if tp + fp else 1.0,\n        \"recall\": tp / (tp + fn) if tp + fn else 1.0,\n        \"review_share\": review / len(pairs) if pairs else 0.0,\n        \"missed_in_review\": float(sum(bad and v == \"review\" for bad, v in pairs)) / bad_total if bad_total else 0.0,\n    }",
+      "functions": {
+        "confusion": "pairs are (truth_is_bad, verdict). 'fail' is the positive class; 'review' rows are counted apart, not guessed."
+      }
+    },
+    {
+      "path": "reference/ai-functions/src/aidq_lib.py",
+      "symbol": "gate",
+      "startLine": 381,
+      "endLine": 389,
+      "language": "py",
+      "code": "def gate(metrics: dict[str, float], thresholds: dict[str, Any]) -> str:\n    \"\"\"'ok', or the first threshold the check misses.\"\"\"\n    if metrics[\"precision\"] < thresholds[\"min_precision\"]:\n        return \"precision below threshold\"\n    if metrics[\"recall\"] < thresholds[\"min_recall\"]:\n        return \"recall below threshold\"\n    if metrics[\"review_share\"] > thresholds[\"max_review_share\"]:\n        return \"too many rows in human review\"\n    return \"ok\"",
+      "functions": {
+        "gate": "'ok', or the first threshold the check misses."
+      }
+    },
+    {
+      "path": "reference/ai-functions/guides/ai-functions-data-quality/04_accuracy_and_cost.py",
+      "symbol": null,
+      "startLine": 116,
+      "endLine": 130,
+      "language": "py",
+      "code": "def read_usage():\n    return spark.sql(f\"\"\"\n    SELECT u.billing_origin_product AS product, u.sku_name, u.usage_unit,\n           coalesce(u.product_features.ai_functions.ai_function, '') AS ai_function, u.usage_start_time, u.usage_end_time,\n           u.usage_quantity AS quantity, u.usage_quantity * p.pricing.effective_list.default AS list_usd\n    FROM system.billing.usage u\n    LEFT JOIN system.billing.list_prices p\n      ON u.cloud = p.cloud AND u.sku_name = p.sku_name AND u.usage_unit = p.usage_unit\n     AND u.usage_end_time >= p.price_start_time AND (p.price_end_time IS NULL OR u.usage_end_time < p.price_end_time)\n     AND p.currency_code = 'USD'\n    WHERE u.workspace_id = '{workspace_id}' AND u.identity_metadata.run_as = {a.sql_string(identity)}\n      AND u.usage_date BETWEEN date('{window_start:%Y-%m-%d}') AND date('{window_end:%Y-%m-%d}')\n      AND u.usage_start_time < timestamp('{window_end:%Y-%m-%d %H:%M:%S}') AND u.usage_end_time > timestamp('{window_start:%Y-%m-%d %H:%M:%S}')\n      AND u.billing_origin_product IN ('AI_FUNCTIONS', 'MODEL_SERVING')\"\"\")\n",
+      "functions": {
+        "sql_string": "A single-quoted SQL string literal."
+      }
+    }
+  ],
+  "ai-runtime": [
+    {
+      "path": "reference/ml-lifecycle/resources/ai_runtime.job.yml",
+      "symbol": null,
+      "startLine": 34,
+      "endLine": 66,
+      "language": "yml",
+      "code": "      environments:\n        - environment_key: gpu\n          spec:\n            environment_version: \"6\"\n            dependencies:\n              - mlflow>=3.1\n              - scikit-learn>=1.4\n              - torch\n              - pyarrow\n              - pyyaml>=6\n      tasks:\n        # AI Runtime has no local Spark, so the CPU task prepares the data with Spark and writes Parquet to a volume.\n        - task_key: prepare_data\n          notebook_task:\n            notebook_path: ../guides/ai-runtime/00_prepare_data.py\n\n        # Task-level compute.hardware_accelerator is Beta in the bundle schema (CLI 1.17).\n        - task_key: train_on_gpu\n          depends_on:\n            - task_key: prepare_data\n          environment_key: gpu\n          compute:\n            hardware_accelerator: ${var.gpu_accelerator}\n          notebook_task:\n            notebook_path: ../guides/ai-runtime/01_train_on_gpu.py\n\n        - task_key: distributed\n          depends_on:\n            - task_key: train_on_gpu\n          environment_key: gpu\n          compute:\n            hardware_accelerator: ${var.distributed_accelerator}\n          notebook_task:",
+      "functions": {}
+    },
+    {
+      "path": "reference/ml-lifecycle/guides/ai-runtime/01_train_on_gpu.py",
+      "symbol": null,
+      "startLine": 48,
+      "endLine": 69,
+      "language": "py",
+      "code": "torch.manual_seed(spec[\"seed\"] % 2**31)\nmlflow.set_registry_uri(\"databricks-uc\")\nmlflow.set_experiment(params[\"experiment\"])\nmodel_name = f\"{catalog}.{schema}.{g.GPU_MODEL_NAME}\"\n\nwith mlflow.start_run(run_name=\"train-gpu\"):\n    model = g.build_model(len(features)).to(device)\n    losses = g.fit(model, x_train, y_train, device, epochs, seed=spec[\"seed\"])\n    auc = g.holdout_auc(model, x_hold, y_hold, device)\n    mlflow.log_params({\"seed\": spec[\"seed\"], \"rows\": len(pdf), \"epochs\": epochs, \"features\": \",\".join(features),\n                       \"gpu\": torch.cuda.get_device_name(0), \"gpu_count\": 1})\n    mlflow.log_metric(\"holdout_auc\", auc)\n    for step, loss in enumerate(losses):\n        mlflow.log_metric(\"train_loss\", loss, step=step)\n    mlflow.set_tags({\"release\": params[\"release\"], \"torch\": torch.__version__})\n    model = model.cpu()\n    info = mlflow.pytorch.log_model(\n        model, name=\"model\", registered_model_name=model_name,\n        signature=infer_signature(x_hold[:3], model(torch.from_numpy(x_hold[:3])).detach().numpy()),\n        input_example=x_hold[:3],\n    )\nMlflowClient(registry_uri=\"databricks-uc\").set_registered_model_alias(model_name, g.ALIAS_SINGLE, info.registered_model_version)",
+      "functions": {
+        "fit": "Mini-batch training on `device`. `model` may be wrapped in DistributedDataParallel. Returns the epoch losses."
+      }
+    },
+    {
+      "path": "reference/ml-lifecycle/guides/ai-runtime/02_distributed.py",
+      "symbol": null,
+      "startLine": 54,
+      "endLine": 83,
+      "language": "py",
+      "code": "def train_rank(parquet, features, label, key, holdout_mod, epochs, seed, src):\n    \"\"\"Runs once per GPU. Loads its own data, trains one shard under DDP, and returns the result from rank 0.\"\"\"\n    import os, sys\n    import pandas as pd\n    import torch\n    import torch.distributed as dist\n    from torch.nn.parallel import DistributedDataParallel as DDP\n\n    sys.path.insert(0, src)\n    import gpu_churn as g\n\n    local_rank = int(os.environ[\"LOCAL_RANK\"])\n    torch.cuda.set_device(local_rank)\n    dist.init_process_group(backend=\"nccl\")\n    try:\n        rank, world = dist.get_rank(), dist.get_world_size()\n        x_train, y_train, x_hold, y_hold = g.split_arrays(pd.read_parquet(parquet), features, label, key, holdout_mod)\n        torch.manual_seed(seed % 2**31)\n        model = DDP(g.build_model(len(features)).to(\"cuda\"), device_ids=[local_rank])\n        xs, ys = g.shard(x_train, y_train, rank, world)\n        # DDP all-reduces every step, so each rank must run the same number of batches. Trim shards to equal length.\n        keep = len(x_train) // world\n        xs, ys = xs[:keep], ys[:keep]\n        losses = g.fit(model, xs, ys, \"cuda\", epochs, seed=seed + rank)\n        if rank != 0:\n            return None\n        return {\"world_size\": world, \"gpu\": torch.cuda.get_device_name(local_rank), \"losses\": losses,\n                \"auc\": g.holdout_auc(model.module, x_hold, y_hold, \"cuda\"), \"state\": g.state_to_lists(model.module)}\n    finally:\n        dist.destroy_process_group()",
+      "functions": {
+        "fit": "Mini-batch training on `device`. `model` may be wrapped in DistributedDataParallel. Returns the epoch losses.",
+        "shard": "Every world_size-th row, starting at rank. The shards are disjoint and cover the array.",
+        "split_arrays": "Deterministic split on the key, then standardize with training-set statistics.",
+        "state_to_lists": "CPU state dict as plain lists, so a rank can return it through the distributed call.",
+        "train_rank": "Runs once per GPU. Loads its own data, trains one shard under DDP, and returns the result from rank 0."
+      }
+    },
+    {
+      "path": "reference/ml-lifecycle/guides/ai-runtime/02_distributed.py",
+      "symbol": null,
+      "startLine": 92,
+      "endLine": 99,
+      "language": "py",
+      "code": "with mlflow.start_run(run_name=f\"train-ddp-{gpus if use_distributed else 1}gpu\"):\n    if use_distributed:\n        from databricks.air import distributed\n\n        # num_accelerators defaults to every GPU on the node. Each .distributed() call also creates an MLflow run (a child of this one).\n        train = distributed(num_accelerators=gpus)(train_rank)\n        results = train.distributed(parquet, features, label, key, holdout_mod, epochs, seed, SRC)\n        result = next(r for r in (results if isinstance(results, (list, tuple)) else [results]) if r)",
+      "functions": {}
+    },
+    {
+      "path": "reference/ml-lifecycle/src/gpu_churn.py",
+      "symbol": "split_arrays",
+      "startLine": 22,
+      "endLine": 37,
+      "language": "py",
+      "code": "def split_arrays(pdf, features: list[str], label: str, key: str, holdout_mod: int):\n    \"\"\"Deterministic split on the key, then standardize with training-set statistics.\n\n    Returns (x_train, y_train, x_holdout, y_holdout) as float32 numpy arrays. Every rank in a\n    distributed run calls this on the same file and gets the same arrays.\n    \"\"\"\n    import numpy as np\n\n    pdf = pdf.sort_values(key).reset_index(drop=True)\n    is_holdout = (pdf[key] % holdout_mod == 0).to_numpy()\n    x = pdf[features].astype(\"float64\").fillna(0.0).to_numpy()\n    y = pdf[label].astype(\"float32\").to_numpy()\n    mean, std = x[~is_holdout].mean(axis=0), x[~is_holdout].std(axis=0)\n    std[std == 0] = 1.0\n    x = ((x - mean) / std).astype(\"float32\")\n    return x[~is_holdout], y[~is_holdout], x[is_holdout], y[is_holdout]",
+      "functions": {
+        "split_arrays": "Deterministic split on the key, then standardize with training-set statistics."
+      }
+    }
+  ],
   "batch-real-time-ingestion": [
     {
       "path": "reference/ingestion/guides/batch-real-time-ingestion/pipeline/events_bronze.sql",
@@ -2155,6 +2344,192 @@
       "functions": {}
     }
   ],
+  "genie-code": [
+    {
+      "path": "reference/analyst/guides/genie-code/01_preflight_sample_data.py",
+      "symbol": null,
+      "startLine": 38,
+      "endLine": 47,
+      "language": "py",
+      "code": "for name, table in SAMPLE_SPEC.items():\n    df = generate(spark, table[\"columns\"], rows=table[\"rows\"], seed=SEED, name=name)\n    df.createOrReplaceTempView(f\"_{name}_tmp\")\n    target = fq(catalog, schema, name)\n    spark.sql(f\"CREATE OR REPLACE TABLE {target} AS SELECT * FROM _{name}_tmp\")\n    spark.sql(f\"COMMENT ON TABLE {target} IS '{COMMENTS[name]}'\")\n    counts[name] = spark.table(target).count()\n    print(f\"{target}: {counts[name]} rows\")\n\n# COMMAND ----------",
+      "functions": {
+        "generate": "A DataFrame with one row per id and one column per spec column, in spec order."
+      }
+    },
+    {
+      "path": "reference/analyst/src/analyst_common/genie_code.py",
+      "symbol": "reconcile",
+      "startLine": 84,
+      "endLine": 94,
+      "language": "py",
+      "code": "def reconcile(sample_total: object, silver_total: object, gold_region_total: object, gold_customer_total: object) -> list[str]:\n    \"\"\"Findings for revenue totals that should match across sample, silver, and both gold tables. Empty means they match.\"\"\"\n    findings = []\n    for label, value in (\n        (\"silver\", silver_total),\n        (\"gold sales by region and month\", gold_region_total),\n        (\"gold customer value\", gold_customer_total),\n    ):\n        if not money_equal(sample_total, value):\n            findings.append(f\"{label} revenue {value} differs from the sample's {sample_total}\")\n    return findings",
+      "functions": {
+        "reconcile": "Findings for revenue totals that should match across sample, silver, and both gold tables. Empty means they match."
+      }
+    },
+    {
+      "path": "reference/analyst/src/analyst_common/genie_code.py",
+      "symbol": "howto_for_missing",
+      "startLine": 102,
+      "endLine": 111,
+      "language": "py",
+      "code": "def howto_for_missing(flow: bool | None, notebook: bool | None, dashboard: bool | None) -> list[str]:\n    \"\"\"What to do for each interactive step that has no asset yet. None means \"could not tell\" and is not listed here.\"\"\"\n    steps = []\n    if flow is False:\n        steps.append(f\"Step 1: build the Lakeflow Designer flow named {DESIGNER_FLOW_NAME} (prompts.md, Step 1).\")\n    if notebook is False:\n        steps.append(f\"Step 2: ask Genie Code to build a notebook named {NOTEBOOK_NAME} (prompts.md, Step 2).\")\n    if dashboard is False:\n        steps.append(f\"Step 3: build the dashboard named {DASHBOARD_NAME} on the gold tables (prompts.md, Step 3).\")\n    return steps",
+      "functions": {
+        "howto_for_missing": "What to do for each interactive step that has no asset yet. None means \"could not tell\" and is not listed here."
+      }
+    },
+    {
+      "path": "reference/analyst/resources/genie_code.job.yml",
+      "symbol": null,
+      "startLine": 3,
+      "endLine": 24,
+      "language": "yml",
+      "code": "  jobs:\n    capability_guides_genie_code:\n      name: capability-guides-genie-code\n      description: Preflight sample data for the Genie Code guide, then a check that reports which interactive steps are done.\n      tags:\n        capability_guide_job: capability_guides_genie_code\n      max_concurrent_runs: 1\n      parameters:\n        - name: catalog\n          default: ${var.catalog}\n        - name: schema\n          default: ${var.schema}\n      tasks:\n        - task_key: preflight_sample_data\n          notebook_task:\n            notebook_path: ../guides/genie-code/01_preflight_sample_data.py\n\n        - task_key: check_outputs\n          depends_on:\n            - task_key: preflight_sample_data\n          notebook_task:\n            notebook_path: ../guides/genie-code/02_check_outputs.py",
+      "functions": {}
+    },
+    {
+      "path": "reference/analyst/src/analyst_common/genie_skills.py",
+      "symbol": "validate_skill",
+      "startLine": 69,
+      "endLine": 87,
+      "language": "py",
+      "code": "def validate_skill(text: str, folder_name: str) -> list[str]:\n    \"\"\"Problems that would stop a skill loading or being found. Empty list means it looks valid.\"\"\"\n    meta = parse_frontmatter(text)\n    if not meta:\n        return [\"SKILL.md needs front matter between --- lines with name and description.\"]\n    problems = []\n    name, description = meta.get(\"name\", \"\"), meta.get(\"description\", \"\")\n    if not name:\n        problems.append(\"front matter is missing name\")\n    else:\n        if not NAME_PATTERN.match(name) or len(name) > NAME_MAX:\n            problems.append(f\"name {name!r} must be lowercase letters, digits and single hyphens, up to {NAME_MAX} characters\")\n        if name != folder_name:\n            problems.append(f\"name {name!r} must match the folder name {folder_name!r}\")\n    if not description:\n        problems.append(\"front matter is missing description\")\n    elif len(description) > DESCRIPTION_MAX:\n        problems.append(f\"description is {len(description)} characters, the limit is {DESCRIPTION_MAX}\")\n    return problems",
+      "functions": {
+        "parse_frontmatter": "Read the simple `key: value` lines between the leading --- markers. Returns {} when there is none.",
+        "validate_skill": "Problems that would stop a skill loading or being found. Empty list means it looks valid."
+      }
+    },
+    {
+      "path": "reference/analyst/src/analyst_common/genie_skills.py",
+      "symbol": "skills_root",
+      "startLine": 45,
+      "endLine": 51,
+      "language": "py",
+      "code": "def skills_root(scope: str, user_name: str) -> str:\n    \"\"\"Target folder for a scope, 'user' or 'workspace'.\"\"\"\n    if scope == \"user\":\n        return user_skills_root(user_name)\n    if scope == \"workspace\":\n        return workspace_skills_root()\n    raise ValueError(f\"scope must be 'user' or 'workspace', got {scope!r}\")",
+      "functions": {
+        "skills_root": "Target folder for a scope, 'user' or 'workspace'."
+      }
+    },
+    {
+      "path": "reference/analyst/src/analyst_common/genie_skills.py",
+      "symbol": "needs_write",
+      "startLine": 102,
+      "endLine": 104,
+      "language": "py",
+      "code": "def needs_write(source: bytes, existing: bytes | None) -> bool:\n    \"\"\"True when the target is missing or differs. Lets a rerun report 'unchanged' instead of rewriting.\"\"\"\n    return existing is None or digest(source) != digest(existing)",
+      "functions": {
+        "needs_write": "True when the target is missing or differs. Lets a rerun report 'unchanged' instead of rewriting."
+      }
+    },
+    {
+      "path": "reference/analyst/guides/genie-code/skills/gc-sample-data/SKILL.md",
+      "symbol": null,
+      "startLine": 1,
+      "endLine": 12,
+      "language": "md",
+      "code": "---\nname: gc-sample-data\ndescription: Knows the gc_ sample tables (gc_customers, gc_products, gc_orders, gc_orders_silver and two gold tables) and the prompt conventions for the Genie Code guide. Use when a request mentions gc_ tables, revenue by region or month, customer value, or the gc_orders_flow, gc_orders_analysis or gc_sales_dashboard assets.\n---\n\n# gc-sample-data\n\nUse this skill when the request touches the Genie Code guide's sample data. Ask for the catalog and schema if the request does not give them, then use full `catalog.schema.table` names.\n\n## Tables and grain\n\n| Table | Grain | Columns |",
+      "functions": {}
+    },
+    {
+      "path": "reference/analyst/src/analyst_common/genie_skills.py",
+      "symbol": "publish_steps",
+      "startLine": 124,
+      "endLine": 134,
+      "language": "py",
+      "code": "def publish_steps(skill_names: Iterable[str]) -> list[str]:\n    \"\"\"Commands that publish skills to the shared location. Printed, never run by default.\"\"\"\n    names = list(skill_names)\n    steps = [\"Review the skill in a pull request, then merge it.\", \"Run these as a user or service principal allowed to write to Workspace/.assistant/skills:\"]\n    for name in names:\n        steps.append(\n            f\"databricks workspace import-dir guides/genie-code/skills/{name} /Workspace/{SKILLS_DIR}/{name} --overwrite\"\n        )\n    steps.append(\"Skills with .py or .sql scripts: import-dir can import them as notebooks and strip the extension. Upload those files one at a time with `databricks workspace import --file <f> --format RAW --overwrite <target>`.\")\n    steps.append(\"Open a new Genie Code chat and type @ to confirm each skill is listed.\")\n    return steps",
+      "functions": {
+        "publish_steps": "Commands that publish skills to the shared location. Printed, never run by default."
+      }
+    }
+  ],
+  "genie-external-ai": [
+    {
+      "path": "reference/genie/src/mcp_lib.py",
+      "symbol": "mcp_url",
+      "startLine": 35,
+      "endLine": 44,
+      "language": "py",
+      "code": "def mcp_url(server: str, host: str, space_id: str = \"\") -> str:\n    \"\"\"The MCP endpoint for `genie_agent` (needs the agent ID) or `genie_one`.\"\"\"\n    base = normalize_host(host)\n    if server == \"genie_one\":\n        return base + GENIE_ONE_PATH\n    if server == \"genie_agent\":\n        if not space_id:\n            raise ValueError(\"genie_agent needs a Genie Agent ID\")\n        return f\"{base}{GENIE_AGENT_PATH}/{space_id}\"\n    raise ValueError(f\"server must be one of {SERVERS}, got {server!r}\")",
+      "functions": {
+        "mcp_url": "The MCP endpoint for `genie_agent` (needs the agent ID) or `genie_one`.",
+        "normalize_host": "https://host with no trailing slash, whether the input has a scheme or not."
+      }
+    },
+    {
+      "path": "reference/genie/guides/genie-external-ai/02_call_mcp_from_python.py",
+      "symbol": null,
+      "startLine": 56,
+      "endLine": 57,
+      "language": "py",
+      "code": "mcp = DatabricksMCPClient(server_url=url, workspace_client=w)\ntools = mcp.list_tools()",
+      "functions": {}
+    },
+    {
+      "path": "reference/genie/src/mcp_lib.py",
+      "symbol": "classify_tools",
+      "startLine": 55,
+      "endLine": 69,
+      "language": "py",
+      "code": "def classify_tools(tools: list[Any]) -> dict[str, str | None]:\n    \"\"\"Pick the ask, poll, and result tools by name. `genie_ask` and `genie_poll_response` are documented for Genie One.\n\n    For the Genie Agent server, an ask tool is any tool whose name has `ask` or `query` and not `poll` or `result`.\n    \"\"\"\n    names = [tool_field(tool, \"name\") for tool in tools if tool_field(tool, \"name\")]\n\n    def first(test: Callable[[str], bool]) -> str | None:\n        return next((name for name in names if test(name.lower())), None)\n\n    return {\n        \"ask\": first(lambda n: (\"ask\" in n or \"query\" in n) and \"poll\" not in n and \"result\" not in n and \"view\" not in n),\n        \"poll\": first(lambda n: \"poll\" in n),\n        \"result\": first(lambda n: \"result\" in n and \"poll\" not in n),\n    }",
+      "functions": {
+        "classify_tools": "Pick the ask, poll, and result tools by name. `genie_ask` and `genie_poll_response` are documented for Genie One."
+      }
+    },
+    {
+      "path": "reference/genie/guides/genie-external-ai/02_call_mcp_from_python.py",
+      "symbol": null,
+      "startLine": 79,
+      "endLine": 88,
+      "language": "py",
+      "code": "reply = content_text(mcp.call_tool(picked[\"ask\"], ask_arguments(by_name[picked[\"ask\"]], question)))\nids = extract_ids(reply)\nstatus = extract_status(reply)\nprint(\"ask reply status:\", status, ids)\n\nif picked[\"poll\"] and ids:\n    poll_args = follow_up_arguments(by_name[picked[\"poll\"]], ids)\n    reply, polls = poll_until_done(lambda: content_text(mcp.call_tool(picked[\"poll\"], poll_args)), attempts=40, pause_seconds=5)\n    status = extract_status(reply)\n    rows.append(result_row(run_id, \"call\", \"polls\", polls, \"poll calls made, one at a time\"))",
+      "functions": {
+        "content_text": "All text blocks of an MCP CallToolResult (object or dict), joined.",
+        "follow_up_arguments": "Arguments for a poll or result call: pass each ID the tool's schema names, from the ask response.",
+        "poll_until_done": "Call `fetch` (a poll tool call that returns reply text) until the status is final. Returns (last text, polls used).",
+        "result_row": "One results row. Values are stored as text."
+      }
+    },
+    {
+      "path": "reference/genie/src/mcp_lib.py",
+      "symbol": "audit_sql",
+      "startLine": 227,
+      "endLine": 234,
+      "language": "py",
+      "code": "def audit_sql(space_id: str, since_iso: str) -> str:\n    \"\"\"Statements the Genie Agent ran for this MCP session, from system.query.history.\"\"\"\n    return f\"\"\"\nSELECT executed_by, executed_as, compute.warehouse_id AS warehouse_id, client_application, execution_status, CAST(start_time AS STRING) AS start_time\nFROM system.query.history\nWHERE query_source.genie_space_id = {sql_str(space_id)} AND start_time >= TIMESTAMP {sql_str(since_iso)}\nORDER BY start_time\n\"\"\".strip()",
+      "functions": {
+        "audit_sql": "Statements the Genie Agent ran for this MCP session, from system.query.history."
+      }
+    },
+    {
+      "path": "reference/genie/src/mcp_lib.py",
+      "symbol": "gateway_usage_sql",
+      "startLine": 237,
+      "endLine": 245,
+      "language": "py",
+      "code": "def gateway_usage_sql(service_name: str = \"system.ai.genie_one_mcp\") -> str:\n    \"\"\"Gateway MCP calls by tool, from the query in the Govern an MCP docs.\"\"\"\n    return f\"\"\"\nSELECT mcp_metadata.tool_name AS tool_name, COUNT(*) AS calls\nFROM system.ai_gateway.usage\nWHERE service_type = 'MCP_SERVICE' AND service_name = {sql_str(service_name)}\nGROUP BY mcp_metadata.tool_name\nORDER BY calls DESC\n\"\"\".strip()",
+      "functions": {
+        "gateway_usage_sql": "Gateway MCP calls by tool, from the query in the Govern an MCP docs."
+      }
+    },
+    {
+      "path": "reference/genie/guides/genie-external-ai/connectors/gemini-settings.json",
+      "symbol": null,
+      "startLine": 1,
+      "endLine": 17,
+      "language": "json",
+      "code": "{\n  \"mcpServers\": {\n    \"databricks-genie\": {\n      \"httpUrl\": \"https://<workspace-host>/ai-gateway/mcp-services/system.ai.genie_one_mcp\",\n      \"oauth\": {\n        \"enabled\": true,\n        \"clientId\": \"<oauth-app-client-id>\",\n        \"scopes\": [\"ai-gateway\", \"offline_access\"],\n        \"authorizationUrl\": \"https://<workspace-host>/oidc/v1/authorize\",\n        \"tokenUrl\": \"https://<workspace-host>/oidc/v1/token\",\n        \"redirectUri\": \"http://localhost:7777/oauth/callback\"\n      },\n      \"includeTools\": [\"genie_ask\", \"genie_poll_response\", \"genie_get_query_result\"],\n      \"timeout\": 60000\n    }\n  }\n}",
+      "functions": {}
+    },
+    {
+      "path": "reference/genie/resources/genie_external_ai.job.yml",
+      "symbol": null,
+      "startLine": 14,
+      "endLine": 38,
+      "language": "yml",
+      "code": "          default: ${var.catalog}\n        - name: schema\n          default: ${var.schema}\n        - name: use_case\n          default: ${var.use_case}\n        - name: warehouse_id\n          default: ${var.warehouse_id}\n        - name: mcp_server\n          default: ${var.mcp_server}\n        - name: mcp_question\n          default: ${var.mcp_question}\n      tasks:\n        - task_key: genie_agent_for_mcp\n          notebook_task:\n            notebook_path: ../guides/genie-external-ai/01_genie_agent_for_mcp.py\n            base_parameters:\n              run_id: \"{{job.run_id}}\"\n\n        - task_key: call_mcp_from_python\n          depends_on:\n            - task_key: genie_agent_for_mcp\n          notebook_task:\n            notebook_path: ../guides/genie-external-ai/02_call_mcp_from_python.py\n            base_parameters:\n              run_id: \"{{job.run_id}}\"",
+      "functions": {}
+    }
+  ],
   "geospatial-analytics": [
     {
       "path": "reference/geospatial/guides/geospatial-analytics/02_load_geometries.py",
@@ -3050,7 +3425,9 @@
       "endLine": 82,
       "language": "py",
       "code": "prod = mlflow.sklearn.load_model(f\"models:/{model_name}@prod\")\nprod_auc = float(roc_auc_score(eval_set[label], prod.predict_proba(eval_set[features])[:, 1]))\nwith mlflow.start_run(run_name=\"retrain-candidate\"):\n    candidate = c.make_pipeline(spec[\"seed\"]).fit(fit_set[features], fit_set[label])\n    cand_auc = float(roc_auc_score(eval_set[label], candidate.predict_proba(eval_set[features])[:, 1]))\n    mlflow.log_metrics({\"prod_auc_on_recent\": prod_auc, \"candidate_auc_on_recent\": cand_auc})\n    info = mlflow.sklearn.log_model(\n        candidate, name=\"model\", registered_model_name=model_name,\n        signature=infer_signature(eval_set[features], candidate.predict(eval_set[features])),\n        input_example=eval_set[features].head(3),\n    )\nMlflowClient(registry_uri=\"databricks-uc\").set_registered_model_alias(model_name, \"challenger\", info.registered_model_version)",
-      "functions": {}
+      "functions": {
+        "fit": "Mini-batch training on `device`. `model` may be wrapped in DistributedDataParallel. Returns the epoch losses."
+      }
     }
   ],
   "model-training-compatibility": [
@@ -3259,6 +3636,62 @@
       "language": "yml",
       "code": "      parameters:\n        - name: catalog\n          default: ${var.catalog}\n        - name: schema\n          default: ${var.schema}\n        - name: use_case\n          default: ${var.use_case}\n      tasks:\n        - task_key: generate_data\n          notebook_task:\n            notebook_path: ../guides/no-code-data-prep/01_generate_data.py\n\n        - task_key: build_flow_output\n          depends_on:\n            - task_key: generate_data\n          notebook_task:\n            notebook_path: ../guides/no-code-data-prep/02_build_flow_output.py",
       "functions": {}
+    }
+  ],
+  "omnigent": [
+    {
+      "path": "reference/agents/guides/omnigent/01_preflight_raw_volume.py",
+      "symbol": "main",
+      "startLine": 37,
+      "endLine": 71,
+      "language": "py",
+      "code": "def main() -> dict:\n    catalog, schema, volume = params[\"catalog\"], params[\"schema\"], params[\"volume\"]\n    seed = int(params[\"seed\"])\n    paths = ol.raw_paths(catalog, schema, volume)\n\n    spark.sql(\n        f\"CREATE VOLUME IF NOT EXISTS `{catalog}`.`{schema}`.`{volume}` \"\n        \"COMMENT 'Raw files for the Omnigent guide. Safe to delete.'\"\n    )\n\n    customers = ol.generate_customers(seed)\n    orders = ol.generate_orders(seed, customers)\n    events = ol.generate_events(seed, orders)\n\n    os.makedirs(paths[\"events_dir\"], exist_ok=True)\n    with open(paths[\"orders\"], \"w\") as handle:\n        handle.write(ol.orders_to_csv(orders))\n    with open(paths[\"customers\"], \"w\") as handle:\n        handle.write(ol.to_json_lines(customers))\n    for path, batch in zip(paths[\"events\"], events):\n        with open(path, \"w\") as handle:\n            handle.write(ol.to_json_lines(batch))\n    # Drop event files this guide wrote on an earlier run that are no longer part of the set.\n    for name in os.listdir(paths[\"events_dir\"]):\n        full = f\"{paths['events_dir']}/{name}\"\n        if name.startswith(\"events_\") and name.endswith(\".json\") and full not in paths[\"events\"]:\n            os.remove(full)\n\n    print(f\"Volume: {catalog}.{schema}.{volume}\")\n    print(f\"orders.csv      {paths['orders']}  ({len(orders)} rows)\")\n    print(f\"customers.json  {paths['customers']}  ({len(customers)} rows)\")\n    for path, batch in zip(paths[\"events\"], events):\n        print(f\"events file     {path}  ({len(batch)} rows)\")\n    print(\"Table prefix: omni_   Pipeline name prefix: omnigent_\")\n    return paths",
+      "functions": {
+        "generate_orders": "Orders with two planted defects for the silver step to remove.",
+        "raw_paths": "Fixed paths of the raw files, so a rerun overwrites the same files.",
+        "to_json_lines": "One JSON object per line with sorted keys, the layout Auto Loader reads by default."
+      }
+    },
+    {
+      "path": "reference/agents/guides/omnigent/02_check_pipeline.py",
+      "symbol": "main",
+      "startLine": 79,
+      "endLine": 115,
+      "language": "py",
+      "code": "def main() -> str:\n    catalog, schema = params[\"catalog\"], params[\"schema\"]\n    prefix = ol.check_identifier(params[\"table_prefix\"] or \"omni_\", \"table_prefix\")\n    fq = f\"`{catalog}`.`{schema}`\"\n    w = WorkspaceClient()\n\n    pipeline = ol.find_pipeline([p.name for p in w.pipelines.list_pipelines() if p.name], params[\"pipeline_prefix\"])\n    tables = [t.name for t in w.tables.list(catalog_name=catalog, schema_name=schema) if t.name]\n    groups = ol.classify_tables(tables, prefix)\n    print(f\"Pipeline: {pipeline or 'not found'}\")\n    for layer in ol.LAYERS:\n        print(f\"{layer}: {groups[layer] or 'none'}\")\n\n    paths = ol.raw_paths(catalog, schema, params[\"volume\"])\n    orders, customers, events = read_raw(paths)\n    expected = ol.expected_counts(orders, customers, events)\n    checks = ol.reconcile(expected, actual_counts(groups, fq))\n    status = ol.overall_status(pipeline, groups, checks)\n\n    for c in checks:\n        print(f\"{c['status']:8} {c['check']}: expected {c['expected']}, actual {c['actual']}\")\n    steps = ol.manual_steps(pipeline, groups)\n\n    result = spark.createDataFrame(\n        [(c[\"check\"], str(c[\"expected\"]), str(c[\"actual\"]), c[\"status\"]) for c in checks],\n        \"check string, expected string, actual string, status string\",\n    )\n    result.write.mode(\"overwrite\").option(\"overwriteSchema\", \"true\").saveAsTable(f\"{fq}.omnigent_pipeline_check\")\n\n    print(f\"Status: {status}\")\n    if status == \"needs_manual_check\":\n        print(\"The interactive Omnigent steps have not finished. This is not a failure.\")\n        for step in steps:\n            print(f\"- {step}\")\n    if status == \"fail\":\n        raise AssertionError(\"Row counts do not match the raw files. See the table above.\")\n    return status",
+      "functions": {
+        "actual_counts": "Row counts and sums from the tables Omnigent's pipeline wrote.",
+        "check_identifier": "Return `value` when it is a safe SQL identifier, else raise. Guards names built into SQL.",
+        "classify_tables": "Group tables named <prefix><layer>_* into bronze, silver, and gold.",
+        "expected_counts": "What the three layers should hold if silver keeps one row per order_id and drops null amounts.",
+        "find_pipeline": "First pipeline name (sorted) that starts with `prefix` once the dev prefix is removed.",
+        "manual_steps": "What is still to do, in the order of the guide.",
+        "overall_status": "pass, fail, or needs_manual_check.",
+        "raw_paths": "Fixed paths of the raw files, so a rerun overwrites the same files.",
+        "reconcile": "Compare expected and actual values by key. A key missing from `actual` is reported as missing."
+      }
+    },
+    {
+      "path": "reference/agents/src/omnigent_lib.py",
+      "symbol": "generate_orders",
+      "startLine": 63,
+      "endLine": 85,
+      "language": "py",
+      "code": "def generate_orders(seed: int, customers: list[dict[str, Any]], n: int = 200) -> list[dict[str, Any]]:\n    \"\"\"Orders with two planted defects for the silver step to remove.\n\n    Every 25th row repeats the previous order_id, and every 40th row has no amount. Amounts use\n    whole cents, so the totals do not drift with float rounding.\n    \"\"\"\n    rng = random.Random(seed + 1)\n    rows: list[dict[str, Any]] = []\n    for i in range(1, n + 1):\n        if i % 25 == 0 and rows:\n            rows.append(dict(rows[-1]))\n            continue\n        cents = rng.randint(500, 50000)\n        rows.append(\n            {\n                \"order_id\": f\"O{i:05d}\",\n                \"customer_id\": rng.choice(customers)[\"customer_id\"],\n                \"order_date\": (FIRST_ORDER_DATE + timedelta(days=rng.randint(0, 89))).isoformat(),\n                \"amount\": \"\" if i % 40 == 0 else f\"{cents // 100}.{cents % 100:02d}\",\n                \"region\": rng.choice(REGIONS),\n            }\n        )\n    return rows",
+      "functions": {
+        "generate_orders": "Orders with two planted defects for the silver step to remove."
+      }
+    },
+    {
+      "path": "reference/agents/src/omnigent_lib.py",
+      "symbol": "overall_status",
+      "startLine": 191,
+      "endLine": 205,
+      "language": "py",
+      "code": "def overall_status(pipeline: str | None, groups: dict[str, list[str]], checks: list[dict[str, Any]]) -> str:\n    \"\"\"pass, fail, or needs_manual_check.\n\n    The interactive Omnigent steps may not have run yet. No pipeline and no omni_ tables, or a\n    missing layer, is needs_manual_check. A fail is only a layer that exists with the wrong counts.\n    \"\"\"\n    if not any(groups.values()):\n        return \"needs_manual_check\"\n    if not all(groups[layer] for layer in LAYERS):\n        return \"needs_manual_check\"\n    if any(c[\"status\"] == \"fail\" for c in checks):\n        return \"fail\"\n    if any(c[\"status\"] == \"missing\" for c in checks):\n        return \"needs_manual_check\"\n    return \"pass\"",
+      "functions": {
+        "overall_status": "pass, fail, or needs_manual_check."
+      }
     }
   ],
   "ontology": [
