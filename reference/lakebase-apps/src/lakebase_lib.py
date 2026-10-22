@@ -447,3 +447,34 @@ def find_database_path(workspace: Any, branch: str, postgres_database: str = "da
         if status is not None and status.postgres_database == postgres_database:
             return database.name
     raise LookupError(f"no database named {postgres_database} on {branch}")
+
+
+def require_project(workspace: Any, project: str) -> str:
+    """Return the project ID after checking that the Lakebase project exists. Stops before anything changes."""
+    from databricks.sdk.errors import NotFound
+
+    try:
+        workspace.postgres.get_project(name=project_name(project))
+    except NotFound:
+        raise RuntimeError(
+            f"Lakebase project {project} does not exist. Run: databricks bundle deploy --target dev "
+            "(the bundle creates the project). Nothing was changed."
+        ) from None
+    return project
+
+
+def require_serverless_warehouse(workspace: Any, warehouse_id: str) -> str:
+    """Return the warehouse ID after checking that it exists and is serverless. A registered Lakebase catalog needs one."""
+    from databricks.sdk.errors import NotFound
+
+    try:
+        warehouse = workspace.warehouses.get(id=warehouse_id)
+    except NotFound:
+        warehouse = None
+    if warehouse is None or not warehouse.enable_serverless_compute:
+        raise RuntimeError(
+            f"Warehouse {warehouse_id} is missing or not serverless. Run: databricks warehouses create --name lakebase-apps "
+            "--cluster-size 2X-Small --warehouse-type PRO --enable-serverless-compute, then redeploy with "
+            "--var warehouse_id=<new-id>. Nothing was changed."
+        )
+    return warehouse_id

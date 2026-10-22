@@ -7743,8 +7743,8 @@
           "label": "Three wrong ways to combine the numbers",
           "path": "reference/metric-views/guides/metric-views/04_verify_measures.py",
           "lines": [
-            160,
-            168
+            161,
+            169
           ],
           "section": "ratios",
           "notes": [
@@ -7780,8 +7780,8 @@
           "label": "Certify the view",
           "path": "reference/metric-views/guides/metric-views/05_lineage_and_governance.py",
           "lines": [
-            66,
-            79
+            67,
+            80
           ],
           "section": "govern",
           "notes": [
@@ -7793,8 +7793,8 @@
           "label": "Read upstream lineage",
           "path": "reference/metric-views/guides/metric-views/05_lineage_and_governance.py",
           "lines": [
-            92,
-            96
+            93,
+            97
           ],
           "section": "govern",
           "notes": [
@@ -7818,8 +7818,8 @@
           "label": "Compare each measure with plain SQL",
           "path": "reference/metric-views/guides/metric-views/04_verify_measures.py",
           "lines": [
-            27,
-            37
+            28,
+            38
           ],
           "section": "deploy",
           "notes": [

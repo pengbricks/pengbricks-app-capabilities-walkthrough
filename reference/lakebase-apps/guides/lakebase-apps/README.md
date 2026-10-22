@@ -6,6 +6,36 @@ The `capability-guides-lakebase-apps` job walks the main steps of building an ap
 
 The bundle creates the Lakebase project with the `postgres_project`, `postgres_branch`, and `postgres_endpoint` resources (Beta, Databricks CLI 0.287.0 or later). The project's compute scales to zero after five idle minutes, so an idle project costs close to nothing. Every notebook is safe to rerun.
 
+## Required setup
+
+Do these before the first run. `<principal>` is the identity that runs the job. In a development target that is you.
+
+1. **Databricks CLI 0.287.0 or later.** The `postgres_*` bundle resources need it. Check with `databricks --version`.
+2. **Deploy the bundle.** It creates the Lakebase project and its `dev` branch, and all seven notebooks need the project. Confirm it exists:
+   ```bash
+   databricks bundle deploy --target dev --var catalog=<catalog> --var warehouse_id=<warehouse-id> --var app_service_principal=<app-sp-application-id>
+   databricks postgres get-project projects/capability-guides-lakebase-apps
+   ```
+3. **Run as the identity that deployed.** The project creator gets the Postgres role that the notebooks connect with. If the job runs as a different identity, give that identity a role on the production branch, then grant it schema access with SQL:
+   ```bash
+   databricks postgres create-role projects/capability-guides-lakebase-apps/branches/production --role-id <sp-client-id> \
+     --json '{"spec": {"identity_type": "SERVICE_PRINCIPAL", "postgres_role": "<sp-client-id>", "auth_method": "LAKEBASE_OAUTH_V1"}}'
+   ```
+4. **Lakebase Change Data Feed (Public Preview), for `03_write_back`.** A workspace admin turns it on: open the workspace **Previews** page and enable Lakebase Change Data Feed. The destination catalog needs a managed storage location, not default storage, and `<principal>` needs CAN MANAGE on the Lakebase project (its creator has it) plus these grants on the destination:
+   ```sql
+   GRANT USE CATALOG ON CATALOG <catalog> TO `<principal>`;
+   GRANT USE SCHEMA, CREATE TABLE ON SCHEMA <catalog>.<schema> TO `<principal>`;
+   ```
+   Without the preview, notebook 03 explains and ends, and the job continues.
+5. **Unity Catalog registration (Beta), for `06_register_in_unity_catalog`.** `<principal>` needs `CREATE CATALOG`, and `warehouse_id` must name a serverless SQL warehouse (a pro or classic warehouse returns `UC_LAKEBASE_CATALOG_ACCESS_DENIED`):
+   ```sql
+   GRANT CREATE CATALOG ON METASTORE TO `<principal>`;
+   ```
+   ```bash
+   databricks warehouses create --name lakebase-apps --cluster-size 2X-Small --warehouse-type PRO --enable-serverless-compute --auto-stop-mins 10
+   ```
+   Without `CREATE CATALOG`, notebook 06 prints the Catalog Explorer steps and ends.
+
 ## What this shows
 
 | Capability | Artifact |

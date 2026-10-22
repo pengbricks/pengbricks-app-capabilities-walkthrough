@@ -34,6 +34,25 @@
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ## Required setup
+# MAGIC
+# MAGIC Run these once, before the job. `<principal>` is the person or service principal behind `databricks bundle run`.
+# MAGIC
+# MAGIC 1. **Foundation bundle.** Deploy `reference/foundation` first. It creates the shared schema this guide writes to.
+# MAGIC 2. **SQL warehouse.** Genie runs its queries on the warehouse in the `warehouse_id` variable. It must be a Pro or serverless warehouse, and `<principal>` needs CAN USE on it. Create one if you have none:
+# MAGIC    ```bash
+# MAGIC    databricks warehouses create --name genie-guides --cluster-size 2X-Small --warehouse-type PRO --enable-serverless-compute
+# MAGIC    ```
+# MAGIC 3. **Genie space creation.** The job creates Genie spaces through the REST API. `<principal>` needs access to Databricks SQL and the right to create spaces, and Databricks Assistant must be enabled for the workspace.
+# MAGIC 4. **Schema privileges.** The job creates the sample tables, comments, tags and the `sales_metrics` metric view:
+# MAGIC    ```sql
+# MAGIC    GRANT USE CATALOG ON CATALOG <catalog> TO `<principal>`;
+# MAGIC    GRANT USE SCHEMA, CREATE TABLE, SELECT, APPLY TAG ON SCHEMA <catalog>.<schema> TO `<principal>`;
+# MAGIC    ```
+
+# COMMAND ----------
+
 import sys, os
 sys.path.insert(0, os.path.abspath("../../src"))
 from guide_params import bundle_root, load_params, JOB_TAG

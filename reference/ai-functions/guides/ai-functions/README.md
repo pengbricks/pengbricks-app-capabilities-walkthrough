@@ -6,6 +6,15 @@ A folder of notebooks runs AI Functions over small sample tables and scores ever
 
 All sample data is in `use_cases/general.yml`. The names, emails, and phone numbers are made up (555-01xx numbers, example.com addresses). The invoice PDFs are rendered at run time with fpdf2. The two scans are public domain and are downloaded once, then checked against a pinned SHA-256: [a 1947 letter from Harry S. Truman to Eleanor Roosevelt](https://commons.wikimedia.org/wiki/File:Letter_from_Harry_S._Truman_to_Eleanor_Roosevelt_-_DPLA_-_49b1c8f89d84a70ed20acf75b97ae3bf.pdf) (National Archives; one page, typed, with a signature and a handwritten postscript) and [US Patent 223,898, Edison's electric lamp](https://patents.google.com/patent/US223898A/en) (four pages from 1880 with drawings).
 
+## Required setup
+
+- **A SQL warehouse for `06_forecast`.** Serverless notebook compute rejects `ai_forecast` as a disabled preview, so the notebook must run on a Pro or serverless SQL warehouse. Create one if you have none: `databricks warehouses create --name ai-functions --cluster-size 2X-Small --max-num-clusters 1 --warehouse-type PRO --enable-serverless-compute --auto-stop-mins 10`, then attach `06_forecast` to it (the compute picker at the top of the notebook).
+- **Parameter values for `06_forecast`.** It is a SQL notebook, so its widgets do not fill from the job. Type these into the parameter boxes above the first cell:
+  - `catalog`: the catalog you passed as `--var catalog` when you deployed.
+  - `schema`: the job's `schema` parameter (`dev_<you>_capability_guides` on the `dev` target, `capability_guides` when the target sets no prefix). Read it from the job's Parameters tab if unsure.
+  - `run_id`: any text, for example `manual`. It labels the rows `06_forecast` writes to `aif_results`.
+- **Run `01_land_samples` first.** It creates `aif_daily_orders`, which `06_forecast` reads.
+
 ## Run it
 
 - **By hand:** open the `guides/ai-functions` folder, read `00_start_here`, then Run all in `01_land_samples` and each notebook after it. Attach `06_forecast` to a Pro or serverless SQL warehouse. Widgets fill from the deployed job.

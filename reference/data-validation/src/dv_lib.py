@@ -124,6 +124,27 @@ def connection_settings(workspace: Any, cfg: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+CREATE_PROJECT_COMMAND = (
+    "databricks postgres create-project {project} --json "
+    "'{{\"spec\": {{\"display_name\": \"Capability guides\", \"pg_version\": 17, \"default_endpoint_settings\": "
+    "{{\"autoscaling_limit_min_cu\": 0.5, \"autoscaling_limit_max_cu\": 2, \"suspend_timeout_duration\": \"300s\"}}}}}}'"
+)
+
+
+def require_lakebase_project(workspace: Any, project: str) -> None:
+    """Stop with the create command, before anything changes, when the Lakebase project does not exist."""
+    from databricks.sdk.errors import NotFound
+
+    try:
+        workspace.postgres.get_project(name=f"projects/{project}")
+    except NotFound:
+        raise RuntimeError(
+            f"The Lakebase project '{project}' does not exist in this workspace. Run: "
+            + CREATE_PROJECT_COMMAND.format(project=project)
+            + " (or set lakebase_project to an existing project). Nothing was changed."
+        ) from None
+
+
 def connect(settings: dict[str, Any]):
     import psycopg2
 

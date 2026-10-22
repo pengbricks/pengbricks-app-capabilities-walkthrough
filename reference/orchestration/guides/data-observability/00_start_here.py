@@ -32,6 +32,27 @@
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ## Required setup
+# MAGIC
+# MAGIC Run these once, before the job. `<principal>` is the person or service principal that runs `databricks bundle run`.
+# MAGIC
+# MAGIC 1. **Lineage system tables.** `02_read_lineage` reads `system.access.table_lineage` and `system.access.column_lineage`. A metastore admin or account admin enables the schema if it is off, then grants read access:
+# MAGIC    ```bash
+# MAGIC    databricks metastores current   # shows the metastore ID
+# MAGIC    databricks system-schemas enable <metastore-id> access
+# MAGIC    ```
+# MAGIC    ```sql
+# MAGIC    GRANT USE CATALOG ON CATALOG system TO `<principal>`;
+# MAGIC    GRANT USE SCHEMA ON SCHEMA system.access TO `<principal>`;
+# MAGIC    GRANT SELECT ON TABLE system.access.table_lineage TO `<principal>`;
+# MAGIC    GRANT SELECT ON TABLE system.access.column_lineage TO `<principal>`;
+# MAGIC    ```
+# MAGIC    Without them `01_build_chain` stops before it changes anything. Lineage appears a few minutes after the writes, so `02_read_lineage` polls for up to 25 minutes.
+# MAGIC 2. **Data profiling monitor (optional).** `04_detect_data_drift` creates a monitor on `obs_orders_batches`. If the identity cannot create one, the step records the failure and the PSI and mean-shift checks still run.
+
+# COMMAND ----------
+
 import sys, os
 sys.path.insert(0, os.path.abspath("../../src"))
 from guide_params import bundle_root, load_params, JOB_TAG

@@ -28,7 +28,7 @@ import lakebase_lib as lb
 
 params = load_params(dbutils, "capability_guides_lakebase_apps", ['lakebase_project', 'app_schema'], defaults={'app_schema': 'lakebase_apps'})
 w = WorkspaceClient()
-endpoint = lb.endpoint_name(params["lakebase_project"], lb.BRANCH, lb.ENDPOINT)
+endpoint = lb.endpoint_name(lb.require_project(w, params["lakebase_project"]), lb.BRANCH, lb.ENDPOINT)
 user = w.current_user.me().user_name  # the Postgres role for this identity has the same name
 app_schema = lb.ident(params["app_schema"])
 

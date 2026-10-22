@@ -20,7 +20,7 @@ import sys, os
 sys.path.insert(0, os.path.abspath("../../src"))
 from guide_params import bundle_root, load_params
 from open_data.checks import append_rows, check_row, scrub
-from open_data.federation import is_missing_privilege, remote_query_sql, seed_sql
+from open_data.federation import is_missing_privilege, remote_query_sql, seed_sql, require_lakebase_endpoint
 from open_data.spec import load_spec
 params = load_params(dbutils, "capability_guides_external_integrations", ['catalog', 'schema', 'use_case', 'lakebase_project'])
 catalog, schema = params["catalog"], params["schema"]
@@ -49,7 +49,7 @@ def record(check, status, value, detail):
 
 w = WorkspaceClient()
 endpoint_name = f"projects/{cfg['lakebase_project']}/branches/{cfg['lakebase_branch']}/endpoints/{cfg['lakebase_endpoint']}"
-host = w.postgres.get_endpoint(name=endpoint_name).status.hosts.host
+host = require_lakebase_endpoint(w, endpoint_name).status.hosts.host
 user = w.current_user.me().user_name
 token = w.postgres.generate_database_credential(endpoint=endpoint_name).token
 secrets.append(token)

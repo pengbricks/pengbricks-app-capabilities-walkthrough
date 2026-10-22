@@ -18,7 +18,7 @@ import sys, os
 sys.path.insert(0, os.path.abspath("../../src"))
 from guide_params import bundle_root, load_params
 from open_data.checks import append_rows, check_row
-from open_data.iceberg import catalog_properties
+from open_data.iceberg import catalog_properties, require_external_access
 from open_data.spec import load_spec
 params = load_params(dbutils, "capability_guides_iceberg", ['catalog', 'schema', 'use_case'])
 catalog, schema = params["catalog"], params["schema"]
@@ -44,7 +44,7 @@ def record(check, status, value, detail):
 
 # COMMAND ----------
 
-w = WorkspaceClient()
+w = require_external_access(WorkspaceClient(), catalog, schema)
 token = w.config.authenticate()["Authorization"].split(" ", 1)[1]
 props = catalog_properties(w.config.host, catalog, cfg["irc_path"], token)
 shown = {k: ("***" if k == "token" else v) for k, v in props.items()}

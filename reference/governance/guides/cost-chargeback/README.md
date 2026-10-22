@@ -4,6 +4,36 @@
 
 The job joins `system.billing.usage` to `system.billing.list_prices` in a workspace-scoped view, `cost_usage_enriched`, and breaks list-price spend down by product and SKU, custom tag, user, job, and pipeline. A SQL alert watches 7-day spend against a threshold variable, `ai_forecast` projects the next 30 days, and two queries flag optimization candidates. A small AI/BI dashboard reads the results.
 
+## Required setup
+
+Run these once, before the job. `<principal>` is the person or service principal that runs `databricks bundle run`.
+
+1. **System tables for spend.** `01_build_views` reads `system.billing.usage` and `system.billing.list_prices`, and `06_optimization` reads `system.query.history`. A metastore admin or account admin enables the schemas if they are off, then grants read access:
+   ```bash
+   databricks metastores current   # shows the metastore ID
+   databricks system-schemas enable <metastore-id> billing
+   databricks system-schemas enable <metastore-id> query
+   ```
+   ```sql
+   GRANT USE CATALOG ON CATALOG system TO `<principal>`;
+   GRANT USE SCHEMA ON SCHEMA system.billing TO `<principal>`;
+   GRANT SELECT ON TABLE system.billing.usage TO `<principal>`;
+   GRANT SELECT ON TABLE system.billing.list_prices TO `<principal>`;
+   GRANT USE SCHEMA ON SCHEMA system.query TO `<principal>`;
+   GRANT SELECT ON TABLE system.query.history TO `<principal>`;
+   ```
+   Without them `01_build_views` stops before it changes anything.
+2. **Billing records for this workspace.** `01_build_views` asserts that the workspace has usage rows from the last 90 days. Usage reaches `system.billing.usage` a few hours after the compute runs, so a new workspace has none yet. Run the job again later.
+3. **An address for the budget alert.** The bundle variable `notification_email` has no default. Set it at deploy time:
+   ```bash
+   databricks bundle deploy --target dev --var notification_email=<you@example.com>
+   ```
+   The alert reads `cost_usage_enriched`, which the job creates, so run the job once before you expect the alert to evaluate:
+   ```bash
+   databricks bundle run capability_guides_cost --target dev
+   ```
+4. **A serverless SQL warehouse for the forecast.** `04_forecast.sql` calls `ai_forecast` on the SQL warehouse in `warehouse_id`, so use a serverless warehouse.
+
 ## What this shows
 
 | Guide artifact | Where it is |

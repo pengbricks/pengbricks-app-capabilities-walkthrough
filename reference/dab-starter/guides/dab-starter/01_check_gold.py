@@ -20,6 +20,16 @@ table = lambda name: f"`{catalog}`.`{schema}`.{name}"
 
 # COMMAND ----------
 
+# Precondition: the pipeline must have run once. Deploying only creates its definition.
+missing = [t for t in ("orders_bronze", "orders_silver", "orders_daily_revenue") if not spark.catalog.tableExists(f"{catalog}.{schema}.{t}")]
+if missing:
+    raise RuntimeError(
+        f"The pipeline has not produced {', '.join(missing)} in {catalog}.{schema}. "
+        "Run: databricks bundle run orders --var catalog=<catalog> (the pipeline), or databricks bundle run capability_guides_dab_starter --var catalog=<catalog> (the job). Nothing was changed."
+    )
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC ## Row counts across the layers
 

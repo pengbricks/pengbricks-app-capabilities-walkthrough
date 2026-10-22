@@ -259,3 +259,19 @@ def test_plain_drops_trailing_zeros_and_exponents():
     assert v.plain(Decimal("11903.600000000000000000")) == "11903.6"
     assert v.plain(Decimal("98259070185.000000")) == "98259070185"
     assert v.plain(Decimal("5E+1")) == "50"
+
+
+def test_require_lakebase_project_names_the_create_command():
+    import dv_lib
+
+    from databricks.sdk.errors import NotFound
+
+    def missing(name):
+        raise NotFound(name)
+
+    ws = SimpleNamespace(postgres=SimpleNamespace(get_project=missing))
+    with pytest.raises(RuntimeError, match=r"capability-guides.*databricks postgres create-project capability-guides.*Nothing was changed"):
+        dv_lib.require_lakebase_project(ws, "capability-guides")
+
+    ok = SimpleNamespace(postgres=SimpleNamespace(get_project=lambda name: SimpleNamespace(name=name)))
+    dv_lib.require_lakebase_project(ok, "capability-guides")

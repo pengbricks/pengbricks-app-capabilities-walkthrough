@@ -26,3 +26,18 @@ def remote_query_sql(connection: str, database: str, query: str) -> str:
     """A table expression that runs `query` in the external database through a UC connection."""
     escaped = query.replace("'", "\\'")
     return f"remote_query('{connection}', database => '{database}', query => '{escaped}')"
+
+
+def require_lakebase_endpoint(workspace, name: str):
+    """Return the endpoint after checking the Lakebase project exists. Stops before anything changes."""
+    from databricks.sdk.errors import NotFound
+
+    try:
+        return workspace.postgres.get_endpoint(name=name)
+    except NotFound:
+        project = name.split("/")[1]
+        raise RuntimeError(
+            f"Lakebase endpoint {name} does not exist. Run: databricks postgres create-project {project} "
+            "(a new project starts with the production branch, the databricks_postgres database and the primary endpoint), "
+            "or pass the ID of an existing project as the lakebase_project variable. Nothing was changed."
+        ) from None

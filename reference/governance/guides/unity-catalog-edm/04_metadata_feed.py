@@ -59,4 +59,8 @@ def metadata_feed(args, spark) -> None:
 
 # COMMAND ----------
 
+REQUIRED = ['edm_customers', 'edm_orders', 'edm_customer_revenue_gold']
+missing = [t for t in REQUIRED if not spark.catalog.tableExists(qualified(args.catalog, args.schema, t))]
+if missing:
+    raise RuntimeError(f"{', '.join(missing)} missing in {args.catalog}.{args.schema}. Run: the 01_create_sample_tables notebook, or databricks bundle run capability_guides_unity_catalog_edm --target dev. Nothing was changed.")
 metadata_feed(args, spark)

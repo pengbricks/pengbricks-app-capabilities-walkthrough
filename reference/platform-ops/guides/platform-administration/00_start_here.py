@@ -35,6 +35,34 @@
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ## Required setup
+# MAGIC
+# MAGIC Run these once, before the job. `<principal>` is the person or service principal behind `databricks bundle run`. Every task catches a missing right and records `not_allowed` in `admin_actions`, so the job finishes without them. These steps make the rows say `ok`, `created`, or `unchanged` instead.
+# MAGIC
+# MAGIC 1. **Workspace admin.** `workspace_checks`, `roles`, `policies`, and `routine_support` read workspace settings, create the group and the cluster policy, and list workspace tokens. Add `<principal>` to the workspace `admins` group (Settings, **Identity and access**, **Groups**, `admins`). The serverless budget policy in `policies` is an account-level object, so it records `not_allowed` unless the identity also has account rights. The task then applies the cluster policy.
+# MAGIC 2. **Account-level group for Unity Catalog grants.** A workspace-local group is not a Unity Catalog principal, so `grant_schema_access` records `not_allowed` for it. An account admin creates the group at the account level and assigns it to the workspace, before the job runs:
+# MAGIC    ```bash
+# MAGIC    databricks account groups create --display-name capability-guides-analysts
+# MAGIC    databricks account workspace-assignment update <workspace-id> <group-id> --json '{"permissions": ["USER"]}'
+# MAGIC    ```
+# MAGIC    `<group-id>` is the `id` the first command prints. `03_roles` then finds the group instead of creating a local one, and runs `GRANT USE SCHEMA, SELECT` on the guide schema to it.
+# MAGIC 3. **System tables.** `05_capacity` reads `system.billing.usage` and `06_audit_access` reads `system.access.audit`. A metastore admin enables the schemas, then grants read access:
+# MAGIC    ```bash
+# MAGIC    databricks system-schemas enable <metastore-id> billing
+# MAGIC    databricks system-schemas enable <metastore-id> access
+# MAGIC    ```
+# MAGIC    Get `<metastore-id>` from `databricks metastores current`.
+# MAGIC    ```sql
+# MAGIC    GRANT USE CATALOG ON CATALOG system TO `<principal>`;
+# MAGIC    GRANT USE SCHEMA ON SCHEMA system.billing TO `<principal>`;
+# MAGIC    GRANT SELECT ON TABLE system.billing.usage TO `<principal>`;
+# MAGIC    GRANT USE SCHEMA ON SCHEMA system.access TO `<principal>`;
+# MAGIC    GRANT SELECT ON TABLE system.access.audit TO `<principal>`;
+# MAGIC    ```
+
+# COMMAND ----------
+
 import sys, os
 sys.path.insert(0, os.path.abspath("../../src"))
 from guide_params import bundle_root, load_params, JOB_TAG

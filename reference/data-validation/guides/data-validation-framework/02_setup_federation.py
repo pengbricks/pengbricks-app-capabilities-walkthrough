@@ -32,6 +32,7 @@ import dv_lib
 spec = dv_lib.load_spec(SPEC_FILE)
 cfg = {**spec["source"], **({"lakebase_project": params["lakebase_project"]} if params["lakebase_project"] else {})}
 w = WorkspaceClient()
+dv_lib.require_lakebase_project(w, cfg["lakebase_project"])
 s = dv_lib.connection_settings(w, cfg)
 options = {"host": s["host"], "port": str(s["port"]), "user": s["user"], "password": s["password"]}
 

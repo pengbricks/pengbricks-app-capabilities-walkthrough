@@ -29,6 +29,23 @@
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ## Required setup
+# MAGIC
+# MAGIC Run these once, before the job. `<principal>` is the person or service principal behind `databricks bundle run`.
+# MAGIC
+# MAGIC 1. **External data access on the metastore.** A metastore admin turns it on. Without it the Iceberg REST catalog refuses PyIceberg and `02_read_through_irc` stops with a message that says so:
+# MAGIC    ```bash
+# MAGIC    databricks metastores update <metastore-id> --external-access-enabled
+# MAGIC    ```
+# MAGIC    Get `<metastore-id>` from `databricks metastores current`.
+# MAGIC 2. **EXTERNAL USE SCHEMA.** `01_managed_iceberg_table` grants it on the guide schema to the job identity. The catalog owner or a metastore admin can grant it first, which also covers a different reader:
+# MAGIC    ```sql
+# MAGIC    GRANT EXTERNAL USE SCHEMA ON SCHEMA <catalog>.<schema> TO `<principal>`;
+# MAGIC    ```
+
+# COMMAND ----------
+
 import sys, os
 sys.path.insert(0, os.path.abspath("../../src"))
 from guide_params import bundle_root, load_params, JOB_TAG

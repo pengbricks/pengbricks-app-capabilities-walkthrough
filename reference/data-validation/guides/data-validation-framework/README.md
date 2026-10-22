@@ -6,6 +6,17 @@ The `capability-guides-data-validation` job builds a small source system, copies
 
 The source is a stand-in. There is no SQL Server in the reference workspace, so the job uses a schema (`dv_source`) in a Lakebase Postgres project and reads it through a Unity Catalog connection and `remote_query`, the same pattern as the relational database extracts guide. The validation logic lives only in Databricks, so pointing it at SQL Server means changing the connection type and the source-side SQL dialect, not the framework.
 
+## Required setup
+
+- **A Lakebase project** named by `lakebase_project` (default `capability-guides`). `01_create_source` stops with an error if it is missing; before the check it crashed with a SIGABRT and then `NotFound`. The new project brings the `production` branch, the `primary` endpoint, and the `databricks_postgres` database the spec expects. Create it with scale to zero (five idle minutes):
+  ```bash
+  databricks postgres create-project capability-guides --json '{"spec": {"display_name": "Capability guides", "pg_version": 17, "default_endpoint_settings": {"autoscaling_limit_min_cu": 0.5, "autoscaling_limit_max_cu": 2, "suspend_timeout_duration": "300s"}}}'
+  ```
+  To use a project you already have, set `lakebase_project` to its ID (`--var lakebase_project=<project-id>` at deploy, or the widget) and make sure it has a `production` branch, a `primary` endpoint, and a `databricks_postgres` database. You need access to it as yourself, because the notebooks connect as your user.
+- **A privilege for `02_setup_federation`.** It creates the Unity Catalog connection `capability_guides_dv_source` (type POSTGRESQL). The running user needs `CREATE CONNECTION` on the metastore: `GRANT CREATE CONNECTION ON METASTORE TO <principal>;`
+- **The pipeline must have run before `05_read_expectation_metrics`.** `03_load_target` must run first too. The job does both. By hand, deploy the bundle and run the pipeline: `databricks bundle run capability_guides_data_validation_pipeline --target dev --var catalog=<catalog> --var warehouse_id=<warehouse-id> --var app_service_principal=<app-service-principal-application-id>`. `05` and later also stop with a message if their inputs are missing.
+- **A SQL warehouse** for the paused alert (`warehouse_id` at deploy). Serverless works.
+
 ## What this shows
 
 | Capability | Artifact |

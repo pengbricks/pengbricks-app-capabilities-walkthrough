@@ -36,6 +36,48 @@
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ## Required setup
+# MAGIC
+# MAGIC Run these once, before the job. The identity that runs the job is the person or service principal behind `databricks bundle run`. It is written `<principal>` below. A metastore admin or account admin runs most of them.
+# MAGIC
+# MAGIC If you lack account-level rights, skip items 1 and 2 and run with `tag_mode=plain` (item 6). It creates nothing at the account level. Items 3 to 5 apply in both modes.
+# MAGIC
+# MAGIC 1. **Governed tags (`tag_mode=governed`, the default).** Governed tags are account-level tag policies. The job identity needs permission to create tag policies, or an admin creates them first:
+# MAGIC    ```bash
+# MAGIC    databricks tag-policies create-tag-policy edm_pii --json '{"description": "Kind of personal identifier a column holds",
+# MAGIC      "values": [{"name": "id_number"}, {"name": "contact"}]}'
+# MAGIC    databricks tag-policies create-tag-policy edm_region --json '{"description": "Column holds the data region used for row filtering"}'
+# MAGIC    ```
+# MAGIC    Then give `<principal>` the ASSIGN permission on `edm_pii` and `edm_region`: Catalog Explorer, **Governed tags**, the tag, **Permissions**. There is no SQL `GRANT` for it. Without it `02_apply_tags` falls back to plain tags.
+# MAGIC 2. **ABAC policies.** `03_abac_policy` needs serverless compute or Databricks Runtime 16.4 or above. The job already runs serverless. For a manual run, attach serverless compute.
+# MAGIC 3. **External metadata.** `05_external_lineage` needs `CREATE EXTERNAL METADATA` on the metastore. Without it the step records `SKIPPED`:
+# MAGIC    ```sql
+# MAGIC    GRANT CREATE EXTERNAL METADATA ON METASTORE TO `<principal>`;
+# MAGIC    ```
+# MAGIC 4. **Certification.** `06_certify_gold` needs ASSIGN on the system tag `system.certification_status` (Catalog Explorer, **Governed tags**, `system.certification_status`, **Permissions**) and APPLY TAG on the table:
+# MAGIC    ```sql
+# MAGIC    GRANT APPLY TAG ON TABLE <catalog>.<schema>.edm_customer_revenue_gold TO `<principal>`;
+# MAGIC    ```
+# MAGIC    Without them the step records `not permitted`.
+# MAGIC 5. **Lineage feed.** `04_metadata_feed` reads `system.access`. A metastore admin enables the schema if it is off, then grants read access:
+# MAGIC    ```bash
+# MAGIC    databricks system-schemas enable <metastore-id> access   # get the ID from: databricks metastores current
+# MAGIC    ```
+# MAGIC    ```sql
+# MAGIC    GRANT USE CATALOG ON CATALOG system TO `<principal>`;
+# MAGIC    GRANT USE SCHEMA ON SCHEMA system.access TO `<principal>`;
+# MAGIC    GRANT SELECT ON TABLE system.access.table_lineage TO `<principal>`;
+# MAGIC    GRANT SELECT ON TABLE system.access.column_lineage TO `<principal>`;
+# MAGIC    ```
+# MAGIC    Without them the lineage feed tables are skipped. Lineage appears a few minutes after a query, so the first run can be empty.
+# MAGIC 6. **No account rights: use plain tags.** Run the job with `tag_mode=plain`. It applies plain tags and a column mask and row filter, and skips items 1 and 2:
+# MAGIC    ```bash
+# MAGIC    databricks bundle run capability_guides_unity_catalog_edm --target dev --params tag_mode=plain
+# MAGIC    ```
+
+# COMMAND ----------
+
 import sys, os
 sys.path.insert(0, os.path.abspath("../../src"))
 from guide_params import bundle_root, load_params, JOB_TAG

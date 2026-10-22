@@ -4,6 +4,45 @@
 
 The job builds the Unity Catalog side of an EDM integration on three sample tables in the shared schema. It applies governed tags as the contract between the EDM tool and the platform, creates an ABAC policy that masks and filters on those tags, builds the metadata feed that an EDM scanner reads, registers external lineage for a non-Databricks source and a BI report, and sets the certification tag on the gold table. The `tag_mode` job parameter picks the path: `governed` (default) creates two account-level governed tags and uses ABAC; `plain` creates nothing at the account level, applies plain tags, and uses a column mask and row filter. A last task removes the policies and external metadata when `cleanup` is `drop`. It defaults to `keep`.
 
+## Required setup
+
+Run these once, before the job. The identity that runs the job is the person or service principal behind `databricks bundle run`. It is written `<principal>` below. A metastore admin or account admin runs most of them.
+
+If you lack account-level rights, skip items 1 and 2 and run with `tag_mode=plain` (item 6). It creates nothing at the account level. Items 3 to 5 apply in both modes.
+
+1. **Governed tags (`tag_mode=governed`, the default).** Governed tags are account-level tag policies. The job identity needs permission to create tag policies, or an admin creates them first:
+   ```bash
+   databricks tag-policies create-tag-policy edm_pii --json '{"description": "Kind of personal identifier a column holds",
+     "values": [{"name": "id_number"}, {"name": "contact"}]}'
+   databricks tag-policies create-tag-policy edm_region --json '{"description": "Column holds the data region used for row filtering"}'
+   ```
+   Then give `<principal>` the ASSIGN permission on `edm_pii` and `edm_region`: Catalog Explorer, **Governed tags**, the tag, **Permissions**. There is no SQL `GRANT` for it. Without it `02_apply_tags` falls back to plain tags.
+2. **ABAC policies.** `03_abac_policy` needs serverless compute or Databricks Runtime 16.4 or above. The job already runs serverless. For a manual run, attach serverless compute.
+3. **External metadata.** `05_external_lineage` needs `CREATE EXTERNAL METADATA` on the metastore. Without it the step records `SKIPPED`:
+   ```sql
+   GRANT CREATE EXTERNAL METADATA ON METASTORE TO `<principal>`;
+   ```
+4. **Certification.** `06_certify_gold` needs ASSIGN on the system tag `system.certification_status` (Catalog Explorer, **Governed tags**, `system.certification_status`, **Permissions**) and APPLY TAG on the table:
+   ```sql
+   GRANT APPLY TAG ON TABLE <catalog>.<schema>.edm_customer_revenue_gold TO `<principal>`;
+   ```
+   Without them the step records `not permitted`.
+5. **Lineage feed.** `04_metadata_feed` reads `system.access`. A metastore admin enables the schema if it is off, then grants read access:
+   ```bash
+   databricks system-schemas enable <metastore-id> access   # get the ID from: databricks metastores current
+   ```
+   ```sql
+   GRANT USE CATALOG ON CATALOG system TO `<principal>`;
+   GRANT USE SCHEMA ON SCHEMA system.access TO `<principal>`;
+   GRANT SELECT ON TABLE system.access.table_lineage TO `<principal>`;
+   GRANT SELECT ON TABLE system.access.column_lineage TO `<principal>`;
+   ```
+   Without them the lineage feed tables are skipped. Lineage appears a few minutes after a query, so the first run can be empty.
+6. **No account rights: use plain tags.** Run the job with `tag_mode=plain`. It applies plain tags and a column mask and row filter, and skips items 1 and 2:
+   ```bash
+   databricks bundle run capability_guides_unity_catalog_edm --target dev --params tag_mode=plain
+   ```
+
 ## What this shows
 
 | Guide artifact | Where it is |

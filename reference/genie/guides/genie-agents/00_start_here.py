@@ -34,6 +34,38 @@
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ## Required setup
+# MAGIC
+# MAGIC Run these once, before the job. `<principal>` is the person or service principal behind `databricks bundle run`.
+# MAGIC
+# MAGIC 1. **Foundation bundle.** Deploy `reference/foundation` first. It creates the shared schema this guide writes to.
+# MAGIC 2. **SQL warehouse.** Genie runs its queries on the warehouse in the `warehouse_id` variable. It must be a Pro or serverless warehouse, and `<principal>` needs CAN USE on it. Create one if you have none:
+# MAGIC    ```bash
+# MAGIC    databricks warehouses create --name genie-agents --cluster-size 2X-Small --warehouse-type PRO --enable-serverless-compute
+# MAGIC    ```
+# MAGIC 3. **Genie space creation.** `02_create_agent` creates a Genie Agent through the REST API. `<principal>` needs access to Databricks SQL and the right to create spaces, and Databricks Assistant must be enabled for the workspace. The agent runs queries with the credentials of the identity that saved it, so that identity needs the privileges below.
+# MAGIC 4. **Schema privileges.** The job creates the sample tables and the `sales_metrics` metric view:
+# MAGIC    ```sql
+# MAGIC    GRANT USE CATALOG ON CATALOG <catalog> TO `<principal>`;
+# MAGIC    GRANT USE SCHEMA, CREATE TABLE, SELECT ON SCHEMA <catalog>.<schema> TO `<principal>`;
+# MAGIC    ```
+# MAGIC 5. **Query history and billing (task 5).** `05_find_queries` reads `system.query.history` and `system.billing.usage`. A metastore admin enables the schemas if they are off, then grants read access:
+# MAGIC    ```bash
+# MAGIC    databricks system-schemas enable <metastore-id> query     # get the ID from: databricks metastores current
+# MAGIC    databricks system-schemas enable <metastore-id> billing
+# MAGIC    ```
+# MAGIC    ```sql
+# MAGIC    GRANT USE CATALOG ON CATALOG system TO `<principal>`;
+# MAGIC    GRANT USE SCHEMA ON SCHEMA system.query TO `<principal>`;
+# MAGIC    GRANT SELECT ON TABLE system.query.history TO `<principal>`;
+# MAGIC    GRANT USE SCHEMA ON SCHEMA system.billing TO `<principal>`;
+# MAGIC    GRANT SELECT ON TABLE system.billing.usage TO `<principal>`;
+# MAGIC    ```
+# MAGIC    The task stops before it changes anything if `system.query.history` is unreadable. A missing billing grant is recorded as `query failed` in the billing rows. Billing rows can take hours to appear.
+
+# COMMAND ----------
+
 import sys, os
 sys.path.insert(0, os.path.abspath("../../src"))
 from guide_params import bundle_root, load_params, JOB_TAG

@@ -91,3 +91,21 @@ ORDER BY event_time
 def audit_event_query(started_epoch: int, share: str, recipient: str) -> str:
     """The audit query for one run, starting a minute before it began."""
     return AUDIT_EVENT_SQL.format(started=started_epoch - 60, share=share, recipient=recipient)
+
+
+UNREADABLE_MARKERS = ("TABLE_OR_VIEW_NOT_FOUND", "SCHEMA_NOT_FOUND", "INSUFFICIENT_PERMISSIONS", "PERMISSION_DENIED")
+
+
+def require_audit_table(spark: Any, query: str) -> str:
+    """Return the query after checking system.access.audit is readable. Stops before anything changes."""
+    try:
+        spark.sql("SELECT 1 FROM system.access.audit LIMIT 1").collect()
+    except Exception as error:
+        if not any(marker in str(error) for marker in UNREADABLE_MARKERS):
+            raise
+        raise RuntimeError(
+            "system.access.audit is not readable. Run (metastore admin): databricks system-schemas enable <metastore-id> access "
+            "(get the ID from: databricks metastores current), then grant the job identity USE CATALOG on system, "
+            "USE SCHEMA on system.access and SELECT on system.access.audit. Nothing was changed."
+        ) from None
+    return query

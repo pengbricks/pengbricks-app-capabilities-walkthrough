@@ -58,7 +58,7 @@ def build_training_frame(spark, spec: dict[str, Any], volume_path: str):
     catalog, schema = volume_path.split("/")[2:4]
     transactions = f"`{catalog}`.`{schema}`.`{data['transactions_table']}`"
     if not spark.catalog.tableExists(transactions.replace("`", "")):
-        frame = public_data.read_online_retail(public_data.fetch(data["dataset"], volume_path))
+        frame = public_data.read_online_retail(fetch_public(data["dataset"], volume_path))
         spark.createDataFrame(frame).write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(transactions)
     df = spark.sql(public_data.customer_snapshot_sql(transactions, data["snapshot_date"], spec["label"]["window_months"]))
     for name, expr in data["derived"].items():
@@ -102,3 +102,27 @@ def run_url(host: str, experiment_id: str, run_id: str) -> str:
 
 def to_bool(value: Any) -> bool:
     return str(value).strip().lower() in {"true", "1", "yes"}
+
+
+def fetch_public(name: str, directory: str):
+    """public_data.fetch, after checking that the download host answers. Stops before anything changes."""
+    import os
+    import urllib.error
+    import urllib.parse
+    import urllib.request
+
+    import public_data
+
+    source = public_data.SOURCES[name]
+    if not os.path.exists(os.path.join(directory, f"{name}.zip")):
+        host = urllib.parse.urlparse(source["url"]).netloc
+        try:
+            urllib.request.urlopen(urllib.request.Request(source["url"], method="HEAD"), timeout=30).close()
+        except urllib.error.HTTPError:
+            pass  # the host answered, so egress works
+        except OSError as exc:
+            raise RuntimeError(
+                f"Cannot reach {host} to download {name} ({type(exc).__name__}). Run: allow outbound HTTPS to {host} for this workspace "
+                "(serverless egress policy or firewall), or copy the zip from " + source["url"] + f" into {directory}. Nothing was changed."
+            ) from None
+    return public_data.fetch(name, directory)

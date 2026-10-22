@@ -34,6 +34,7 @@ catalog, schema = params["catalog"], params["schema"]
 import lfc_lib as l
 from databricks.sdk import WorkspaceClient
 w = WorkspaceClient()
+l.require_ready(w, params["sqlserver_connection"], params["secret_scope"])
 host, port = l.source_settings(w, params["sqlserver_connection"])
 source = l.connect(host, port, params["sqlserver_database"],
                    dbutils.secrets.get(params["secret_scope"], "sqlserver_app_user"),

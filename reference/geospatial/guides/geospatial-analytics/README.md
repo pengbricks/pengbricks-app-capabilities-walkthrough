@@ -17,6 +17,24 @@ All data is synthetic. The network is generated from fixed formulas in `src/geo_
 | 7 | Join documents to assets | `05_inspection_documents` |
 | 8 | Map and export (plus governance) | `06_govern_and_export` and the dashboard |
 
+## Required setup
+
+Run these once, before the job. `<principal>` is the person or service principal behind `databricks bundle run`.
+
+1. **Foundation bundle.** Deploy `reference/foundation` first. It creates the shared schema this guide writes to.
+2. **Schema privileges.** The job creates the `geo_files` volume (the bundle also declares it), tables, and a row-filter function:
+   ```sql
+   GRANT USE CATALOG ON CATALOG <catalog> TO `<principal>`;
+   GRANT USE SCHEMA, CREATE TABLE, CREATE VOLUME, CREATE FUNCTION, SELECT, MODIFY ON SCHEMA <catalog>.<schema> TO `<principal>`;
+   ```
+3. **Compute for the spatial functions.** The `ST_` and `H3_` functions on native `GEOMETRY` need serverless compute, a Pro or serverless SQL warehouse, or Databricks Runtime 17.1 or above. The job runs on serverless. For a manual run, attach serverless notebook compute. Neither the spatial functions nor `GEOMETRY` need a preview switched on.
+4. **AI Functions.** `05_inspection_documents` calls `ai_parse_document` and `ai_extract`, which are generally available. They run on serverless or Pro and serverless warehouse compute in a region that supports AI Functions. No preview is needed.
+5. **Package downloads.** Each notebook installs `fpdf2`, `pillow` and `pyyaml` with `%pip`, and `02_load_geometries` also installs `pyogrio` (GDAL). The compute needs outbound access to PyPI, or an internal PyPI mirror configured for the workspace.
+6. **Dashboard.** The AI/BI dashboard reads tables the job writes, on the `warehouse_id` warehouse. Run the job once before you open it:
+   ```bash
+   databricks bundle run capability_guides_geospatial --target dev
+   ```
+
 ## Run it
 
 - **By hand:** open the `guides/geospatial-analytics` folder, read `00_start_here`, then Run all in `01_land_gis_data` and each notebook after it. Everything runs on serverless notebook compute. Widgets fill from the deployed job.

@@ -36,7 +36,7 @@ params = load_params(dbutils, "capability_guides_lakebase_apps", ['lakebase_proj
 dbutils.widgets.text("dev_branch_action", "")
 dev_action = (dbutils.widgets.get("dev_branch_action").strip() or "delete").lower()
 w = WorkspaceClient()
-project, app_schema = params["lakebase_project"], lb.ident(params["app_schema"])
+project, app_schema = lb.require_project(w, params["lakebase_project"]), lb.ident(params["app_schema"])
 production = lb.branch_name(project, lb.BRANCH)
 dev = lb.branch_name(project, params["dev_branch"])
 user = w.current_user.me().user_name

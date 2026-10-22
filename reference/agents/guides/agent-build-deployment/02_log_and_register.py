@@ -106,4 +106,6 @@ def main() -> None:
 
 # COMMAND ----------
 
+from databricks.sdk import WorkspaceClient
+ac.require_endpoint(WorkspaceClient(), ac.load_spec(args.spec)["build"]["llm_endpoint"])
 main()

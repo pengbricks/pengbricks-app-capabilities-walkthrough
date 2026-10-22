@@ -32,6 +32,29 @@
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ## Required setup
+# MAGIC
+# MAGIC Run these once, before the job. `<principal>` is the person or service principal behind `databricks bundle run`. A metastore admin runs item 2.
+# MAGIC
+# MAGIC 1. **A Postgres database to federate.** `03_lakehouse_federation` reads the `production` branch of the Lakebase project named by the `lakebase_project` variable (default `capability-guides`) and seeds a table in it. Create the project if it does not exist. A new project comes with the `production` branch, the `databricks_postgres` database, and the `primary` endpoint:
+# MAGIC    ```bash
+# MAGIC    databricks postgres create-project capability-guides
+# MAGIC    ```
+# MAGIC    To use another project, deploy with `--var lakebase_project=<project-id>`. To federate a database outside Databricks, change `integrations.federation` in `use_cases/general.yml` and make the host reachable from serverless compute.
+# MAGIC 2. **Connection and catalog privileges.** The task creates a Unity Catalog connection, and a foreign catalog if allowed:
+# MAGIC    ```sql
+# MAGIC    GRANT CREATE CONNECTION ON METASTORE TO `<principal>`;
+# MAGIC    GRANT CREATE CATALOG ON METASTORE TO `<principal>`;
+# MAGIC    ```
+# MAGIC    Without `CREATE CATALOG` the task records `foreign_catalog` as `BLOCKED` and reads through `remote_query`. Without `CREATE CONNECTION` it fails at the connection.
+# MAGIC 3. **SQL warehouse.** `02_sql_connector_client` queries the warehouse in the `warehouse_id` variable. The principal needs CAN USE on it:
+# MAGIC    ```bash
+# MAGIC    databricks warehouses list
+# MAGIC    ```
+
+# COMMAND ----------
+
 import sys, os
 sys.path.insert(0, os.path.abspath("../../src"))
 from guide_params import bundle_root, load_params, JOB_TAG

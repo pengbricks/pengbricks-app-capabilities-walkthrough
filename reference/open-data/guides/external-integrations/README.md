@@ -4,6 +4,26 @@
 
 This guide shows two ways tools connect to Databricks. First, a client queries a SQL warehouse through the Databricks SQL Connector for Python, which is the same HTTP path and OAuth identity that Power BI, Tableau, and custom apps use. Second, Lakehouse Federation reads an external Postgres database through a Unity Catalog connection. Because no external database is reachable from this workspace, a Lakebase Postgres project stands in as the external source. Both patterns write rows to an `integration_checks` table.
 
+## Required setup
+
+Run these once, before the job. `<principal>` is the person or service principal behind `databricks bundle run`. A metastore admin runs item 2.
+
+1. **A Postgres database to federate.** `03_lakehouse_federation` reads the `production` branch of the Lakebase project named by the `lakebase_project` variable (default `capability-guides`) and seeds a table in it. Create the project if it does not exist. A new project comes with the `production` branch, the `databricks_postgres` database, and the `primary` endpoint:
+   ```bash
+   databricks postgres create-project capability-guides
+   ```
+   To use another project, deploy with `--var lakebase_project=<project-id>`. To federate a database outside Databricks, change `integrations.federation` in `use_cases/general.yml` and make the host reachable from serverless compute.
+2. **Connection and catalog privileges.** The task creates a Unity Catalog connection, and a foreign catalog if allowed:
+   ```sql
+   GRANT CREATE CONNECTION ON METASTORE TO `<principal>`;
+   GRANT CREATE CATALOG ON METASTORE TO `<principal>`;
+   ```
+   Without `CREATE CATALOG` the task records `foreign_catalog` as `BLOCKED` and reads through `remote_query`. Without `CREATE CONNECTION` it fails at the connection.
+3. **SQL warehouse.** `02_sql_connector_client` queries the warehouse in the `warehouse_id` variable. The principal needs CAN USE on it:
+   ```bash
+   databricks warehouses list
+   ```
+
 ## What this shows
 
 | Guide topic | Artifact |

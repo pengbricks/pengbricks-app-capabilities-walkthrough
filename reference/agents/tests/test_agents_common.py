@@ -105,3 +105,12 @@ def test_template_expression_replaces_each_wildcard_with_a_letter():
 def test_orders_spec_columns_are_supported_kinds():
     spec = ac.load_spec(str(SPEC))
     assert {c["kind"] for c in spec["data"]["columns"]} <= {"values", "range", "template"}
+
+
+def test_require_system_table_names_the_fix():
+    class Boom:
+        def sql(self, _):
+            raise RuntimeError("TABLE_OR_VIEW_NOT_FOUND")
+
+    with pytest.raises(RuntimeError, match="system-schemas enable <metastore-id> ai_gateway"):
+        ac.require_system_table(Boom(), "ai_gateway", "usage")

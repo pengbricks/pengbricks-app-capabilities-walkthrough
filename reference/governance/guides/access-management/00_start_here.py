@@ -35,6 +35,35 @@
 
 # MAGIC
 # MAGIC Safe to rerun: it only reads the deployed job and links to it.
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Required setup
+# MAGIC
+# MAGIC Run these once, before the job. `<principal>` is the person or service principal that runs `databricks bundle run`.
+# MAGIC
+# MAGIC 1. **System tables for the audit step.** `05_audit_grant_changes.sql` reads `system.access.audit`. A metastore admin or account admin enables the schema if it is off, then grants read access:
+# MAGIC    ```bash
+# MAGIC    databricks metastores current   # shows the metastore ID
+# MAGIC    databricks system-schemas enable <metastore-id> access
+# MAGIC    ```
+# MAGIC    ```sql
+# MAGIC    GRANT USE CATALOG ON CATALOG system TO `<principal>`;
+# MAGIC    GRANT USE SCHEMA ON SCHEMA system.access TO `<principal>`;
+# MAGIC    GRANT SELECT ON TABLE system.access.audit TO `<principal>`;
+# MAGIC    ```
+# MAGIC    Without them `01_ensure_group` stops before it changes anything.
+# MAGIC 2. **Rights to create the group.** `01_ensure_group` creates the workspace group in `reader_group` through the SDK, so `<principal>` must be a workspace admin. An admin can create the group first instead:
+# MAGIC    ```bash
+# MAGIC    databricks groups create --display-name capability-guides-readers
+# MAGIC    ```
+# MAGIC 3. **An account-level group to grant to (optional).** Unity Catalog only accepts account-level groups as grantees. Without one the job falls back to `account users`. An account admin creates the group, or syncs it from the identity provider, and you pass its name:
+# MAGIC    ```bash
+# MAGIC    databricks account groups create --display-name <account-group>
+# MAGIC    databricks bundle run capability_guides_access --target dev --params reader_group=<account-group>
+# MAGIC    ```
+
 # COMMAND ----------
 
 import sys, os

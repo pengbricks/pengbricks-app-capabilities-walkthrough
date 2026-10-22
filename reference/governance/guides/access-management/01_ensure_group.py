@@ -101,4 +101,6 @@ def resolve_grantee(spark, args) -> tuple[str, bool]:
 
 # COMMAND ----------
 
+from common import require_system_tables
+require_system_tables(spark, "access.audit")  # step 05 reads it; stop before the group is created
 ensure_group(args, spark)

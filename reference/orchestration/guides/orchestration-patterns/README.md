@@ -4,6 +4,10 @@
 
 One Lakeflow Job, `capability-guides-orchestration`, shows the patterns an orchestration tool needs: tasks that pass values, two parallel branches that join, a schedule, a retry policy, email alerts with a duration health rule, a call to an external process, and a branch on a condition. A second job, `capability-guides-bulk-pause`, pauses every scheduled job tagged `capability_guide_job` in one operation, records the before and after states, and restores the jobs it paused.
 
+## Required setup
+
+1. **Outbound HTTPS.** `05_external_call` sends a GET request to `https://api.github.com/zen` (the `http_probe_url` in `use_cases/general.yml`). The compute that runs the job must reach that host. If your network blocks it, change `http_probe_url` to a host you can reach. The task retries twice, then fails.
+
 ## What this shows
 
 | Pattern | Where it lives |

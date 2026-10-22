@@ -124,3 +124,14 @@ def test_window_measures_order_by_a_defined_field():
         for window in measure["window"]:
             assert window["order"] in fields
             assert window["semiadditive"] in {"first", "last"}
+
+
+def test_require_views_names_the_run_order():
+    from types import SimpleNamespace
+
+    present = {"mv_customers", "mv_products", "mv_orders", "mv_sessions"}
+    spark = SimpleNamespace(catalog=SimpleNamespace(tableExists=lambda n: n.split(".")[-1].strip("`") in present))
+    with pytest.raises(RuntimeError, match=r"mv_orders_metrics is missing.*02_orders_metric_view.sql.*Nothing was changed"):
+        m.require_views(spark, "c", "s")
+    present |= {"mv_orders_metrics", "mv_funnel_metrics"}
+    m.require_views(spark, "c", "s")

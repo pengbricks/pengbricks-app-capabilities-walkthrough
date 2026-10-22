@@ -36,6 +36,32 @@ def source_settings(w: Any, connection_name: str) -> tuple[str, str]:
     return options["host"], options.get("port", "1433")
 
 
+def require_ready(w: Any, connection_name: str, secret_scope: str) -> None:
+    """Stop with a plain message, before anything changes, when the connection or the application login secrets are missing."""
+    from databricks.sdk.errors import NotFound
+
+    problems = []
+    try:
+        w.connections.get(connection_name)
+    except NotFound:
+        problems.append(
+            f"Unity Catalog connection {connection_name} does not exist. Run: databricks connections create --json '{{\"name\": \"{connection_name}\", "
+            "\"connection_type\": \"SQLSERVER\", \"options\": {\"host\": \"<server-fqdn>\", \"port\": \"1433\", \"user\": \"lakeflow_ingest\", "
+            "\"password\": \"<password>\", \"trustServerCertificate\": \"false\"}}'"
+        )
+    try:
+        have = {secret.key for secret in w.secrets.list_secrets(secret_scope)}
+    except NotFound:
+        have = None
+        problems.append(f"Secret scope {secret_scope} does not exist. Run: databricks secrets create-scope {secret_scope}")
+    if have is not None:
+        for key in ("sqlserver_app_user", "sqlserver_app_password"):
+            if key not in have:
+                problems.append(f"Secret {key} is missing from scope {secret_scope}. Run: databricks secrets put-secret {secret_scope} {key}")
+    if problems:
+        raise RuntimeError(" ".join(p.rstrip(".") + "." for p in problems) + " Nothing was changed.")
+
+
 def connect(host: str, port: str | int, database: str, user: str, password: str) -> Any:
     import mssql_python
 

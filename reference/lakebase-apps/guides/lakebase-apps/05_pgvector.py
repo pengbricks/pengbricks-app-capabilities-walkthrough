@@ -30,7 +30,7 @@ params = load_params(dbutils, "capability_guides_lakebase_apps", ['lakebase_proj
 w = WorkspaceClient()
 user = w.current_user.me().user_name
 VECTOR_SCHEMA = "lakebase_vectors"
-pool = lb.make_pool(w, lb.endpoint_name(params["lakebase_project"], lb.BRANCH, lb.ENDPOINT), user)
+pool = lb.make_pool(w, lb.endpoint_name(lb.require_project(w, params["lakebase_project"]), lb.BRANCH, lb.ENDPOINT), user)
 lb.connect_with_retry(pool)
 
 # COMMAND ----------

@@ -6,6 +6,29 @@ One generated dataset of 1,000,000 orders is written as JSON, CSV and Parquet fi
 
 It does not repeat two other guides. `file-format-ingestion` lands CSV, Excel, JSON and XML through one ingestion pipeline. `iceberg-support` covers managed Iceberg and the REST catalog read from PyIceberg. This guide compares the formats.
 
+## Required setup
+
+Run these once, before the job. `<principal>` is the person or service principal behind `databricks bundle run`.
+
+1. **External data access on the metastore.** `04_metadata_layout` reads the Iceberg metadata layers through the Unity Catalog Iceberg REST catalog. A metastore admin turns the setting on. Without it the task stops with a message that says so:
+   ```bash
+   databricks metastores update <metastore-id> --external-access-enabled
+   ```
+   Get `<metastore-id>` from `databricks metastores current`.
+2. **EXTERNAL USE SCHEMA.** The same notebook needs it on the guide schema. The catalog owner or a metastore admin grants it:
+   ```sql
+   GRANT EXTERNAL USE SCHEMA ON SCHEMA <catalog>.<schema> TO `<principal>`;
+   ```
+3. **Scan metrics (optional).** `05_scan_metrics` reads `system.query.history`. Without access it records `BLOCKED` and the rest of the job still passes. To get the numbers, enable the schema and grant read access:
+   ```bash
+   databricks system-schemas enable <metastore-id> query
+   ```
+   ```sql
+   GRANT USE CATALOG ON CATALOG system TO `<principal>`;
+   GRANT USE SCHEMA ON SCHEMA system.query TO `<principal>`;
+   GRANT SELECT ON TABLE system.query.history TO `<principal>`;
+   ```
+
 ## Reference run
 
 Comparison matrix from one run in the reference workspace. Small-data timings are indicative only.

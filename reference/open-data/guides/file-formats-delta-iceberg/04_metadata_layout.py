@@ -115,9 +115,9 @@ else:
 
 from databricks.sdk import WorkspaceClient
 from pyiceberg.catalog import load_catalog
-from open_data.iceberg import catalog_properties
+from open_data.iceberg import catalog_properties, require_external_access
 
-w = WorkspaceClient()
+w = require_external_access(WorkspaceClient(), params["catalog"], params["schema"])
 token = w.config.authenticate()["Authorization"].split(" ", 1)[1]
 iceberg_catalog = load_catalog("unity", **catalog_properties(w.config.host, params["catalog"], "/api/2.1/unity-catalog/iceberg-rest", token))
 

@@ -4,6 +4,22 @@
 
 Choose the ingestion path for a relational source by freshness, volume, and source load: Lakehouse Federation to query in place, Lakeflow Connect CDC connectors for continuous replication, or query-based connectors for scheduled incremental pulls. Push joins and aggregates down to the database, and verify landed data against the source. This reference shows the Federation pushdown path and the verification.
 
+## Required setup
+
+Run these once, before the job. `<principal>` is the person or service principal behind `databricks bundle run`. A metastore admin runs item 2.
+
+1. **A Postgres database to extract from.** `01_create_source` loads sample tables into the `production` branch of the Lakebase project named by the `lakebase_project` variable (default `capability-guides`). Create the project if it does not exist. A new project comes with the `production` branch, the `databricks_postgres` database, and the `primary` endpoint:
+   ```bash
+   databricks postgres create-project capability-guides
+   ```
+   To use another project, deploy with `--var lakebase_project=<project-id>`. To extract from a database outside Databricks, change the `relational` block in `use_cases/general.yml` and make the host reachable from serverless compute. `01_create_source` then does not apply.
+2. **Connection and catalog privileges.** `02_setup_federation` creates a Unity Catalog connection, and a foreign catalog when allowed:
+   ```sql
+   GRANT CREATE CONNECTION ON METASTORE TO `<principal>`;
+   GRANT CREATE CATALOG ON METASTORE TO `<principal>`;
+   ```
+   Without `CREATE CATALOG` the foreign catalog is skipped and the extract reads through `remote_query`. Without `CREATE CONNECTION` the task fails at the connection.
+
 ## What this shows
 
 | Extract | Landed table | Rows | Match with the source |

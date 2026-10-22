@@ -4,6 +4,25 @@
 
 The job generates two tables from the use-case spec (`gov_customers` with 5,000 rows and `gov_orders` with 20,000), then applies Unity Catalog policies: column masks on `gov_customers.email` and `gov_customers.national_id`, an attribute row filter on `gov_orders.sensitivity`, and a dynamic row filter on `gov_customers.region` that reads a mapping table keyed on `session_user()`. It then tests the policies for several identities and writes the policy inventory from `information_schema`.
 
+## Required setup
+
+Run this once, before the job. `<principal>` is the person or service principal that runs `databricks bundle run`.
+
+1. **Job identity in the `admins` group.** `03_test_policies` asserts that the job identity sees every row and the real values. The policies let only members of `admins` through, so `<principal>` must be a workspace admin. Make it one in workspace settings, or add it to the group:
+   ```bash
+   databricks groups list --filter 'displayName eq admins'     # note the group ID
+   databricks users list --filter 'userName eq "<email>"'      # note the user ID (service principals: databricks service-principals list --filter 'applicationId eq "<application-id>"')
+   ```
+   Save this as `add_member.json`:
+   ```json
+   {"schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+    "Operations": [{"op": "add", "value": {"members": [{"value": "<principal-id>"}]}}]}
+   ```
+   ```bash
+   databricks groups patch <admins-group-id> --json @add_member.json
+   ```
+   Without it `01_generate_data` stops before it changes anything.
+
 ## What this shows
 
 | Guide artifact | Where it is |

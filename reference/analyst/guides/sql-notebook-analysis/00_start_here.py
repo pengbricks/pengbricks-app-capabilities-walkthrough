@@ -33,6 +33,27 @@
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ## Required setup
+# MAGIC
+# MAGIC Only `05_r_sparklyr_summary` has setup. Notebooks 01 to 04 run on serverless compute and a SQL warehouse as the job configures them.
+# MAGIC
+# MAGIC - **A classic all-purpose cluster with R.** Serverless notebooks and jobs allow only SQL and Python, so the R notebook cannot run there, and it cannot detect serverless because R never starts. Use a Databricks Runtime that includes R, in standard or dedicated access mode (sparklyr needs one of the two). Create one with the CLI, using your cloud's node type:
+# MAGIC   ```bash
+# MAGIC   databricks clusters spark-versions            # pick a current LTS runtime key
+# MAGIC   databricks clusters list-node-types           # pick a node type your cloud offers
+# MAGIC   databricks clusters create <spark-version> \
+# MAGIC     --cluster-name sparklyr-demo --node-type-id <node-type> --num-workers 1 \
+# MAGIC     --data-security-mode DATA_SECURITY_MODE_DEDICATED --single-user-name <your-user> \
+# MAGIC     --autotermination-minutes 30
+# MAGIC   ```
+# MAGIC   In the UI: Compute, Create compute, pick a Databricks Runtime, set access mode to Dedicated (or Standard), choose a node type, then Create. Attach `05_r_sparklyr_summary` to it from the notebook's compute picker.
+# MAGIC - **Run `01_generate_data` first** (or the job `capability-guides-sql-notebooks`). The R notebook reads `analyst_orders` and `analyst_customers`.
+# MAGIC - **Fill the two widgets.** R notebooks do not take job parameters. Type the `catalog` and `schema` the job used into the widgets at the top; if they are blank the notebook stops and tells you.
+# MAGIC - **Privileges** for the user running the cluster: `USE CATALOG` and `USE SCHEMA` on the schema, `SELECT` on both tables, and `CREATE TABLE` on the schema, because the notebook writes `r_revenue_by_region`. For example: `GRANT USE CATALOG ON CATALOG <catalog> TO <principal>; GRANT USE SCHEMA, SELECT, CREATE TABLE ON SCHEMA <catalog>.<schema> TO <principal>;`
+
+# COMMAND ----------
+
 import sys, os
 sys.path.insert(0, os.path.abspath("../../src"))
 from guide_params import bundle_root, load_params, JOB_TAG

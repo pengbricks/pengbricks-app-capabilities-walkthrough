@@ -18,7 +18,7 @@ import sys, os
 sys.path.insert(0, os.path.abspath("../../src"))
 from guide_params import bundle_root, load_params
 params = load_params(dbutils, "capability_guides_monitoring_snapshot", ['catalog', 'schema', 'lookback_days', 'audit_lookback_days', 'guide_tag_key', 'use_case_tag_key', 'alert_email'])
-catalog, schema = params["catalog"], params["schema"]
+from ops_lib import require_system_tables; require_system_tables(spark, "lakeflow.jobs", "lakeflow.job_run_timeline", "billing.usage", "billing.list_prices", "compute.warehouse_events", "access.audit"); catalog, schema = params["catalog"], params["schema"]
 fq = f"`{catalog}`.`{schema}`"
 
 # COMMAND ----------

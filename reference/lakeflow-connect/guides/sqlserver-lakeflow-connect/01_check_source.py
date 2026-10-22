@@ -27,6 +27,7 @@ catalog, schema = params["catalog"], params["schema"]
 import lfc_lib as l
 from databricks.sdk import WorkspaceClient
 w = WorkspaceClient()
+l.require_ready(w, params["sqlserver_connection"], params["secret_scope"])
 
 # COMMAND ----------
 
@@ -39,10 +40,21 @@ host, port = l.source_settings(w, params["sqlserver_connection"])
 print(f"{connection.name}: {connection.connection_type.value} {host}:{port}, owner {connection.owner}")
 print("trustServerCertificate =", (connection.options or {}).get("trustServerCertificate", "false (default)"))
 
-source = l.connect(host, port, params["sqlserver_database"],
-                   dbutils.secrets.get(params["secret_scope"], "sqlserver_app_user"),
-                   dbutils.secrets.get(params["secret_scope"], "sqlserver_app_password"))
-version = l.query(source, "SELECT @@VERSION AS version, dbo.lakeflowUtilityVersion() AS utility_version")[0]
+try:
+    source = l.connect(host, port, params["sqlserver_database"],
+                       dbutils.secrets.get(params["secret_scope"], "sqlserver_app_user"),
+                       dbutils.secrets.get(params["secret_scope"], "sqlserver_app_password"))
+except Exception as error:
+    raise RuntimeError(f"Cannot open {params['sqlserver_database']} on {host}:{port} as the application login ({type(error).__name__}: {str(error)[:150]}). "
+                       f"Check the network path and the login. Run: nc -vz {host} {port} from a machine on the gateway's network, and "
+                       "sqlcmd -S <server> -d <database> -U <setup_user> -P <password> -N -i source/01_setup_source.sql "
+                       "-v IngestPassword=<ingest-password> AppPassword=<app-password>. Nothing was changed.") from None
+try:
+    version = l.query(source, "SELECT @@VERSION AS version, dbo.lakeflowUtilityVersion() AS utility_version")[0]
+except Exception as error:
+    raise RuntimeError(f"The Databricks utility objects are not installed in {params['sqlserver_database']} ({type(error).__name__}). "
+                       "Run: sqlcmd -S <server> -d <database> -U <setup_user> -P <password> -N -i utility_script.sql, then "
+                       "the same command with source/01_setup_source.sql. Nothing was changed.") from None
 print(version["version"].splitlines()[0], "| utility objects", version["utility_version"])
 
 # COMMAND ----------

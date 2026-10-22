@@ -30,6 +30,38 @@
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ## Required setup
+# MAGIC
+# MAGIC Run these once, before the job. `<principal>` is the person or service principal behind `databricks bundle run`.
+# MAGIC
+# MAGIC 1. **Foundation bundle.** Deploy `reference/foundation` first. It creates the shared schema this guide writes to.
+# MAGIC 2. **Schema privileges.** The job creates tables and a volume, tags the tables, and writes comments on them:
+# MAGIC    ```sql
+# MAGIC    GRANT USE CATALOG ON CATALOG <catalog> TO `<principal>`;
+# MAGIC    GRANT USE SCHEMA, CREATE TABLE, CREATE VOLUME, SELECT, MODIFY, APPLY TAG ON SCHEMA <catalog>.<schema> TO `<principal>`;
+# MAGIC    ```
+# MAGIC 3. **Chat endpoint for `ai_query`.** `02_generate_docs` drafts descriptions with `ai_query` on the endpoint named by the `model_endpoint` variable. Check that it exists and that `<principal>` can query it. If it is missing, the run records AI failures and writes pages without drafted descriptions:
+# MAGIC    ```bash
+# MAGIC    databricks serving-endpoints get <model-endpoint>
+# MAGIC    databricks serving-endpoints list
+# MAGIC    ```
+# MAGIC 4. **Lineage and query history.** The pages list upstream tables, readers and recent queries from `system.access.table_lineage` and `system.query.history`. A metastore admin enables the schemas if they are off, then grants read access:
+# MAGIC    ```bash
+# MAGIC    databricks system-schemas enable <metastore-id> access   # get the ID from: databricks metastores current
+# MAGIC    databricks system-schemas enable <metastore-id> query
+# MAGIC    ```
+# MAGIC    ```sql
+# MAGIC    GRANT USE CATALOG ON CATALOG system TO `<principal>`;
+# MAGIC    GRANT USE SCHEMA ON SCHEMA system.access TO `<principal>`;
+# MAGIC    GRANT SELECT ON TABLE system.access.table_lineage TO `<principal>`;
+# MAGIC    GRANT USE SCHEMA ON SCHEMA system.query TO `<principal>`;
+# MAGIC    GRANT SELECT ON TABLE system.query.history TO `<principal>`;
+# MAGIC    ```
+# MAGIC    Without them the pages say that no readers or queries were found. Lineage appears a few minutes after a query, so the first run can be empty.
+
+# COMMAND ----------
+
 import sys, os
 sys.path.insert(0, os.path.abspath("../../src"))
 from guide_params import bundle_root, load_params, JOB_TAG

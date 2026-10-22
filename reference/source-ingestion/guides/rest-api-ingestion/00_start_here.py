@@ -27,6 +27,15 @@
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ## Required setup
+# MAGIC
+# MAGIC Run this once, before the job.
+# MAGIC
+# MAGIC 1. **Outbound internet to the API host.** The task calls `https://dummyjson.com` (`rest_api.base_url` in `use_cases/general.yml`) over HTTPS on port 443. If the workspace restricts serverless egress, add `dummyjson.com` to the allowed destinations of its network policy (set in the account console; see [network policies](https://docs.databricks.com/aws/en/security/network/serverless-network-security/network-policies)). To pull from your own API, change `rest_api.base_url`, `username`, `password`, and `endpoint` in the same file.
+
+# COMMAND ----------
+
 import sys, os
 sys.path.insert(0, os.path.abspath("../../src"))
 from guide_params import bundle_root, load_params, JOB_TAG

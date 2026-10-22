@@ -86,3 +86,15 @@ def group_paths(paths: list[str]) -> dict[str, list[str]]:
         root = path.split(".")[0].replace("[]", "")
         groups.setdefault(root, []).append(path)
     return groups
+
+
+def require_system_table(spark: Any, schema: str, table: str) -> None:
+    """Stop with a plain message, before anything changes, when the identity cannot read system.<schema>.<table>."""
+    try:
+        spark.sql(f"SELECT 1 FROM system.{schema}.{table} LIMIT 1").collect()
+    except Exception as exc:  # the engine raises different classes for a missing schema and a missing grant
+        raise RuntimeError(
+            f"Cannot read system.{schema}.{table} ({type(exc).__name__}). Run: databricks system-schemas enable <metastore-id> {schema} "
+            f"(get the ID from: databricks metastores current), then GRANT USE CATALOG ON CATALOG system, USE SCHEMA ON SCHEMA system.{schema}, "
+            f"and SELECT ON TABLE system.{schema}.{table} TO `<principal>`. Nothing was changed."
+        ) from None

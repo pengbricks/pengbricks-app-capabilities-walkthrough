@@ -60,7 +60,7 @@ def land_transactions(spark, spec: dict[str, Any], table: str, volume_path: str)
     """Download the source file into the volume (once), parse it, and overwrite `table`. Returns rows."""
     import public_data
 
-    path = public_data.fetch(spec["source"]["dataset"], volume_path)
+    path = fetch_public(spec["source"]["dataset"], volume_path)
     frame = public_data.read_online_retail(path)
     spark.createDataFrame(frame).write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(table)
     return len(frame)
@@ -186,3 +186,27 @@ def mean_shift(expected, actual) -> float:
 
 def is_breach(psi_value: float, shift_value: float, psi_threshold: float, shift_threshold: float) -> bool:
     return psi_value > psi_threshold or abs(shift_value) > shift_threshold
+
+
+def fetch_public(name: str, directory: str):
+    """public_data.fetch, after checking that the download host answers. Stops before anything changes."""
+    import os
+    import urllib.error
+    import urllib.parse
+    import urllib.request
+
+    import public_data
+
+    source = public_data.SOURCES[name]
+    if not os.path.exists(os.path.join(directory, f"{name}.zip")):
+        host = urllib.parse.urlparse(source["url"]).netloc
+        try:
+            urllib.request.urlopen(urllib.request.Request(source["url"], method="HEAD"), timeout=30).close()
+        except urllib.error.HTTPError:
+            pass  # the host answered, so egress works
+        except OSError as exc:
+            raise RuntimeError(
+                f"Cannot reach {host} to download {name} ({type(exc).__name__}). Run: allow outbound HTTPS to {host} for this workspace "
+                "(serverless egress policy or firewall), or copy the zip from " + source["url"] + f" into {directory}. Nothing was changed."
+            ) from None
+    return public_data.fetch(name, directory)
