@@ -25,6 +25,21 @@
 # MAGIC
 # MAGIC Every variable is a widget. Leave one blank and it takes the default of the deployed job's parameter with the same name. Type a value to override it for one run.
 # MAGIC
+# MAGIC ## Build the flow from a prompt
+# MAGIC
+# MAGIC Click the plus icon (**New**), choose **Visual data prep**, and paste this into the Genie Code prompt above the canvas. Replace `<catalog>` and `<schema>` first. The same text is in `prompts.md`, the copy to keep in Git.
+# MAGIC
+# MAGIC ```
+# MAGIC Sources: <catalog>.<schema>.analyst_orders and <catalog>.<schema>.analyst_customers.
+# MAGIC Filter analyst_orders to rows where status is equal to completed and order_ts is on or after 2026-01-01.
+# MAGIC Join the filtered orders to analyst_customers on customer_id (inner join).
+# MAGIC Add Custom columns: order_date = order_ts cast to a date, order_total = quantity * unit_price cast to decimal(12,2), and order_size = 'large' when quantity * unit_price is 1000 or more, otherwise 'standard'.
+# MAGIC Add a Select operator that keeps only these columns, in this order: order_number (renamed from order_id), customer_id, sales_region (renamed from region), customer_segment (renamed from segment), order_date, quantity, unit_price, order_total, order_size.
+# MAGIC Write the result to the table <catalog>.<schema>.prep_flow_output_designer, overwrite mode.
+# MAGIC ```
+# MAGIC
+# MAGIC Check the result: `prep_flow_output_designer` must match `prep_flow_summary` in rows, customers and total, and `EXCEPT` against `prep_flow_output` must return no rows.
+# MAGIC
 # MAGIC Safe to rerun: tables are replaced, so the job and each notebook can run again.
 
 # COMMAND ----------
