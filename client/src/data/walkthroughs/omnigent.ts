@@ -778,44 +778,6 @@ policies:
       ],
     },
     {
-      id: 'questions',
-      heading: 'Likely questions',
-      table: {
-        columns: ['Question', 'Answer'],
-        rows: [
-          [
-            'Do we need Databricks to use Omnigent?',
-            'No. It is open source under Apache 2.0 and runs with your own machine and model keys. Databricks adds identity, governed models, tracing, and a managed server.',
-          ],
-          [
-            'Which models can we use?',
-            'Your own API keys, Claude or ChatGPT plans, compatible gateways, or a Databricks workspace. A Databricks Sandbox host allows only models through Unity Gateway.',
-          ],
-          [
-            'Can a prompt injection bypass a policy?',
-            'The server enforces policies around each action, so instructions in a prompt cannot turn a DENY into an ALLOW. A policy that runs after a tool call cannot undo that call, so gate destructive actions before the call.',
-          ],
-          [
-            'Can a teammate with Edit change my agent’s tools?',
-            'No. MCP servers, the agent bundle, the permission mode, and the raw shell are owner-only.',
-          ],
-          [
-            'Is it ready for production?',
-            'The project labels itself alpha and the Databricks offering is in Beta. Pilot with a small group and re-check the release notes before a wide rollout.',
-          ],
-          ['Can we run it from CI?', 'Yes, through the Python SDK and the REST API.'],
-          [
-            'Where do the audit records live?',
-            'Policy decisions are visible in the session. On Databricks, model calls are audited at Unity Gateway, traces go to MLflow Tracing, and data access appears in Unity Catalog audit logs.',
-          ],
-        ],
-      },
-      links: [
-        { label: 'Omnigent FAQ', url: 'https://omnigent.ai/faq' },
-        { label: 'Databricks release notes', url: 'https://docs.databricks.com/aws/en/release-notes/product/' },
-      ],
-    },
-    {
       id: 'pitfalls',
       heading: 'Pitfalls',
       points: [
