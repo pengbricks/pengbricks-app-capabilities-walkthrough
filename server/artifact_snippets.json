@@ -2530,6 +2530,51 @@
       "functions": {}
     }
   ],
+  "genie-zeroops": [
+    {
+      "path": "reference/platform-ops/src/zeroops_lib.py",
+      "symbol": "validate_column",
+      "startLine": 14,
+      "endLine": 18,
+      "language": "py",
+      "code": "def validate_column(name: str) -> str:\n    \"\"\"Return the column name when it is a plain identifier, else raise ValueError.\"\"\"\n    if not isinstance(name, str) or not COLUMN_PATTERN.fullmatch(name):\n        raise ValueError(f\"amount_column must be a plain identifier (letters, digits, underscore), got {name!r}\")\n    return name",
+      "functions": {
+        "validate_column": "Return the column name when it is a plain identifier, else raise ValueError."
+      }
+    },
+    {
+      "path": "reference/platform-ops/src/zeroops_lib.py",
+      "symbol": "daily_revenue_sql",
+      "startLine": 42,
+      "endLine": 54,
+      "language": "py",
+      "code": "def daily_revenue_sql(source: str, target: str, amount_column: str) -> str:\n    \"\"\"CREATE OR REPLACE for zo_daily_revenue. The column name is validated before it reaches the SQL text.\"\"\"\n    column = validate_column(amount_column)\n    return f\"\"\"\nCREATE OR REPLACE TABLE {target}\nCOMMENT 'Daily revenue from zo_orders, built by the Genie ZeroOps demo job'\nAS SELECT\n  order_date,\n  COUNT(*) AS orders,\n  CAST(SUM({column}) AS DECIMAL(18, 2)) AS revenue\nFROM {source}\nGROUP BY order_date\n\"\"\".strip()",
+      "functions": {
+        "daily_revenue_sql": "CREATE OR REPLACE for zo_daily_revenue. The column name is validated before it reaches the SQL text.",
+        "validate_column": "Return the column name when it is a plain identifier, else raise ValueError."
+      }
+    },
+    {
+      "path": "reference/platform-ops/guides/genie-zeroops/02_daily_revenue.py",
+      "symbol": null,
+      "startLine": 36,
+      "endLine": 43,
+      "language": "py",
+      "code": "mode = run_mode(amount_column)\nprint(\"=\" * 60)\nif mode == \"healthy\":\n    print(f\"MODE: HEALTHY. Summing '{amount_column}'. This run should succeed.\")\nelse:\n    print(f\"MODE: DELIBERATE BREAK. Summing '{amount_column}', which is not a column of zo_orders.\")\n    print(\"This run is expected to fail with an unresolved-column error.\")\nprint(\"=\" * 60)",
+      "functions": {
+        "run_mode": "'healthy' for the real column, 'deliberate break' for any other valid identifier."
+      }
+    },
+    {
+      "path": "reference/platform-ops/resources/zeroops_demo.job.yml",
+      "symbol": null,
+      "startLine": 3,
+      "endLine": 27,
+      "language": "yml",
+      "code": "  jobs:\n    capability_guides_zeroops_demo:\n      name: capability-guides-zeroops-demo\n      description: Builds the zo_orders sample table, then computes daily revenue into zo_daily_revenue. Run it with amount_column=amout to fail on an unresolved column, which gives Genie ZeroOps a failure to diagnose.\n      tags:\n        capability_guide_job: capability_guides_zeroops_demo\n        capability_guide_use_case: ${var.use_case}\n      max_concurrent_runs: 1\n      timeout_seconds: 1200\n      parameters:\n        - name: catalog\n          default: ${var.catalog}\n        - name: schema\n          default: ${var.schema}\n        - name: amount_column\n          default: ${var.zeroops_amount_column}\n      tasks:\n        - task_key: prepare_data\n          notebook_task:\n            notebook_path: ../guides/genie-zeroops/01_prepare_data.py\n\n        - task_key: daily_revenue\n          depends_on: [{task_key: prepare_data}]\n          notebook_task:\n            notebook_path: ../guides/genie-zeroops/02_daily_revenue.py",
+      "functions": {}
+    }
+  ],
   "geospatial-analytics": [
     {
       "path": "reference/geospatial/guides/geospatial-analytics/02_load_geometries.py",

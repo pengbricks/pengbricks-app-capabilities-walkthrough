@@ -1,0 +1,27 @@
+# Genie ZeroOps demo: a two-task job that breaks on purpose when amount_column is mistyped. No schedule.
+resources:
+  jobs:
+    capability_guides_zeroops_demo:
+      name: capability-guides-zeroops-demo
+      description: Builds the zo_orders sample table, then computes daily revenue into zo_daily_revenue. Run it with amount_column=amout to fail on an unresolved column, which gives Genie ZeroOps a failure to diagnose.
+      tags:
+        capability_guide_job: capability_guides_zeroops_demo
+        capability_guide_use_case: ${var.use_case}
+      max_concurrent_runs: 1
+      timeout_seconds: 1200
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${var.schema}
+        - name: amount_column
+          default: ${var.zeroops_amount_column}
+      tasks:
+        - task_key: prepare_data
+          notebook_task:
+            notebook_path: ../guides/genie-zeroops/01_prepare_data.py
+
+        - task_key: daily_revenue
+          depends_on: [{task_key: prepare_data}]
+          notebook_task:
+            notebook_path: ../guides/genie-zeroops/02_daily_revenue.py

@@ -53,6 +53,25 @@ export const faqs: Faq[] = [
     links: [{ label: 'Operational support', url: '/walkthroughs/operational-support' }],
   },
   {
+    question: 'Why is my ZeroOps inbox empty?',
+    answer:
+      'The inbox stays empty until a monitored job fails. Add a job you own with Configure, or ask in Genie Code chat to monitor it. Then make it fail, for example by mistyping a column name. The insight appears about 1 to 2 minutes later. If you still see nothing, check that ZeroOps is enabled in the workspace.',
+    links: [{ label: 'Run it', url: '/walkthroughs/genie-zeroops' }],
+  },
+  {
+    question: 'Where is the Configure button?',
+    answer:
+      'Configure shows only outside full-screen mode. Exit full screen in Genie Code. ZeroOps has no separate URL. Open the inbox from the ZeroOps banner on Jobs & Pipelines, or from full-screen Genie Code.',
+    links: [{ label: 'Run it', url: '/walkthroughs/genie-zeroops' }],
+  },
+  {
+    kind: 'decision',
+    question: 'Which failure should I use to demo ZeroOps?',
+    answer:
+      'Use a plain job failure, such as a mistyped column name. It is the most dependable trigger in the preview. Schema drift and data spikes are less dependable, so try them only after the failure path works.',
+    links: [{ label: 'Trigger options', url: '/walkthroughs/genie-zeroops' }],
+  },
+  {
     question: 'What should I ask my account team?',
     answer:
       'Ask about release stage and regions, billing for sandbox and training compute, the identity and permissions the sandbox uses, whether it opens pull requests, approval roles and audit logging, scope controls, and data handling. The walkthrough lists the full set.',
