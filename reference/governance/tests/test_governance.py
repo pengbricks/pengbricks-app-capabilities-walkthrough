@@ -188,7 +188,9 @@ def test_policy_sql_matches_on_tags_and_drops_safely():
     assert "COLUMN MASK" in mask and "has_tag_value('edm_pii', 'id_number')" in mask and "TO `account users`" in mask
     row = edm.row_filter_policy_sql("p2", "`c`.`s`.`t`", "`c`.`s`.`f`", "account users", "edm_region")
     assert "ROW FILTER" in row and "has_tag('edm_region')" in row and "USING COLUMNS (region)" in row
-    assert edm.drop_policy_sql("p", "`c`.`s`.`t`") == "DROP POLICY IF EXISTS `p` ON TABLE `c`.`s`.`t`"
+    assert edm.drop_policy_sql("p", "`c`.`s`.`t`") == "DROP POLICY `p` ON TABLE `c`.`s`.`t`"
+    assert edm.policy_missing(Exception("[POLICY_NOT_FOUND] The policy `p` does not exist"))
+    assert not edm.policy_missing(Exception("[PERMISSION_DENIED] no MANAGE"))
     with pytest.raises(ValueError):
         edm.drop_policy_sql("p`; DROP", "t")
 
