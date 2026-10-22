@@ -22,6 +22,9 @@ variables:
   edm_tag_mode:
     description: Default tag_mode for the Unity Catalog and EDM job. governed creates account-level governed tags and ABAC policies; plain creates nothing at account level
     default: governed
+  rcs_abac_mode:
+    description: Default abac_mode for the row and column security job's masking_patterns task. off creates nothing at account level; governed creates the governed tag rcs_class and an ABAC policy
+    default: off
   use_case:
     description: Use-case spec under use_cases/ that drives sample data, policies, and tags
     default: general

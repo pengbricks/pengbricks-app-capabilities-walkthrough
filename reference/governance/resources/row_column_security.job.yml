@@ -1,4 +1,4 @@
-# Row and column security: column masks, an attribute row filter, a dynamic row filter, identity tests, and the policy inventory.
+# Row and column security: column masks, an attribute row filter, a dynamic row filter, identity tests, the policy inventory, and a masking pattern library.
 resources:
   jobs:
     capability_guides_row_column_security:
@@ -18,6 +18,14 @@ resources:
           default: ${var.use_case}
         - name: app_service_principal
           default: ${var.app_service_principal}
+        - name: pii_reader_group
+          default: rcs-pii-readers
+        - name: salt_scope
+          default: rcs-demo
+        - name: salt_key
+          default: hash-salt
+        - name: abac_mode
+          default: ${var.rcs_abac_mode}
       tasks:
         - task_key: generate_data
           notebook_task:
@@ -40,3 +48,9 @@ resources:
             - task_key: test_policies
           notebook_task:
             notebook_path: ../guides/row-column-security/04_policy_inventory.py
+
+        - task_key: masking_patterns
+          depends_on:
+            - task_key: policy_inventory
+          notebook_task:
+            notebook_path: ../guides/row-column-security/05_masking_patterns.py

@@ -4157,6 +4157,80 @@
             9
           ],
           "section": "inventory"
+        },
+        {
+          "label": "Role-aware mask",
+          "path": "reference/governance/src/governance_lib/masking.py",
+          "notes": [
+            "Real value for the group, last four for everyone else, through is_account_group_member()."
+          ],
+          "symbol": "ssn_role_mask_sql",
+          "section": "mask-patterns"
+        },
+        {
+          "label": "Salted hash mask",
+          "path": "reference/governance/src/governance_lib/masking.py",
+          "notes": [
+            "sha2 of the value plus a salt. The salt is checked before it enters the function body."
+          ],
+          "symbol": "email_hash_sql",
+          "section": "mask-patterns"
+        },
+        {
+          "label": "Type-safe mask",
+          "path": "reference/governance/src/governance_lib/masking.py",
+          "notes": [
+            "Rounds a DECIMAL(12,2) salary and still returns DECIMAL(12,2)."
+          ],
+          "symbol": "salary_bucket_sql",
+          "section": "mask-patterns"
+        },
+        {
+          "label": "Mapping-table row filter",
+          "path": "reference/governance/src/governance_lib/masking.py",
+          "notes": [
+            "Group members see every row; others see the regions mapped to current_user().",
+            "The parameter is not named region, so the subquery cannot resolve it to the mapping table column."
+          ],
+          "symbol": "region_filter_sql",
+          "section": "row-patterns"
+        },
+        {
+          "label": "ABAC column mask policy",
+          "path": "reference/governance/src/governance_lib/masking.py",
+          "notes": [
+            "Matches columns by governed tag and passes a constant with USING COLUMNS."
+          ],
+          "symbol": "abac_mask_policy_sql",
+          "section": "mask-patterns"
+        },
+        {
+          "label": "Governed tags are opt-in",
+          "path": "reference/governance/src/governance_lib/masking.py",
+          "notes": [
+            "abac_mode defaults to off, which creates nothing at the account level."
+          ],
+          "symbol": "normalize_abac_mode",
+          "section": "run-it"
+        },
+        {
+          "label": "Attach the patterns",
+          "path": "reference/governance/guides/row-column-security/05_masking_patterns.py",
+          "notes": [
+            "Detaches old masks first, replaces the functions, then attaches masks and the row filter with ALTER TABLE.",
+            "The ABAC policy is created only when abac_mode is governed."
+          ],
+          "symbol": "build",
+          "section": "run-it"
+        },
+        {
+          "label": "Check the masked output",
+          "path": "reference/governance/guides/row-column-security/05_masking_patterns.py",
+          "notes": [
+            "Queries as the job identity and compares each column with a Python calculation."
+          ],
+          "symbol": "masking_patterns",
+          "section": "run-it"
         }
       ]
     },

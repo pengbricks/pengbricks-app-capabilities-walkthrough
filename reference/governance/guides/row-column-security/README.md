@@ -22,6 +22,11 @@ Run this once, before the job. `<principal>` is the person or service principal 
    databricks groups patch <admins-group-id> --json @add_member.json
    ```
    Without it `01_generate_data` stops before it changes anything.
+2. **A secret scope for the hash salt (`05_masking_patterns`).** Optional. Without it the notebook uses a literal demo salt, prints a warning, and records `salt_source = demo literal`. The job identity needs READ on the scope.
+   ```bash
+   databricks secrets create-scope rcs-demo
+   databricks secrets put-secret rcs-demo hash-salt --string-value "$(openssl rand -hex 16)"
+   ```
 
 ## What this shows
 
@@ -30,6 +35,7 @@ Run this once, before the job. `<principal>` is the person or service principal 
 | Column masks and row filters | `mask_email`, `mask_national_id`, `filter_orders_sensitivity`, `filter_customers_region` and the `region_access` mapping table |
 | Results as different identities | `policy_test_results`: the job identity (real), a twin of the job identity, the `account users` role, and the app service principal |
 | Policy inventory | `policy_inventory`, from `information_schema.column_masks` and `information_schema.row_filters` |
+| Masking pattern library | `rcs_customers` with six mask patterns and a mapping-table row filter, and `rcs_mask_results` with the expected and actual value for each |
 
 Reference run results for customer CUST-000001 and row counts:
 
@@ -38,6 +44,24 @@ Reference run results for customer CUST-000001 and row counts:
 | Job identity (admin) | real | 5,000 | 20,000 | APAC, EMEA, LATAM, NA | `user000001@example.com` | `819-02-0031` |
 | `account users` role | simulated | 3,478 | 17,972 | EMEA, NA | NULL | NULL |
 | App service principal | simulated | 1,019 | 17,972 | APAC | `u***@example.com` | `***-**-0031` |
+
+## Masking pattern library
+
+`05_masking_patterns` builds its own table, `rcs_customers`, so it runs alone or after the other four tasks. Each pattern is a `CREATE OR REPLACE FUNCTION` attached with `ALTER TABLE ... SET MASK`, and the row filter reads `rcs_region_access` through `ALTER TABLE ... SET ROW FILTER`.
+
+| Column | Pattern | Function |
+|---|---|---|
+| `ssn` | Role-aware partial mask with `is_account_group_member()` | `rcs_mask_ssn` |
+| `email` | `sha2(concat(value, salt), 256)`, salt from a secret scope | `rcs_hash_email` |
+| `phone` | `mask()` on all but the last four characters | `rcs_mask_phone` |
+| `home_address` | Null out | `rcs_null_out` |
+| `salary` | `round(v, -4)`, still `DECIMAL(12,2)` | `rcs_bucket_salary` |
+| `birth_date` | `make_date(year(v), 1, 1)`, still `DATE` | `rcs_year_only` |
+| `card_number` | Last `n` characters, `n` passed with `USING COLUMNS (4)` | `rcs_mask_last_n` |
+
+The job identity is not in `pii_reader_group` (default `rcs-pii-readers`), so it sees masked values and the one region mapped to it. The notebook queries `C001` as the job identity and compares each column with a Python calculation (`governance_lib.masking`). Add the job identity to the group and the expected values switch to the real ones.
+
+**Account-level objects.** `abac_mode` defaults to `off`, which creates no governed tag and no ABAC policy, so `SLED_fe_demo` and similar workspaces get nothing at account level. Set the job parameter `abac_mode=governed` (bundle variable `rcs_abac_mode`) to create the governed tag `rcs_class` and a tag-driven policy `rcs_mask_card` on `rcs_customers` in place of the table-level mask on `card_number`. If the job identity cannot create governed tags, the notebook falls back to `off`. Cleanup for `governed` mode: `DROP TABLE` removes the table and its policy; delete the tag policy `rcs_class` in the account console or with `databricks tag-policies delete-tag-policy rcs_class`.
 
 ## Policy design
 
@@ -63,8 +87,9 @@ flowchart LR
 
 ## Reference code
 
-- `resources/row_column_security.job.yml`: four tasks.
-- `guides/row-column-security/`: `00_start_here` plus `01_generate_data`, `02_create_policies` (mapping table, mask and filter functions, `ALTER TABLE ... SET MASK / SET ROW FILTER`), `03_test_policies` and `04_policy_inventory`. Each notebook also runs on its own with Run all.
+- `resources/row_column_security.job.yml`: five tasks.
+- `guides/row-column-security/`: `00_start_here` plus `01_generate_data`, `02_create_policies` (mapping table, mask and filter functions, `ALTER TABLE ... SET MASK / SET ROW FILTER`), `03_test_policies`, `04_policy_inventory` and `05_masking_patterns`. Each notebook also runs on its own with Run all.
+- `src/governance_lib/masking.py`: the pattern functions, attach and detach statements, ABAC policy builder and Python mirrors, unit tested.
 - `src/governance_lib/sqlgen.py`: `mask_body`, `attribute_filter_body`, `dynamic_filter_body`, unit tested. Each takes the session expression and membership expression as arguments, which is how the test evaluates the same logic for another identity.
 - `use_cases/general.yml`: tables, masked columns, filter columns, and the mapping rows.
 - `sql/policy_test_queries.sql` and `sql/policy_inventory.sql`.
@@ -93,7 +118,7 @@ The job runs as the deploying user, an admin, so the real policies let every row
 ## Artifacts produced
 
 - Job `capability-guides-row-column-security` (key `capability_guides_row_column_security`)
-- Tables `gov_customers`, `gov_orders`, `region_access`, `policy_test_results`, `policy_inventory`; functions `mask_email`, `mask_national_id`, `filter_orders_sensitivity`, `filter_customers_region`
+- Tables `gov_customers`, `gov_orders`, `region_access`, `policy_test_results`, `policy_inventory`; functions `mask_email`, `mask_national_id`, `filter_orders_sensitivity`, `filter_customers_region`; and from the pattern library `rcs_customers`, `rcs_region_access`, `rcs_mask_results` and the `rcs_*` functions
 
 ## Reference run
 

@@ -3858,6 +3858,100 @@
       "language": "sql",
       "code": "-- Every column mask and row filter in the catalog, from information_schema. Replace <catalog>.\nSELECT table_schema, table_name, column_name, mask_name, using_columns\nFROM <catalog>.information_schema.column_masks\nORDER BY table_schema, table_name, column_name;\n\nSELECT table_schema, table_name, filter_name, target_columns\nFROM <catalog>.information_schema.row_filters\nORDER BY table_schema, table_name;",
       "functions": {}
+    },
+    {
+      "path": "reference/governance/src/governance_lib/masking.py",
+      "symbol": "ssn_role_mask_sql",
+      "startLine": 70,
+      "endLine": 74,
+      "language": "py",
+      "code": "def ssn_role_mask_sql(function: str, group: str) -> str:\n    return (f\"CREATE OR REPLACE FUNCTION {function}(v STRING) RETURNS STRING \"\n            f\"COMMENT 'Full value for {_lit(group)}, last four for everyone else' \"\n            f\"RETURN CASE WHEN is_account_group_member('{_lit(group)}') THEN v \"\n            \"ELSE concat('***-**-', right(v, 4)) END\")",
+      "functions": {}
+    },
+    {
+      "path": "reference/governance/src/governance_lib/masking.py",
+      "symbol": "email_hash_sql",
+      "startLine": 77,
+      "endLine": 81,
+      "language": "py",
+      "code": "def email_hash_sql(function: str, salt: str) -> str:\n    validate_salt(salt)\n    return (f\"CREATE OR REPLACE FUNCTION {function}(v STRING) RETURNS STRING DETERMINISTIC \"\n            \"COMMENT 'sha2-256 of the value plus a salt: one-way, stable across tables, so joins still work' \"\n            f\"RETURN sha2(concat(v, '{_lit(salt)}'), 256)\")",
+      "functions": {
+        "validate_salt": "A salt is written into a function body, so allow only plain characters (8 to 128)."
+      }
+    },
+    {
+      "path": "reference/governance/src/governance_lib/masking.py",
+      "symbol": "salary_bucket_sql",
+      "startLine": 95,
+      "endLine": 98,
+      "language": "py",
+      "code": "def salary_bucket_sql(function: str, group: str) -> str:\n    return (f\"CREATE OR REPLACE FUNCTION {function}(v DECIMAL(12,2)) RETURNS DECIMAL(12,2) \"\n            f\"COMMENT 'Round to the nearest 10000 for everyone but {_lit(group)}; type stays DECIMAL(12,2)' \"\n            f\"RETURN IF(is_account_group_member('{_lit(group)}'), v, round(v, -4))\")",
+      "functions": {}
+    },
+    {
+      "path": "reference/governance/src/governance_lib/masking.py",
+      "symbol": "region_filter_sql",
+      "startLine": 107,
+      "endLine": 112,
+      "language": "py",
+      "code": "def region_filter_sql(function: str, mapping_table: str, group: str) -> str:\n    \"\"\"Row filter: the group sees every row; others see the regions mapped to current_user().\"\"\"\n    return (f\"CREATE OR REPLACE FUNCTION {function}(region_value STRING) RETURNS BOOLEAN \"\n            f\"COMMENT 'Group members see all rows; others see the regions mapped to them in the mapping table. The parameter is not named region, because an unqualified region inside the subquery would resolve to the mapping table column' \"\n            f\"RETURN is_account_group_member('{_lit(group)}') \"\n            f\"OR EXISTS (SELECT 1 FROM {mapping_table} a WHERE a.principal = current_user() AND a.region = region_value)\")",
+      "functions": {
+        "region_filter_sql": "Row filter: the group sees every row; others see the regions mapped to current_user()."
+      }
+    },
+    {
+      "path": "reference/governance/src/governance_lib/masking.py",
+      "symbol": "abac_mask_policy_sql",
+      "startLine": 138,
+      "endLine": 147,
+      "language": "py",
+      "code": "def abac_mask_policy_sql(name: str, table: str, function: str, principal: str, tag: str, value: str,\n                         using: Iterable[int | str] | None = None, except_group: str | None = None) -> str:\n    \"\"\"CREATE POLICY ... COLUMN MASK on a table, matching columns by governed tag.\"\"\"\n    to = f\"TO {quote(principal)}\" + (f\" EXCEPT {quote(except_group)}\" if except_group else \"\")\n    stmt = (f\"CREATE POLICY {quote(name)}\\n  ON TABLE {table}\\n  COLUMN MASK {function}\\n  {to}\\n\"\n            f\"  FOR TABLES\\n  MATCH COLUMNS has_tag_value('{_lit(tag)}', '{_lit(value)}') AS c\\n  ON COLUMN c\")\n    if using:\n        args = \", \".join(str(a) if isinstance(a, int) else f\"'{_lit(a)}'\" for a in using)\n        stmt += f\"\\n  USING COLUMNS ({args})\"\n    return stmt",
+      "functions": {
+        "abac_mask_policy_sql": "CREATE POLICY ... COLUMN MASK on a table, matching columns by governed tag."
+      }
+    },
+    {
+      "path": "reference/governance/src/governance_lib/masking.py",
+      "symbol": "normalize_abac_mode",
+      "startLine": 43,
+      "endLine": 51,
+      "language": "py",
+      "code": "def normalize_abac_mode(value: str | None) -> str:\n    \"\"\"The abac_mode job parameter: 'off' (default when blank) or 'governed'.\n\n    'governed' creates an account-level governed tag and an ABAC policy, so it is opt-in.\n    \"\"\"\n    mode = (value or \"off\").strip().lower()\n    if mode not in ABAC_MODES:\n        raise ValueError(f\"abac_mode must be off or governed, not {value!r}\")\n    return mode",
+      "functions": {
+        "normalize_abac_mode": "The abac_mode job parameter: 'off' (default when blank) or 'governed'."
+      }
+    },
+    {
+      "path": "reference/governance/guides/row-column-security/05_masking_patterns.py",
+      "symbol": "build",
+      "startLine": 139,
+      "endLine": 178,
+      "language": "py",
+      "code": "def build(args, spark, salt: str) -> tuple[str, str]:\n    \"\"\"Create the data and the functions, attach the masks and filter. Returns (table, how the card column is masked).\"\"\"\n    q = lambda name: qualified(args.catalog, args.schema, name)  # noqa: E731\n    table, mapping = q(mk.TABLE), q(mk.MAPPING_TABLE)\n    detach(spark, table)\n\n    me = spark.sql(\"SELECT current_user() AS u\").first()[\"u\"]\n    spark.sql(f\"CREATE OR REPLACE TABLE {mapping} (principal STRING, region STRING)\")\n    spark.createDataFrame([(me, \"NA\")], \"principal string, region string\").write.mode(\"append\").saveAsTable(mapping)\n    spark.sql(f\"CREATE OR REPLACE TABLE {table} ({DDL})\")\n    spark.createDataFrame(ROWS, DDL).write.mode(\"append\").saveAsTable(table)\n\n    fns = {name: q(name) for name in [*(f for f, _ in mk.COLUMN_MASKS.values()), mk.CARD_FUNCTION, mk.FILTER_FUNCTION]}\n    spark.sql(mk.ssn_role_mask_sql(fns[\"rcs_mask_ssn\"], args.group))\n    spark.sql(mk.email_hash_sql(fns[\"rcs_hash_email\"], salt))\n    spark.sql(mk.phone_mask_sql(fns[\"rcs_mask_phone\"]))\n    spark.sql(mk.null_out_sql(fns[\"rcs_null_out\"]))\n    spark.sql(mk.salary_bucket_sql(fns[\"rcs_bucket_salary\"], args.group))\n    spark.sql(mk.year_only_sql(fns[\"rcs_year_only\"], args.group))\n    spark.sql(mk.last_n_sql(fns[mk.CARD_FUNCTION]))\n    spark.sql(mk.region_filter_sql(fns[mk.FILTER_FUNCTION], mapping, args.group))\n\n    for column, (function, label) in mk.COLUMN_MASKS.items():\n        spark.sql(mk.set_mask_sql(table, column, fns[function]))\n        print(f\"{label}: {function} on {column}\")\n    spark.sql(mk.set_row_filter_sql(table, fns[mk.FILTER_FUNCTION], \"region\"))\n    print(f\"row filter: {mk.FILTER_FUNCTION} on region\")\n\n    how = \"table-level mask\"\n    if args.abac_mode == \"governed\":\n        from databricks.sdk import WorkspaceClient\n\n        ok, reason = ensure_governed_tag(WorkspaceClient())\n        if ok:\n            try:\n                spark.sql(edm.set_tag_sql(\"COLUMN\", f\"{table}.{qualified(mk.CARD_COLUMN)}\", mk.TAG_KEY, mk.TAG_VALUE))\n                spark.sql(mk.abac_mask_policy_sql(mk.ABAC_POLICY, table, fns[mk.CARD_FUNCTION], \"account users\",\n                                                  mk.TAG_KEY, mk.TAG_VALUE, using=[4]))\n                how = \"ABAC policy\"\n            except Exception as exc:  # noqa: BLE001",
+      "functions": {
+        "abac_mask_policy_sql": "CREATE POLICY ... COLUMN MASK on a table, matching columns by governed tag.",
+        "build": "Create the data and the functions, attach the masks and filter. Returns (table, how the card column is masked).",
+        "detach": "Remove the policy, filter and masks from an earlier run, so the functions can be replaced.",
+        "ensure_governed_tag": "Create the governed tag rcs_class, or update it in place. Returns (available, reason).",
+        "last_n_sql": "Partial reveal without regex, with the digit count as a second argument.",
+        "region_filter_sql": "Row filter: the group sees every row; others see the regions mapped to current_user().",
+        "set_mask_sql": "ALTER TABLE ... ALTER COLUMN ... SET MASK, optionally USING COLUMNS with constant literals.",
+        "set_tag_sql": "SET TAG ON <TABLE|COLUMN> with the documented backtick syntax. Setting it again overwrites."
+      }
+    },
+    {
+      "path": "reference/governance/guides/row-column-security/05_masking_patterns.py",
+      "symbol": "masking_patterns",
+      "startLine": 201,
+      "endLine": 235,
+      "language": "py",
+      "code": "def masking_patterns(args, spark) -> None:\n    salt, salt_source = resolve_salt(args)\n    table, how = build(args, spark, salt)\n    in_group = bool(spark.sql(f\"SELECT is_account_group_member('{args.group}')\").first()[0])\n    print(f\"job identity in {args.group}: {in_group}\")\n\n    show = spark.sql(f\"SELECT customer_id, region, ssn, email, phone, home_address, salary, birth_date, card_number FROM {table} ORDER BY customer_id\")\n    show.show(truncate=False)\n    c001 = spark.sql(f\"SELECT * FROM {table} WHERE customer_id = 'C001'\").first().asDict()\n    regions = sorted(r[\"region\"] for r in spark.sql(f\"SELECT DISTINCT region FROM {table}\").collect())\n\n    want = expected_row(salt, in_group)\n    results = []\n    labels = {c: label for c, (_, label) in mk.COLUMN_MASKS.items()}\n    labels[mk.CARD_COLUMN] = f\"last n via {how}\"\n    for column, expected in want.items():\n        actual = None if c001[column] is None else str(c001[column])\n        results.append({\"pattern\": labels[column], \"column_name\": column, \"expected\": str(expected), \"actual\": str(actual),\n                        \"passed\": actual == expected, \"detail\": f\"salt_source = {salt_source}\" if column == \"email\" else \"\"})\n    want_regions = sorted({r[1] for r in ROWS}) if in_group else [\"NA\"]\n    results.append({\"pattern\": \"row filter via mapping table\", \"column_name\": \"region\", \"expected\": \",\".join(want_regions),\n                    \"actual\": \",\".join(regions), \"passed\": regions == want_regions, \"detail\": f\"in {args.group}: {in_group}\"})\n\n    info = f\"{qualified(args.catalog)}.information_schema\"\n    masks = spark.sql(f\"SELECT column_name FROM {info}.column_masks WHERE table_schema = '{args.schema}' AND table_name = '{mk.TABLE}'\").collect()\n    filters = spark.sql(f\"SELECT filter_name FROM {info}.row_filters WHERE table_schema = '{args.schema}' AND table_name = '{mk.TABLE}'\").collect()\n    want_masks = len(mk.COLUMN_MASKS) + (1 if how == \"table-level mask\" else 0)\n    results.append({\"pattern\": \"inventory\", \"column_name\": \"-\", \"expected\": f\"{want_masks} masks, 1 filter\",\n                    \"actual\": f\"{len(masks)} masks, {len(filters)} filter\", \"passed\": (len(masks) == want_masks if how == \"table-level mask\" else len(masks) >= want_masks) and len(filters) == 1,\n                    \"detail\": \"card_number is covered by the ABAC policy\" if how == \"ABAC policy\" else \"\"})\n\n    write_rows(spark, args.catalog, args.schema, mk.RESULTS_TABLE, results, RESULT_DDL)\n    for row in results:\n        print(\"PASS\" if row[\"passed\"] else \"FAIL\", row[\"pattern\"], row[\"column_name\"], \"expected\", row[\"expected\"], \"actual\", row[\"actual\"])\n    assert all(r[\"passed\"] for r in results), [r for r in results if not r[\"passed\"]]",
+      "functions": {
+        "build": "Create the data and the functions, attach the masks and filter. Returns (table, how the card column is masked).",
+        "expected_row": "What customer C001 should look like to the job identity, computed in Python.",
+        "resolve_salt": "Salt from the secret scope, or a clearly marked demo literal when the scope is missing.",
+        "write_rows": "Overwrite a small result table from Python rows."
+      }
     }
   ],
   "scd-change-capture": [
