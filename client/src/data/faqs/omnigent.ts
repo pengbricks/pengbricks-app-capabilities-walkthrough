@@ -36,4 +36,14 @@ export const faqs: Faq[] = [
     answer:
       'Not yet for a wide rollout. The project labels itself alpha and the Databricks offering is in Beta. Pilot with a small group and re-check the release notes first. The Databricks Sandbox host is also Beta, and Databricks may purge sandbox data at the end of the Beta period.',
   },
+  {
+    question: 'Which models can we use?',
+    answer:
+      'Your own API keys, Claude or ChatGPT plans, compatible gateways, or a Databricks workspace. A Databricks Sandbox host allows only models through Unity Gateway.',
+  },
+  {
+    question: 'Where do the audit records live?',
+    answer:
+      'Policy decisions are visible in the session. On Databricks, model calls are audited at Unity Gateway, traces go to MLflow Tracing, and data access appears in Unity Catalog audit logs.',
+  },
 ];
