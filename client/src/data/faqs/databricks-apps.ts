@@ -36,7 +36,7 @@ export const faqs: Faq[] = [
   {
     question: 'What limits apply to Databricks Apps?',
     answer:
-      'A workspace can hold at most 100 Databricks apps, and the limits page says this cannot be increased. A horizontally scaled app runs 1 to 5 instances, and a workspace supports at most 20 horizontally scaled apps. An app must shut down within 15 seconds of receiving SIGTERM, or it is stopped with SIGKILL. Check the linked pages for the current numbers before you plan a rollout.',
+      'A workspace can hold at most 100 Databricks apps, and the limits page says this cannot be increased. A horizontally scaled app runs 1 to 5 instances, and a workspace supports at most 20 horizontally scaled apps. An app must shut down within 15 seconds of receiving SIGTERM, or it is stopped with SIGKILL.',
     links: [
       { label: 'Resource limits', url: 'https://docs.databricks.com/aws/en/resources/limits' },
       {
@@ -192,7 +192,7 @@ export const faqs: Faq[] = [
     kind: 'tradeoff',
     question: 'What changes when governance is set per App Space instead of per app?',
     answer:
-      'You trade per-app control for consistency and less review work. Settings in the space (authorization scopes, serverless usage policy and permissions) apply to every app in it, so developers cannot tune them individually. The blog frames this as moving from reactive per-app review to pre-approved environments. A new space starts with a Data + AI preset of 11 scopes, which admins can narrow. Apps that need a different boundary belong in a different space.',
+      'Every app in the space gets the same settings, so you give up per-app control and save review work. Settings in the space (authorization scopes, serverless usage policy and permissions) apply to every app in it, so developers cannot tune them individually. The blog frames this as moving from reactive per-app review to pre-approved environments. A new space starts with a Data + AI preset of 11 scopes, which admins can narrow. Apps that need a different boundary belong in a different space.',
     links: [
       { label: 'App Spaces', url: 'https://docs.databricks.com/aws/en/dev-tools/databricks-apps/app-spaces' },
       {
