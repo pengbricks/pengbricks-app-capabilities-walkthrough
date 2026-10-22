@@ -1,0 +1,45 @@
+# AI Functions for data quality: rules first, AI Functions on the residue, results scored against labels.
+resources:
+  jobs:
+    capability_guides_ai_functions_data_quality:
+      name: capability-guides-ai-functions-data-quality
+      description: Generates 300 messy order records with an answer key, runs rule checks, runs AI Functions (ai_classify, ai_extract, ai_similarity, ai_mask, ai_query) only on the rows the rules cannot judge, writes one quality table with a quarantine path, and scores each check for precision and recall and estimates cost.
+      tags:
+        capability_guide_job: capability_guides_ai_functions_data_quality
+      max_concurrent_runs: 1
+      timeout_seconds: 3600
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${var.schema}
+      tasks:
+        - task_key: messy_sample
+          notebook_task:
+            notebook_path: ../guides/ai-functions-data-quality/01_messy_sample.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
+
+        - task_key: rule_checks
+          depends_on:
+            - task_key: messy_sample
+          notebook_task:
+            notebook_path: ../guides/ai-functions-data-quality/02_rule_checks.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
+
+        - task_key: ai_checks
+          depends_on:
+            - task_key: rule_checks
+          notebook_task:
+            notebook_path: ../guides/ai-functions-data-quality/03_ai_checks.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
+
+        - task_key: accuracy_and_cost
+          depends_on:
+            - task_key: ai_checks
+          notebook_task:
+            notebook_path: ../guides/ai-functions-data-quality/04_accuracy_and_cost.py
+            base_parameters:
+              run_id: "{{job.run_id}}"

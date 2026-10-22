@@ -1,0 +1,67 @@
+# Trains a small PyTorch churn model on AI Runtime (serverless GPU compute), single GPU by default, and registers it in Unity Catalog.
+resources:
+  jobs:
+    capability_guides_ai_runtime:
+      name: capability-guides-ai-runtime
+      description: Trains a small PyTorch churn model on AI Runtime (serverless GPU compute), single GPU by default, and registers it in Unity Catalog.
+      tags:
+        capability_guide_job: capability_guides_ai_runtime
+        capability_guide_use_case: ${var.use_case}
+      max_concurrent_runs: 1
+      timeout_seconds: 3600
+      email_notifications:
+        on_failure:
+          - ${var.notification_email}
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${var.schema}
+        - name: use_case
+          default: ${var.use_case}
+        - name: source_volume
+          default: ${resources.volumes.ml_source_files.name}
+        - name: release
+          default: ${var.release}
+        - name: experiment
+          default: ${resources.experiments.ml_lifecycle_experiment.name}
+        - name: epochs
+          default: "20"
+        # "false" keeps 02_distributed on one GPU. "true" needs distributed_accelerator=GPU_8xH100.
+        - name: distributed
+          default: "false"
+      # GPU environment version 6 ships databricks-sdk-air (the databricks.air namespace).
+      environments:
+        - environment_key: gpu
+          spec:
+            environment_version: "6"
+            dependencies:
+              - mlflow>=3.1
+              - scikit-learn>=1.4
+              - torch
+              - pyarrow
+              - pyyaml>=6
+      tasks:
+        # AI Runtime has no local Spark, so the CPU task prepares the data with Spark and writes Parquet to a volume.
+        - task_key: prepare_data
+          notebook_task:
+            notebook_path: ../guides/ai-runtime/00_prepare_data.py
+
+        # Task-level compute.hardware_accelerator is Beta in the bundle schema (CLI 1.17).
+        - task_key: train_on_gpu
+          depends_on:
+            - task_key: prepare_data
+          environment_key: gpu
+          compute:
+            hardware_accelerator: ${var.gpu_accelerator}
+          notebook_task:
+            notebook_path: ../guides/ai-runtime/01_train_on_gpu.py
+
+        - task_key: distributed
+          depends_on:
+            - task_key: train_on_gpu
+          environment_key: gpu
+          compute:
+            hardware_accelerator: ${var.distributed_accelerator}
+          notebook_task:
+            notebook_path: ../guides/ai-runtime/02_distributed.py

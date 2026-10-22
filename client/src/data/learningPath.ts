@@ -76,6 +76,7 @@ export const learningPath: readonly LearningStage[] = [
       'unity-catalog-edm',
       'monitoring',
       'operational-support',
+      'genie-zeroops',
       'data-sharing',
     ],
   },
@@ -96,7 +97,16 @@ export const learningPath: readonly LearningStage[] = [
   {
     title: 'AI on your data',
     summary: 'AI Functions in SQL, then Genie Agents and the semantics that make their answers right.',
-    slugs: ['ai-functions', 'document-processing', 'genie-agents', 'ontology', 'user-experience'],
+    slugs: [
+      'genie-code',
+      'ai-functions',
+      'ai-functions-data-quality',
+      'document-processing',
+      'genie-agents',
+      'genie-external-ai',
+      'ontology',
+      'user-experience',
+    ],
   },
   {
     title: 'Machine learning',
@@ -105,6 +115,7 @@ export const learningPath: readonly LearningStage[] = [
       'data-ingestion-feature-preparation',
       'experiment-tracking',
       'model-training-compatibility',
+      'ai-runtime',
       'model-deployment-cicd',
       'real-time-scoring',
       'model-performance-drift',

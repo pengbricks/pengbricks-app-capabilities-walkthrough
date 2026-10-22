@@ -5,7 +5,7 @@ export const walkthrough: Walkthrough = {
   area: 'AI Guides',
   title: 'Omnigent: coding agents with shared sessions and policies',
   intro:
-    'Every agent ships with its own harness, which makes it hard to compose agents, collaborate across people and agents, and control cost and security. Omnigent is an open-source meta-harness, a layer above the harness that sits over coding agents such as Claude Code, Codex, Cursor, and Pi. Run the agents through one server, share sessions with your team, and set the rules in policies the server enforces around every action. On Databricks you start with the managed service (Beta) and keep identity, models, tracing, and data access on the platform. Deploy it yourself on Databricks Apps only when you need something the managed service does not expose. This page covers the pattern in that order.',
+    'Every agent ships with its own harness, which makes it hard to compose agents, collaborate across people and agents, and control cost and security. Omnigent is an open-source meta-harness, a layer above the harness that sits over coding agents such as Claude Code, Codex, Cursor, and Pi. Run the agents through one server, share sessions with your team, and set the rules in policies the server enforces around every action. On Databricks you start with the managed service (Beta) and keep identity, models, tracing, and data access on the platform. Deploy it yourself on Databricks Apps only when you need something the managed service does not expose.',
   businessValue: {
     summary:
       'Coding agents already run in your engineers’ terminals. Omnigent adds one layer above them so teams compose several agents, collaborate on shared sessions, and control cost and risk with policies the platform enforces, using the Databricks identity and governance they already have.',
@@ -808,6 +808,279 @@ policies:
         {
           strong: 'Leaving environment variables undeclared.',
           text: 'Agent processes start with a deny-by-default environment. If an agent fails at startup, check whether it needs an env_passthrough entry for its provider key.',
+        },
+      ],
+    },
+    {
+      id: 'run-it',
+      heading: 'Run it: connect GitHub and let Omnigent build a pipeline',
+      prose:
+        'The reference bundle lands raw files in a Unity Catalog volume, then you connect GitHub and have Omnigent build a Lakeflow Declarative Pipeline from those files as a Declarative Automation Bundle in your repository. Omnigent works on a feature branch, deploys to dev, runs the pipeline, and opens a pull request. The Omnigent steps run in a chat session, so a check job reports needs_manual_check until you have done them and reconciles the tables to the raw files after. The GitHub connection has two sides. Omnigent needs a GitHub identity to push branches and open pull requests. Databricks needs a Git credential for the identity that runs code if you want a Git folder or a job that pulls from the repository.',
+      diagram: {
+        type: 'flow',
+        title: 'From raw files to a reviewed pipeline',
+        description:
+          'A preflight job writes raw files to a Unity Catalog volume. An Omnigent session reads the prompts, and a github_policy gate limits its writes to one repository and feature branches. The session pushes a branch and opens a pull request on GitHub, then deploys the bundle to dev. The pipeline writes bronze, silver, and gold tables, and a check job reconciles their row counts to the raw files.',
+        nodes: [
+          {
+            id: 'vol',
+            label: 'Raw volume',
+            sub: 'omnigent_raw',
+            mono: true,
+            col: 0,
+            row: 0,
+            kind: 'store',
+            domain: 'data',
+            icon: 'data-file',
+            detail:
+              'The preflight writes orders.csv, customers.json, and an events folder to fixed paths with a fixed seed. A rerun overwrites the same files.',
+          },
+          {
+            id: 'session',
+            label: 'Omnigent session',
+            sub: 'prompts 1 to 3',
+            col: 1,
+            row: 0,
+            kind: 'highlight',
+            domain: 'orchestration',
+            icon: 'gear-navy',
+            detail:
+              'Writes the bundle, pushes a feature branch, deploys to dev, runs the pipeline, and opens a pull request. It acts with the connected user GitHub token.',
+          },
+          {
+            id: 'policy',
+            label: 'github_policy',
+            sub: 'one repo, feature/*',
+            mono: true,
+            col: 2,
+            row: 0,
+            kind: 'gate',
+            domain: 'governance',
+            detail:
+              'Checks each git and gh command and GitHub MCP call. Writes outside the named repository or branches are denied or sent to a person.',
+          },
+          {
+            id: 'gh',
+            label: 'GitHub branch and PR',
+            sub: 'feature branch',
+            col: 3,
+            row: 0,
+            domain: 'neutral',
+            icon: 'saas',
+            detail:
+              'Holds the bundle on a feature branch and the pull request that a person reviews. Nothing merges until a person approves it.',
+          },
+          {
+            id: 'deploy',
+            label: 'Bundle deploy',
+            sub: 'target dev',
+            col: 3,
+            row: 1,
+            domain: 'orchestration',
+            icon: 'workflow',
+            detail:
+              'databricks bundle deploy to the dev target creates the serverless pipeline in development mode. The deploying identity needs grants on the schema and the volume.',
+          },
+          {
+            id: 'tables',
+            label: 'Pipeline tables',
+            sub: 'omni_bronze, silver, gold',
+            col: 2,
+            row: 1,
+            kind: 'store',
+            domain: 'data',
+            icon: 'database',
+            detail:
+              'Bronze loads the files with Auto Loader, silver removes repeated order_id values and missing amounts, and gold sums revenue by day and region.',
+          },
+          {
+            id: 'check',
+            label: 'Check job',
+            sub: 'reconciles counts',
+            col: 1,
+            row: 1,
+            domain: 'governance',
+            icon: 'checklist',
+            detail:
+              'Finds the pipeline by name prefix and the omni_ tables, and compares row counts and revenue to the raw files. Reports needs_manual_check until the Omnigent steps have run.',
+          },
+        ],
+        edges: [
+          { from: 'vol', to: 'session', label: 'paths in prompt' },
+          { from: 'session', to: 'policy' },
+          { from: 'policy', to: 'gh', label: 'push, PR' },
+          { from: 'session', to: 'deploy', label: 'deploys', dashed: true },
+          { from: 'deploy', to: 'tables', label: 'runs' },
+          { from: 'tables', to: 'check' },
+        ],
+        legend: [
+          { kind: 'gate', label: 'Policy gate' },
+          { kind: 'store', label: 'Data in Unity Catalog' },
+          { kind: 'dashed', label: 'Deploy step' },
+        ],
+        caption:
+          'The session also deploys to dev, which github_policy does not govern. Unity Catalog grants limit that side.',
+      },
+      steps: [
+        {
+          title: 'Preflight: land the raw files.',
+          body: 'Deploy the agents bundle and run the job. The first task creates the volume omnigent_raw in the shared schema if it is missing and writes 200 order rows (with a repeated order_id and a missing amount planted for the silver step), 40 customers, and three event files. The second task reports needs_manual_check because the pipeline does not exist yet. The preflight prints the paths and the prompts with your catalog and schema filled in.',
+          code: `databricks bundle deploy --target dev --var catalog=<catalog> --var warehouse_id=<id> --var app_service_principal=<app-id>
+databricks bundle run capability_guides_omnigent --target dev --var ...
+
+# Paths it prints, with the shared schema:
+# /Volumes/<catalog>/<schema>/omnigent_raw/orders.csv
+# /Volumes/<catalog>/<schema>/omnigent_raw/customers.json
+# /Volumes/<catalog>/<schema>/omnigent_raw/events/events_001.json (and 002, 003)`,
+        },
+        {
+          title: 'Omnigent side: connect your GitHub account.',
+          body: 'In Omnigent, open Settings, then Sandbox Integrations, then Connect GitHub, and authorize. Omnigent stores a short-lived user token and gives it to git and gh in your sandbox, so commits and pull requests carry your identity. On the managed service the connection is part of Settings. On a self-managed server an admin registers a GitHub App once (Contents and Pull requests read and write, Metadata read-only, webhook off), installs it on the account that owns the repository, and sets the variables below. Without the install, private repositories return 404 even after you connect.',
+          code: `# Self-managed server only. Needs the Omnigent credential store configured.
+OMNIGENT_GITHUB_APP_CLIENT_ID=<client id>
+OMNIGENT_GITHUB_APP_CLIENT_SECRET=<client secret>
+OMNIGENT_GITHUB_APP_REDIRECT_URI=https://<omnigent-origin>/v1/connections/github/callback
+OMNIGENT_GITHUB_APP_SLUG=<app slug>
+# Credential store backend: a Vault Transit key name, or OMNIGENT_CREDENTIAL_KMS_KEY_ID for AWS KMS
+OMNIGENT_CREDENTIAL_VAULT_KEY=<Vault Transit key name>`,
+        },
+        {
+          title: 'Omnigent side: limit writes to one repository and feature branches.',
+          body: 'github_policy restricts writes to the repositories in write_repos and, within them, to the branches in write_branches (an empty list means any branch). The policy guide examples use patterns such as feature/* but do not define the matching rule, so test a push to main and to a feature branch before you rely on it. It reads git and gh shell commands as well as GitHub MCP calls, and a command with an ambiguous target returns ASK. Reads stay open unless you set read_all to false. Add it to the server config or to the agent YAML. The pattern feature/* is meant to cover feature/omni-orders-pipeline.',
+          code: `policies:
+  github_access:
+    type: function
+    handler: omnigent.policies.builtins.github.github_policy
+    factory_params:
+      write_repos: [<owner>/<repo>]
+      write_branches: ["feature/*"]
+  shell_blast_radius:
+    type: function
+    handler: omnigent.policies.builtins.orchestration.blast_radius
+    factory_params:
+      risky_action: ASK
+      gate_pushes: true`,
+        },
+        {
+          title: 'Databricks side: add a Git credential and an optional Git folder.',
+          body: 'Omnigent pushes to GitHub with its own connection. Databricks needs a Git credential only when the workspace pulls from the repository, for a Git folder or a job that runs from Git. Create it for the identity that runs the code. The CLI takes a token, so use a fine-grained token limited to the one repository with Contents read and write. For hosted GitHub, Databricks recommends its GitHub app, which you link in the UI under Settings, then Linked accounts. For a job or pipeline that should not depend on a person, create the credential for a service principal with --principal-id, which takes the numeric ID of the principal and needs service principal manager rights on it. Then create the Git folder and check out the feature branch once Omnigent has pushed it.',
+          code: `export GITHUB_TOKEN=<fine-grained token for <owner>/<repo>>
+databricks git-credentials create gitHub \
+  --git-username <github-user> --personal-access-token "$GITHUB_TOKEN" --name omnigent-demo
+databricks git-credentials list
+
+databricks repos create https://github.com/<owner>/<repo> gitHub \
+  --path /Workspace/Users/<you>/omnigent-orders
+databricks repos update /Workspace/Users/<you>/omnigent-orders --branch feature/omni-orders-pipeline`,
+        },
+        {
+          title: 'Know where the Omnigent server gets its credentials.',
+          body: 'On the managed service Databricks runs the server, and each user connects GitHub and Databricks from Settings with their own tokens. On Databricks Apps the app runs as its service principal for Lakebase and the volume, and users connect GitHub and Databricks per user. Keep the GitHub App client secret in a secret scope, grant the app read on it as an app resource, and read it with valueFrom in app.yaml, so no secret sits in the bundle. The Omnigent deploy guide does not show these GitHub variables in its app.yaml, so treat the wiring below as the standard Apps pattern applied to the documented variables.',
+          code: `databricks secrets create-scope omnigent
+databricks secrets put-secret omnigent github-app-client-secret   # prompts for the value
+
+# databricks.yml, under resources.apps.<app>
+resources:
+  - name: github_app_secret
+    secret:
+      scope: omnigent
+      key: github-app-client-secret
+      permission: READ
+
+# app.yaml
+env:
+  - name: OMNIGENT_GITHUB_APP_CLIENT_ID
+    value: <client id>
+  - name: OMNIGENT_GITHUB_APP_CLIENT_SECRET
+    valueFrom: github_app_secret
+  - name: OMNIGENT_GITHUB_APP_REDIRECT_URI
+    value: https://<app-url>/v1/connections/github/callback`,
+        },
+        {
+          title: 'Prompts to give Omnigent.',
+          body: 'Paste the three prompts in order into one session. The first creates the branch and the bundle in omnigent_orders/ with bronze, silver, and gold tables named omni_ in your shared schema and pushes it without deploying. The second validates, deploys to the dev target, runs the pipeline once, and reports row counts. The third opens the pull request and does not merge it. The exact text is in prompts.md in the bundle, and the preflight prints it with your catalog and schema.',
+          code: `Work in the GitHub repository <owner>/<repo>. Create the branch feature/omni-orders-pipeline from the default branch. Do not push to any other branch.
+
+Build a Declarative Automation Bundle in the folder omnigent_orders/ with a Lakeflow Declarative Pipeline named omnigent_orders. It reads raw files from /Volumes/<catalog>/<schema>/omnigent_raw and writes to <catalog>.<schema>. Use serverless compute and prefix every table with omni_.
+- Bronze with Auto Loader: omni_bronze_orders (orders.csv), omni_bronze_customers (customers.json), omni_bronze_events (events/)
+- Silver: omni_silver_orders (one row per order_id, no null amount), omni_silver_customers, omni_silver_events
+- Gold: omni_gold_daily_revenue by order_date and region, with order_count and revenue
+Commit to the feature branch and push. Do not deploy yet.`,
+        },
+        {
+          title: 'Review the pull request and the policy trail.',
+          body: 'Read the diff before anything runs outside dev. Look for a target other than dev, a table name without the omni_ prefix, a volume path other than omnigent_raw, and any change outside omnigent_orders/. Then open the session and confirm what the policy stopped. With the policy above, a push to main or any branch outside feature/*, a write to another repository, a force-push, and gh pr merge should be denied or sent to you for approval. The policy does not govern the Databricks CLI, so the deploy is limited by the grants of the connected user. Give that identity CREATE TABLE on the shared schema and nothing wider.',
+        },
+        {
+          title: 'Run the check job.',
+          body: 'Run the job again. It finds the pipeline by the omnigent_ name prefix, ignoring the [dev user] prefix that development mode adds, and the omni_ tables. It reconciles bronze to the raw rows, silver to one row per order_id with an amount, and the gold sums to silver. A missing layer gives needs_manual_check and the list of steps still to do. A layer with wrong counts fails the run. Results land in the omnigent_pipeline_check table.',
+          code: `databricks bundle run capability_guides_omnigent --target dev --var ...`,
+        },
+      ],
+      options: {
+        caption: 'How Omnigent and Databricks authenticate to GitHub, and how far the write scope reaches',
+        rows: [
+          {
+            option: 'Per-user GitHub App connect through Omnigent',
+            when: 'A shared server with several users, or any sandbox host. Each person connects once from Settings.',
+            tradeoffs:
+              'Short-lived user tokens with a refresh token, so no long-lived secret. The App permissions cap what a session can do, and you can revoke access per install. An admin registers the App, installs it on the repository owner, and runs the credential store. Without the install, private repositories return 404.',
+          },
+          {
+            option: 'Fine-grained personal access token',
+            when: 'One person, a laptop host, or a short trial against a single repository.',
+            tradeoffs:
+              'Quick to create, with Contents and Pull requests set to read and write on one repository and an expiry. It is a long-lived secret tied to one person, with no per-install audit. GitHub does not let fine-grained tokens read check runs, so Omnigent shows no check counts for them.',
+          },
+          {
+            option: 'Databricks GitHub app or a token in a Git credential (Databricks side)',
+            when: 'You want a Git folder, or a job or pipeline that pulls from the repository.',
+            tradeoffs:
+              'A separate credential from Omnigent. Databricks recommends its GitHub app for hosted GitHub, whose access tokens expire after 8 hours. A token in a service principal credential keeps automation off personal accounts. It does not push for Omnigent.',
+          },
+          {
+            option: 'Scope: one repository, feature/* branches',
+            when: 'A pilot or any team starting out.',
+            tradeoffs:
+              'Smallest blast radius. The agent cannot touch main, and a person merges. A second repository needs a policy change.',
+          },
+          {
+            option: 'Scope: an allowlist of repositories',
+            when: 'A platform team that serves several repositories with one agent.',
+            tradeoffs:
+              'Fewer policy edits, a wider blast radius, and the App must be installed on each owner. Review the list on a schedule.',
+          },
+          {
+            option: 'Scope: read everywhere, write nowhere',
+            when: 'A review or analysis agent that comments but does not change code.',
+            tradeoffs:
+              'Leave write_repos empty. Safest, but the agent cannot push the bundle, so this does not fit the build story.',
+          },
+        ],
+        recommendation:
+          'Use the per-user GitHub App connect on a shared server, with write_repos set to the one repository and write_branches set to feature/*. Add a Databricks Git credential for a service principal only if a job or Git folder needs to pull the repository, and use a fine-grained token for the single repository.',
+      },
+      links: [
+        { label: 'Connect GitHub (Omnigent)', url: 'https://omnigent.ai/docs/deploy/github-connect' },
+        {
+          label: 'GitHub App setup in the Omnigent repository',
+          url: 'https://github.com/omnigent-ai/omnigent/blob/main/docs/GITHUB_APP_SETUP.md',
+        },
+        {
+          label: 'Omnigent policy guide (github_policy)',
+          url: 'https://github.com/omnigent-ai/omnigent/blob/main/docs/POLICIES.md',
+        },
+        {
+          label: 'Connect your Git provider to Databricks',
+          url: 'https://docs.databricks.com/aws/en/repos/get-access-tokens-from-git-provider',
+        },
+        {
+          label: 'Git operations with Git folders',
+          url: 'https://docs.databricks.com/aws/en/repos/git-operations-with-repos',
+        },
+        {
+          label: 'Add resources to a Databricks app',
+          url: 'https://docs.databricks.com/aws/en/dev-tools/databricks-apps/resources',
         },
       ],
     },

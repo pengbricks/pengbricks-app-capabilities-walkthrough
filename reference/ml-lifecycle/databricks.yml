@@ -22,6 +22,12 @@ variables:
   release:
     description: Release identifier (CI sets the Git commit SHA) recorded on experiment runs
     default: local
+  gpu_accelerator:
+    description: Accelerator for the AI Runtime single-GPU task (GPU_1xA10, GPU_1xH100, or GPU_8xH100)
+    default: GPU_1xA10
+  distributed_accelerator:
+    description: Accelerator for the AI Runtime distributed task. Keep GPU_1xA10 for the default one-GPU run; GPU_8xH100 for the multi-GPU run
+    default: GPU_1xA10
 
 permissions:
   - level: CAN_MANAGE

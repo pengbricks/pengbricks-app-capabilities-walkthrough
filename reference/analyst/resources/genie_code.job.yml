@@ -1,0 +1,24 @@
+# Genie Code: generates the governed sample data, then checks the tables and assets the interactive steps produce.
+resources:
+  jobs:
+    capability_guides_genie_code:
+      name: capability-guides-genie-code
+      description: Preflight sample data for the Genie Code guide, then a check that reports which interactive steps are done.
+      tags:
+        capability_guide_job: capability_guides_genie_code
+      max_concurrent_runs: 1
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${var.schema}
+      tasks:
+        - task_key: preflight_sample_data
+          notebook_task:
+            notebook_path: ../guides/genie-code/01_preflight_sample_data.py
+
+        - task_key: check_outputs
+          depends_on:
+            - task_key: preflight_sample_data
+          notebook_task:
+            notebook_path: ../guides/genie-code/02_check_outputs.py

@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "databricks-genie": {
+      "httpUrl": "https://<workspace-host>/ai-gateway/mcp-services/system.ai.genie_one_mcp",
+      "oauth": {
+        "enabled": true,
+        "clientId": "<oauth-app-client-id>",
+        "scopes": ["ai-gateway", "offline_access"],
+        "authorizationUrl": "https://<workspace-host>/oidc/v1/authorize",
+        "tokenUrl": "https://<workspace-host>/oidc/v1/token",
+        "redirectUri": "http://localhost:7777/oauth/callback"
+      },
+      "includeTools": ["genie_ask", "genie_poll_response", "genie_get_query_result"],
+      "timeout": 60000
+    }
+  }
+}
