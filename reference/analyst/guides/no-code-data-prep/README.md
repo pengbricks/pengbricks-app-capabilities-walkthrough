@@ -36,7 +36,7 @@ flowchart LR
 1. Run the job once so `analyst_orders`, `analyst_customers`, and `prep_flow_output` exist.
 2. In the sidebar, click **New** and choose **Visual data prep**.
 3. Click **Select source operator**, choose **Browse existing**, and pick `analyst_orders`. Add a second Source for `analyst_customers`.
-4. Add a **Filter** after `analyst_orders`. Add two conditions: `status` **Is equal to** `completed`, and `order_ts` after 2026-01-01. Click **Apply**.
+4. Add a **Filter** after `analyst_orders`. Add two conditions: `status` **Is equal to** `completed`, and `order_ts` on or after 2026-01-01. Click **Apply**.
 5. Add a **Join**. Connect the filter and the `analyst_customers` Source to it. Match `customer_id` to `customer_id`. Click **Apply**.
 6. Add a **Select** operator. Rename `order_id` to `order_number`, `region` to `sales_region`, and `segment` to `customer_segment`. Click **Apply**.
 7. Add **Custom columns**. Create `order_total` as `quantity * unit_price` and `order_size` as `large` when the total is 1000 or more, else `standard`.
