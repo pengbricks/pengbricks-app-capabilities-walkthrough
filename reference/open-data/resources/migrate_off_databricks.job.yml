@@ -1,0 +1,30 @@
+# Exit planning: inventory the shared schema for portability, then print how an outside engine
+# connects through the Unity Catalog Iceberg REST catalog. Read-only apart from the exit_inventory table.
+resources:
+  jobs:
+    capability_guides_migrate_off_databricks:
+      name: capability-guides-migrate-off-databricks
+      description: Writes an exit_inventory table with each table's format, location, Iceberg readability, reader-side features, and portability verdict, then prints the Iceberg REST catalog settings for an outside engine.
+      tags:
+        capability_guide_job: capability_guides_migrate_off_databricks
+        capability_guide_use_case: ${var.use_case}
+      max_concurrent_runs: 1
+      timeout_seconds: 3600
+      email_notifications:
+        on_failure:
+          - ${var.notification_email}
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${var.schema}
+      tasks:
+        - task_key: exit_inventory
+          notebook_task:
+            notebook_path: ../guides/migrate-off-databricks/01_exit_inventory.py
+
+        - task_key: read_from_outside
+          depends_on:
+            - task_key: exit_inventory
+          notebook_task:
+            notebook_path: ../guides/migrate-off-databricks/02_read_from_outside.py

@@ -39,6 +39,7 @@ Run these once, before the job. `<principal>` is the person or service principal
 | Governed share and recipient setup | `sharing_orders` table with column comments, view `orders_west_v` that keeps one region and drops `customer_email`, `sharing_products` table, share and token recipient created in `02_share_and_read` |
 | Entitlement and revocation run | `GRANT SELECT ON SHARE`, a read with `delta_sharing.load_as_pandas`, `REVOKE`, a second read that must fail, recipient dropped |
 | Replication requirement decision | `sharing_audit` row `replication_required` (`false`: data is shared in place) |
+| History sharing | `02_share_and_read` step 8: checks `history_data_sharing_status` on the shared table, runs `ALTER SHARE ... ADD TABLE ... WITH HISTORY` only if history is off, and records the table versions a history-enabled recipient can query in `sharing_audit` (`history_shared`, `history_versions`) |
 | Audit events | `sharing_audit_events`, from `system.access.audit` |
 
 ## Architecture
@@ -66,8 +67,8 @@ All code is in `reference/open-data/`.
 - `use_cases/general.yml`: tables, column comments, share and recipient names, which region and columns the view keeps.
 - `guides/data-sharing/00_start_here`: what the guide shows, the notebooks in order, the variables, and a link to the job.
 - `guides/data-sharing/01_prepare_data`: builds the tables with the sample-data generator, sets table and column comments, creates the view.
-- `guides/data-sharing/02_share_and_read`: the share lifecycle. It creates the share, recipient and grant, exchanges the activation link for a credential file, reads, checks that the file URLs sit under the source table's own storage path, revokes, retries the read until it fails, and drops the recipient. It reports `BLOCKED` when `CREATE SHARE` is missing.
-- `src/open_data/sharing.py`: pure helpers (`credential_profile`, `served_from_source`, `strip_query`, `audit_event_query`) with unit tests.
+- `guides/data-sharing/02_share_and_read`: the share lifecycle. It creates the share, recipient and grant, exchanges the activation link for a credential file, reads, checks that the file URLs sit under the source table's own storage path, revokes, retries the read until it fails, and drops the recipient. Step 8 then shares the table `WITH HISTORY` (documented as the default on Databricks Runtime 16.2 and above) and records the provider-side evidence. It reports `BLOCKED` when `CREATE SHARE` is missing.
+- `src/open_data/sharing.py`: pure helpers (`credential_profile`, `served_from_source`, `needs_history_readd`, `strip_query`, `audit_event_query`) with unit tests.
 - `guides/data-sharing/03_collect_audit`: polls `system.access.audit` for the share and recipient names until the closing event appears.
 - `resources/data_sharing.job.yml`: the job `capability_guides_data_sharing`.
 
@@ -79,7 +80,7 @@ All code is in `reference/open-data/`.
 4. Query the view: `SELECT region, count(*) FROM <schema>.orders_west_v GROUP BY region` returns one region and no `customer_email` column.
 5. Open task `share_and_read`. With the privileges in place it logs the share contents, the grant, the rows the recipient read, the storage-path check, the revoke, and the failed read.
 6. Query `SELECT check, status, value, detail FROM <schema>.sharing_audit`.
-7. Read the `replication_required` row. It records `false` and why.
+7. Read the `replication_required` row. It records `false` and why. Read the `history_shared` and `history_versions` rows: history sharing is `ENABLED` and the table has the listed versions.
 8. Open task `collect_audit_events`, then `SELECT * FROM <schema>.sharing_audit_events ORDER BY event_time`.
 9. Confirm no recipient is left: `SHOW RECIPIENTS` has no `capability_guides_partner`.
 
@@ -99,6 +100,7 @@ All code is in `reference/open-data/`.
 
 - Creating a share needs `CREATE SHARE` and `CREATE RECIPIENT` on the metastore. In the run linked from this guide the job identity had neither, so only the `BLOCKED` path ran. The `sharing_audit_events` table shows the denied `createShare` call (status 403).
 - The replication row in that run comes from how OpenSharing works (the recipient gets pre-signed URLs to the provider's files). The storage-path check that verifies it only runs once the share exists.
+- The open recipient here is dropped before the history step, so the notebook shows provider-side metadata. Time travel through a shared catalog needs a Databricks-to-Databricks recipient, which this bundle does not create. History sharing is documented as Public Preview from December 2024 and enabled by default from June 2025; the cloud-token read path applies to Databricks-to-Databricks recipients.
 - A view is shared, not a row filter: OpenSharing does not share tables with row filters or column masks, so the view carries the restriction.
 - Open sharing uses a bearer token. For recipients on Databricks, a Databricks-to-Databricks recipient avoids the token and adds recipient-side Unity Catalog governance.
 - `system.access.audit` lags events by minutes. The audit task waits up to `sharing.audit_wait_seconds` in the spec.

@@ -22,7 +22,7 @@ Each folder under `reference/` is a self-contained Declarative Automation Bundle
 | `ml-lifecycle/` | Feature preparation from source data, Training and bringing existing models, Reproducible experiments, Model quality and drift |
 | `realtime-scoring/` | Online model scoring |
 | `genie/` | Business terms and synonyms, Assistant user experience, Genie Agents |
-| `open-data/` | Governed data sharing, Apache Iceberg interoperability, Partner tool integrations |
+| `open-data/` | OpenSharing (Databricks-to-Databricks and to other platforms, including history sharing), Apache Iceberg interoperability, Partner tool integrations, Migrating off Databricks (an exit inventory job, capability_guides_migrate_off_databricks) |
 | `platform-ops/` | Workspace and account administration, Support and recovery |
 | `agents/` | Agents, MCP, and model gateway; Building and shipping agents |
 | `ai-functions/` | AI Functions in SQL; Document processing pipelines and their cost (a second job, `capability_guides_document_processing`, in the same bundle) |

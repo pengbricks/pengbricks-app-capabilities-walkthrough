@@ -5680,6 +5680,28 @@
           ],
           "symbol": "is_missing_privilege",
           "section": null
+        },
+        {
+          "label": "Share the table with history",
+          "path": "reference/open-data/guides/data-sharing/02_share_and_read.py",
+          "notes": [
+            "Reads history_data_sharing_status from the share, and runs ALTER SHARE ... ADD TABLE ... WITH HISTORY only when it is off.",
+            "Records the table versions a history-enabled recipient can time travel across."
+          ],
+          "lines": [
+            252,
+            267
+          ],
+          "section": "history"
+        },
+        {
+          "label": "History check helper",
+          "path": "reference/open-data/src/open_data/sharing.py",
+          "notes": [
+            "True when the shared table needs to be re-added WITH HISTORY."
+          ],
+          "symbol": "needs_history_readd",
+          "section": "history"
         }
       ]
     },
@@ -8964,6 +8986,119 @@
           "recordedAt": "2026-10-22T01:41:51Z"
         }
       ]
+    },
+    "migrate-off-databricks": {
+      "bundle": "reference/open-data",
+      "onePager": "reference/open-data/guides/migrate-off-databricks/README.md",
+      "code": [
+        {
+          "label": "Notebooks, one per job task",
+          "path": "reference/open-data/guides/migrate-off-databricks"
+        },
+        {
+          "label": "Inventory helpers: reader features, Iceberg readability, verdict",
+          "path": "reference/open-data/src/open_data/exit_inventory.py"
+        },
+        {
+          "label": "PyIceberg helper",
+          "path": "reference/open-data/src/open_data/iceberg.py"
+        },
+        {
+          "label": "Tests for the helpers",
+          "path": "reference/open-data/tests/test_exit_inventory.py"
+        },
+        {
+          "label": "Exit planning job",
+          "path": "reference/open-data/resources/migrate_off_databricks.job.yml"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_migrate_off_databricks",
+          "label": "Exit planning job"
+        }
+      ],
+      "docs": [
+        {
+          "label": "Read Delta tables with Iceberg clients",
+          "url": "https://docs.databricks.com/aws/en/delta/uniform"
+        },
+        {
+          "label": "Access Databricks tables from Iceberg clients",
+          "url": "https://docs.databricks.com/aws/en/external-access/iceberg"
+        },
+        {
+          "label": "Credential vending",
+          "url": "https://docs.databricks.com/aws/en/external-access/credential-vending"
+        },
+        {
+          "label": "CLONE",
+          "url": "https://docs.databricks.com/aws/en/sql/language-manual/delta-clone"
+        },
+        {
+          "label": "Delta Lake feature compatibility",
+          "url": "https://docs.databricks.com/aws/en/delta/feature-compatibility"
+        },
+        {
+          "label": "Unity Catalog managed tables",
+          "url": "https://docs.databricks.com/aws/en/tables/managed"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Reader-side Delta features",
+          "path": "reference/open-data/src/open_data/exit_inventory.py",
+          "symbol": "delta_features",
+          "section": "inventory",
+          "notes": [
+            "Reads delta.feature.* properties and DESCRIBE DETAIL tableFeatures.",
+            "Deletion vectors, column mapping, and type widening are reader-and-writer features in the docs."
+          ]
+        },
+        {
+          "label": "Portability verdict",
+          "path": "reference/open-data/src/open_data/exit_inventory.py",
+          "symbol": "verdict",
+          "section": "inventory",
+          "notes": [
+            "Views and pipelines need a rebuild or recreate; plain Delta, Iceberg, and Parquet run as is."
+          ]
+        },
+        {
+          "label": "Read the catalog metadata",
+          "path": "reference/open-data/guides/migrate-off-databricks/01_exit_inventory.py",
+          "lines": [
+            31,
+            36
+          ],
+          "section": "inventory",
+          "notes": [
+            "information_schema.tables gives the table type, format, and storage path."
+          ]
+        },
+        {
+          "label": "PyIceberg REST catalog config",
+          "path": "reference/open-data/src/open_data/iceberg.py",
+          "symbol": "catalog_properties",
+          "section": "access-paths",
+          "notes": [
+            "URI, warehouse, token, and the vended-credentials header."
+          ]
+        },
+        {
+          "label": "Print the outside-engine configuration",
+          "path": "reference/open-data/guides/migrate-off-databricks/02_read_from_outside.py",
+          "lines": [
+            66,
+            72
+          ],
+          "section": "access-paths",
+          "notes": [
+            "Printed only. Nothing connects to an outside system."
+          ]
+        }
+      ],
+      "recordedRuns": []
     }
   }
 }

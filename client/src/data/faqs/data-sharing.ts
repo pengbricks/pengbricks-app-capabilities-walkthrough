@@ -45,4 +45,42 @@ export const faqs: Faq[] = [
       "Start with a share to a named recipient. Move to Clean Rooms when neither side may see the other's raw rows, and to Marketplace when the audience is open. Replicate to the recipient's storage only when it needs a writable or isolated copy.",
     links: [{ label: 'Clean Rooms', url: 'https://docs.databricks.com/aws/en/clean-rooms/' }],
   },
+  {
+    kind: 'decision',
+    question: 'Should I share a table with or without history?',
+    answer:
+      'Keep WITH HISTORY, the default on Databricks Runtime 16.2 and above, when recipients need time travel, streaming, or the change feed, or when Databricks recipients read large tables. Databricks says it speeds Databricks-to-Databricks reads by using scoped cloud-storage credentials. Use WITHOUT HISTORY when past versions must stay private. Partitioned tables get no speed-up either way.',
+    links: [
+      {
+        label: 'History sharing performance',
+        url: 'https://docs.databricks.com/aws/en/delta-sharing/share-data-databricks',
+      },
+    ],
+  },
+  {
+    kind: 'tradeoff',
+    question: 'What does sharing history expose to a recipient?',
+    answer:
+      'The recipient can query earlier table versions, including rows you later updated or deleted. If a table once held data you corrected or removed, share it WITHOUT HISTORY, or share a view. To change history on a table already in a share, run ALTER SHARE with ADD TABLE and the WITH HISTORY or WITHOUT HISTORY option you want.',
+    links: [{ label: 'Create shares', url: 'https://docs.databricks.com/aws/en/delta-sharing/create-share' }],
+  },
+  {
+    kind: 'decision',
+    question: 'Should I federate, share, or copy the data?',
+    answer:
+      'Share when others need live access to your Unity Catalog data. Federate when you need to query another system, such as a database, Hive metastore, or Glue, without moving it. Copy when you need high volume, low latency, or a writable copy. Databricks recommends Lakeflow Connect over federation when volume and latency matter.',
+    links: [{ label: 'Lakehouse Federation', url: 'https://docs.databricks.com/aws/en/query-federation/' }],
+  },
+  {
+    kind: 'tradeoff',
+    question: 'Can a recipient stream from a share, and what does it cost?',
+    answer:
+      'Yes, when history is shared and the recipient uses Databricks Runtime 12.2 LTS or above. Streaming gives low latency but needs a running stream and a plan for rows the provider updates or deletes. For a daily need, batch snapshots are simpler. Streaming tables and materialized views give open recipients the current snapshot only.',
+    links: [
+      {
+        label: 'Read shared data',
+        url: 'https://docs.databricks.com/aws/en/delta-sharing/read-data-databricks',
+      },
+    ],
+  },
 ];

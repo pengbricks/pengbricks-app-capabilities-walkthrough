@@ -1166,12 +1166,34 @@
     {
       "path": "reference/open-data/src/open_data/sharing.py",
       "symbol": "is_missing_privilege",
-      "startLine": 69,
-      "endLine": 71,
+      "startLine": 77,
+      "endLine": 79,
       "language": "py",
       "code": "def is_missing_privilege(message: str) -> bool:\n    \"\"\"True when an error says the identity lacks CREATE SHARE on the metastore.\"\"\"\n    return \"PERMISSION_DENIED\" in message and \"CREATE SHARE\" in message",
       "functions": {
         "is_missing_privilege": "True when an error says the identity lacks CREATE SHARE on the metastore."
+      }
+    },
+    {
+      "path": "reference/open-data/guides/data-sharing/02_share_and_read.py",
+      "symbol": null,
+      "startLine": 252,
+      "endLine": 267,
+      "language": "py",
+      "code": "if not blocked:\n    def history_status(share_name, shared_as):\n        info = w.shares.get(name=share_name, include_shared_data=True)\n        for obj in info.objects or []:\n            if obj.shared_as == shared_as or obj.name.endswith(f\".{shared_as.rsplit('.', 1)[-1]}\"):\n                return obj.history_data_sharing_status, obj.start_version\n        return None, None\n\n    shared_as = f\"{share_schema}.{table}\"\n    status, _ = history_status(share, shared_as)\n    if needs_history_readd(status):\n        spark.sql(f\"ALTER SHARE {share} ADD TABLE {prefix}.{table} COMMENT 'Product list prices' AS {shared_as} WITH HISTORY\")\n    status, start_version = history_status(share, shared_as)\n    record(\"history_shared\", \"PASS\" if str(status).endswith(\"ENABLED\") else \"FAIL\", str(status), f\"{shared_as} in share {share}: history sharing {status}, start version {start_version}\")\n    versions = spark.sql(f\"DESCRIBE HISTORY {prefix}.{table}\").select(\"version\", \"timestamp\", \"operation\").orderBy(\"version\").collect()\n    record(\"history_versions\", \"INFO\", str(len(versions)), f\"A history-enabled recipient can time travel across {len(versions)} version(s) of {table}, from version {versions[0]['version']} to {versions[-1]['version']}\")",
+      "functions": {
+        "needs_history_readd": "True when a shared table does not have history sharing enabled, so `ALTER SHARE ... ADD TABLE ... WITH HISTORY` must run."
+      }
+    },
+    {
+      "path": "reference/open-data/src/open_data/sharing.py",
+      "symbol": "needs_history_readd",
+      "startLine": 63,
+      "endLine": 68,
+      "language": "py",
+      "code": "def needs_history_readd(status: Any) -> bool:\n    \"\"\"True when a shared table does not have history sharing enabled, so `ALTER SHARE ... ADD TABLE ... WITH HISTORY` must run.\n\n    `status` is the SDK's history_data_sharing_status (an enum or its string); None means the table is not in the share.\n    \"\"\"\n    return not str(status).endswith(\"ENABLED\")",
+      "functions": {
+        "needs_history_readd": "True when a shared table does not have history sharing enabled, so `ALTER SHARE ... ADD TABLE ... WITH HISTORY` must run."
       }
     }
   ],
@@ -2849,6 +2871,57 @@
       "endLine": 110,
       "language": "py",
       "code": "@pytest.mark.parametrize(\"file_name\", [\"02_orders_metric_view.sql\", \"03_funnel_metric_view.sql\"])\ndef test_metric_view_yaml_is_well_formed(file_name):\n    spec = metric_view_yaml(GUIDE / file_name)\n    assert spec[\"version\"] == 1.1\n    assert spec[\"source\"] in m.TABLES.values()\n    assert spec[\"fields\"] and spec[\"measures\"]\n    names = [x[\"name\"] for x in spec[\"fields\"] + spec[\"measures\"]]\n    assert len(names) == len(set(names)), \"field and measure names must be unique\"\n    for join in spec[\"joins\"]:\n        # `on` unquoted parses as a boolean in YAML 1.1, so it must stay quoted.\n        assert \"on\" in {str(k) for k in join} and True not in join\n        assert join[\"source\"] in m.TABLES.values()\n        assert join[\"rely\"][\"at_most_one_match\"] is True\n    for item in spec[\"fields\"] + spec[\"measures\"]:\n        assert item.get(\"display_name\"), item[\"name\"]\n    for measure in spec[\"measures\"]:\n        assert measure.get(\"comment\"), measure[\"name\"]",
+      "functions": {}
+    }
+  ],
+  "migrate-off-databricks": [
+    {
+      "path": "reference/open-data/src/open_data/exit_inventory.py",
+      "symbol": "delta_features",
+      "startLine": 39,
+      "endLine": 51,
+      "language": "py",
+      "code": "def delta_features(props: dict[str, str], detail_features: list[str] | None = None) -> list[str]:\n    \"\"\"Names of reader-side features in use, from delta.feature.* properties and DESCRIBE DETAIL.\"\"\"\n    found = {name for name in (detail_features or []) if name in READER_FEATURES}\n    for key, value in props.items():\n        if key.startswith(\"delta.feature.\") and value.lower() in {\"supported\", \"enabled\"}:\n            name = key.removeprefix(\"delta.feature.\")\n            if name in READER_FEATURES:\n                found.add(name)\n    if props.get(\"delta.enableDeletionVectors\", \"\").lower() == \"true\":\n        found.add(\"deletionVectors\")\n    if props.get(\"delta.columnMapping.mode\", \"none\").lower() not in {\"\", \"none\"}:\n        found.add(\"columnMapping\")\n    return sorted(found)",
+      "functions": {
+        "delta_features": "Names of reader-side features in use, from delta.feature.* properties and DESCRIBE DETAIL."
+      }
+    },
+    {
+      "path": "reference/open-data/src/open_data/exit_inventory.py",
+      "symbol": "verdict",
+      "startLine": 65,
+      "endLine": 86,
+      "language": "py",
+      "code": "def verdict(table_type: str, data_source_format: str, readability: str, features: list[str]) -> tuple[str, str]:\n    \"\"\"Portability verdict and the reason, from table type, format, Iceberg readability, and features.\"\"\"\n    table_type = (table_type or \"\").upper()\n    fmt = (data_source_format or \"\").upper()\n    if table_type in {\"MATERIALIZED_VIEW\", \"STREAMING_TABLE\"}:\n        return REBUILD, \"Refresh logic runs in Databricks. Export the defining query and recreate the pipeline.\"\n    if table_type == \"VIEW\":\n        return NEEDS_CHANGES, \"A view holds a query, not files. Export the SQL and recreate it in the target.\"\n    if table_type == \"FOREIGN\":\n        return NEEDS_CHANGES, \"Data lives in another system. Read it from there, not through Databricks.\"\n    if table_type in SHALLOW_CLONE_TYPES:\n        return NEEDS_CHANGES, \"A shallow clone references the source table's files. Deep clone it before you export or retire the source.\"\n    if readability != \"none\":\n        return RUNS_AS_IS, f\"Readable by Iceberg clients ({readability}).\"\n    if fmt in {\"PARQUET\", \"CSV\", \"JSON\", \"ORC\", \"AVRO\", \"TEXT\"}:\n        return RUNS_AS_IS, f\"Plain {fmt.lower()} files that any engine reads.\"\n    if fmt == \"DELTA\" and features:\n        names = \", \".join(READER_FEATURES[f] for f in features)\n        return NEEDS_CHANGES, f\"Delta readers must support: {names}. Check your engine version, or drop the feature.\"\n    if fmt == \"DELTA\":\n        return RUNS_AS_IS, \"Delta table with no reader-side features found. Any Delta reader opens it.\"\n    return NEEDS_CHANGES, f\"Format {fmt or 'unknown'} was not checked. Confirm the target engine reads it.\"",
+      "functions": {
+        "verdict": "Portability verdict and the reason, from table type, format, Iceberg readability, and features."
+      }
+    },
+    {
+      "path": "reference/open-data/guides/migrate-off-databricks/01_exit_inventory.py",
+      "symbol": null,
+      "startLine": 31,
+      "endLine": 36,
+      "language": "py",
+      "code": "tables = spark.sql(f\"\"\"\n  SELECT table_name, table_type, data_source_format, storage_path\n  FROM {catalog}.information_schema.tables\n  WHERE table_schema = '{schema}' AND table_name <> '{TARGET}'\n  ORDER BY table_name\n\"\"\").collect()",
+      "functions": {}
+    },
+    {
+      "path": "reference/open-data/src/open_data/iceberg.py",
+      "symbol": "catalog_properties",
+      "startLine": 6,
+      "endLine": 13,
+      "language": "py",
+      "code": "def catalog_properties(host: str, catalog: str, irc_path: str, token: str) -> dict[str, str]:\n    return {\n        \"type\": \"rest\",\n        \"uri\": host.rstrip(\"/\") + irc_path,\n        \"warehouse\": catalog,\n        \"token\": token,\n        \"header.X-Iceberg-Access-Delegation\": \"vended-credentials\",\n    }",
+      "functions": {}
+    },
+    {
+      "path": "reference/open-data/guides/migrate-off-databricks/02_read_from_outside.py",
+      "symbol": null,
+      "startLine": 66,
+      "endLine": 72,
+      "language": "py",
+      "code": "props = catalog_properties(w.config.host, catalog, IRC_PATH, \"<OAuth access token>\")\nprint(\"Iceberg REST endpoint:\", props[\"uri\"])\nprint()\nprint(\"from pyiceberg.catalog import load_catalog\")\nprint(f'catalog = load_catalog(\"unity\", **{props!r})')\nprint(f'table = catalog.load_table(\"{schema}.{name}\")')\nprint(\"df = table.scan().to_arrow()\")",
       "functions": {}
     }
   ],

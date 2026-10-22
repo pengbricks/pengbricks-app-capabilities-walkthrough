@@ -18,7 +18,7 @@ import sys, os, time
 sys.path.insert(0, os.path.abspath("../../src"))
 from guide_params import bundle_root, load_params
 from open_data.checks import append_rows, check_row, scrub
-from open_data.sharing import activation_exchange_url, credential_profile, file_urls, is_missing_privilege, served_from_source, strip_query
+from open_data.sharing import activation_exchange_url, credential_profile, file_urls, is_missing_privilege, needs_history_readd, served_from_source, strip_query
 from open_data.spec import load_spec
 params = load_params(dbutils, "capability_guides_data_sharing", ['catalog', 'schema', 'use_case'])
 catalog, schema = params["catalog"], params["schema"]
@@ -239,6 +239,32 @@ if not blocked:
     left = [r.name for r in w.recipients.list() if r.name == recipient]
     record("recipient_removed", "PASS" if not left else "FAIL", str(len(left)), f"Recipient {recipient} dropped; credential file is invalid")
     os.remove(profile_path)
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## 8. Share the table with history
+# MAGIC
+# MAGIC `WITH HISTORY` lets a recipient run time travel and streaming reads, and change data feed queries when the table has CDF on. For Databricks-to-Databricks recipients it also lets reads use cloud tokens instead of pre-signed URLs. The docs say the default is `WITH HISTORY` on Databricks Runtime 16.2 and above. This step does not rely on the default. It reads the share's metadata through the SDK (the `history_data_sharing_status` field of each shared object; `SHOW ALL IN SHARE` shows the same value in its `history_sharing` column) and runs `ALTER SHARE ... ADD TABLE ... WITH HISTORY` only when history is off. That statement is the documented way to turn history on for a table already in the share. The recipient in this guide is an open recipient and is already dropped, so the step shows the provider side: the share metadata and the table versions a history-enabled recipient could query. Safe to rerun: a table that already has history is left alone.
+
+# COMMAND ----------
+
+if not blocked:
+    def history_status(share_name, shared_as):
+        info = w.shares.get(name=share_name, include_shared_data=True)
+        for obj in info.objects or []:
+            if obj.shared_as == shared_as or obj.name.endswith(f".{shared_as.rsplit('.', 1)[-1]}"):
+                return obj.history_data_sharing_status, obj.start_version
+        return None, None
+
+    shared_as = f"{share_schema}.{table}"
+    status, _ = history_status(share, shared_as)
+    if needs_history_readd(status):
+        spark.sql(f"ALTER SHARE {share} ADD TABLE {prefix}.{table} COMMENT 'Product list prices' AS {shared_as} WITH HISTORY")
+    status, start_version = history_status(share, shared_as)
+    record("history_shared", "PASS" if str(status).endswith("ENABLED") else "FAIL", str(status), f"{shared_as} in share {share}: history sharing {status}, start version {start_version}")
+    versions = spark.sql(f"DESCRIBE HISTORY {prefix}.{table}").select("version", "timestamp", "operation").orderBy("version").collect()
+    record("history_versions", "INFO", str(len(versions)), f"A history-enabled recipient can time travel across {len(versions)} version(s) of {table}, from version {versions[0]['version']} to {versions[-1]['version']}")
 
 # COMMAND ----------
 
