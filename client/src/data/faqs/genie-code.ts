@@ -7,7 +7,7 @@ export const faqs: Faq[] = [
     answer:
       'Use Designer when a business user owns the prep and the steps are filter, join, aggregate and derive. Use Genie Code when an engineer or analyst will review and edit code. Genie Code is built into Designer and every visual data prep is backed by generated code, so you can start in one and finish in the other.',
     links: [
-      { label: 'No-code data preparation', url: '/walkthroughs/no-code-data-prep' },
+      { label: 'Lakeflow Designer: no-code data preparation', url: '/walkthroughs/no-code-data-prep' },
       { label: 'Lakeflow Designer', url: 'https://docs.databricks.com/aws/en/designer/' },
     ],
   },

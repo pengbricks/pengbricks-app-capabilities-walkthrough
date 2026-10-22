@@ -9550,8 +9550,8 @@
             "A stable experiment, a new model version per run, and the alias moved, not added."
           ],
           "lines": [
-            48,
-            69
+            51,
+            72
           ],
           "section": "track"
         },
@@ -9562,8 +9562,8 @@
             "Each rank loads its own data and trains a shard under DDP; rank 0 returns the result."
           ],
           "lines": [
-            54,
-            83
+            57,
+            86
           ],
           "section": "distribute"
         },
@@ -9574,8 +9574,8 @@
             "Gated by the distributed parameter, so the default run stays on one GPU."
           ],
           "lines": [
-            92,
-            99
+            95,
+            102
           ],
           "section": "distribute"
         },

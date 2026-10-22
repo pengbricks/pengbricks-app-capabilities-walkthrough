@@ -1,6 +1,6 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # No-code data preparation
+# MAGIC # Lakeflow Designer: no-code data preparation
 # MAGIC
 # MAGIC This guide pairs a Lakeflow Designer flow with its SQL equivalent. The flow filters, joins, renames and derives columns in the UI. The SQL builds the same `prep_flow_output` table, so you can compare the flow's output with a known-good result.
 # MAGIC

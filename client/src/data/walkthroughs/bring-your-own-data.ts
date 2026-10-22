@@ -240,6 +240,6 @@ export const walkthrough: Walkthrough = {
   ],
   related: [
     { slug: 'sql-notebook-analysis', title: 'SQL and notebooks at scale' },
-    { slug: 'no-code-data-prep', title: 'No-code data preparation' },
+    { slug: 'no-code-data-prep', title: 'Lakeflow Designer: no-code data preparation' },
   ],
 };
