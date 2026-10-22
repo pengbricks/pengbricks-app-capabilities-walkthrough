@@ -66,14 +66,99 @@ export const walkthrough: Walkthrough = {
         description:
           'Clients such as the web UI, terminal, mobile, and the REST API connect to the Omnigent server, which holds history, the catalog, policies, MCPs, artifacts, and skills. The server applies policies to each action and hands work to a host and runner that drive coding agents such as Claude Code, Codex, and Pi, and custom agents. On Databricks, the agents call models through Unity Gateway, read data under Unity Catalog grants, and write traces to MLflow Tracing.',
         nodes: [
-          { id: 'dev', label: 'Clients', sub: 'web, mobile, TUI, REST API', col: 0, row: 0 },
-          { id: 'server', label: 'Omnigent server', sub: 'history, catalog, skills', col: 1, row: 0, kind: 'highlight' },
-          { id: 'policy', label: 'Policy layer', sub: 'ALLOW, ASK, DENY', col: 2, row: 0, kind: 'gate' },
-          { id: 'host', label: 'Host and runner', sub: 'sandbox, common API', col: 3, row: 0 },
-          { id: 'agents', label: 'Agents', sub: 'coding and custom agents', col: 4, row: 0, kind: 'surface' },
-          { id: 'gw', label: 'Unity Gateway', sub: 'models and usage', col: 2, row: 1, kind: 'store' },
-          { id: 'uc', label: 'Unity Catalog', sub: 'grants and audit logs', col: 3, row: 1, kind: 'store' },
-          { id: 'mlflow', label: 'MLflow Tracing', sub: 'one trace per turn', col: 4, row: 1, kind: 'store' },
+          {
+            id: 'dev',
+            label: 'Clients',
+            sub: 'web, mobile, TUI, REST API',
+            col: 0,
+            row: 0,
+            domain: 'neutral',
+            icon: 'users',
+            detail:
+              'The web UI, terminal, mobile, desktop app, Slack, and REST API. All of them attach to the same live session on the server.',
+          },
+          {
+            id: 'server',
+            label: 'Omnigent server',
+            sub: 'history, catalog, skills',
+            col: 1,
+            row: 0,
+            kind: 'highlight',
+            domain: 'orchestration',
+            icon: 'gear-navy',
+            detail:
+              'Keeps session history, the catalog, policies, MCPs, artifacts, and skills, so teams share one session across agents and people.',
+          },
+          {
+            id: 'policy',
+            label: 'Policy layer',
+            sub: 'ALLOW, ASK, DENY',
+            col: 2,
+            row: 0,
+            kind: 'gate',
+            domain: 'governance',
+            detail:
+              'Checks each tool call, model request, and file operation and answers ALLOW, ASK, or DENY. It runs in the server, so a prompt cannot argue past it.',
+          },
+          {
+            id: 'host',
+            label: 'Host and runner',
+            sub: 'sandbox, common API',
+            col: 3,
+            row: 0,
+            domain: 'orchestration',
+            icon: 'gear-slate',
+            detail:
+              'Provides the common API, sandboxing, and reliability. Its runner wraps each agent and gives every harness the same session shape.',
+          },
+          {
+            id: 'agents',
+            label: 'Agents',
+            sub: 'coding and custom agents',
+            col: 4,
+            row: 0,
+            kind: 'surface',
+            domain: 'ai',
+            icon: 'gear-maroon',
+            detail:
+              'Coding agents such as Claude Code, Codex, and Pi, plus custom agents. The runner drives them while the server keeps history and rules.',
+          },
+          {
+            id: 'gw',
+            label: 'Unity Gateway',
+            sub: 'models and usage',
+            col: 2,
+            row: 1,
+            kind: 'store',
+            domain: 'governance',
+            icon: 'network',
+            detail:
+              'Routes model calls to Foundation Model APIs or an external provider and provides usage tracking, rate limits, and audit logs.',
+          },
+          {
+            id: 'uc',
+            label: 'Unity Catalog',
+            sub: 'grants and audit logs',
+            col: 3,
+            row: 1,
+            kind: 'store',
+            domain: 'governance',
+            icon: 'checklist',
+            detail:
+              "Limits data access to the user's own grants, since the agent uses that user's token. Audit logs record the access like any other client.",
+          },
+          {
+            id: 'mlflow',
+            label: 'MLflow Tracing',
+            sub: 'one trace per turn',
+            col: 4,
+            row: 1,
+            kind: 'store',
+            domain: 'ai',
+            icon: 'list',
+            detail:
+              'Receives OpenTelemetry spans from the server, one trace per agent turn, searchable and retained under Unity Catalog governance.',
+          },
         ],
         edges: [
           { from: 'dev', to: 'server' },
@@ -111,7 +196,11 @@ export const walkthrough: Walkthrough = {
         },
       ],
       links: [
-        { label: 'Omnigent on Databricks', url: 'https://docs.databricks.com/aws/en/omnigent/', note: 'Managed offering, availability, and limitations.' },
+        {
+          label: 'Omnigent on Databricks',
+          url: 'https://docs.databricks.com/aws/en/omnigent/',
+          note: 'Managed offering, availability, and limitations.',
+        },
         { label: 'Omnigent documentation', url: 'https://omnigent.ai/docs' },
         { label: 'Omnigent repository', url: 'https://github.com/omnigent-ai/omnigent' },
       ],
@@ -204,9 +293,18 @@ export const walkthrough: Walkthrough = {
         caption: 'What each share level allows',
         columns: ['Level', 'What it allows'],
         rows: [
-          ['Read', 'Watch messages and tool calls. Workspace files stay hidden unless the owner turns on the Workspace files toggle.'],
-          ['Edit', 'Send messages, edit workspace files, and answer approvals. Every action goes through the agent, so policies still apply.'],
-          ['Owner only', 'Change MCP servers, the agent bundle, or the permission mode, browse host paths, and run a raw shell command.'],
+          [
+            'Read',
+            'Watch messages and tool calls. Workspace files stay hidden unless the owner turns on the Workspace files toggle.',
+          ],
+          [
+            'Edit',
+            'Send messages, edit workspace files, and answer approvals. Every action goes through the agent, so policies still apply.',
+          ],
+          [
+            'Owner only',
+            'Change MCP servers, the agent bundle, or the permission mode, browse host paths, and run a raw shell command.',
+          ],
           ['Fork', 'Copy the conversation and continue independently, even with a different agent.'],
         ],
       },
@@ -254,8 +352,18 @@ export const walkthrough: Walkthrough = {
           {
             label: 'Customer data with PII',
             cells: [
-              { state: 'optional', text: 'ASK', sub: 'a person approves' },
-              { state: 'none', text: 'DENY', sub: 'blocked' },
+              {
+                state: 'optional',
+                text: 'ASK',
+                sub: 'a person approves',
+                detail: 'After touching customer PII, an email to a coworker pauses until a person approves it.',
+              },
+              {
+                state: 'none',
+                text: 'DENY',
+                sub: 'blocked',
+                detail: 'After touching customer PII, publishing to the company website is blocked outright.',
+              },
             ],
           },
           {
@@ -345,7 +453,10 @@ export const walkthrough: Walkthrough = {
         { label: 'Contextual policies', url: 'https://omnigent.ai/docs/policies/overview' },
         { label: 'Built-in policies', url: 'https://omnigent.ai/docs/policies/builtin' },
         { label: 'Custom policies', url: 'https://omnigent.ai/docs/policies/custom' },
-        { label: 'Policy guide in the repository', url: 'https://github.com/omnigent-ai/omnigent/blob/main/docs/POLICIES.md' },
+        {
+          label: 'Policy guide in the repository',
+          url: 'https://github.com/omnigent-ai/omnigent/blob/main/docs/POLICIES.md',
+        },
       ],
     },
     {
@@ -357,9 +468,18 @@ export const walkthrough: Walkthrough = {
         caption: 'Where each one enforces',
         columns: ['Layer', 'What it governs'],
         rows: [
-          ['Omnigent policies', 'The full run and its trajectory. Stateful policies span a multi-step session, such as cumulative spend, tool-call counts, and a running risk score. Local actions with no network egress, such as ls, rm -rf, and cat, are gated in the loop before they run. An OS sandbox limits local files and network.'],
-          ['Unity Gateway (formerly AI Gateway)', 'Each request to a model or MCP service. Unity Catalog permissions control access to the AI assets. Inference tables log model requests and responses to Delta tables. Budgets set per-user thresholds and hard limits. Cost is broken down by service, model, and requesting principal, with request tags for usage analysis.'],
-          ['Together', 'Omnigent gates what the agent does on the host. Unity Gateway governs and audits what leaves the host for a model.'],
+          [
+            'Omnigent policies',
+            'The full run and its trajectory. Stateful policies span a multi-step session, such as cumulative spend, tool-call counts, and a running risk score. Local actions with no network egress, such as ls, rm -rf, and cat, are gated in the loop before they run. An OS sandbox limits local files and network.',
+          ],
+          [
+            'Unity Gateway (formerly AI Gateway)',
+            'Each request to a model or MCP service. Unity Catalog permissions control access to the AI assets. Inference tables log model requests and responses to Delta tables. Budgets set per-user thresholds and hard limits. Cost is broken down by service, model, and requesting principal, with request tags for usage analysis.',
+          ],
+          [
+            'Together',
+            'Omnigent gates what the agent does on the host. Unity Gateway governs and audits what leaves the host for a model.',
+          ],
         ],
       },
       points: [
@@ -375,8 +495,14 @@ export const walkthrough: Walkthrough = {
       links: [
         { label: 'Unity Gateway', url: 'https://docs.databricks.com/aws/en/unity-gateway/' },
         { label: 'Manage budgets for Unity Gateway', url: 'https://docs.databricks.com/aws/en/ai-gateway/budgets' },
-        { label: 'Analyze Unity Gateway cost', url: 'https://docs.databricks.com/aws/en/ai-gateway/cost-observability' },
-        { label: 'Log requests and responses to inference tables', url: 'https://docs.databricks.com/aws/en/ai-gateway/inference-tables' },
+        {
+          label: 'Analyze Unity Gateway cost',
+          url: 'https://docs.databricks.com/aws/en/ai-gateway/cost-observability',
+        },
+        {
+          label: 'Log requests and responses to inference tables',
+          url: 'https://docs.databricks.com/aws/en/ai-gateway/inference-tables',
+        },
       ],
     },
     {
@@ -388,12 +514,30 @@ export const walkthrough: Walkthrough = {
         caption: 'Blast-radius layers',
         columns: ['Layer', 'Control'],
         rows: [
-          ['Host', 'Run the session on a sandbox host, such as a micro-VM, a Kubernetes pod, or a cloud sandbox, away from your laptop and other sessions.'],
-          ['Shell commands', 'The blast_radius policy allows safe commands, asks on risky ones such as git push or gh pr merge, and always denies force-push and rm -rf of the root.'],
-          ['MCP tools', 'Name the tools a server exposes in the agent YAML. Only the session owner can add, edit, or remove MCP servers.'],
-          ['File writes', 'worktree_guard keeps writes inside a worker’s worktree, and read_only_os makes a report-only agent.'],
-          ['Working directory', 'block_working_dir_changes denies cd, git -C, and worktree changes outside allowed directories.'],
-          ['OS sandbox', 'Omnibox restricts the filesystem and network for the agent process and every subprocess it spawns.'],
+          [
+            'Host',
+            'Run the session on a sandbox host, such as a micro-VM, a Kubernetes pod, or a cloud sandbox, away from your laptop and other sessions.',
+          ],
+          [
+            'Shell commands',
+            'The blast_radius policy allows safe commands, asks on risky ones such as git push or gh pr merge, and always denies force-push and rm -rf of the root.',
+          ],
+          [
+            'MCP tools',
+            'Name the tools a server exposes in the agent YAML. Only the session owner can add, edit, or remove MCP servers.',
+          ],
+          [
+            'File writes',
+            'worktree_guard keeps writes inside a worker’s worktree, and read_only_os makes a report-only agent.',
+          ],
+          [
+            'Working directory',
+            'block_working_dir_changes denies cd, git -C, and worktree changes outside allowed directories.',
+          ],
+          [
+            'OS sandbox',
+            'Omnibox restricts the filesystem and network for the agent process and every subprocess it spawns.',
+          ],
         ],
       },
       points: [
@@ -484,12 +628,75 @@ policies:
         description:
           'A Declarative Automation Bundle deploys the Omnigent server to Databricks Apps. Users sign in with workspace identity and connect with per-user OAuth. The server stores state in Lakebase and agent bundles in a Unity Catalog volume, and sends model calls through Unity Gateway.',
         nodes: [
-          { id: 'bundle', label: 'Automation Bundle', sub: 'databricks.yml', col: 0, row: 0 },
-          { id: 'app', label: 'Omnigent server', sub: 'on Databricks Apps', col: 1, row: 0, kind: 'highlight' },
-          { id: 'users', label: 'Users', sub: 'per-user OAuth', col: 2, row: 0 },
-          { id: 'lake', label: 'Lakebase', sub: 'sessions and state', col: 0, row: 1, kind: 'store' },
-          { id: 'vol', label: 'Unity Catalog volume', sub: 'agent bundles', col: 1, row: 1, kind: 'store' },
-          { id: 'gw', label: 'Unity Gateway', sub: 'model access', col: 2, row: 1, kind: 'gate' },
+          {
+            id: 'bundle',
+            label: 'Automation Bundle',
+            sub: 'databricks.yml',
+            col: 0,
+            row: 0,
+            domain: 'orchestration',
+            icon: 'workflow',
+            detail:
+              'The Declarative Automation Bundle (databricks.yml) that deploys the Omnigent server to Databricks Apps in the self-managed route.',
+          },
+          {
+            id: 'app',
+            label: 'Omnigent server',
+            sub: 'on Databricks Apps',
+            col: 1,
+            row: 0,
+            kind: 'highlight',
+            domain: 'apps',
+            icon: 'gear-navy',
+            detail:
+              'The Omnigent server running on Databricks Apps. Users sign in with workspace identity and reach it with per-user OAuth.',
+          },
+          {
+            id: 'users',
+            label: 'Users',
+            sub: 'per-user OAuth',
+            col: 2,
+            row: 0,
+            domain: 'neutral',
+            icon: 'users',
+            detail:
+              'Each user connects from Settings and authorizes with OAuth U2M after an admin registers the Databricks OAuth app once.',
+          },
+          {
+            id: 'lake',
+            label: 'Lakebase',
+            sub: 'sessions and state',
+            col: 0,
+            row: 1,
+            kind: 'store',
+            domain: 'data',
+            icon: 'cloud-database',
+            detail: 'One Lakebase project per app holds sessions and server state in the self-managed setup.',
+          },
+          {
+            id: 'vol',
+            label: 'Unity Catalog volume',
+            sub: 'agent bundles',
+            col: 1,
+            row: 1,
+            kind: 'store',
+            domain: 'data',
+            icon: 'data-file',
+            detail:
+              "A Unity Catalog volume that stores agent bundles. Its catalog and schema grant access to the app's service principal.",
+          },
+          {
+            id: 'gw',
+            label: 'Unity Gateway',
+            sub: 'model access',
+            col: 2,
+            row: 1,
+            kind: 'gate',
+            domain: 'governance',
+            icon: 'network',
+            detail:
+              "Sends the server's model calls through Foundation Model APIs or an external provider with usage tracking, rate limits, and audit logs.",
+          },
         ],
         edges: [
           { from: 'bundle', to: 'app', label: 'deploys', dashed: true },
@@ -536,15 +743,13 @@ policies:
         rows: [
           {
             option: 'Managed: Omnigent on Databricks (Beta)',
-            when:
-              'Default choice. Your workspace identity provider, Foundation Model APIs, and Unity Gateway are wired in.',
+            when: 'Default choice. Your workspace identity provider, Foundation Model APIs, and Unity Gateway are wired in.',
             tradeoffs:
               'Databricks operates the server and can run sessions on a Databricks Sandbox host. It is Beta and needs a region that supports Unity Gateway. A Databricks Sandbox host takes models only through Unity Gateway, so you cannot bring your own model API keys there.',
           },
           {
             option: 'Self-managed on Databricks Apps',
-            when:
-              'You need custom YAML policies, your own provider API keys, custom egress controls, or the managed service is not in your region.',
+            when: 'You need custom YAML policies, your own provider API keys, custom egress controls, or the managed service is not in your region.',
             tradeoffs:
               'Most control. You deploy the server and host, route model, MCP, and skill access through Unity Gateway yourself, source your own sandbox provider, and own upgrades and operations.',
           },
@@ -561,7 +766,10 @@ policies:
       links: [
         { label: 'Omnigent on Databricks', url: 'https://docs.databricks.com/aws/en/omnigent/' },
         { label: 'Connect Databricks (per-user OAuth)', url: 'https://omnigent.ai/docs/deploy/databricks-connect' },
-        { label: 'Deploy on Databricks Apps', url: 'https://github.com/omnigent-ai/omnigent/tree/main/deploy/databricks' },
+        {
+          label: 'Deploy on Databricks Apps',
+          url: 'https://github.com/omnigent-ai/omnigent/tree/main/deploy/databricks',
+        },
         { label: 'Databricks Apps', url: 'https://docs.databricks.com/aws/en/dev-tools/databricks-apps/' },
         { label: 'Declarative Automation Bundles', url: 'https://docs.databricks.com/aws/en/dev-tools/bundles/' },
         { label: 'Unity Gateway', url: 'https://docs.databricks.com/aws/en/unity-gateway/' },
@@ -575,13 +783,31 @@ policies:
       table: {
         columns: ['Question', 'Answer'],
         rows: [
-          ['Do we need Databricks to use Omnigent?', 'No. It is open source under Apache 2.0 and runs with your own machine and model keys. Databricks adds identity, governed models, tracing, and a managed server.'],
-          ['Which models can we use?', 'Your own API keys, Claude or ChatGPT plans, compatible gateways, or a Databricks workspace. A Databricks Sandbox host allows only models through Unity Gateway.'],
-          ['Can a prompt injection bypass a policy?', 'The server enforces policies around each action, so instructions in a prompt cannot turn a DENY into an ALLOW. A policy that runs after a tool call cannot undo that call, so gate destructive actions before the call.'],
-          ['Can a teammate with Edit change my agent’s tools?', 'No. MCP servers, the agent bundle, the permission mode, and the raw shell are owner-only.'],
-          ['Is it ready for production?', 'The project labels itself alpha and the Databricks offering is in Beta. Pilot with a small group and re-check the release notes before a wide rollout.'],
+          [
+            'Do we need Databricks to use Omnigent?',
+            'No. It is open source under Apache 2.0 and runs with your own machine and model keys. Databricks adds identity, governed models, tracing, and a managed server.',
+          ],
+          [
+            'Which models can we use?',
+            'Your own API keys, Claude or ChatGPT plans, compatible gateways, or a Databricks workspace. A Databricks Sandbox host allows only models through Unity Gateway.',
+          ],
+          [
+            'Can a prompt injection bypass a policy?',
+            'The server enforces policies around each action, so instructions in a prompt cannot turn a DENY into an ALLOW. A policy that runs after a tool call cannot undo that call, so gate destructive actions before the call.',
+          ],
+          [
+            'Can a teammate with Edit change my agent’s tools?',
+            'No. MCP servers, the agent bundle, the permission mode, and the raw shell are owner-only.',
+          ],
+          [
+            'Is it ready for production?',
+            'The project labels itself alpha and the Databricks offering is in Beta. Pilot with a small group and re-check the release notes before a wide rollout.',
+          ],
           ['Can we run it from CI?', 'Yes, through the Python SDK and the REST API.'],
-          ['Where do the audit records live?', 'Policy decisions are visible in the session. On Databricks, model calls are audited at Unity Gateway, traces go to MLflow Tracing, and data access appears in Unity Catalog audit logs.'],
+          [
+            'Where do the audit records live?',
+            'Policy decisions are visible in the session. On Databricks, model calls are audited at Unity Gateway, traces go to MLflow Tracing, and data access appears in Unity Catalog audit logs.',
+          ],
         ],
       },
       links: [

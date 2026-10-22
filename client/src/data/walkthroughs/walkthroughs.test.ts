@@ -1,7 +1,11 @@
+import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { guides } from '../guides.ts';
 import { walkthroughs } from './index.ts';
 
+const ICON_DIR = fileURLToPath(new URL('../../../public/diagram-icons/', import.meta.url));
+const MAX_DETAIL = 240;
 const MAX_LABEL = 24;
 const MAX_SUB = 26;
 
@@ -68,6 +72,35 @@ describe.each(walkthroughs.map((walkthrough) => [walkthrough.slug, walkthrough] 
       for (const node of diagram.nodes) {
         expect(node.label.length, `${section.id}: ${node.label}`).toBeLessThanOrEqual(MAX_LABEL);
         if (node.sub) expect(node.sub.length, `${section.id}: ${node.sub}`).toBeLessThanOrEqual(MAX_SUB);
+      }
+    }
+  });
+
+  it('names real icon files and keeps hover details short', () => {
+    for (const section of walkthrough.sections) {
+      const diagram = section.diagram;
+      if (!diagram) continue;
+      if (diagram.type === 'flow') {
+        for (const node of diagram.nodes) {
+          if (node.icon) expect(existsSync(`${ICON_DIR}${node.icon}.png`), `${section.id}: ${node.id} icon ${node.icon}`).toBe(true);
+          if (node.detail) expect(node.detail.length, `${section.id}: ${node.id} detail`).toBeLessThanOrEqual(MAX_DETAIL);
+        }
+      } else {
+        for (const row of diagram.rows) {
+          for (const cell of row.cells) {
+            if (cell.detail) expect(cell.detail.length, `${section.id}: ${row.label} detail`).toBeLessThanOrEqual(MAX_DETAIL);
+          }
+        }
+      }
+    }
+  });
+
+  it('gives every flow-diagram node a hover detail', () => {
+    for (const section of walkthrough.sections) {
+      const diagram = section.diagram;
+      if (diagram?.type !== 'flow') continue;
+      for (const node of diagram.nodes) {
+        expect(node.detail?.trim(), `${section.id}: ${node.id} has no detail`).toBeTruthy();
       }
     }
   });

@@ -12,23 +12,19 @@ export const walkthrough: Walkthrough = {
     outcomes: [
       {
         title: 'Documentation that stays current',
-        body:
-          'Comments, governed tags, and certification live on the table in Unity Catalog, so Catalog Explorer, search, and Genie show them. Nothing is copied into a wiki that goes stale after the next schema change.',
+        body: 'Comments, governed tags, and certification live on the table in Unity Catalog, so Catalog Explorer, search, and Genie show them. Nothing is copied into a wiki that goes stale after the next schema change.',
       },
       {
         title: 'Faster first drafts, human sign-off',
-        body:
-          'AI drafts table and column comments, and owners approve them. Bulk drafts go to a review table first, and a tag marks AI-written text, so no one publishes unreviewed wording.',
+        body: 'AI drafts table and column comments, and owners approve them. Bulk drafts go to a review table first, and a tag marks AI-written text, so no one publishes unreviewed wording.',
       },
       {
         title: 'Sensitive data is labeled once',
-        body:
-          'Governed tags with fixed values mark sensitive columns. Search and later access policies can rely on those labels because only permitted users can assign them.',
+        body: 'Governed tags with fixed values mark sensitive columns. Search and later access policies can rely on those labels because only permitted users can assign them.',
       },
       {
         title: 'Lineage and quality come built in',
-        body:
-          'Lineage and data quality monitoring results come from the platform, so the documentation links to them. Anomaly detection is Public Preview, so confirm its status before you commit to it.',
+        body: 'Lineage and data quality monitoring results come from the platform, so the documentation links to them. Anomaly detection is Public Preview, so confirm its status before you commit to it.',
       },
     ],
   },
@@ -138,12 +134,75 @@ export const walkthrough: Walkthrough = {
         description:
           'A job reads table and column metadata, lineage, and profile statistics from Unity Catalog. It asks a model for draft comments and writes them to a proposals table with status proposed. The table owner reviews each row and marks it approved or rejected. A second step applies only approved rows with COMMENT ON, skipping any column that already has a human comment, and sets a tag that marks the comment as AI-drafted.',
         nodes: [
-          { id: 'meta', label: 'Catalog metadata', sub: 'schema, lineage, stats', col: 0, row: 0, kind: 'store' },
-          { id: 'draft', label: 'Draft with ai_gen', sub: 'or ai_query', col: 1, row: 0, kind: 'highlight' },
-          { id: 'prop', label: 'Proposals table', sub: 'status = proposed', col: 2, row: 0, kind: 'store' },
-          { id: 'review', label: 'Owner review', sub: 'approve or reject', col: 2, row: 1, kind: 'gate' },
-          { id: 'apply', label: 'Apply COMMENT ON', sub: 'approved rows only', col: 1, row: 1 },
-          { id: 'uc', label: 'Unity Catalog', sub: 'comments and tags', col: 0, row: 1, kind: 'surface' },
+          {
+            id: 'meta',
+            label: 'Catalog metadata',
+            sub: 'schema, lineage, stats',
+            col: 0,
+            row: 0,
+            kind: 'store',
+            domain: 'governance',
+            icon: 'data-search',
+            detail:
+              'Table and column metadata, lineage, and profile statistics read from Unity Catalog. The model drafts from this context.',
+          },
+          {
+            id: 'draft',
+            label: 'Draft with ai_gen',
+            sub: 'or ai_query',
+            col: 1,
+            row: 0,
+            kind: 'highlight',
+            domain: 'ai',
+            icon: 'gear-maroon',
+            detail:
+              'A job asks a model, through ai_gen or ai_query, for draft table and column comments. Nothing is published at this step.',
+          },
+          {
+            id: 'prop',
+            label: 'Proposals table',
+            sub: 'status = proposed',
+            col: 2,
+            row: 0,
+            kind: 'store',
+            domain: 'data',
+            icon: 'database',
+            detail:
+              'Holds drafts with status proposed. Keys of table, column, and metadata hash let a rerun update pending rows and leave decided ones alone.',
+          },
+          {
+            id: 'review',
+            label: 'Owner review',
+            sub: 'approve or reject',
+            col: 2,
+            row: 1,
+            kind: 'gate',
+            domain: 'governance',
+            detail:
+              'The table owner marks each proposed row approved or rejected, so the model cannot publish a wrong description on a certified table.',
+          },
+          {
+            id: 'apply',
+            label: 'Apply COMMENT ON',
+            sub: 'approved rows only',
+            col: 1,
+            row: 1,
+            domain: 'orchestration',
+            icon: 'gear-amber',
+            detail:
+              'Runs COMMENT ON for approved rows only. It skips any column with a human comment and tags the comment as AI-drafted.',
+          },
+          {
+            id: 'uc',
+            label: 'Unity Catalog',
+            sub: 'comments and tags',
+            col: 0,
+            row: 1,
+            kind: 'surface',
+            domain: 'governance',
+            icon: 'checklist',
+            detail: 'Where the comments and tags land, so people find them in Catalog Explorer next to the data.',
+          },
         ],
         edges: [
           { from: 'meta', to: 'draft' },
@@ -225,8 +284,7 @@ ALTER TABLE main.sales.orders ALTER COLUMN order_total SET TAGS ('comment_source
         rows: [
           {
             option: 'ai_gen(prompt)',
-            when:
-              'You want free text from a Databricks-hosted model with no endpoint to name, such as a one-sentence column description.',
+            when: 'You want free text from a Databricks-hosted model with no endpoint to name, such as a one-sentence column description.',
             tradeoffs:
               'Least to set up. Public Preview and tuned for English, so check the release notes before you build a pipeline on it. You get free text with no schema, so you parse it yourself. Billed per inference.',
           },

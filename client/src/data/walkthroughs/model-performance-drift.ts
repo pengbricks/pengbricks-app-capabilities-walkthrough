@@ -12,23 +12,19 @@ export const walkthrough: Walkthrough = {
     outcomes: [
       {
         title: 'Early warning',
-        body:
-          'Data quality monitoring computes profile and drift metrics over time windows. A SQL alert on those tables notifies the model owner when a metric moves.',
+        body: 'Data quality monitoring computes profile and drift metrics over time windows. A SQL alert on those tables notifies the model owner when a metric moves.',
       },
       {
         title: 'Quality measured against outcomes',
-        body:
-          'Labels join by request ID when they arrive, which can take days or weeks. Quality metrics are read only for windows old enough to be labeled.',
+        body: 'Labels join by request ID when they arrive, which can take days or weeks. Quality metrics are read only for windows old enough to be labeled.',
       },
       {
         title: 'Retraining under review',
-        body:
-          'A breach starts a retraining job that registers a challenger. A person compares it with the champion before the alias moves, so no model replaces itself in production.',
+        body: 'A breach starts a retraining job that registers a challenger. A person compares it with the champion before the alias moves, so no model replaces itself in production.',
       },
       {
         title: 'Little to build',
-        body:
-          'One inference profile writes the metrics tables and a dashboard. Teams add a custom metric, such as PSI, only when the built-in ones fall short.',
+        body: 'One inference profile writes the metrics tables and a dashboard. Teams add a custom metric, such as PSI, only when the built-in ones fall short.',
       },
     ],
   },
@@ -66,14 +62,97 @@ export const walkthrough: Walkthrough = {
         description:
           'The serving endpoint writes requests and responses to an inference table. A job unpacks them into a flat monitored table and joins labels when they arrive. Data quality monitoring computes profile metrics and drift metrics into two tables and generates a dashboard. A SQL alert on those tables notifies the owner, and a breach starts a retraining job.',
         nodes: [
-          { id: 'ep', label: 'Serving endpoint', sub: 'inference logging on', col: 0, row: 0 },
-          { id: 'flat', label: 'Monitored table', sub: 'inputs, prediction, label', col: 1, row: 0, kind: 'store' },
-          { id: 'lbl', label: 'Ground truth', sub: 'arrives later', col: 1, row: 1, kind: 'surface' },
-          { id: 'mon', label: 'Inference profile', sub: 'data quality monitoring', col: 2, row: 0, kind: 'highlight' },
-          { id: 'met', label: 'Metric tables', sub: 'profile and drift', col: 3, row: 0, kind: 'store' },
-          { id: 'dash', label: 'Dashboard', sub: 'generated for you', col: 3, row: 1 },
-          { id: 'alert', label: 'SQL alert', sub: 'notifies the owner', col: 4, row: 0, kind: 'gate' },
-          { id: 'retrain', label: 'Retraining job', sub: 'registers a challenger', col: 4, row: 1 },
+          {
+            id: 'ep',
+            label: 'Serving endpoint',
+            sub: 'inference logging on',
+            col: 0,
+            row: 0,
+            icon: 'gear-maroon',
+            domain: 'ai',
+            detail:
+              'The model serving endpoint with inference logging on. Its inference tables capture requests and responses.',
+          },
+          {
+            id: 'flat',
+            label: 'Monitored table',
+            sub: 'inputs, prediction, label',
+            col: 1,
+            row: 0,
+            kind: 'store',
+            icon: 'database',
+            domain: 'data',
+            detail:
+              'Flat table of inputs, prediction, and label that the monitor reads. Inference tables are unpacked into it, or batch scores are written to it.',
+          },
+          {
+            id: 'lbl',
+            label: 'Ground truth',
+            sub: 'arrives later',
+            col: 1,
+            row: 1,
+            kind: 'surface',
+            icon: 'database',
+            domain: 'data',
+            detail:
+              'Ground truth often lands days or weeks after the prediction. It is joined by request ID, and the label stays null until then.',
+          },
+          {
+            id: 'mon',
+            label: 'Inference profile',
+            sub: 'data quality monitoring',
+            col: 2,
+            row: 0,
+            kind: 'highlight',
+            icon: 'gear-lava',
+            domain: 'ai',
+            detail:
+              'A managed pipeline that reads the monitored table on a schedule. It computes metrics per time window and per model version.',
+          },
+          {
+            id: 'met',
+            label: 'Metric tables',
+            sub: 'profile and drift',
+            col: 3,
+            row: 0,
+            kind: 'store',
+            icon: 'database',
+            domain: 'data',
+            detail:
+              'The profile and drift tables the monitor writes to Unity Catalog. You query them directly and alert on them.',
+          },
+          {
+            id: 'dash',
+            label: 'Dashboard',
+            sub: 'generated for you',
+            col: 3,
+            row: 1,
+            icon: 'dashboard',
+            domain: 'apps',
+            detail: 'Dashboard generated from the metric tables.',
+          },
+          {
+            id: 'alert',
+            label: 'SQL alert',
+            sub: 'notifies the owner',
+            col: 4,
+            row: 0,
+            kind: 'gate',
+            domain: 'apps',
+            detail:
+              'A SQL alert on the drift or profile table that notifies the model owner when a threshold is crossed.',
+          },
+          {
+            id: 'retrain',
+            label: 'Retraining job',
+            sub: 'registers a challenger',
+            col: 4,
+            row: 1,
+            icon: 'gear-maroon',
+            domain: 'ai',
+            detail:
+              'A breach starts this job. It registers a challenger, and a person compares it with the champion before moving the alias.',
+          },
         ],
         edges: [
           { from: 'ep', to: 'flat' },
@@ -209,8 +288,7 @@ WHEN MATCHED AND r.churned IS NULL THEN UPDATE SET r.churned = o.churned;`,
     {
       id: 'alerts',
       heading: 'Alert the owner',
-      prose:
-        'The metric tables are ordinary Unity Catalog tables, so alerts are ordinary SQL alerts.',
+      prose: 'The metric tables are ordinary Unity Catalog tables, so alerts are ordinary SQL alerts.',
       points: [
         {
           strong: 'SQL alert on a metric table.',
@@ -238,7 +316,9 @@ FROM main.ml_monitoring.churn_requests_drift_metrics
 WHERE drift_type = 'BASELINE'
   AND column_name IN ('tenure_months', 'days_since_purchase', 'prediction')
   AND window.start >= current_date() - INTERVAL 2 DAYS;`,
-          notes: ['Alert when max_psi is above your threshold. Check the metric names in the drift table of your profile.'],
+          notes: [
+            'Alert when max_psi is above your threshold. Check the metric names in the drift table of your profile.',
+          ],
         },
       ],
       links: [
@@ -285,20 +365,24 @@ WHERE drift_type = 'BASELINE'
           {
             option: 'Offline comparison on a recent labeled window',
             when: 'Labels arrive soon enough, and you want no exposure in production.',
-            tradeoffs: 'Both models score the same data, so the comparison is fair. It reflects only the window you pick, labels may lag, and it cannot show how users react to the new model.',
+            tradeoffs:
+              'Both models score the same data, so the comparison is fair. It reflects only the window you pick, labels may lag, and it cannot show how users react to the new model.',
           },
           {
             option: 'Canary with a traffic split',
             when: 'You need live evidence from real requests.',
-            tradeoffs: 'Real behavior, with a small share of traffic on the new version. Both versions are served at once, and you need enough traffic and time to read the result.',
+            tradeoffs:
+              'Real behavior, with a small share of traffic on the new version. Both versions are served at once, and you need enough traffic and time to read the result.',
           },
           {
             option: 'Shadow endpoint',
             when: 'High-risk changes where no user may see the new score.',
-            tradeoffs: 'No user impact. A traffic split does not mirror requests, so the caller or a proxy has to send the copy, and you pay for a second endpoint.',
+            tradeoffs:
+              'No user impact. A traffic split does not mirror requests, so the caller or a proxy has to send the copy, and you pay for a second endpoint.',
           },
         ],
-        recommendation: 'Start with an offline comparison on a recent labeled window. Add a canary split for customer-facing models once the offline result holds.',
+        recommendation:
+          'Start with an offline comparison on a recent labeled window. Add a canary split for customer-facing models once the offline result holds.',
       },
       links: [
         {
@@ -342,20 +426,24 @@ def psi(baseline, current, bins=10, eps=1e-6):
           {
             option: 'Built-in drift metrics in the profile',
             when: 'Standard per-column statistics against a baseline or the previous window.',
-            tradeoffs: 'A managed pipeline that runs on serverless compute for jobs, writes metric tables, and generates a dashboard. The profile refresh has a cost you can track, and you accept its metrics and binning.',
+            tradeoffs:
+              'A managed pipeline that runs on serverless compute for jobs, writes metric tables, and generates a dashboard. The profile refresh has a cost you can track, and you accept its metrics and binning.',
           },
           {
             option: 'Custom metrics in the profile',
             when: 'One more number from the same table, such as a weighted mean or a business quality score.',
-            tradeoffs: 'The metric runs in the same refresh and lands in the same tables, so alerts and the dashboard reuse it. You define it through the MonitorMetric API and keep it with the profile.',
+            tradeoffs:
+              'The metric runs in the same refresh and lands in the same tables, so alerts and the dashboard reuse it. You define it through the MonitorMetric API and keep it with the profile.',
           },
           {
             option: 'A standalone job',
             when: 'Different binning, a metric across several columns, or a result outside the monitored table.',
-            tradeoffs: 'Full control, as in the PSI function below. You own the schedule, backfills, result tables, tests, and alerting.',
+            tradeoffs:
+              'Full control, as in the PSI function below. You own the schedule, backfills, result tables, tests, and alerting.',
           },
         ],
-        recommendation: 'Start with the built-in metrics, add custom metrics for one more number, and write a job only when the profile cannot express the metric.',
+        recommendation:
+          'Start with the built-in metrics, add custom metrics for one more number, and write a job only when the profile cannot express the metric.',
       },
       links: [
         {

@@ -12,23 +12,19 @@ export const walkthrough: Walkthrough = {
     outcomes: [
       {
         title: 'One definition of each metric',
-        body:
-          'A metric view holds the definition of revenue once. Dashboards, SQL users, and Genie all use it, so two teams stop reporting different totals for the same question.',
+        body: 'A metric view holds the definition of revenue once. Dashboards, SQL users, and Genie all use it, so two teams stop reporting different totals for the same question.',
       },
       {
         title: 'Cryptic codes made readable',
-        body:
-          'Table and column comments, plus metric view synonyms, map seg_cd and similar codes to business terms. People and Genie can ask for sales or turnover and reach the same measure.',
+        body: 'Table and column comments, plus metric view synonyms, map seg_cd and similar codes to business terms. People and Genie can ask for sales or turnover and reach the same measure.',
       },
       {
         title: 'Trusted assets are visible',
-        body:
-          'The system.certification_status tag marks assets as certified or deprecated, so people and Genie One prefer the ones the data owner vouches for.',
+        body: 'The system.certification_status tag marks assets as certified or deprecated, so people and Genie One prefer the ones the data owner vouches for.',
       },
       {
         title: 'Changes are tested',
-        body:
-          'Genie benchmarks score the expected SQL for real questions before and after a change to the semantics. A definition edit that breaks answers shows up before users find it.',
+        body: 'Genie benchmarks score the expected SQL for real questions before and after a change to the semantics. A definition edit that breaks answers shows up before users find it.',
       },
     ],
   },
@@ -74,11 +70,63 @@ export const walkthrough: Walkthrough = {
         description:
           'Table and column comments, governed tags, and certification describe the raw tables in Unity Catalog. A metric view defines measures, dimensions, and synonyms on top of them. The Genie Agent adds instructions, sample questions, and example queries. A user question is answered with MEASURE queries against the metric view.',
         nodes: [
-          { id: 'raw', label: 'Tables and columns', sub: 'comments, tags, certified', col: 0, row: 0, kind: 'store' },
-          { id: 'view', label: 'Metric view', sub: 'measures, synonyms', col: 1, row: 0, kind: 'highlight' },
-          { id: 'space', label: 'Genie Agent', sub: 'glossary, samples', col: 2, row: 0, kind: 'surface' },
-          { id: 'ask', label: 'User question', sub: 'uses business words', col: 3, row: 0 },
-          { id: 'sql', label: 'MEASURE() query', sub: 'names, not codes', col: 3, row: 1 },
+          {
+            id: 'raw',
+            label: 'Tables and columns',
+            sub: 'comments, tags, certified',
+            col: 0,
+            row: 0,
+            kind: 'store',
+            domain: 'governance',
+            icon: 'database',
+            detail:
+              'Raw tables in Unity Catalog described by comments, governed tags, and certification. Meaning is written next to the data.',
+          },
+          {
+            id: 'view',
+            label: 'Metric view',
+            sub: 'measures, synonyms',
+            col: 1,
+            row: 0,
+            kind: 'highlight',
+            domain: 'governance',
+            icon: 'data-model',
+            detail:
+              'The governed semantic layer. It defines measures, dimensions, and synonyms once for dashboards, Genie, notebooks, and SQL.',
+          },
+          {
+            id: 'space',
+            label: 'Genie Agent',
+            sub: 'glossary, samples',
+            col: 2,
+            row: 0,
+            kind: 'surface',
+            domain: 'apps',
+            icon: 'gear-maroon',
+            detail:
+              'Adds instructions, sample questions, and example queries on top of the metric view, so Genie matches business words.',
+          },
+          {
+            id: 'ask',
+            label: 'User question',
+            sub: 'uses business words',
+            col: 3,
+            row: 0,
+            domain: 'neutral',
+            icon: 'users',
+            detail: 'A question in business words, such as turnover for revenue, which appears in no column name.',
+          },
+          {
+            id: 'sql',
+            label: 'MEASURE() query',
+            sub: 'names, not codes',
+            col: 3,
+            row: 1,
+            domain: 'apps',
+            icon: 'warehouse',
+            detail:
+              'Genie answers with MEASURE() queries against the metric view, so results use names instead of codes.',
+          },
         ],
         edges: [
           { from: 'raw', to: 'view' },
@@ -96,7 +144,10 @@ export const walkthrough: Walkthrough = {
         columns: ['Term', 'Definition and synonyms'],
         rows: [
           ['Revenue', 'SUM(net_amt) for completed orders. Synonyms: sales, net sales, bookings, turnover, income'],
-          ['Active Customers', 'Distinct customers with a completed order. Synonyms: active accounts, buying customers'],
+          [
+            'Active Customers',
+            'Distinct customers with a completed order. Synonyms: active accounts, buying customers',
+          ],
           ['Average Order Value', 'Revenue / completed orders. Synonyms: AOV, average order size, basket size'],
           ['Customer Segment', 'E, M, S mapped to Enterprise, Mid-Market, SMB. Synonyms: tier, account type'],
           ['Region', 'NA, EM, AP mapped to North America, EMEA, APAC. Synonyms: territory, geo'],
@@ -131,8 +182,7 @@ export const walkthrough: Walkthrough = {
         rows: [
           {
             option: 'Metric view measure or dimension',
-            when:
-              'A calculation, a filter such as completed orders, or a code-to-name mapping that several consumers need.',
+            when: 'A calculation, a filter such as completed orders, or a code-to-name mapping that several consumers need.',
             tradeoffs:
               'One governed definition serves dashboards, Genie, notebooks, and SQL, so the number matches everywhere. It is YAML that someone owns and versions, and you add synonyms yourself.',
           },
@@ -265,35 +315,64 @@ export const walkthrough: Walkthrough = {
           {
             label: 'Revenue by segment',
             cells: [
-              { state: 'none', text: 'Codes S, M, E', sub: 'counts all orders' },
+              {
+                state: 'none',
+                text: 'Codes S, M, E',
+                sub: 'counts all orders',
+                detail:
+                  'Over raw tables the agent returned codes S, M, E and counted cancelled and returned orders in revenue.',
+              },
               { state: 'own', text: 'Matches', sub: 'completed orders, names' },
             ],
           },
           {
             label: 'Active customers by region',
             cells: [
-              { state: 'none', text: 'Codes AP, EM, NA', sub: 'counts right, labels wrong' },
+              {
+                state: 'none',
+                text: 'Codes AP, EM, NA',
+                sub: 'counts right, labels wrong',
+                detail:
+                  'Over raw tables the agent counted customers correctly but labeled regions with codes AP, EM, NA.',
+              },
               { state: 'own', text: 'Matches', sub: 'region names' },
             ],
           },
           {
             label: 'Enterprise order value',
             cells: [
-              { state: 'none', text: 'Average over all orders', sub: 'includes cancelled' },
+              {
+                state: 'none',
+                text: 'Average over all orders',
+                sub: 'includes cancelled',
+                detail:
+                  "Over raw tables the average included cancelled orders. The metric view's AOV measure matched the expected rows.",
+              },
               { state: 'own', text: 'Matches', sub: 'AOV measure' },
             ],
           },
           {
             label: 'Top region in a month',
             cells: [
-              { state: 'none', text: 'Region code', sub: 'includes cancelled orders' },
+              {
+                state: 'none',
+                text: 'Region code',
+                sub: 'includes cancelled orders',
+                detail: 'Over raw tables the answer was a region code and included cancelled orders.',
+              },
               { state: 'own', text: 'Region name', sub: 'completed orders only' },
             ],
           },
           {
             label: 'Cancellations by channel',
             cells: [
-              { state: 'none', text: 'Codes W, S, P', sub: 'counts right, labels wrong' },
+              {
+                state: 'none',
+                text: 'Codes W, S, P',
+                sub: 'counts right, labels wrong',
+                detail:
+                  'Over raw tables the agent counted cancellations correctly but labeled channels with codes W, S, P.',
+              },
               { state: 'own', text: 'Matches', sub: 'channel names' },
             ],
           },

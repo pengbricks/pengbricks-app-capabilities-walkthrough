@@ -54,8 +54,7 @@ export const walkthrough: Walkthrough = {
     {
       id: 'lakebridge',
       heading: 'Lakebridge: assess, convert, reconcile',
-      prose:
-        'Lakebridge has a component for each stage. Use them in order, and feed what each learns into the next.',
+      prose: 'Lakebridge has a component for each stage. Use them in order, and feed what each learns into the next.',
       diagram: {
         type: 'matrix',
         title: 'Migration stage by Lakebridge component',
@@ -67,14 +66,22 @@ export const walkthrough: Walkthrough = {
           {
             label: 'Assess: workload',
             cells: [
-              { state: 'own', text: 'Profiler' },
+              {
+                state: 'own',
+                text: 'Profiler',
+                detail: 'Connects to the source environment and reports workload size, complexity, and features used.',
+              },
               { state: 'own', text: 'Size, complexity, and features used in the source environment' },
             ],
           },
           {
             label: 'Assess: code',
             cells: [
-              { state: 'own', text: 'Analyzer' },
+              {
+                state: 'own',
+                text: 'Analyzer',
+                detail: 'Scans SQL and orchestration code and flags problem constructs and effort.',
+              },
               { state: 'own', text: 'Scans SQL and orchestration; flags problem constructs and effort' },
             ],
           },
@@ -90,7 +97,11 @@ export const walkthrough: Walkthrough = {
             label: 'Convert',
             sub: 'next generation',
             cells: [
-              { state: 'optional', text: 'Morpheus' },
+              {
+                state: 'optional',
+                text: 'Morpheus',
+                detail: 'Narrower scope than BladeBridge: fewer dialects, and dbt support is experimental.',
+              },
               { state: 'optional', text: 'Fewer dialects; experimental dbt support' },
             ],
           },
@@ -98,7 +109,12 @@ export const walkthrough: Walkthrough = {
             label: 'Convert',
             sub: 'LLM-powered',
             cells: [
-              { state: 'optional', text: 'Switch' },
+              {
+                state: 'optional',
+                text: 'Switch',
+                detail:
+                  'Uses LLMs to produce notebooks, so output can vary between runs. Treat it as a draft and plan extra review and reconciliation.',
+              },
               { state: 'optional', text: 'Uses LLMs to produce Databricks notebooks' },
             ],
           },
@@ -136,20 +152,78 @@ export const walkthrough: Walkthrough = {
     {
       id: 'phases',
       heading: 'A phase model for the migration',
-      prose:
-        'Run the migration as six phases. Each has an exit test, so you do not carry unknowns into the next one.',
+      prose: 'Run the migration as six phases. Each has an exit test, so you do not carry unknowns into the next one.',
       diagram: {
         type: 'flow',
         title: 'From inventory to decommission',
         description:
           'Inventory the workloads, prioritize by business value and effort, pilot one workload end to end, run old and new in parallel with reconciliation, cut over consumers, then decommission the legacy system.',
         nodes: [
-          { id: 'inv', label: 'Inventory', sub: 'Profiler and Analyzer', col: 0, row: 0 },
-          { id: 'pri', label: 'Prioritize', sub: 'value, usage, effort', col: 1, row: 0 },
-          { id: 'pilot', label: 'Pilot', sub: 'one workload, end to end', col: 2, row: 0, kind: 'highlight' },
-          { id: 'par', label: 'Parallel run', sub: 'reconcile every cycle', col: 0, row: 1, kind: 'gate' },
-          { id: 'cut', label: 'Cutover', sub: 'repoint consumers', col: 1, row: 1 },
-          { id: 'dec', label: 'Decommission', sub: 'retire the legacy system', col: 2, row: 1 },
+          {
+            id: 'inv',
+            label: 'Inventory',
+            sub: 'Profiler and Analyzer',
+            col: 0,
+            row: 0,
+            icon: 'list',
+            domain: 'neutral',
+            detail:
+              'Lists every workload, job, and consumer with owner, size, and complexity. The Profiler and Analyzer supply the counts.',
+          },
+          {
+            id: 'pri',
+            label: 'Prioritize',
+            sub: 'value, usage, effort',
+            col: 1,
+            row: 0,
+            icon: 'checklist',
+            domain: 'neutral',
+            detail:
+              'Orders waves by business value, usage, dependencies, and conversion effort. Unused workloads are retired instead of migrated.',
+          },
+          {
+            id: 'pilot',
+            label: 'Pilot',
+            sub: 'one workload, end to end',
+            col: 2,
+            row: 0,
+            kind: 'highlight',
+            icon: 'gear-lava',
+            domain: 'neutral',
+            detail:
+              'One representative workload runs on Databricks and reconciles. It teaches the team the pattern and the real effort per role.',
+          },
+          {
+            id: 'par',
+            label: 'Parallel run',
+            sub: 'reconcile every cycle',
+            col: 0,
+            row: 1,
+            kind: 'gate',
+            domain: 'governance',
+            detail:
+              'Legacy and Databricks outputs must reconcile over a full business cycle, including month-end if it matters. This is the exit gate before cutover.',
+          },
+          {
+            id: 'cut',
+            label: 'Cutover',
+            sub: 'repoint consumers',
+            col: 1,
+            row: 1,
+            icon: 'network',
+            domain: 'neutral',
+            detail:
+              'Consumers read from Databricks. Rollback is rehearsed, and data and code freeze on the legacy side.',
+          },
+          {
+            id: 'dec',
+            label: 'Decommission',
+            sub: 'retire the legacy system',
+            col: 2,
+            row: 1,
+            domain: 'neutral',
+            detail: 'Legacy access is removed after the agreed retention period, and archives are in place.',
+          },
         ],
         edges: [
           { from: 'inv', to: 'pri' },
@@ -167,9 +241,18 @@ export const walkthrough: Walkthrough = {
         columns: ['Phase', 'Exit test'],
         rows: [
           ['Inventory', 'Every workload, job, and consumer is listed with owner, size, and complexity'],
-          ['Prioritize', 'Waves are ordered by business value, usage, dependencies, and conversion effort; retire unused workloads instead of migrating them'],
-          ['Pilot', 'One representative workload runs on Databricks, reconciles, and teaches the team the pattern and the real effort per role'],
-          ['Parallel run', 'Legacy and Databricks outputs reconcile over a full business cycle, including month-end if it matters'],
+          [
+            'Prioritize',
+            'Waves are ordered by business value, usage, dependencies, and conversion effort; retire unused workloads instead of migrating them',
+          ],
+          [
+            'Pilot',
+            'One representative workload runs on Databricks, reconciles, and teaches the team the pattern and the real effort per role',
+          ],
+          [
+            'Parallel run',
+            'Legacy and Databricks outputs reconcile over a full business cycle, including month-end if it matters',
+          ],
           ['Cutover', 'Consumers read from Databricks; rollback is rehearsed; data and code freeze on the legacy side'],
           ['Decommission', 'Legacy access is removed after the agreed retention period, and archives are in place'],
         ],
@@ -247,13 +330,15 @@ export const walkthrough: Walkthrough = {
     {
       id: 'targets',
       heading: 'Target patterns to land on',
-      prose:
-        'A literal translation runs, but it keeps the legacy design. Move to patterns that fit the platform.',
+      prose: 'A literal translation runs, but it keeps the legacy design. Move to patterns that fit the platform.',
       table: {
         columns: ['Legacy construct', 'Databricks pattern'],
         rows: [
           ['Cursor or WHILE loop over rows', 'Set-based SQL, or a window function or join'],
-          ['Stored procedure that chains steps', 'Lakeflow Jobs tasks, or a Lakeflow Spark Declarative Pipeline for table-to-table logic'],
+          [
+            'Stored procedure that chains steps',
+            'Lakeflow Jobs tasks, or a Lakeflow Spark Declarative Pipeline for table-to-table logic',
+          ],
           ['Temp tables between steps', 'Views, CTEs, or intermediate pipeline tables'],
           ['Nightly full reload', 'Incremental streaming tables or materialized views'],
           ['Identity column or sequence', 'Generated identity columns on Delta, or a deterministic key'],

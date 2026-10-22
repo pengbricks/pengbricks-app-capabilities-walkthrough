@@ -12,23 +12,19 @@ export const walkthrough: Walkthrough = {
     outcomes: [
       {
         title: 'Each team sees its own bill',
-        body:
-          'Classic compute carries custom tags and serverless carries tags from serverless usage policies. Both land in system.billing.usage, so finance can report cost by team and cost center.',
+        body: 'Classic compute carries custom tags and serverless carries tags from serverless usage policies. Both land in system.billing.usage, so finance can report cost by team and cost center.',
       },
       {
         title: 'Untagged spend gets smaller',
-        body:
-          'Compute policies require tags and every user, group, and service principal gets a serverless usage policy. Untagged cost shrinks to a short work queue that owners can clear.',
+        body: 'Compute policies require tags and every user, group, and service principal gets a serverless usage policy. Untagged cost shrinks to a short work queue that owners can clear.',
       },
       {
         title: 'Alerts before the month closes',
-        body:
-          'Budgets email an owner when monthly spend crosses a threshold, scoped to workspaces, products, or tags. Owners can act before the invoice arrives.',
+        body: 'Budgets email an owner when monthly spend crosses a threshold, scoped to workspaces, products, or tags. Owners can act before the invoice arrives.',
       },
       {
         title: 'Shared warehouses can be split',
-        body:
-          'Query tags in system.query.history divide a shared SQL warehouse\'s cost by team or app, so shared compute does not have to be billed as one lump.',
+        body: "Query tags in system.query.history divide a shared SQL warehouse's cost by team or app, so shared compute does not have to be billed as one lump.",
       },
     ],
   },
@@ -108,7 +104,7 @@ export const walkthrough: Walkthrough = {
           },
           {
             option: 'Query tags on a shared SQL warehouse',
-            when: 'You want to split one warehouse\'s cost between teams or apps.',
+            when: "You want to split one warehouse's cost between teams or apps.",
             tradeoffs:
               'Tags land in system.query.history, so you can see who used the warehouse. The billing table does not carry them, so you design the allocation rule that turns query activity into dollars.',
           },

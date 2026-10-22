@@ -12,23 +12,19 @@ export const walkthrough: Walkthrough = {
     outcomes: [
       {
         title: 'No wait for infrastructure',
-        body:
-          'The SQL editor on a serverless warehouse starts in seconds and scales with concurrency, so analysts do not queue for compute.',
+        body: 'The SQL editor on a serverless warehouse starts in seconds and scales with concurrency, so analysts do not queue for compute.',
       },
       {
         title: 'One permission model',
-        body:
-          'The SQL editor, serverless notebooks, and Genie all use the same Unity Catalog grants, so access rules are defined once.',
+        body: 'The SQL editor, serverless notebooks, and Genie all use the same Unity Catalog grants, so access rules are defined once.',
       },
       {
         title: 'Faster first drafts',
-        body:
-          'Genie Code writes, explains, and fixes SQL and Python. Genie answers business questions on curated data and shows the SQL it ran, so users can check it.',
+        body: 'Genie Code writes, explains, and fixes SQL and Python. Genie answers business questions on curated data and shows the SQL it ran, so users can check it.',
       },
       {
         title: 'R needs its own setup',
-        body:
-          'Serverless does not run R, and hosted RStudio is end-of-life. R teams connect their own IDE or use a notebook on classic compute.',
+        body: 'Serverless does not run R, and hosted RStudio is end-of-life. R teams connect their own IDE or use a notebook on classic compute.',
       },
     ],
   },
@@ -107,7 +103,7 @@ export const walkthrough: Walkthrough = {
         {
           label: 'A parameterized query with a window share',
           language: 'sql',
-          code: "SELECT c.region,\n       SUM(o.quantity * o.unit_price) AS revenue,\n       SUM(o.quantity * o.unit_price) / SUM(SUM(o.quantity * o.unit_price)) OVER () AS share\nFROM analyst_orders o JOIN analyst_customers c USING (customer_id)\nWHERE o.status = :status\nGROUP BY c.region;",
+          code: 'SELECT c.region,\n       SUM(o.quantity * o.unit_price) AS revenue,\n       SUM(o.quantity * o.unit_price) / SUM(SUM(o.quantity * o.unit_price)) OVER () AS share\nFROM analyst_orders o JOIN analyst_customers c USING (customer_id)\nWHERE o.status = :status\nGROUP BY c.region;',
           notes: ['Named parameter markers bind the value without string formatting.'],
         },
       ],
@@ -129,11 +125,62 @@ export const walkthrough: Walkthrough = {
         description:
           'A Spark SQL query aggregates revenue by region and month. toPandas collects the small result. pandas pivots it and adds a rolling mean. createDataFrame writes the result to a governed table.',
         nodes: [
-          { id: 'query', label: 'Spark SQL', sub: 'aggregate first', col: 0, row: 0 },
-          { id: 'pandas', label: 'toPandas()', mono: true, sub: 'a small result', col: 1, row: 0 },
-          { id: 'shape', label: 'pandas', sub: 'pivot, rolling, growth', col: 2, row: 0, kind: 'highlight' },
-          { id: 'write', label: 'createDataFrame()', mono: true, sub: 'saveAsTable', col: 3, row: 0 },
-          { id: 'table', label: 'Unity Catalog table', sub: 'shared and governed', col: 3, row: 1, kind: 'store' },
+          {
+            id: 'query',
+            label: 'Spark SQL',
+            sub: 'aggregate first',
+            col: 0,
+            row: 0,
+            icon: 'warehouse',
+            domain: 'data',
+            detail: 'Aggregates revenue by region and month in Spark, so only a few hundred rows move on to pandas.',
+          },
+          {
+            id: 'pandas',
+            label: 'toPandas()',
+            mono: true,
+            sub: 'a small result',
+            col: 1,
+            row: 0,
+            icon: 'gear-navy',
+            domain: 'data',
+            detail:
+              'Collects the small aggregated result onto the driver. Arrow speeds the conversion, and the result has to fit in driver memory.',
+          },
+          {
+            id: 'shape',
+            label: 'pandas',
+            sub: 'pivot, rolling, growth',
+            col: 2,
+            row: 0,
+            kind: 'highlight',
+            icon: 'gear-lava',
+            domain: 'data',
+            detail:
+              'Pivots by region and adds a rolling mean and growth columns. This step runs on the driver, on one machine.',
+          },
+          {
+            id: 'write',
+            label: 'createDataFrame()',
+            mono: true,
+            sub: 'saveAsTable',
+            col: 3,
+            row: 0,
+            icon: 'gear-navy',
+            domain: 'data',
+            detail: 'Spark takes the pandas frame back as a DataFrame and saves it with saveAsTable.',
+          },
+          {
+            id: 'table',
+            label: 'Unity Catalog table',
+            sub: 'shared and governed',
+            col: 3,
+            row: 1,
+            kind: 'store',
+            icon: 'database',
+            domain: 'governance',
+            detail: 'The result lands as a Unity Catalog table, so others can query it and it stays governed.',
+          },
         ],
         edges: [
           { from: 'query', to: 'pandas' },
@@ -163,7 +210,9 @@ export const walkthrough: Walkthrough = {
           label: 'Stay distributed with the pandas API on Spark',
           language: 'py',
           code: 'import pyspark.pandas as ps\n\norders = ps.read_table("main.sales.orders")\nrevenue = (orders.quantity * orders.unit_price).groupby(orders.status).sum()',
-          notes: ['The code looks like pandas, but Spark runs it across the cluster, so the data does not have to fit on one machine.'],
+          notes: [
+            'The code looks like pandas, but Spark runs it across the cluster, so the data does not have to fit on one machine.',
+          ],
         },
       ],
       options: {
@@ -172,20 +221,24 @@ export const walkthrough: Walkthrough = {
           {
             option: 'Aggregate in Spark, then toPandas',
             when: 'The result is small enough for the driver, such as a few hundred or a few thousand rows.',
-            tradeoffs: 'You get the full pandas and plotting ecosystem. The collected result has to fit in driver memory, so aggregate first. Databricks uses Arrow to speed the conversion.',
+            tradeoffs:
+              'You get the full pandas and plotting ecosystem. The collected result has to fit in driver memory, so aggregate first. Databricks uses Arrow to speed the conversion.',
           },
           {
             option: 'pandas API on Spark',
             when: 'You want pandas syntax on data too large to collect.',
-            tradeoffs: 'The work runs distributed, so the data does not have to fit on one machine. Not every pandas function is available, and some behavior differs, so test a port before you rely on it.',
+            tradeoffs:
+              'The work runs distributed, so the data does not have to fit on one machine. Not every pandas function is available, and some behavior differs, so test a port before you rely on it.',
           },
           {
             option: 'Spark SQL or DataFrames only',
             when: 'The whole analysis fits in SQL or DataFrame operations.',
-            tradeoffs: 'Scales with no conversion and keeps the work on the warehouse or cluster. Reshaping and statistics take more code, and fewer plotting libraries apply.',
+            tradeoffs:
+              'Scales with no conversion and keeps the work on the warehouse or cluster. Reshaping and statistics take more code, and fewer plotting libraries apply.',
           },
         ],
-        recommendation: 'Aggregate in Spark and use toPandas for small results. Use the pandas API on Spark when the data will not fit on the driver.',
+        recommendation:
+          'Aggregate in Spark and use toPandas for small results. Use the pandas API on Spark when the data will not fit on the driver.',
       },
       links: [
         {
@@ -264,20 +317,24 @@ export const walkthrough: Walkthrough = {
           {
             option: 'RStudio or Posit Workbench with sparklyr over Databricks Connect',
             when: 'Spark-scale work from your own R IDE.',
-            tradeoffs: 'Spark runs on a Databricks cluster while you stay in your IDE. The integration is provided by the sparklyr project and supported through the Posit community, not directly by Databricks. Connect supports the DataFrame API only, so MLlib has limited compatibility.',
+            tradeoffs:
+              'Spark runs on a Databricks cluster while you stay in your IDE. The integration is provided by the sparklyr project and supported through the Posit community, not directly by Databricks. Connect supports the DataFrame API only, so MLlib has limited compatibility.',
           },
           {
             option: 'odbc::databricks() against a SQL warehouse',
             when: 'Data pulls and dplyr queries from any R session.',
-            tradeoffs: 'Reads Unity Catalog tables on a serverless SQL warehouse with OAuth, with no cluster to manage. Results come into your local R session, so aggregate in SQL first, and you do not get the Spark DataFrame API.',
+            tradeoffs:
+              'Reads Unity Catalog tables on a serverless SQL warehouse with OAuth, with no cluster to manage. Results come into your local R session, so aggregate in SQL first, and you do not get the Spark DataFrame API.',
           },
           {
             option: 'An R notebook on classic compute with sparklyr',
             when: 'You want to work inside the workspace.',
-            tradeoffs: 'No local setup. R runs on classic compute only, since serverless does not run R. SparkR is deprecated on Databricks Runtime 16 and above, so write new code with sparklyr.',
+            tradeoffs:
+              'No local setup. R runs on classic compute only, since serverless does not run R. SparkR is deprecated on Databricks Runtime 16 and above, so write new code with sparklyr.',
           },
         ],
-        recommendation: 'Use odbc for pulling governed data into a local R session. Use sparklyr, through Databricks Connect or a classic compute notebook, when the work needs Spark.',
+        recommendation:
+          'Use odbc for pulling governed data into a local R session. Use sparklyr, through Databricks Connect or a classic compute notebook, when the work needs Spark.',
       },
       links: [
         {

@@ -12,23 +12,19 @@ export const walkthrough: Walkthrough = {
     outcomes: [
       {
         title: 'Self-service answers',
-        body:
-          'Business users ask in plain language and Genie writes read-only SQL on a SQL warehouse. Routine questions stop queuing behind the analytics team.',
+        body: 'Business users ask in plain language and Genie writes read-only SQL on a SQL warehouse. Routine questions stop queuing behind the analytics team.',
       },
       {
         title: 'Existing governance applies',
-        body:
-          'Unity Catalog checks every table against the person asking, so grants, row filters, and column masks hold. Data is never copied into the agent.',
+        body: 'Unity Catalog checks every table against the person asking, so grants, row filters, and column masks hold. Data is never copied into the agent.',
       },
       {
         title: 'Accuracy comes from curated SQL',
-        body:
-          'Definitions live in metric views and SQL expressions, and example SQL covers hard questions. That keeps answers consistent and gives owners something concrete to review.',
+        body: 'Definitions live in metric views and SQL expressions, and example SQL covers hard questions. That keeps answers consistent and gives owners something concrete to review.',
       },
       {
         title: 'Clear storage and change control',
-        body:
-          'Databricks stores the agent definition, conversations, and generated SQL in the control plane, and query results expire after seven days. Keeping the definition in Git gives reviewable change history.',
+        body: 'Databricks stores the agent definition, conversations, and generated SQL in the control plane, and query results expire after seven days. Keeping the definition in Git gives reviewable change history.',
       },
     ],
   },
@@ -70,12 +66,75 @@ export const walkthrough: Walkthrough = {
         description:
           'A business user asks a question. The Genie Agent sends the question and its curated context to a large language model, which writes SQL. A SQL warehouse runs the SQL against Unity Catalog tables with the asking user’s permissions. The author defines the agent and saves a warehouse credential that lets the warehouse run it.',
         nodes: [
-          { id: 'user', label: 'Business user', sub: 'Genie One or the API', col: 0, row: 0, kind: 'surface' },
-          { id: 'agent', label: 'Genie Agent', sub: 'instructions, examples', col: 1, row: 0, kind: 'highlight' },
-          { id: 'llm', label: 'LLM', sub: 'writes the SQL', col: 2, row: 0 },
-          { id: 'wh', label: 'SQL warehouse', sub: 'runs read-only SQL', col: 3, row: 0 },
-          { id: 'uc', label: 'Unity Catalog', sub: 'asker’s grants apply', col: 4, row: 0, kind: 'store' },
-          { id: 'author', label: 'Author', sub: 'CAN EDIT or CAN MANAGE', col: 1, row: 1 },
+          {
+            id: 'user',
+            label: 'Business user',
+            sub: 'Genie One or the API',
+            col: 0,
+            row: 0,
+            kind: 'surface',
+            icon: 'users',
+            domain: 'apps',
+            detail:
+              'Asks in plain language through Genie One or the API and gets a generated SQL query, a results table, and often a chart.',
+          },
+          {
+            id: 'agent',
+            label: 'Genie Agent',
+            sub: 'instructions, examples',
+            col: 1,
+            row: 0,
+            kind: 'highlight',
+            icon: 'gear-lava',
+            domain: 'ai',
+            detail:
+              'Curated by data analysts with Unity Catalog data, example SQL, and instructions. It reads only the sources attached to it.',
+          },
+          {
+            id: 'llm',
+            label: 'LLM',
+            sub: 'writes the SQL',
+            col: 2,
+            row: 0,
+            icon: 'gear-maroon',
+            domain: 'ai',
+            detail:
+              "Receives the question and the agent's curated context, then writes the SQL. It runs on Databricks-managed endpoints.",
+          },
+          {
+            id: 'wh',
+            label: 'SQL warehouse',
+            sub: 'runs read-only SQL',
+            col: 3,
+            row: 0,
+            icon: 'warehouse',
+            domain: 'data',
+            detail:
+              "Runs the generated read-only SQL on a pro or serverless SQL warehouse, opened by the author's embedded credential.",
+          },
+          {
+            id: 'uc',
+            label: 'Unity Catalog',
+            sub: 'asker’s grants apply',
+            col: 4,
+            row: 0,
+            kind: 'store',
+            icon: 'database',
+            domain: 'governance',
+            detail:
+              'Unity Catalog checks every table as the person asking, so grants, row filters, and column masks apply.',
+          },
+          {
+            id: 'author',
+            label: 'Author',
+            sub: 'CAN EDIT or CAN MANAGE',
+            col: 1,
+            row: 1,
+            icon: 'users',
+            domain: 'neutral',
+            detail:
+              "Defines the agent and saves the warehouse selection, which embeds the author's compute credential. Only the author needs CAN USE on the warehouse.",
+          },
         ],
         edges: [
           { from: 'user', to: 'agent', label: 'question' },
@@ -95,9 +154,18 @@ export const walkthrough: Walkthrough = {
         caption: 'The Genie family',
         columns: ['Name', 'What it is'],
         rows: [
-          ['Genie Agents', 'Domain agents that data teams configure with data, SQL, and instructions. Formerly Genie Spaces.'],
-          ['Genie One', 'The interface for business users to find and ask agents, dashboards, and apps. It routes questions to the agents a user can access.'],
-          ['Genie Code', 'The assistant for developers and analysts inside the workspace. When you create an agent, Genie Code suggests descriptions and example queries for you to accept or reject.'],
+          [
+            'Genie Agents',
+            'Domain agents that data teams configure with data, SQL, and instructions. Formerly Genie Spaces.',
+          ],
+          [
+            'Genie One',
+            'The interface for business users to find and ask agents, dashboards, and apps. It routes questions to the agents a user can access.',
+          ],
+          [
+            'Genie Code',
+            'The assistant for developers and analysts inside the workspace. When you create an agent, Genie Code suggests descriptions and example queries for you to accept or reject.',
+          ],
         ],
       },
       points: [
@@ -111,8 +179,16 @@ export const walkthrough: Walkthrough = {
         },
       ],
       links: [
-        { label: 'Genie overview', url: 'https://docs.databricks.com/aws/en/genie/', note: 'Genie One, Genie Agents, and Genie Code.' },
-        { label: 'Genie Agents concepts', url: 'https://docs.databricks.com/aws/en/genie-agents/concepts', note: 'How a response is generated.' },
+        {
+          label: 'Genie overview',
+          url: 'https://docs.databricks.com/aws/en/genie/',
+          note: 'Genie One, Genie Agents, and Genie Code.',
+        },
+        {
+          label: 'Genie Agents concepts',
+          url: 'https://docs.databricks.com/aws/en/genie-agents/concepts',
+          note: 'How a response is generated.',
+        },
       ],
     },
     {
@@ -151,12 +227,30 @@ export const walkthrough: Walkthrough = {
         },
       ],
       links: [
-        { label: 'Create and manage a Genie Agent', url: 'https://docs.databricks.com/aws/en/genie-agents/set-up', note: 'Warehouse, credentials, and permissions.' },
-        { label: 'Size and scale a SQL warehouse', url: 'https://docs.databricks.com/aws/en/compute/sql-warehouse/warehouse-behavior' },
-        { label: 'Partner-powered AI features', url: 'https://docs.databricks.com/aws/en/databricks-ai/partner-powered', note: 'Which provider hosts each feature.' },
-        { label: 'AI assistive features trust and safety', url: 'https://docs.databricks.com/aws/en/databricks-ai/databricks-ai-trust', note: 'What is sent to the models and where.' },
+        {
+          label: 'Create and manage a Genie Agent',
+          url: 'https://docs.databricks.com/aws/en/genie-agents/set-up',
+          note: 'Warehouse, credentials, and permissions.',
+        },
+        {
+          label: 'Size and scale a SQL warehouse',
+          url: 'https://docs.databricks.com/aws/en/compute/sql-warehouse/warehouse-behavior',
+        },
+        {
+          label: 'Partner-powered AI features',
+          url: 'https://docs.databricks.com/aws/en/databricks-ai/partner-powered',
+          note: 'Which provider hosts each feature.',
+        },
+        {
+          label: 'AI assistive features trust and safety',
+          url: 'https://docs.databricks.com/aws/en/databricks-ai/databricks-ai-trust',
+          note: 'What is sent to the models and where.',
+        },
         { label: 'Designated Services', url: 'https://docs.databricks.com/aws/en/resources/designated-services' },
-        { label: 'Monitor and understand your Genie cost', url: 'https://docs.databricks.com/aws/en/genie/monitor-cost' },
+        {
+          label: 'Monitor and understand your Genie cost',
+          url: 'https://docs.databricks.com/aws/en/genie/monitor-cost',
+        },
       ],
     },
     {
@@ -170,12 +264,74 @@ export const walkthrough: Walkthrough = {
         description:
           'The Genie Agent writes its definition, conversations, generated SQL, and feedback to the Databricks control plane database. Entity matching values go to the workspace storage bucket. The SQL warehouse reads Unity Catalog tables, which stay where they are, and each statement is logged in system tables.',
         nodes: [
-          { id: 'agent', label: 'Genie Agent', sub: 'definition and chats', col: 0, row: 1, kind: 'highlight' },
-          { id: 'cp', label: 'Control plane database', sub: 'chats, SQL, feedback', col: 1, row: 0, kind: 'store' },
-          { id: 'bucket', label: 'Workspace storage', sub: 'entity matching values', col: 1, row: 1, kind: 'store' },
-          { id: 'wh', label: 'SQL warehouse', sub: 'runs the SQL', col: 1, row: 2 },
-          { id: 'uc', label: 'Unity Catalog tables', sub: 'data is never copied', col: 2, row: 2, kind: 'store' },
-          { id: 'sys', label: 'System tables', sub: 'query history, billing', col: 2, row: 1, kind: 'store' },
+          {
+            id: 'agent',
+            label: 'Genie Agent',
+            sub: 'definition and chats',
+            col: 0,
+            row: 1,
+            kind: 'highlight',
+            icon: 'gear-lava',
+            domain: 'ai',
+            detail: 'Stores its own definition and the conversations. It never stores your table data.',
+          },
+          {
+            id: 'cp',
+            label: 'Control plane database',
+            sub: 'chats, SQL, feedback',
+            col: 1,
+            row: 0,
+            kind: 'store',
+            icon: 'cloud-database',
+            domain: 'data',
+            detail:
+              'Holds the definition, conversations, generated SQL, and feedback, AES-256 encrypted, until the user, a manager, or the agent is deleted.',
+          },
+          {
+            id: 'bucket',
+            label: 'Workspace storage',
+            sub: 'entity matching values',
+            col: 1,
+            row: 1,
+            kind: 'store',
+            icon: 'database',
+            domain: 'data',
+            detail:
+              'Your workspace storage bucket holds entity matching values, up to 120 columns and 1,024 values per column.',
+          },
+          {
+            id: 'wh',
+            label: 'SQL warehouse',
+            sub: 'runs the SQL',
+            col: 1,
+            row: 2,
+            icon: 'warehouse',
+            domain: 'data',
+            detail: "Runs the agent's SQL against Unity Catalog and logs each statement to system tables.",
+          },
+          {
+            id: 'uc',
+            label: 'Unity Catalog tables',
+            sub: 'data is never copied',
+            col: 2,
+            row: 2,
+            kind: 'store',
+            icon: 'database',
+            domain: 'governance',
+            detail: 'The table data stays here and is never copied into the agent.',
+          },
+          {
+            id: 'sys',
+            label: 'System tables',
+            sub: 'query history, billing',
+            col: 2,
+            row: 1,
+            kind: 'store',
+            icon: 'list',
+            domain: 'governance',
+            detail:
+              'system.query.history records each statement with genie_space_id set, and system.billing.usage records Genie usage.',
+          },
         ],
         edges: [
           { from: 'agent', to: 'cp', label: 'writes' },
@@ -193,12 +349,30 @@ export const walkthrough: Walkthrough = {
         caption: 'What each piece is, and who can reach it',
         columns: ['Item', 'Where it lives and who sees it'],
         rows: [
-          ['Definition: tables, instructions, example SQL, sample questions, benchmarks', 'Control plane. Anyone with CAN EDIT or CAN MANAGE edits it. Export it as JSON through the API.'],
-          ['Conversations and messages, including generated SQL, descriptions, and feedback', 'Control plane database, AES-256 encrypted. Stored until the user, a manager, or the agent is deleted.'],
-          ['Who sees other people’s conversations', 'Users with CAN MANAGE see every prompt on the Monitor tab. They see full conversations and results only when the user set the chat to Reviewable by agent managers, which is the default for new chats. Private chats show prompts only.'],
-          ['Query results', 'Kept for seven days. After that the message reports QUERY_RESULT_EXPIRED; regenerate the answer or rerun the SQL.'],
-          ['Entity matching values', 'Your workspace storage bucket. Up to 120 columns, 1,024 values per column, 127 characters each. Genie skips tables with row filters and columns with masks.'],
-          ['Statements the agent ran', 'system.query.history, with query_source.genie_space_id set. The statement text is redacted unless you are an account admin or in databricks_pii_access.'],
+          [
+            'Definition: tables, instructions, example SQL, sample questions, benchmarks',
+            'Control plane. Anyone with CAN EDIT or CAN MANAGE edits it. Export it as JSON through the API.',
+          ],
+          [
+            'Conversations and messages, including generated SQL, descriptions, and feedback',
+            'Control plane database, AES-256 encrypted. Stored until the user, a manager, or the agent is deleted.',
+          ],
+          [
+            'Who sees other people’s conversations',
+            'Users with CAN MANAGE see every prompt on the Monitor tab. They see full conversations and results only when the user set the chat to Reviewable by agent managers, which is the default for new chats. Private chats show prompts only.',
+          ],
+          [
+            'Query results',
+            'Kept for seven days. After that the message reports QUERY_RESULT_EXPIRED; regenerate the answer or rerun the SQL.',
+          ],
+          [
+            'Entity matching values',
+            'Your workspace storage bucket. Up to 120 columns, 1,024 values per column, 127 characters each. Genie skips tables with row filters and columns with masks.',
+          ],
+          [
+            'Statements the agent ran',
+            'system.query.history, with query_source.genie_space_id set. The statement text is redacted unless you are an account admin or in databricks_pii_access.',
+          ],
           ['Audit events', 'Audit logs, service name aibiGenie for Genie Agents and genieChat for Genie One chats.'],
         ],
       },
@@ -213,9 +387,20 @@ export const walkthrough: Walkthrough = {
         },
       ],
       links: [
-        { label: 'Use a Genie Agent to explore business data', url: 'https://docs.databricks.com/aws/en/genie-agents/talk-to-genie', note: 'Chat history, sharing, and result retention.' },
-        { label: 'Test and monitor a Genie Agent', url: 'https://docs.databricks.com/aws/en/genie-agents/monitor', note: 'Monitor tab, conversation review, and deleting chats.' },
-        { label: 'Query history system table', url: 'https://docs.databricks.com/aws/en/admin/system-tables/query-history' },
+        {
+          label: 'Use a Genie Agent to explore business data',
+          url: 'https://docs.databricks.com/aws/en/genie-agents/talk-to-genie',
+          note: 'Chat history, sharing, and result retention.',
+        },
+        {
+          label: 'Test and monitor a Genie Agent',
+          url: 'https://docs.databricks.com/aws/en/genie-agents/monitor',
+          note: 'Monitor tab, conversation review, and deleting chats.',
+        },
+        {
+          label: 'Query history system table',
+          url: 'https://docs.databricks.com/aws/en/admin/system-tables/query-history',
+        },
         { label: 'Audit log reference', url: 'https://docs.databricks.com/aws/en/admin/account-settings/audit-logs' },
       ],
     },
@@ -300,8 +485,14 @@ export const walkthrough: Walkthrough = {
         caption: 'Permissions to set',
         columns: ['Who', 'What they need'],
         rows: [
-          ['Author', 'Databricks SQL entitlement, CAN USE on a pro or serverless warehouse, SELECT on the data, and CAN EDIT on the agent. The creator gets CAN MANAGE.'],
-          ['Business user', 'Consumer access or the Databricks SQL entitlement, SELECT on every table in the agent, EXECUTE on any SQL function, and CAN RUN on the agent. No warehouse permission.'],
+          [
+            'Author',
+            'Databricks SQL entitlement, CAN USE on a pro or serverless warehouse, SELECT on the data, and CAN EDIT on the agent. The creator gets CAN MANAGE.',
+          ],
+          [
+            'Business user',
+            'Consumer access or the Databricks SQL entitlement, SELECT on every table in the agent, EXECUTE on any SQL function, and CAN RUN on the agent. No warehouse permission.',
+          ],
           ['CAN VIEW and CAN RUN', 'Both let a user see the agent, ask questions, give feedback, and upload files.'],
           ['CAN EDIT', 'Adds instructions, sample questions, and tables, and running benchmarks.'],
           ['CAN MANAGE', 'Adds the Monitor tab, sharing, deleting the agent, and viewing other users’ conversations.'],
@@ -309,9 +500,20 @@ export const walkthrough: Walkthrough = {
       },
       links: [
         { label: 'Create and manage a Genie Agent', url: 'https://docs.databricks.com/aws/en/genie-agents/set-up' },
-        { label: 'Genie Agents API', url: 'https://docs.databricks.com/aws/en/genie-agents/conversation-api', note: 'The serialized_space format and validation rules.' },
-        { label: 'Bundle resources: genie_spaces', url: 'https://docs.databricks.com/aws/en/dev-tools/bundles/resources' },
-        { label: 'Access control lists', url: 'https://docs.databricks.com/aws/en/security/auth/access-control/', note: 'The Genie Agent ACL table.' },
+        {
+          label: 'Genie Agents API',
+          url: 'https://docs.databricks.com/aws/en/genie-agents/conversation-api',
+          note: 'The serialized_space format and validation rules.',
+        },
+        {
+          label: 'Bundle resources: genie_spaces',
+          url: 'https://docs.databricks.com/aws/en/dev-tools/bundles/resources',
+        },
+        {
+          label: 'Access control lists',
+          url: 'https://docs.databricks.com/aws/en/security/auth/access-control/',
+          note: 'The Genie Agent ACL table.',
+        },
       ],
     },
     {
@@ -325,11 +527,60 @@ export const walkthrough: Walkthrough = {
         description:
           'Five kinds of context in priority order: Unity Catalog comments for what data means, a metric view for measures and joins, SQL expressions for business terms, example SQL for hard questions, and text instructions as the last resort.',
         nodes: [
-          { id: 'uc', label: 'UC comments', sub: 'what a column means', col: 0, row: 0, kind: 'store' },
-          { id: 'mv', label: 'Metric view', sub: 'measures and joins', col: 1, row: 0, kind: 'highlight' },
-          { id: 'expr', label: 'SQL expressions', sub: 'terms, filters, fields', col: 2, row: 0 },
-          { id: 'ex', label: 'Example SQL', sub: 'hard questions', col: 3, row: 0 },
-          { id: 'text', label: 'Text instructions', sub: 'defaults, tone, asking', col: 4, row: 0 },
+          {
+            id: 'uc',
+            label: 'UC comments',
+            sub: 'what a column means',
+            col: 0,
+            row: 0,
+            kind: 'store',
+            icon: 'data-model',
+            domain: 'governance',
+            detail:
+              'State what each column holds, its units, and what each code means. Written once in Unity Catalog, it helps dashboards, notebooks, and every agent.',
+          },
+          {
+            id: 'mv',
+            label: 'Metric view',
+            sub: 'measures and joins',
+            col: 1,
+            row: 0,
+            kind: 'highlight',
+            icon: 'data-model',
+            domain: 'governance',
+            detail:
+              'Defines revenue and other measures once, with joins, filters, and synonyms. The agent uses MEASURE(), so it cannot drift from the definition.',
+          },
+          {
+            id: 'expr',
+            label: 'SQL expressions',
+            sub: 'terms, filters, fields',
+            col: 2,
+            row: 0,
+            domain: 'ai',
+            detail:
+              'Names a measure, filter, or field with synonyms and one line of guidance. These count against the 200-snippet limit.',
+          },
+          {
+            id: 'ex',
+            label: 'Example SQL',
+            sub: 'hard questions',
+            col: 3,
+            row: 0,
+            domain: 'ai',
+            detail:
+              'Titled with the question as a user would ask it, with the logic specific to your data. A parameterized query that Genie uses verbatim returns a verified answer.',
+          },
+          {
+            id: 'text',
+            label: 'Text instructions',
+            sub: 'defaults, tone, asking',
+            col: 4,
+            row: 0,
+            domain: 'ai',
+            detail:
+              'One short block of defaults, clarification rules, rounding, and language. Use it last, because too many instructions lower accuracy.',
+          },
         ],
         edges: [
           { from: 'uc', to: 'mv' },
@@ -343,15 +594,42 @@ export const walkthrough: Walkthrough = {
         caption: 'Each kind of context',
         columns: ['Input', 'How to write it'],
         rows: [
-          ['Unity Catalog comments', 'State what each column holds, its units, and what each code means: "seg_cd: E = Enterprise, M = Mid-Market, S = SMB". Do this once in Unity Catalog so dashboards, notebooks, and every agent benefit. Review AI-generated comments before you keep them.'],
-          ['Metric view', 'Define revenue, active customers, and average order value once, with joins, filters, and synonyms. The agent then uses MEASURE() and cannot drift from the definition.'],
-          ['Agent-level metadata', 'In the agent, add column descriptions and synonyms, hide columns, and turn on format assistance and entity matching. These stay in the agent and do not change Unity Catalog.'],
-          ['SQL expressions', 'Name a measure, filter, or field with synonyms and one line of guidance, such as "High-value orders: amount > 10000". They count against the 200-snippet limit.'],
-          ['Example SQL', 'Title each with the question as a user would ask it, and show the logic that is specific to your data. Add parameters for values that change, with a type and a comment. A parameterized query that Genie uses verbatim returns a verified answer.'],
-          ['SQL functions', 'Register a Unity Catalog function for logic you do not want Genie to see or change. Users need EXECUTE on it.'],
-          ['Join relationships', 'Define them when tables are not joined in a view. Choose one-to-one, one-to-many, or many-to-one. Primary and foreign keys in Unity Catalog become join relationships automatically. A metric view makes most of these unnecessary.'],
-          ['Sample questions', 'A few starter prompts that show users what the agent covers. Use the questions the pilot cohort asks.'],
-          ['Text instructions', 'One block that applies to every question: the default year, when to ask a clarifying question, rounding, and language. Keep it short.'],
+          [
+            'Unity Catalog comments',
+            'State what each column holds, its units, and what each code means: "seg_cd: E = Enterprise, M = Mid-Market, S = SMB". Do this once in Unity Catalog so dashboards, notebooks, and every agent benefit. Review AI-generated comments before you keep them.',
+          ],
+          [
+            'Metric view',
+            'Define revenue, active customers, and average order value once, with joins, filters, and synonyms. The agent then uses MEASURE() and cannot drift from the definition.',
+          ],
+          [
+            'Agent-level metadata',
+            'In the agent, add column descriptions and synonyms, hide columns, and turn on format assistance and entity matching. These stay in the agent and do not change Unity Catalog.',
+          ],
+          [
+            'SQL expressions',
+            'Name a measure, filter, or field with synonyms and one line of guidance, such as "High-value orders: amount > 10000". They count against the 200-snippet limit.',
+          ],
+          [
+            'Example SQL',
+            'Title each with the question as a user would ask it, and show the logic that is specific to your data. Add parameters for values that change, with a type and a comment. A parameterized query that Genie uses verbatim returns a verified answer.',
+          ],
+          [
+            'SQL functions',
+            'Register a Unity Catalog function for logic you do not want Genie to see or change. Users need EXECUTE on it.',
+          ],
+          [
+            'Join relationships',
+            'Define them when tables are not joined in a view. Choose one-to-one, one-to-many, or many-to-one. Primary and foreign keys in Unity Catalog become join relationships automatically. A metric view makes most of these unnecessary.',
+          ],
+          [
+            'Sample questions',
+            'A few starter prompts that show users what the agent covers. Use the questions the pilot cohort asks.',
+          ],
+          [
+            'Text instructions',
+            'One block that applies to every question: the default year, when to ask a clarifying question, rounding, and language. Keep it short.',
+          ],
         ],
       },
       points: [
@@ -408,8 +686,15 @@ Strong: Column comments in Unity Catalog, plus synonyms in the metric view.`,
         },
       ],
       links: [
-        { label: 'Tune Genie Agent quality', url: 'https://docs.databricks.com/aws/en/genie-agents/tune-quality', note: 'Example SQL, functions, joins, SQL expressions, and prompt matching.' },
-        { label: 'Curate an effective Genie Agent', url: 'https://docs.databricks.com/aws/en/genie-agents/best-practices' },
+        {
+          label: 'Tune Genie Agent quality',
+          url: 'https://docs.databricks.com/aws/en/genie-agents/tune-quality',
+          note: 'Example SQL, functions, joins, SQL expressions, and prompt matching.',
+        },
+        {
+          label: 'Curate an effective Genie Agent',
+          url: 'https://docs.databricks.com/aws/en/genie-agents/best-practices',
+        },
         { label: 'Unity Catalog metric views', url: 'https://docs.databricks.com/aws/en/metric-views/' },
       ],
     },
@@ -420,7 +705,10 @@ Strong: Column comments in Unity Catalog, plus synonyms in the metric view.`,
         columns: ['Limit', 'Value'],
         rows: [
           ['Tables, views, and metric views per agent', '50. Aim for five or fewer.'],
-          ['Instructions per agent', '100. Each example query, each SQL function, and the whole text block counts as one.'],
+          [
+            'Instructions per agent',
+            '100. Each example query, each SQL function, and the whole text block counts as one.',
+          ],
           ['Knowledge store snippets', '200, shared by table descriptions, join relationships, and SQL expressions.'],
           ['Text instruction blocks through the API', '1'],
           ['Conversations per agent and messages per conversation', '200,000 and 10,000'],
@@ -438,20 +726,54 @@ Strong: Column comments in Unity Catalog, plus synonyms in the metric view.`,
       table: {
         columns: ['Practice', 'What to do and why'],
         rows: [
-          ['Scope one agent to one business domain', 'Sales, support, or finance, each with a small curated table set. A narrow agent has less to confuse and fewer columns to misread.'],
-          ['Curate the sources', 'Prefer metric views or gold tables. Pre-join and aggregate in a view so Genie writes simpler SQL and the warehouse scans less.'],
-          ['Start with example SQL for the top questions', 'Add five tested queries for what people ask most. Examples change the SQL more than text does.'],
-          ['Benchmark before rollout', 'Save real questions with gold SQL, at least five to start and two to four phrasings of each, and rerun after every change.'],
-          ['Review feedback weekly', 'Feedback does not change the agent by itself. Turn each flagged answer into an expression, an example, or a comment.'],
-          ['Grant least privilege', 'Share with groups at CAN RUN, grant SELECT only on the attached tables, and use row filters and column masks for per-user limits.'],
-          ['Use a serverless warehouse sized for concurrency', 'Set the maximum clusters for the busiest hour and watch queued queries.'],
-          ['Version the definition in Git', 'Keep it in a bundle, deploy from a service principal, and promote dev to prod. Do not edit the production agent in the UI.'],
-          ['Test as a non-admin', 'Ask the benchmark questions as a user with only CAN RUN and the planned grants, and check that masked or filtered data behaves as expected.'],
+          [
+            'Scope one agent to one business domain',
+            'Sales, support, or finance, each with a small curated table set. A narrow agent has less to confuse and fewer columns to misread.',
+          ],
+          [
+            'Curate the sources',
+            'Prefer metric views or gold tables. Pre-join and aggregate in a view so Genie writes simpler SQL and the warehouse scans less.',
+          ],
+          [
+            'Start with example SQL for the top questions',
+            'Add five tested queries for what people ask most. Examples change the SQL more than text does.',
+          ],
+          [
+            'Benchmark before rollout',
+            'Save real questions with gold SQL, at least five to start and two to four phrasings of each, and rerun after every change.',
+          ],
+          [
+            'Review feedback weekly',
+            'Feedback does not change the agent by itself. Turn each flagged answer into an expression, an example, or a comment.',
+          ],
+          [
+            'Grant least privilege',
+            'Share with groups at CAN RUN, grant SELECT only on the attached tables, and use row filters and column masks for per-user limits.',
+          ],
+          [
+            'Use a serverless warehouse sized for concurrency',
+            'Set the maximum clusters for the busiest hour and watch queued queries.',
+          ],
+          [
+            'Version the definition in Git',
+            'Keep it in a bundle, deploy from a service principal, and promote dev to prod. Do not edit the production agent in the UI.',
+          ],
+          [
+            'Test as a non-admin',
+            'Ask the benchmark questions as a user with only CAN RUN and the planned grants, and check that masked or filtered data behaves as expected.',
+          ],
         ],
       },
       links: [
-        { label: 'Curate an effective Genie Agent', url: 'https://docs.databricks.com/aws/en/genie-agents/best-practices' },
-        { label: 'Test and monitor a Genie Agent', url: 'https://docs.databricks.com/aws/en/genie-agents/monitor', note: 'Benchmarks and feedback.' },
+        {
+          label: 'Curate an effective Genie Agent',
+          url: 'https://docs.databricks.com/aws/en/genie-agents/best-practices',
+        },
+        {
+          label: 'Test and monitor a Genie Agent',
+          url: 'https://docs.databricks.com/aws/en/genie-agents/monitor',
+          note: 'Benchmarks and feedback.',
+        },
       ],
     },
     {
@@ -462,17 +784,38 @@ Strong: Column comments in Unity Catalog, plus synonyms in the metric view.`,
       table: {
         columns: ['Finding', 'Result'],
         rows: [
-          ['Definition stored', 'One metric view, one text instruction, two example queries (one parameterized), three sample questions, three benchmarks, and three column settings. The API returned the metric view under tables.'],
+          [
+            'Definition stored',
+            'One metric view, one text instruction, two example queries (one parameterized), three sample questions, three benchmarks, and three column settings. The API returned the metric view under tables.',
+          ],
           ['Warehouse', 'A serverless SQL warehouse of type PRO, Small, one cluster. Genie ran every statement on it.'],
-          ['Answers', 'Three of three questions with expected rows matched, including a follow-up in the same conversation. The vague question drew the clarifying question the text instruction asks for.'],
-          ['Stored message fields', 'Message ID, conversation ID, user ID, status, content, creation and update times, feedback.rating, the generated SQL with its description and statement ID, thought steps, and a row count and statement ID for the result.'],
-          ['Stored conversation fields', 'Conversation ID, title, type, and creation time. The API has no call that reads a single conversation; use the list call.'],
-          ['Query history', 'Six statements with query_source.genie_space_id set arrived within about four minutes, for three questions that returned SQL. All ran on the agent’s warehouse, with executed_by and executed_as both the asking user and client_application set to Databricks SQL Genie Space.'],
-          ['Billing', 'system.billing.usage held GENIE_AGENTS rows for the account, but the run did not isolate its own usage because billing lags by hours. Check again the next day.'],
+          [
+            'Answers',
+            'Three of three questions with expected rows matched, including a follow-up in the same conversation. The vague question drew the clarifying question the text instruction asks for.',
+          ],
+          [
+            'Stored message fields',
+            'Message ID, conversation ID, user ID, status, content, creation and update times, feedback.rating, the generated SQL with its description and statement ID, thought steps, and a row count and statement ID for the result.',
+          ],
+          [
+            'Stored conversation fields',
+            'Conversation ID, title, type, and creation time. The API has no call that reads a single conversation; use the list call.',
+          ],
+          [
+            'Query history',
+            'Six statements with query_source.genie_space_id set arrived within about four minutes, for three questions that returned SQL. All ran on the agent’s warehouse, with executed_by and executed_as both the asking user and client_application set to Databricks SQL Genie Space.',
+          ],
+          [
+            'Billing',
+            'system.billing.usage held GENIE_AGENTS rows for the account, but the run did not isolate its own usage because billing lags by hours. Check again the next day.',
+          ],
         ],
       },
       links: [
-        { label: 'Query history system table', url: 'https://docs.databricks.com/aws/en/admin/system-tables/query-history' },
+        {
+          label: 'Query history system table',
+          url: 'https://docs.databricks.com/aws/en/admin/system-tables/query-history',
+        },
       ],
     },
   ],

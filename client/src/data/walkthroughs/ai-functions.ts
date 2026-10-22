@@ -12,23 +12,19 @@ export const walkthrough: Walkthrough = {
     outcomes: [
       {
         title: 'Unstructured data usable from SQL',
-        body:
-          'ai_classify, ai_extract, and ai_parse_document turn text and documents into columns an analyst can query. No ML team or endpoint is needed for these tasks.',
+        body: 'ai_classify, ai_extract, and ai_parse_document turn text and documents into columns an analyst can query. No ML team or endpoint is needed for these tasks.',
       },
       {
         title: 'Controlled inference spend',
-        body:
-          'Every call is a billed model inference. Writing results to a Delta table once, and querying that table, avoids paying again each time a dashboard refreshes.',
+        body: 'Every call is a billed model inference. Writing results to a Delta table once, and querying that table, avoids paying again each time a dashboard refreshes.',
       },
       {
         title: 'Data stays where you expect',
-        body:
-          'Task functions run on Databricks-hosted models inside your Geo. ai_query sends rows to the endpoint you name, so an external provider is a decision you make deliberately.',
+        body: 'Task functions run on Databricks-hosted models inside your Geo. ai_query sends rows to the endpoint you name, so an external provider is a decision you make deliberately.',
       },
       {
         title: 'Quality you can measure',
-        body:
-          'Structured JSON output and a hand-labeled test set let you compare each prompt or model change against known answers. Several newer functions are Beta, so check status before relying on them.',
+        body: 'Structured JSON output and a hand-labeled test set let you compare each prompt or model change against known answers. Several newer functions are Beta, so check status before relying on them.',
       },
     ],
   },
@@ -309,7 +305,12 @@ WHERE churned IS NULL;`,
           {
             label: 'Tag 2M support tickets',
             cells: [
-              { state: 'own', text: 'Best fit', sub: 'ai_classify' },
+              {
+                state: 'own',
+                text: 'Best fit',
+                sub: 'ai_classify',
+                detail: 'Tagging two million tickets is a classification job, so ai_classify is the best fit.',
+              },
               { state: 'optional', text: 'Works', sub: 'more to maintain' },
               { state: 'none', text: 'Overkill' },
             ],
@@ -317,15 +318,25 @@ WHERE churned IS NULL;`,
           {
             label: 'Pull 40 contract fields',
             cells: [
-              { state: 'own', text: 'Best fit', sub: 'ai_extract' },
-              { state: 'optional', text: 'Past 256 fields', sub: 'or deep nesting' },
+              {
+                state: 'own',
+                text: 'Best fit',
+                sub: 'ai_extract',
+                detail: 'ai_extract fits pulling 40 fields from contracts, with a limit of 256 fields.',
+              },
+              {
+                state: 'optional',
+                text: 'Past 256 fields',
+                sub: 'or deep nesting',
+                detail: 'ai_query only makes sense for contract extraction once the schema goes past 256 fields.',
+              },
               { state: 'none', text: 'Overkill' },
             ],
           },
           {
             label: 'Translate to Japanese',
             cells: [
-              { state: 'none', text: 'Not covered' },
+              { state: 'none', text: 'Not covered', detail: 'No task function covers translating to Japanese.' },
               { state: 'own', text: 'Best fit', sub: 'pick a model' },
               { state: 'none', text: 'Overkill' },
             ],
@@ -336,7 +347,13 @@ WHERE churned IS NULL;`,
             cells: [
               { state: 'none', text: 'Batch only' },
               { state: 'none', text: 'Batch only' },
-              { state: 'own', text: 'Model Serving', sub: 'REST endpoint' },
+              {
+                state: 'own',
+                text: 'Model Serving',
+                sub: 'REST endpoint',
+                detail:
+                  'Scoring a live checkout request needs a served model. Neither function is built for per-call, low-latency requests.',
+              },
             ],
           },
           {
@@ -345,14 +362,23 @@ WHERE churned IS NULL;`,
             cells: [
               { state: 'none', text: 'One call per row' },
               { state: 'none', text: 'One call per row' },
-              { state: 'own', text: 'Agent', sub: 'tools, memory, evals' },
+              {
+                state: 'own',
+                text: 'Agent',
+                sub: 'tools, memory, evals',
+                detail: 'A multi-step task with tools needs an agent. A function makes one call per row.',
+              },
             ],
           },
           {
             label: 'Use a fine-tuned model',
             cells: [
               { state: 'none', text: 'Fixed models' },
-              { state: 'own', text: 'Call its endpoint' },
+              {
+                state: 'own',
+                text: 'Call its endpoint',
+                detail: 'A fine-tuned model is reached by calling its endpoint with ai_query.',
+              },
               { state: 'optional', text: 'Serve it first' },
             ],
           },
@@ -362,7 +388,13 @@ WHERE churned IS NULL;`,
             cells: [
               { state: 'none', text: 'Costs tokens' },
               { state: 'none', text: 'Costs tokens' },
-              { state: 'own', text: 'Plain SQL', sub: 'regexp_extract' },
+              {
+                state: 'own',
+                text: 'Plain SQL',
+                sub: 'regexp_extract',
+                detail:
+                  'A job a regex can do, such as ZIP codes, IDs, or dates, needs no model, so plain SQL avoids token cost.',
+              },
             ],
           },
         ],
@@ -410,9 +442,34 @@ WHERE churned IS NULL;`,
             col: 1,
             row: 0,
             kind: 'surface',
+            domain: 'apps',
+            icon: 'workflow',
+            detail:
+              'The query that calls the function. It runs on your warehouse, job, or pipeline either way, so only the model location changes.',
           },
-          { id: 'task', label: 'Task function', sub: 'ai_classify, ai_extract', col: 0, row: 1 },
-          { id: 'aiq', label: 'ai_query', mono: true, sub: 'you name the endpoint', col: 2, row: 1 },
+          {
+            id: 'task',
+            label: 'Task function',
+            sub: 'ai_classify, ai_extract',
+            col: 0,
+            row: 1,
+            domain: 'ai',
+            icon: 'gear-maroon',
+            detail:
+              'Built-in functions such as ai_classify and ai_extract. They call a Databricks-hosted model, so you do not pick the endpoint.',
+          },
+          {
+            id: 'aiq',
+            label: 'ai_query',
+            mono: true,
+            sub: 'you name the endpoint',
+            col: 2,
+            row: 1,
+            domain: 'ai',
+            icon: 'gear-maroon',
+            detail:
+              'Calls the endpoint you name: a Foundation Model API endpoint, your own serving endpoint, or an external model.',
+          },
           {
             id: 'hosted',
             label: 'Databricks-hosted model',
@@ -420,6 +477,10 @@ WHERE churned IS NULL;`,
             col: 0,
             row: 2,
             kind: 'highlight',
+            domain: 'ai',
+            icon: 'gear-maroon',
+            detail:
+              'A Designated Service that processes data in your Geo. Task functions use it, so rows stay inside Databricks.',
           },
           {
             id: 'fmapi',
@@ -428,8 +489,21 @@ WHERE churned IS NULL;`,
             col: 2,
             row: 2,
             kind: 'highlight',
+            domain: 'ai',
+            icon: 'gear-maroon',
+            detail:
+              'A Foundation Model API endpoint that ai_query can call, billed pay-per-token or on reserved capacity.',
           },
-          { id: 'external', label: 'External model', sub: 'provider terms apply', col: 3, row: 2, kind: 'gate' },
+          {
+            id: 'external',
+            label: 'External model',
+            sub: 'provider terms apply',
+            col: 3,
+            row: 2,
+            kind: 'gate',
+            domain: 'neutral',
+            detail: "An external model. Rows go to the provider, so the provider's terms apply.",
+          },
         ],
         edges: [
           { from: 'query', to: 'task' },
@@ -489,9 +563,9 @@ WHERE churned IS NULL;`,
           },
           {
             option: 'External model endpoint',
-            when: 'The use case requires a third-party provider\'s model.',
+            when: "The use case requires a third-party provider's model.",
             tradeoffs:
-              'Gives access to that provider\'s models. The request goes to the provider under its terms, so check data and residency rules. Price, rate limits, and retirement follow the provider.',
+              "Gives access to that provider's models. The request goes to the provider under its terms, so check data and residency rules. Price, rate limits, and retirement follow the provider.",
           },
         ],
         recommendation:

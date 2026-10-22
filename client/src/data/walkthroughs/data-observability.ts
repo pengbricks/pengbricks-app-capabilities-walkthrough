@@ -12,23 +12,19 @@ export const walkthrough: Walkthrough = {
     outcomes: [
       {
         title: 'Impact known before a change',
-        body:
-          'Automatic table and column lineage shows which tables, dashboards, and jobs depend on a table. Owners check the downstream effect before altering it.',
+        body: 'Automatic table and column lineage shows which tables, dashboards, and jobs depend on a table. Owners check the downstream effect before altering it.',
       },
       {
         title: 'Stale or incomplete tables flagged',
-        body:
-          'Anomaly detection checks freshness and completeness for every table in a schema. It is Public Preview, so confirm its status before depending on it.',
+        body: 'Anomaly detection checks freshness and completeness for every table in a schema. It is Public Preview, so confirm its status before depending on it.',
       },
       {
         title: 'Drift alerts reach the owner',
-        body:
-          'Scheduled monitors refresh metrics tables, and an alert on a drift metric notifies an owner before a consumer finds the problem.',
+        body: 'Scheduled monitors refresh metrics tables, and an alert on a drift metric notifies an owner before a consumer finds the problem.',
       },
       {
         title: 'Schema changes have a record',
-        body:
-          'DESCRIBE HISTORY lists each schema change with its version, time, and user. Teams can see who changed a column that broke a report.',
+        body: 'DESCRIBE HISTORY lists each schema change with its version, time, and user. Teams can see who changed a column that broke a report.',
       },
     ],
   },
@@ -66,9 +62,39 @@ export const walkthrough: Walkthrough = {
         description:
           'A source table feeds a silver table, which feeds a gold table. Silver keeps valid rows. Gold aggregates silver by day and region. Column lineage maps amount to revenue and order_ts to order_date.',
         nodes: [
-          { id: 'src', label: 'Source orders', sub: 'raw', col: 0, row: 0, kind: 'store' },
-          { id: 'silver', label: 'Silver orders', sub: 'valid rows', col: 1, row: 0, kind: 'store' },
-          { id: 'gold', label: 'Gold daily revenue', sub: 'day and region', col: 2, row: 0, kind: 'store' },
+          {
+            id: 'src',
+            label: 'Source orders',
+            sub: 'raw',
+            col: 0,
+            row: 0,
+            kind: 'store',
+            domain: 'data',
+            icon: 'database',
+            detail: 'The raw orders table, two hops upstream of the gold table in table lineage.',
+          },
+          {
+            id: 'silver',
+            label: 'Silver orders',
+            sub: 'valid rows',
+            col: 1,
+            row: 0,
+            kind: 'store',
+            domain: 'data',
+            icon: 'database',
+            detail: 'Keeps valid rows from the source. Column lineage maps order_ts to order_date downstream.',
+          },
+          {
+            id: 'gold',
+            label: 'Gold daily revenue',
+            sub: 'day and region',
+            col: 2,
+            row: 0,
+            kind: 'store',
+            domain: 'data',
+            icon: 'database',
+            detail: 'Aggregates silver by day and region. Column lineage maps amount to revenue.',
+          },
         ],
         edges: [
           { from: 'src', to: 'silver', label: 'hop 2 upstream' },
@@ -119,7 +145,10 @@ export const walkthrough: Walkthrough = {
         rows: [
           ['What changed on this table, and when', 'DESCRIBE HISTORY: ADD COLUMNS and CHANGE COLUMN entries'],
           ['Which tables changed anywhere in a schema', 'A scheduled diff of information_schema.columns snapshots'],
-          ['New columns arriving in files', 'Auto Loader schema evolution, or rescue mode to park them in _rescued_data'],
+          [
+            'New columns arriving in files',
+            'Auto Loader schema evolution, or rescue mode to park them in _rescued_data',
+          ],
           ['A source column widens, such as int to long', 'Delta type widening, so the table changes in place'],
           ['An unexpected change should stop a load', 'Schema enforcement, which rejects writes that do not match'],
         ],
@@ -128,7 +157,7 @@ export const walkthrough: Walkthrough = {
         {
           label: 'Read the schema changes on a table',
           language: 'sql',
-          code: "DESCRIBE HISTORY main.sales.silver_orders;\n\n-- Schema changes show as ADD COLUMNS, CHANGE COLUMN, REPLACE COLUMNS, or DROP COLUMNS in the operation column.",
+          code: 'DESCRIBE HISTORY main.sales.silver_orders;\n\n-- Schema changes show as ADD COLUMNS, CHANGE COLUMN, REPLACE COLUMNS, or DROP COLUMNS in the operation column.',
           notes: ['From Python, spark.sql("DESCRIBE HISTORY ...") returns a DataFrame you can filter on operation.'],
         },
       ],
@@ -186,7 +215,9 @@ export const walkthrough: Walkthrough = {
           label: 'Create a data profiling monitor that refreshes on a schedule',
           language: 'py',
           code: 'from databricks.sdk import WorkspaceClient\nfrom databricks.sdk.service.dataquality import CronSchedule, DataProfilingConfig, Monitor, SnapshotConfig\n\nw = WorkspaceClient()\ntable = w.tables.get("main.sales.orders")\nschema = w.schemas.get("main.sales")\n\nw.data_quality.create_monitor(\n    monitor=Monitor(\n        object_type="table",\n        object_id=table.table_id,\n        data_profiling_config=DataProfilingConfig(\n            assets_dir="/Workspace/Shared/monitors/orders",\n            output_schema_id=schema.schema_id,\n            snapshot=SnapshotConfig(),\n            schedule=CronSchedule(quartz_cron_expression="0 0 6 * * ?", timezone_id="UTC"),\n        ),\n    )\n)',
-          notes: ['Use a time series or inference profile instead of a snapshot when the table has a timestamp column.'],
+          notes: [
+            'Use a time series or inference profile instead of a snapshot when the table has a timestamp column.',
+          ],
         },
       ],
       links: [

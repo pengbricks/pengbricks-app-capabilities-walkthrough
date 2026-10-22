@@ -78,13 +78,80 @@ export const walkthrough: Walkthrough = {
             col: 0,
             row: 0,
             kind: 'surface',
+            icon: 'network',
+            domain: 'neutral',
+            detail:
+              'Where the data starts. Auto Loader or Lakeflow Connect bring files, database changes, and API data into bronze.',
           },
-          { id: 'bronze', label: 'Bronze', sub: 'raw, append-only', col: 0, row: 1, kind: 'store' },
-          { id: 'checks', label: 'Expectations', sub: 'types, keys, rules', col: 1, row: 1, kind: 'gate' },
-          { id: 'silver', label: 'Silver', sub: 'clean, deduplicated', col: 2, row: 1, kind: 'store' },
-          { id: 'gold', label: 'Gold', sub: 'aggregates, models', col: 3, row: 1, kind: 'highlight' },
-          { id: 'quarantine', label: 'Quarantine', sub: 'optional, for review', col: 1, row: 2 },
-          { id: 'use', label: 'Dashboards, Genie, ML', sub: 'read gold tables', col: 3, row: 3, kind: 'surface' },
+          {
+            id: 'bronze',
+            label: 'Bronze',
+            sub: 'raw, append-only',
+            col: 0,
+            row: 1,
+            kind: 'store',
+            icon: 'database',
+            domain: 'data',
+            detail:
+              'Raw records as they arrived, append-only, with load time and source file. If a later step has a bug, the team rebuilds from bronze instead of re-extracting.',
+          },
+          {
+            id: 'checks',
+            label: 'Expectations',
+            sub: 'types, keys, rules',
+            col: 1,
+            row: 1,
+            kind: 'gate',
+            domain: 'governance',
+            detail:
+              'Expectations check types, keys, and rules between layers. Each rule chooses warn, drop, or fail, so bad rows do not move forward unnoticed.',
+          },
+          {
+            id: 'silver',
+            label: 'Silver',
+            sub: 'clean, deduplicated',
+            col: 2,
+            row: 1,
+            kind: 'store',
+            icon: 'database',
+            domain: 'data',
+            detail:
+              'Cleaned and conformed data: types cast, duplicates removed, keys standardized. Tables from different sources join here.',
+          },
+          {
+            id: 'gold',
+            label: 'Gold',
+            sub: 'aggregates, models',
+            col: 3,
+            row: 1,
+            kind: 'highlight',
+            icon: 'database',
+            domain: 'data',
+            detail:
+              'Materialized views that aggregate silver into tables shaped for a dashboard, a report, or a model.',
+          },
+          {
+            id: 'quarantine',
+            label: 'Quarantine',
+            sub: 'optional, for review',
+            col: 1,
+            row: 2,
+            icon: 'list',
+            domain: 'data',
+            detail:
+              'Holds rows that fail a rule so someone can review or repair them. It is optional and needs a second predicate that mirrors the rule.',
+          },
+          {
+            id: 'use',
+            label: 'Dashboards, Genie, ML',
+            sub: 'read gold tables',
+            col: 3,
+            row: 3,
+            kind: 'surface',
+            icon: 'dashboard',
+            domain: 'apps',
+            detail: 'Dashboards, Genie, and ML models read the gold tables. Most users only need gold.',
+          },
         ],
         edges: [
           { from: 'sources', to: 'bronze', label: 'Auto Loader, Connect' },
@@ -117,8 +184,13 @@ export const walkthrough: Walkthrough = {
             sub: 'sales_bronze',
             cells: [
               { state: 'own', text: 'Raw, as landed', sub: '+ source, load time' },
-              { state: 'optional', text: 'Data engineers' },
-              { state: 'own', text: 'Everything' },
+              { state: 'optional', text: 'Data engineers', detail: 'Keep bronze to the engineers who run ingestion.' },
+              {
+                state: 'own',
+                text: 'Everything',
+                detail:
+                  'Bronze is the record of what the source sent, so the team can rebuild silver and gold from it.',
+              },
             ],
           },
           {
@@ -127,7 +199,12 @@ export const walkthrough: Walkthrough = {
             cells: [
               { state: 'own', text: 'Typed, deduplicated', sub: 'joined across sources' },
               { state: 'optional', text: 'Engineers, scientists' },
-              { state: 'optional', text: 'Current or SCD 2' },
+              {
+                state: 'optional',
+                text: 'Current or SCD 2',
+                detail:
+                  'Deduplicate with AUTO CDC when the source sends updates. The table keeps either the current row or SCD type 2 history.',
+              },
             ],
           },
           {
@@ -135,7 +212,11 @@ export const walkthrough: Walkthrough = {
             sub: 'sales_gold',
             cells: [
               { state: 'own', text: 'Aggregates, facts', sub: 'business names' },
-              { state: 'own', text: 'Analysts, BI, models' },
+              {
+                state: 'own',
+                text: 'Analysts, BI, models',
+                detail: 'Most users only need gold, so grants by layer point analysts here.',
+              },
               { state: 'optional', text: 'As the use needs' },
             ],
           },
@@ -246,7 +327,10 @@ STORED AS SCD TYPE 1;`,
         },
       ],
       links: [
-        { label: 'Manage data quality with pipeline expectations', url: 'https://docs.databricks.com/aws/en/ldp/expectations' },
+        {
+          label: 'Manage data quality with pipeline expectations',
+          url: 'https://docs.databricks.com/aws/en/ldp/expectations',
+        },
         { label: 'AUTO CDC', url: 'https://docs.databricks.com/aws/en/ldp/cdc' },
       ],
     },

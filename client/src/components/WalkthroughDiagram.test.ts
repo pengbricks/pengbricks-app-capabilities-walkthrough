@@ -26,7 +26,13 @@ function segments(d: string): Seg[] {
   return out;
 }
 
-const inset = (b: Box, by: number): Box => ({ ...b, left: b.left + by, right: b.right - by, top: b.top + by, bottom: b.bottom - by });
+const inset = (b: Box, by: number): Box => ({
+  ...b,
+  left: b.left + by,
+  right: b.right - by,
+  top: b.top + by,
+  bottom: b.bottom - by,
+});
 
 function crosses(s: Seg, b: Box): boolean {
   const [xa, xb] = [Math.min(s.x1, s.x2), Math.max(s.x1, s.x2)];
@@ -38,8 +44,10 @@ const overlaps = (a: Box, b: Box) => a.left < b.right && a.right > b.left && a.t
 
 const flows: [string, string, FlowDiagram][] = walkthroughs.flatMap((walkthrough) =>
   walkthrough.sections.flatMap((section) =>
-    section.diagram?.type === 'flow' ? [[walkthrough.slug, section.id, section.diagram] as [string, string, FlowDiagram]] : [],
-  ),
+    section.diagram?.type === 'flow'
+      ? [[walkthrough.slug, section.id, section.diagram] as [string, string, FlowDiagram]]
+      : []
+  )
 );
 
 describe.each(flows)('%s / %s diagram', (_slug, _section, diagram) => {
@@ -79,7 +87,10 @@ describe.each(flows)('%s / %s diagram', (_slug, _section, diagram) => {
       const { area } = gateLabelArea(gate, L, placeGateLabel(gate, L, paths));
       for (const [i, d] of paths.entries()) {
         const edge = diagram.edges[i];
-        expect(segments(d).some((seg) => crosses(seg, area)), `${edge.from} -> ${edge.to} runs through the label of ${gate.id}`).toBe(false);
+        expect(
+          segments(d).some((seg) => crosses(seg, area)),
+          `${edge.from} -> ${edge.to} runs through the label of ${gate.id}`
+        ).toBe(false);
       }
       for (const node of diagram.nodes) {
         if (node.id === gate.id) continue;

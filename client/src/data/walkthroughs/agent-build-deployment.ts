@@ -12,23 +12,19 @@ export const walkthrough: Walkthrough = {
     outcomes: [
       {
         title: 'Releases gated on measured quality',
-        body:
-          'A labeled set runs through mlflow.genai.evaluate, and the release waits on the scores. A change that makes answers worse is caught before users see it.',
+        body: 'A labeled set runs through mlflow.genai.evaluate, and the release waits on the scores. A change that makes answers worse is caught before users see it.',
       },
       {
         title: 'Failures investigated from traces',
-        body:
-          'Every production run lands in an MLflow experiment. Teams review failed runs and turn them into new evaluation cases, which shortens debugging.',
+        body: 'Every production run lands in an MLflow experiment. Teams review failed runs and turn them into new evaluation cases, which shortens debugging.',
       },
       {
         title: 'Reproducible and least-privilege deployments',
-        body:
-          'Pinned packages and declared resources in agent.toml mean a release can be rebuilt. The agent\'s service principal gets only the models, tools, and warehouses it lists.',
+        body: "Pinned packages and declared resources in agent.toml mean a release can be rebuilt. The agent's service principal gets only the models, tools, and warehouses it lists.",
       },
       {
         title: 'Runs survive interruptions',
-        body:
-          'DurableAgentServer keeps run state and recovers runs that a crash interrupted. The CLI is Beta, and Model Serving agents are Legacy, so plan migrations for existing ones.',
+        body: 'DurableAgentServer keeps run state and recovers runs that a crash interrupted. The CLI is Beta, and Model Serving agents are Legacy, so plan migrations for existing ones.',
       },
     ],
   },
@@ -62,8 +58,7 @@ export const walkthrough: Walkthrough = {
     {
       id: 'path',
       heading: 'The current path: Agent Bricks CLI to Agent Runtime',
-      prose:
-        'A deployed agent has three layers. You own the first, and Databricks provides the others.',
+      prose: 'A deployed agent has three layers. You own the first, and Databricks provides the others.',
       diagram: {
         type: 'flow',
         title: 'From an empty directory to a live agent',
@@ -74,14 +69,99 @@ export const walkthrough: Walkthrough = {
           { label: 'Run in production', fromRow: 1, toRow: 2 },
         ],
         nodes: [
-          { id: 'init', label: 'agentbricks init', sub: 'scaffold a project', mono: true, col: 0, row: 0 },
-          { id: 'dev', label: 'agentbricks dev', sub: 'run locally', mono: true, col: 1, row: 0 },
-          { id: 'gate', label: 'Evaluation gate', sub: 'mlflow.genai.evaluate', col: 2, row: 0, kind: 'gate' },
-          { id: 'deploy', label: 'agentbricks deploy', sub: 'provision and ship', mono: true, col: 3, row: 0, kind: 'highlight' },
-          { id: 'rt', label: 'Agent Runtime', sub: 'on Databricks Apps', col: 3, row: 1, kind: 'surface' },
-          { id: 'srv', label: 'DurableAgentServer', sub: 'invocation API', col: 2, row: 1, kind: 'surface' },
-          { id: 'trace', label: 'MLflow traces', sub: 'every run', col: 1, row: 2, kind: 'store' },
-          { id: 'fb', label: 'Feedback', sub: 'new evaluation cases', col: 2, row: 2 },
+          {
+            id: 'init',
+            label: 'agentbricks init',
+            sub: 'scaffold a project',
+            mono: true,
+            col: 0,
+            row: 0,
+            icon: 'gear-navy',
+            domain: 'ai',
+            detail:
+              'Scaffolds a project from a LangGraph or OpenAI Agents SDK template. Add --existing to bring an agent you already have.',
+          },
+          {
+            id: 'dev',
+            label: 'agentbricks dev',
+            sub: 'run locally',
+            mono: true,
+            col: 1,
+            row: 0,
+            icon: 'gear-navy',
+            domain: 'ai',
+            detail: 'Runs the agent locally against Databricks models, so you can try it before anything is deployed.',
+          },
+          {
+            id: 'gate',
+            label: 'Evaluation gate',
+            sub: 'mlflow.genai.evaluate',
+            col: 2,
+            row: 0,
+            kind: 'gate',
+            domain: 'governance',
+            detail:
+              'Scores the agent against a labeled set with mlflow.genai.evaluate. The release waits on the scores and compares against the version in production.',
+          },
+          {
+            id: 'deploy',
+            label: 'agentbricks deploy',
+            sub: 'provision and ship',
+            mono: true,
+            col: 3,
+            row: 0,
+            kind: 'highlight',
+            icon: 'gear-lava',
+            domain: 'orchestration',
+            detail:
+              'Provisions the resources listed in agent.toml and ships the agent to Agent Runtime on Databricks Apps.',
+          },
+          {
+            id: 'rt',
+            label: 'Agent Runtime',
+            sub: 'on Databricks Apps',
+            col: 3,
+            row: 1,
+            kind: 'surface',
+            icon: 'gear-maroon',
+            domain: 'ai',
+            detail:
+              'Gives the agent a stable OAuth-protected URL, an agent identity, durable run state, tracing, and 1 to 5 instances.',
+          },
+          {
+            id: 'srv',
+            label: 'DurableAgentServer',
+            sub: 'invocation API',
+            col: 2,
+            row: 1,
+            kind: 'surface',
+            icon: 'network',
+            domain: 'ai',
+            detail:
+              'Serves synchronous, streaming, and background runs from one invocation API. It keeps run state and recovers runs a crash interrupted.',
+          },
+          {
+            id: 'trace',
+            label: 'MLflow traces',
+            sub: 'every run',
+            col: 1,
+            row: 2,
+            kind: 'store',
+            icon: 'list',
+            domain: 'ai',
+            detail: 'Every run lands in an MLflow experiment, so teams can review failed runs.',
+          },
+          {
+            id: 'fb',
+            label: 'Feedback',
+            sub: 'new evaluation cases',
+            col: 2,
+            row: 2,
+            icon: 'checklist',
+            domain: 'ai',
+            detail:
+              'Production failures and negative feedback become new evaluation cases, so every incident turns into a regression test.',
+          },
         ],
         edges: [
           { from: 'init', to: 'dev' },
@@ -103,9 +183,18 @@ export const walkthrough: Walkthrough = {
         caption: 'The agent compute stack',
         columns: ['Layer', 'Choice'],
         rows: [
-          ['Framework or harness', 'Your agent loop. LangGraph and the OpenAI Agents SDK have CLI templates; bring an existing agent with agentbricks init --existing.'],
-          ['Agent server', 'DurableAgentServer (recommended). The MLflow AgentServer and LongRunningAgentServer are Legacy.'],
-          ['Agent runtime', 'Agent Runtime on Databricks Apps. Gives a stable OAuth-protected URL, an agent identity, durable run state, tracing, and 1 to 5 instances.'],
+          [
+            'Framework or harness',
+            'Your agent loop. LangGraph and the OpenAI Agents SDK have CLI templates; bring an existing agent with agentbricks init --existing.',
+          ],
+          [
+            'Agent server',
+            'DurableAgentServer (recommended). The MLflow AgentServer and LongRunningAgentServer are Legacy.',
+          ],
+          [
+            'Agent runtime',
+            'Agent Runtime on Databricks Apps. Gives a stable OAuth-protected URL, an agent identity, durable run state, tracing, and 1 to 5 instances.',
+          ],
         ],
       },
       links: [
@@ -135,12 +224,72 @@ export const walkthrough: Walkthrough = {
         description:
           'A caller posts a question to the agent’s invocation API. The agent span wraps the request. A model span calls a foundation model, which asks for a tool. A tool span runs a governed Unity Catalog function using credentials scoped to the declared resources. The result goes back to the model, which writes the answer.',
         nodes: [
-          { id: 'caller', label: 'Caller', sub: 'invocation API', col: 0, row: 0 },
-          { id: 'predict', label: 'Agent span', sub: 'wraps the request', col: 1, row: 0, kind: 'highlight' },
-          { id: 'llm', label: 'Model span', sub: 'foundation model', col: 2, row: 0, kind: 'surface' },
-          { id: 'tool', label: 'Tool span', sub: 'UC function or MCP tool', col: 2, row: 1, kind: 'gate' },
-          { id: 'wh', label: 'Governed data', sub: 'masks and filters apply', col: 3, row: 1, kind: 'store' },
-          { id: 'answer', label: 'Answer', sub: 'grounded in tool output', col: 0, row: 1 },
+          {
+            id: 'caller',
+            label: 'Caller',
+            sub: 'invocation API',
+            col: 0,
+            row: 0,
+            icon: 'network',
+            domain: 'neutral',
+            detail: "Posts a question to the agent's invocation API.",
+          },
+          {
+            id: 'predict',
+            label: 'Agent span',
+            sub: 'wraps the request',
+            col: 1,
+            row: 0,
+            kind: 'highlight',
+            icon: 'gear-lava',
+            domain: 'ai',
+            detail: 'The agent span wraps the whole request, so the trace shows each model and tool step inside it.',
+          },
+          {
+            id: 'llm',
+            label: 'Model span',
+            sub: 'foundation model',
+            col: 2,
+            row: 0,
+            kind: 'surface',
+            icon: 'gear-maroon',
+            domain: 'ai',
+            detail:
+              'Calls a foundation model with the question and tool definitions. The model asks for a tool, then writes the answer from the result.',
+          },
+          {
+            id: 'tool',
+            label: 'Tool span',
+            sub: 'UC function or MCP tool',
+            col: 2,
+            row: 1,
+            kind: 'gate',
+            domain: 'governance',
+            detail:
+              'Runs a governed Unity Catalog function or MCP tool with credentials scoped to the declared resources. Tests should check that this span exists with real data.',
+          },
+          {
+            id: 'wh',
+            label: 'Governed data',
+            sub: 'masks and filters apply',
+            col: 3,
+            row: 1,
+            kind: 'store',
+            icon: 'database',
+            domain: 'data',
+            detail:
+              'The data the tool reads. Masks and filters apply, so the agent sees only what its service principal may see.',
+          },
+          {
+            id: 'answer',
+            label: 'Answer',
+            sub: 'grounded in tool output',
+            col: 0,
+            row: 1,
+            domain: 'neutral',
+            detail:
+              'The final answer, grounded in tool output. A fluent answer can come from a model that never called its tool, so check the trace.',
+          },
         ],
         edges: [
           { from: 'caller', to: 'predict' },

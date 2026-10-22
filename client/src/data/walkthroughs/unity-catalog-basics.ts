@@ -12,7 +12,7 @@ export const walkthrough: Walkthrough = {
     outcomes: [
       {
         title: 'Audits become queries',
-        body: 'Unity Catalog records access in system.access tables, so an auditor\'s question about who touched a table becomes a query instead of a spreadsheet exercise.',
+        body: "Unity Catalog records access in system.access tables, so an auditor's question about who touched a table becomes a query instead of a spreadsheet exercise.",
       },
       {
         title: 'Access follows group membership',
@@ -20,7 +20,7 @@ export const walkthrough: Walkthrough = {
       },
       {
         title: 'One policy covers many columns',
-        body: 'Attribute-based access control applies row filters and column masks by governed tag, so a single policy protects every column tagged as sensitive, in every team\'s schema.',
+        body: "Attribute-based access control applies row filters and column masks by governed tag, so a single policy protects every column tagged as sensitive, in every team's schema.",
       },
       {
         title: 'Impact checks before changes',
@@ -80,13 +80,82 @@ export const walkthrough: Walkthrough = {
           { label: 'Objects', fromRow: 3, toRow: 3 },
         ],
         nodes: [
-          { id: 'metastore', label: 'Metastore', sub: 'one per region', col: 1, row: 0, kind: 'highlight' },
-          { id: 'dev', label: 'dev', mono: true, col: 0, row: 1 },
-          { id: 'prod', label: 'prod', mono: true, col: 1, row: 1 },
-          { id: 'sales', label: 'sales', mono: true, col: 1, row: 2 },
-          { id: 'table', label: 'orders', mono: true, sub: 'table', col: 0, row: 3, kind: 'store' },
-          { id: 'view', label: 'orders_by_day', mono: true, sub: 'view', col: 1, row: 3 },
-          { id: 'volume', label: 'landing', mono: true, sub: 'volume (files)', col: 2, row: 3, kind: 'store' },
+          {
+            id: 'metastore',
+            label: 'Metastore',
+            sub: 'one per region',
+            col: 1,
+            row: 0,
+            kind: 'highlight',
+            domain: 'governance',
+            detail:
+              'The top container, one per cloud region. Every attached workspace sees the same catalogs, so a table created in one is visible in another when permissions allow.',
+          },
+          {
+            id: 'dev',
+            label: 'dev',
+            mono: true,
+            col: 0,
+            row: 1,
+            domain: 'governance',
+            detail:
+              'A catalog often maps to an environment or business unit. Catalogs are the first level of the three-level name.',
+          },
+          {
+            id: 'prod',
+            label: 'prod',
+            mono: true,
+            col: 1,
+            row: 1,
+            domain: 'governance',
+            detail: 'The catalog in the full name prod.sales.orders. A reader needs USE CATALOG on it.',
+          },
+          {
+            id: 'sales',
+            label: 'sales',
+            mono: true,
+            col: 1,
+            row: 2,
+            icon: 'data-model',
+            domain: 'governance',
+            detail:
+              'A schema groups related tables, views, and volumes. A reader needs USE SCHEMA here, and SELECT on the schema covers every table in it.',
+          },
+          {
+            id: 'table',
+            label: 'orders',
+            mono: true,
+            sub: 'table',
+            col: 0,
+            row: 3,
+            kind: 'store',
+            icon: 'database',
+            domain: 'data',
+            detail:
+              'Rows and columns in Delta or Iceberg. Managed tables let Unity Catalog own the files. The full name is prod.sales.orders.',
+          },
+          {
+            id: 'view',
+            label: 'orders_by_day',
+            mono: true,
+            sub: 'view',
+            col: 1,
+            row: 3,
+            domain: 'data',
+            detail: 'A saved query over tables, used to rename, filter, or join without copying data.',
+          },
+          {
+            id: 'volume',
+            label: 'landing',
+            mono: true,
+            sub: 'volume (files)',
+            col: 2,
+            row: 3,
+            kind: 'store',
+            icon: 'data-file',
+            domain: 'data',
+            detail: 'Files of any type, such as CSV drops, PDFs, or images, at /Volumes/catalog/schema/volume.',
+          },
         ],
         edges: [
           { from: 'metastore', to: 'dev' },
@@ -134,9 +203,25 @@ export const walkthrough: Walkthrough = {
             label: 'analysts',
             sub: 'read only',
             cells: [
-              { state: 'own', text: 'USE CATALOG' },
-              { state: 'own', text: 'USE SCHEMA', sub: 'SELECT' },
-              { state: 'own', text: 'Read', sub: 'inherited' },
+              {
+                state: 'own',
+                text: 'USE CATALOG',
+                detail: 'Without USE CATALOG on the parent, the read is denied even when the table grant exists.',
+              },
+              {
+                state: 'own',
+                text: 'USE SCHEMA',
+                sub: 'SELECT',
+                detail:
+                  'Without USE SCHEMA the same SELECT grant does nothing. SELECT on the schema covers every table in it.',
+              },
+              {
+                state: 'own',
+                text: 'Read',
+                sub: 'inherited',
+                detail:
+                  'Tables inherit the SELECT granted on the schema, so new tables are covered without another grant.',
+              },
             ],
           },
           {
@@ -144,7 +229,12 @@ export const walkthrough: Walkthrough = {
             sub: 'read and write',
             cells: [
               { state: 'own', text: 'USE CATALOG' },
-              { state: 'own', text: 'USE SCHEMA', sub: 'MODIFY, CREATE TABLE' },
+              {
+                state: 'own',
+                text: 'USE SCHEMA',
+                sub: 'MODIFY, CREATE TABLE',
+                detail: 'MODIFY and CREATE TABLE on the schema let engineers write as well as read.',
+              },
               { state: 'own', text: 'Read, write', sub: 'inherited' },
             ],
           },
@@ -154,7 +244,12 @@ export const walkthrough: Walkthrough = {
             cells: [
               { state: 'none', text: 'No access' },
               { state: 'none', text: 'Not visible' },
-              { state: 'none', text: 'Denied' },
+              {
+                state: 'none',
+                text: 'Denied',
+                detail:
+                  'With no grants on the catalog or schema, the read is denied. Missing any one privilege in the path denies it.',
+              },
             ],
           },
         ],
@@ -229,8 +324,14 @@ SHOW GRANTS \`analysts\` ON SCHEMA prod.sales;`,
       links: [
         { label: 'Unity Catalog managed tables', url: 'https://docs.databricks.com/aws/en/tables/managed' },
         { label: 'External tables', url: 'https://docs.databricks.com/aws/en/tables/external' },
-        { label: 'Unity Catalog best practices', url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/best-practices' },
-        { label: 'Limit catalog access to specific workspaces', url: 'https://docs.databricks.com/aws/en/catalogs/binding' },
+        {
+          label: 'Unity Catalog best practices',
+          url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/best-practices',
+        },
+        {
+          label: 'Limit catalog access to specific workspaces',
+          url: 'https://docs.databricks.com/aws/en/catalogs/binding',
+        },
         { label: 'System tables', url: 'https://docs.databricks.com/aws/en/admin/system-tables/' },
       ],
     },

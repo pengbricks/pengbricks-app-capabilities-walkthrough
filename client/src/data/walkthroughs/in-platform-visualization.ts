@@ -12,23 +12,19 @@ export const walkthrough: Walkthrough = {
     outcomes: [
       {
         title: 'One number everywhere',
-        body:
-          'A Unity Catalog metric view holds the measure once, and dashboards, notebooks, Genie, and alerts read it. A chart and its dashboard tile show the same value.',
+        body: 'A Unity Catalog metric view holds the measure once, and dashboards, notebooks, Genie, and alerts read it. A chart and its dashboard tile show the same value.',
       },
       {
         title: 'New cuts without new reports',
-        body:
-          'A metric view separates measures from dimensions. Users group by any field and the engine computes the right result, so a new breakdown does not need a rebuilt report.',
+        body: 'A metric view separates measures from dimensions. Users group by any field and the engine computes the right result, so a new breakdown does not need a rebuilt report.',
       },
       {
         title: 'Business users can ask',
-        body:
-          'Genie Agents answer from the same metric views, and Genie One gives business users a place to ask. Answers match the dashboards.',
+        body: 'Genie Agents answer from the same metric views, and Genie One gives business users a place to ask. Answers match the dashboards.',
       },
       {
         title: 'Dashboards under change control',
-        body:
-          'Bundles deploy dashboards, Unity Catalog sets permissions, and teams certify the datasets the dashboards depend on.',
+        body: 'Bundles deploy dashboards, Unity Catalog sets permissions, and teams certify the datasets the dashboards depend on.',
       },
     ],
   },
@@ -88,20 +84,24 @@ export const walkthrough: Walkthrough = {
           {
             option: 'Metric view',
             when: 'The same measure is sliced many ways across dashboards, Genie, notebooks, and BI tools.',
-            tradeoffs: 'One definition serves every consumer through MEASURE(). Someone owns the YAML definition, and SQL authors learn one extra function.',
+            tradeoffs:
+              'One definition serves every consumer through MEASURE(). Someone owns the YAML definition, and SQL authors learn one extra function.',
           },
           {
             option: 'Standard view',
             when: 'A fixed shape, such as a joined and filtered table at one grain.',
-            tradeoffs: 'Plain SQL that everyone knows. A standard view locks in its grouping when you create it, so each new grouping becomes a new view and the formula gets copied.',
+            tradeoffs:
+              'Plain SQL that everyone knows. A standard view locks in its grouping when you create it, so each new grouping becomes a new view and the formula gets copied.',
           },
           {
             option: 'SQL in a dashboard dataset',
             when: 'One dashboard or a prototype.',
-            tradeoffs: 'The fastest to build. The formula lives in that dashboard only, so other dashboards and Genie rebuild it and the numbers can diverge.',
+            tradeoffs:
+              'The fastest to build. The formula lives in that dashboard only, so other dashboards and Genie rebuild it and the numbers can diverge.',
           },
         ],
-        recommendation: 'Use a metric view for any measure that more than one consumer needs, a standard view for fixed shapes, and dataset SQL for prototypes.',
+        recommendation:
+          'Use a metric view for any measure that more than one consumer needs, a standard view for fixed shapes, and dataset SQL for prototypes.',
       },
       links: [
         {
@@ -130,12 +130,77 @@ export const walkthrough: Walkthrough = {
         description:
           'A metric view or governed view sits over the source tables. An AI/BI dashboard, notebook charts, a Genie Agent, and external BI tools all read it.',
         nodes: [
-          { id: 'tables', label: 'Source tables', sub: 'governed in Unity Catalog', col: 0, row: 1, kind: 'store' },
-          { id: 'mv', label: 'Metric view', sub: 'measures and dimensions', col: 1, row: 1, kind: 'highlight' },
-          { id: 'dash', label: 'AI/BI dashboard', sub: 'published', col: 2, row: 0, kind: 'surface' },
-          { id: 'nb', label: 'Notebook charts', sub: 'display(), Plotly', col: 2, row: 1, kind: 'surface' },
-          { id: 'genie', label: 'Genie Agent', sub: 'plain-language questions', col: 2, row: 2, kind: 'surface' },
-          { id: 'bi', label: 'Power BI, Tableau', sub: 'over OAuth', col: 3, row: 1, kind: 'surface' },
+          {
+            id: 'tables',
+            label: 'Source tables',
+            sub: 'governed in Unity Catalog',
+            col: 0,
+            row: 1,
+            kind: 'store',
+            icon: 'database',
+            domain: 'data',
+            detail: 'The governed Unity Catalog tables that the metric view or governed view sits over.',
+          },
+          {
+            id: 'mv',
+            label: 'Metric view',
+            sub: 'measures and dimensions',
+            col: 1,
+            row: 1,
+            kind: 'highlight',
+            icon: 'data-model',
+            domain: 'governance',
+            detail:
+              'Holds the business logic once, as measures and dimensions. Every consumer reads through Unity Catalog, so permissions and lineage apply to all of them.',
+          },
+          {
+            id: 'dash',
+            label: 'AI/BI dashboard',
+            sub: 'published',
+            col: 2,
+            row: 0,
+            kind: 'surface',
+            icon: 'dashboard',
+            domain: 'apps',
+            detail:
+              'A published AI/BI dashboard for the recurring view, with filters and scheduled snapshots. Its datasets point at the metric view.',
+          },
+          {
+            id: 'nb',
+            label: 'Notebook charts',
+            sub: 'display(), Plotly',
+            col: 2,
+            row: 1,
+            kind: 'surface',
+            icon: 'gear-navy',
+            domain: 'apps',
+            detail:
+              'Analysts chart in notebooks with display(), matplotlib, or Plotly. Results update only when someone reruns the code.',
+          },
+          {
+            id: 'genie',
+            label: 'Genie Agent',
+            sub: 'plain-language questions',
+            col: 2,
+            row: 2,
+            kind: 'surface',
+            icon: 'data-search',
+            domain: 'apps',
+            detail:
+              'A Genie Agent answers open-ended questions in plain language over the same metric view, and shows the SQL it ran.',
+          },
+          {
+            id: 'bi',
+            label: 'Power BI, Tableau',
+            sub: 'over OAuth',
+            col: 3,
+            row: 1,
+            kind: 'surface',
+            icon: 'network',
+            domain: 'apps',
+            detail:
+              'Power BI and Tableau read the view over OAuth, with the same Unity Catalog permissions as other consumers.',
+          },
         ],
         edges: [
           { from: 'tables', to: 'mv' },
@@ -156,20 +221,24 @@ export const walkthrough: Walkthrough = {
           {
             option: 'AI/BI dashboard',
             when: 'A recurring, shared view with filters and scheduled snapshots.',
-            tradeoffs: 'Published and governed, with schedules and subscriptions. The questions are fixed by its authors, and viewers explore through filters and cross-filtering.',
+            tradeoffs:
+              'Published and governed, with schedules and subscriptions. The questions are fixed by its authors, and viewers explore through filters and cross-filtering.',
           },
           {
             option: 'Genie Agent or Genie One',
             when: 'Open-ended questions in plain language.',
-            tradeoffs: 'Flexible and needs no SQL. Answer quality depends on how well the space is set up with metric views and instructions, so people should read the SQL it shows. It is not a fixed report.',
+            tradeoffs:
+              'Flexible and needs no SQL. Answer quality depends on how well the space is set up with metric views and instructions, so people should read the SQL it shows. It is not a fixed report.',
           },
           {
             option: 'Notebook charts',
             when: 'Analyst exploration and custom figures.',
-            tradeoffs: 'Full freedom with the visualization editor, matplotlib, or Plotly. The audience needs notebook access, and results update only when someone reruns the code.',
+            tradeoffs:
+              'Full freedom with the visualization editor, matplotlib, or Plotly. The audience needs notebook access, and results update only when someone reruns the code.',
           },
         ],
-        recommendation: 'Use a dashboard for the recurring view, Genie for follow-up questions on the same metric view, and notebook charts for analysis.',
+        recommendation:
+          'Use a dashboard for the recurring view, Genie for follow-up questions on the same metric view, and notebook charts for analysis.',
       },
       links: [
         {

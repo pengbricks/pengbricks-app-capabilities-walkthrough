@@ -12,23 +12,19 @@ export const walkthrough: Walkthrough = {
     outcomes: [
       {
         title: 'Fewer overnight pages',
-        body:
-          'Task retries absorb transient errors, and streaming workloads restart automatically. People are paged only for failures that need a human.',
+        body: 'Task retries absorb transient errors, and streaming workloads restart automatically. People are paged only for failures that need a human.',
       },
       {
         title: 'Shorter recovery after a failure',
-        body:
-          'A repair run reruns only the failed tasks and their dependents. Work that already succeeded is kept, so the fix does not repeat hours of processing.',
+        body: 'A repair run reruns only the failed tasks and their dependents. Work that already succeeded is kept, so the fix does not repeat hours of processing.',
       },
       {
         title: 'Agreed severity and ownership',
-        body:
-          'A short severity scale decides who is paged and how fast. Each alert links to a runbook that names the owner and the next step.',
+        body: 'A short severity scale decides who is paged and how fast. Each alert links to a runbook that names the owner and the next step.',
       },
       {
         title: 'Recovery targets set per tier',
-        body:
-          'RPO and RTO are chosen for each workload tier, and managed disaster recovery covers a lost region on AWS and Azure. Delta time travel covers corruption, which replication copies to both regions.',
+        body: 'RPO and RTO are chosen for each workload tier, and managed disaster recovery covers a lost region on AWS and Azure. Delta time travel covers corruption, which replication copies to both regions.',
       },
     ],
   },
@@ -66,12 +62,70 @@ export const walkthrough: Walkthrough = {
         description:
           'A task fails and is retried according to its retry policy. If retries are exhausted, downstream tasks with the default ALL_SUCCESS condition are skipped, while a cleanup or notify task with run_if ALL_DONE still runs. An on-call engineer fixes the cause and starts a repair run, which reruns only the failed and skipped tasks.',
         nodes: [
-          { id: 'task', label: 'Task fails', sub: 'transient or real', col: 0, row: 0 },
-          { id: 'retry', label: 'Retry policy', sub: 'max_retries, interval', col: 1, row: 0, kind: 'highlight' },
-          { id: 'down', label: 'Downstream tasks', sub: 'skipped on ALL_SUCCESS', col: 2, row: 0 },
-          { id: 'clean', label: 'Cleanup or notify', sub: 'run_if ALL_DONE', col: 2, row: 1, kind: 'surface' },
-          { id: 'fix', label: 'Fix the cause', sub: 'data, config, access', col: 1, row: 1, kind: 'gate' },
-          { id: 'repair', label: 'Repair run', sub: 'failed tasks only', col: 0, row: 1, kind: 'highlight' },
+          {
+            id: 'task',
+            label: 'Task fails',
+            sub: 'transient or real',
+            col: 0,
+            row: 0,
+            icon: 'workflow',
+            domain: 'orchestration',
+            detail: 'A job task that fails. The cause may be transient or real.',
+          },
+          {
+            id: 'retry',
+            label: 'Retry policy',
+            sub: 'max_retries, interval',
+            col: 1,
+            row: 0,
+            kind: 'highlight',
+            icon: 'gear-amber',
+            domain: 'orchestration',
+            detail:
+              'The retry policy, set by max_retries and an interval. It handles transient failures before anyone is paged.',
+          },
+          {
+            id: 'down',
+            label: 'Downstream tasks',
+            sub: 'skipped on ALL_SUCCESS',
+            col: 2,
+            row: 0,
+            icon: 'workflow',
+            domain: 'orchestration',
+            detail: 'Tasks with the default ALL_SUCCESS condition are skipped once retries run out.',
+          },
+          {
+            id: 'clean',
+            label: 'Cleanup or notify',
+            sub: 'run_if ALL_DONE',
+            col: 2,
+            row: 1,
+            kind: 'surface',
+            icon: 'gear-amber',
+            domain: 'orchestration',
+            detail: 'A cleanup or notify task with run_if ALL_DONE, so it still runs after a failure.',
+          },
+          {
+            id: 'fix',
+            label: 'Fix the cause',
+            sub: 'data, config, access',
+            col: 1,
+            row: 1,
+            kind: 'gate',
+            domain: 'neutral',
+            detail: 'The on-call engineer finds and fixes the cause, such as data, config, or access.',
+          },
+          {
+            id: 'repair',
+            label: 'Repair run',
+            sub: 'failed tasks only',
+            col: 0,
+            row: 1,
+            kind: 'highlight',
+            icon: 'gear-lava',
+            domain: 'orchestration',
+            detail: 'A repair run reruns only the failed and skipped tasks, not the whole job.',
+          },
         ],
         edges: [
           { from: 'task', to: 'retry' },

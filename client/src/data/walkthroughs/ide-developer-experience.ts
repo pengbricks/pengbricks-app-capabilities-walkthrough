@@ -12,23 +12,19 @@ export const walkthrough: Walkthrough = {
     outcomes: [
       {
         title: 'Faster feedback, less idle compute',
-        body:
-          'Developers run code on serverless compute from their IDE and test against real data in seconds. There is no cluster to start or keep warm during development.',
+        body: 'Developers run code on serverless compute from their IDE and test against real data in seconds. There is no cluster to start or keep warm during development.',
       },
       {
         title: 'Fewer failed releases',
-        body:
-          'CI runs lint and pytest on every pull request, and the job runs its tests on serverless as a first task. Downstream tasks never run on code that fails its tests.',
+        body: 'CI runs lint and pytest on every pull request, and the job runs its tests on serverless as a first task. Downstream tasks never run on code that fails its tests.',
       },
       {
         title: 'One copy of shared logic',
-        body:
-          'Shared code ships as a wheel with one version and one test suite. A fix lands in one place instead of three copied notebooks.',
+        body: 'Shared code ships as a wheel with one version and one test suite. A fix lands in one place instead of three copied notebooks.',
       },
       {
         title: 'One review path',
-        body:
-          'Notebook edits and IDE edits go through the same branches and pull requests, so reviewers see every change to production logic.',
+        body: 'Notebook edits and IDE edits go through the same branches and pull requests, so reviewers see every change to production logic.',
       },
     ],
   },
@@ -66,14 +62,91 @@ export const walkthrough: Walkthrough = {
         description:
           'An engineer edits code in the IDE and runs it on serverless compute through Databricks Connect. pytest tests the same code. A Git push triggers CI, which runs lint, pytest, and bundle validate. A merge deploys the bundle, which creates the Lakeflow Job.',
         nodes: [
-          { id: 'ide', label: 'Edit in the IDE', sub: 'VS Code, Cursor, PyCharm', col: 0, row: 0 },
-          { id: 'dbc', label: 'Databricks Connect', sub: 'executes on serverless', col: 1, row: 0, kind: 'highlight' },
-          { id: 'test', label: 'pytest', sub: 'plain and Spark tests', mono: true, col: 2, row: 0 },
-          { id: 'git', label: 'Git push', sub: 'branch and pull request', col: 3, row: 0 },
-          { id: 'ci', label: 'CI', sub: 'lint, pytest, validate', col: 3, row: 1, kind: 'gate' },
-          { id: 'deploy', label: 'Bundle deploy', sub: 'dev, then test, then prod', col: 2, row: 1 },
-          { id: 'job', label: 'Lakeflow Job', sub: 'installs the wheel', col: 1, row: 1, kind: 'store' },
-          { id: 'gf', label: 'Git folder', sub: 'notebooks in workspace', col: 0, row: 1, kind: 'surface' },
+          {
+            id: 'ide',
+            label: 'Edit in the IDE',
+            sub: 'VS Code, Cursor, PyCharm',
+            col: 0,
+            row: 0,
+            domain: 'neutral',
+            icon: 'users',
+            detail: 'Where the engineer edits code, in VS Code, Cursor, or PyCharm. Local edits stay cheap.',
+          },
+          {
+            id: 'dbc',
+            label: 'Databricks Connect',
+            sub: 'executes on serverless',
+            col: 1,
+            row: 0,
+            kind: 'highlight',
+            domain: 'data',
+            icon: 'gear-navy',
+            detail:
+              'A thin client. Code runs in your local Python process while DataFrame and SQL operations run on serverless compute.',
+          },
+          {
+            id: 'test',
+            label: 'pytest',
+            sub: 'plain and Spark tests',
+            mono: true,
+            col: 2,
+            row: 0,
+            domain: 'orchestration',
+            icon: 'checklist',
+            detail: 'pytest covers plain functions and Spark tests, and the same tests run again in CI.',
+          },
+          {
+            id: 'git',
+            label: 'Git push',
+            sub: 'branch and pull request',
+            col: 3,
+            row: 0,
+            domain: 'orchestration',
+            icon: 'workflow',
+            detail: 'Pushing a branch and opening a pull request triggers CI.',
+          },
+          {
+            id: 'ci',
+            label: 'CI',
+            sub: 'lint, pytest, validate',
+            col: 3,
+            row: 1,
+            kind: 'gate',
+            domain: 'orchestration',
+            detail: 'Runs lint, pytest, and bundle validate on every pull request and blocks the merge on failure.',
+          },
+          {
+            id: 'deploy',
+            label: 'Bundle deploy',
+            sub: 'dev, then test, then prod',
+            col: 2,
+            row: 1,
+            domain: 'orchestration',
+            icon: 'gear-amber',
+            detail: 'After a merge, the bundle deploys through dev, test, and prod and creates the Lakeflow Job.',
+          },
+          {
+            id: 'job',
+            label: 'Lakeflow Job',
+            sub: 'installs the wheel',
+            col: 1,
+            row: 1,
+            kind: 'store',
+            domain: 'orchestration',
+            icon: 'workflow',
+            detail: 'The Lakeflow Job that production runs. It installs the packaged wheel.',
+          },
+          {
+            id: 'gf',
+            label: 'Git folder',
+            sub: 'notebooks in workspace',
+            col: 0,
+            row: 1,
+            kind: 'surface',
+            domain: 'apps',
+            icon: 'data-file',
+            detail: 'The workspace copy of the repo, where notebooks live. The job imports from it.',
+          },
         ],
         edges: [
           { from: 'ide', to: 'dbc' },
@@ -126,7 +199,9 @@ def get_spark() -> SparkSession:
     # Inside a job or notebook, getActiveSession returns the existing session.
     # Locally, Databricks Connect starts one on serverless compute.
     return SparkSession.getActiveSession() or DatabricksSession.builder.serverless().getOrCreate()`,
-          notes: ['Authentication comes from your Databricks CLI profile or environment variables, never from the code.'],
+          notes: [
+            'Authentication comes from your Databricks CLI profile or environment variables, never from the code.',
+          ],
         },
       ],
       options: {
@@ -135,20 +210,24 @@ def get_spark() -> SparkSession:
           {
             option: 'Databricks Connect on serverless',
             when: 'Daily work on Python and DataFrame code that you debug locally and test with pytest.',
-            tradeoffs: 'No cluster to start or keep warm, and serverless bills for the compute your queries use. Serverless limits apply, such as no custom libraries in Python UDFs, and Spark Connect does not support RDD or JVM-level APIs. The databricks-connect version you install has to match what serverless supports.',
+            tradeoffs:
+              'No cluster to start or keep warm, and serverless bills for the compute your queries use. Serverless limits apply, such as no custom libraries in Python UDFs, and Spark Connect does not support RDD or JVM-level APIs. The databricks-connect version you install has to match what serverless supports.',
           },
           {
             option: 'Databricks Connect on a cluster',
             when: 'Your code needs libraries, init scripts, instance types, or GPUs that serverless does not allow.',
-            tradeoffs: 'The cluster has to be running, so you wait for it to start and pay while it sits idle unless it auto-terminates. Each developer needs access to a cluster, and its Databricks Runtime version decides which databricks-connect version you install.',
+            tradeoffs:
+              'The cluster has to be running, so you wait for it to start and pay while it sits idle unless it auto-terminates. Each developer needs access to a cluster, and its Databricks Runtime version decides which databricks-connect version you install.',
           },
           {
             option: 'A notebook in a Git folder',
             when: 'Exploring data, quick fixes, or checking behavior on the exact workspace runtime.',
-            tradeoffs: 'No local setup, and the code runs where the job runs. You have no IDE debugger or pytest test explorer, and tests take longer to run, so keep the logic in modules that you also test from the IDE and CI.',
+            tradeoffs:
+              'No local setup, and the code runs where the job runs. You have no IDE debugger or pytest test explorer, and tests take longer to run, so keep the logic in modules that you also test from the IDE and CI.',
           },
         ],
-        recommendation: 'Default to Databricks Connect on serverless. Move to a cluster only when a library or hardware need rules out serverless, and use Git folder notebooks for exploration.',
+        recommendation:
+          'Default to Databricks Connect on serverless. Move to a cluster only when a library or hardware need rules out serverless, and use Git folder notebooks for exploration.',
       },
       links: [
         {
@@ -287,20 +366,24 @@ select = ["E", "F", "I"]`,
           {
             option: 'Python wheel built by the bundle',
             when: 'Several jobs or teams use the same code, or you want versions and a test suite for it.',
-            tradeoffs: 'One version, one test suite, and one install path in every environment. It needs a pyproject.toml and a build on deploy, and each consumer has to pick up a new wheel version to get a fix.',
+            tradeoffs:
+              'One version, one test suite, and one install path in every environment. It needs a pyproject.toml and a build on deploy, and each consumer has to pick up a new wheel version to get a fix.',
           },
           {
             option: 'Python modules as workspace files',
             when: 'One repository and one team, with notebooks sitting next to the code in a Git folder.',
-            tradeoffs: 'No build step, and a notebook imports the code on the branch it has checked out, so code and notebooks stay in sync. Imports depend on the working directory or sys.path, and on serverless the working directory is not guaranteed, so use absolute paths. Versions are Git commits.',
+            tradeoffs:
+              'No build step, and a notebook imports the code on the branch it has checked out, so code and notebooks stay in sync. Imports depend on the working directory or sys.path, and on serverless the working directory is not guaranteed, so use absolute paths. Versions are Git commits.',
           },
           {
             option: '%run on a shared notebook',
             when: 'A quick prototype that already lives in notebooks.',
-            tradeoffs: 'Nothing to set up. pytest cannot import the shared notebook, and it shares one namespace with the caller. Databricks suggests replacing %run with imports from workspace files.',
+            tradeoffs:
+              'Nothing to set up. pytest cannot import the shared notebook, and it shares one namespace with the caller. Databricks suggests replacing %run with imports from workspace files.',
           },
         ],
-        recommendation: 'Use a wheel once more than one job or team shares the code. Workspace-file modules work inside a single repository, and %run is for prototypes you plan to replace.',
+        recommendation:
+          'Use a wheel once more than one job or team shares the code. Workspace-file modules work inside a single repository, and %run is for prototypes you plan to replace.',
       },
       links: [
         {
@@ -328,8 +411,7 @@ select = ["E", "F", "I"]`,
     {
       id: 'git-ci',
       heading: 'Git folders, lint, and the same tests in CI',
-      prose:
-        'Local checks are for speed. CI is the check that cannot be skipped, so it should run the same commands.',
+      prose: 'Local checks are for speed. CI is the check that cannot be skipped, so it should run the same commands.',
       steps: [
         {
           title: 'Use Git folders for the workspace copy',

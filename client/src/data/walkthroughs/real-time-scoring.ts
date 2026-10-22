@@ -12,23 +12,19 @@ export const walkthrough: Walkthrough = {
     outcomes: [
       {
         title: 'Controlled access',
-        body:
-          'CAN QUERY grants and OAuth tokens decide who can call the endpoint. Callers use M2M or workload identity federation, so no personal access tokens sit in applications.',
+        body: 'CAN QUERY grants and OAuth tokens decide who can call the endpoint. Callers use M2M or workload identity federation, so no personal access tokens sit in applications.',
       },
       {
         title: 'Cost matched to demand',
-        body:
-          'Provisioned concurrency is sized from queries per second times latency. Scale-to-zero cuts cost on quiet endpoints, at the price of a cold start.',
+        body: 'Provisioned concurrency is sized from queries per second times latency. Scale-to-zero cuts cost on quiet endpoints, at the price of a cold start.',
       },
       {
         title: 'Protection from runaway callers',
-        body:
-          'Unity Gateway rate limits per endpoint, user, or group keep one caller from using all the capacity.',
+        body: 'Unity Gateway rate limits per endpoint, user, or group keep one caller from using all the capacity.',
       },
       {
         title: 'Evidence before and after launch',
-        body:
-          'Load tests report p50, p95, and p99 latency and error rate on staging. Inference tables and endpoint alerts give an operating record in production.',
+        body: 'Load tests report p50, p95, and p99 latency and error rate on staging. Inference tables and endpoint alerts give an operating record in production.',
       },
     ],
   },
@@ -58,20 +54,81 @@ export const walkthrough: Walkthrough = {
     {
       id: 'flow',
       heading: 'The request path',
-      prose:
-        'Every online request crosses the same layers. Each layer is a place to secure, limit, or measure it.',
+      prose: 'Every online request crosses the same layers. Each layer is a place to secure, limit, or measure it.',
       diagram: {
         type: 'flow',
         title: 'From caller to prediction',
         description:
           'A caller presents an OAuth token. Unity Gateway checks permission and rate limits and logs the request to an inference table. The serving endpoint runs the model. For feature-backed models, the endpoint first looks up features by key in the online store. The response returns to the caller.',
         nodes: [
-          { id: 'cli', label: 'Caller', sub: 'OAuth token, CAN QUERY', col: 0, row: 0 },
-          { id: 'gw', label: 'Unity Gateway', sub: 'rate limits, logging', col: 1, row: 0, kind: 'gate' },
-          { id: 'ep', label: 'Serving endpoint', sub: 'model, autoscaling', col: 2, row: 0, kind: 'highlight' },
-          { id: 'on', label: 'Online store', sub: 'Lakebase feature lookup', col: 2, row: 1, kind: 'store' },
-          { id: 'inf', label: 'Inference table', sub: 'requests and responses', col: 1, row: 1, kind: 'store' },
-          { id: 'mon', label: 'Monitoring', sub: 'metrics, quality, alerts', col: 0, row: 1, kind: 'surface' },
+          {
+            id: 'cli',
+            label: 'Caller',
+            sub: 'OAuth token, CAN QUERY',
+            col: 0,
+            row: 0,
+            domain: 'neutral',
+            icon: 'users',
+            detail:
+              'The application calling the endpoint. It presents an OAuth token and needs CAN QUERY permission on the endpoint.',
+          },
+          {
+            id: 'gw',
+            label: 'Unity Gateway',
+            sub: 'rate limits, logging',
+            col: 1,
+            row: 0,
+            kind: 'gate',
+            domain: 'governance',
+            detail:
+              'Unity Gateway checks permission and rate limits on each request and logs it to an inference table.',
+          },
+          {
+            id: 'ep',
+            label: 'Serving endpoint',
+            sub: 'model, autoscaling',
+            col: 2,
+            row: 0,
+            kind: 'highlight',
+            domain: 'ai',
+            icon: 'gear-maroon',
+            detail:
+              'The Model Serving endpoint that runs the model and scales it. The model signature rejects malformed bodies with a 400.',
+          },
+          {
+            id: 'on',
+            label: 'Online store',
+            sub: 'Lakebase feature lookup',
+            col: 2,
+            row: 1,
+            kind: 'store',
+            domain: 'data',
+            icon: 'cloud-database',
+            detail:
+              'For feature-backed models, the endpoint looks up features by key here before it scores the request.',
+          },
+          {
+            id: 'inf',
+            label: 'Inference table',
+            sub: 'requests and responses',
+            col: 1,
+            row: 1,
+            kind: 'store',
+            domain: 'ai',
+            icon: 'list',
+            detail: 'Stores requests and responses from the gateway, which feeds monitoring.',
+          },
+          {
+            id: 'mon',
+            label: 'Monitoring',
+            sub: 'metrics, quality, alerts',
+            col: 0,
+            row: 1,
+            kind: 'surface',
+            domain: 'apps',
+            icon: 'dashboard',
+            detail: 'Tracks metrics, quality, and alerts, so you know when the endpoint slows or fails.',
+          },
         ],
         edges: [
           { from: 'cli', to: 'gw' },
@@ -94,20 +151,24 @@ export const walkthrough: Walkthrough = {
           {
             option: 'Model Serving endpoint',
             when: 'An application needs an answer per request within a latency target.',
-            tradeoffs: 'An authenticated HTTPS endpoint with scaling, rate limits, and inference tables. You pay for provisioned capacity while it is up, size it for peak traffic, and own latency monitoring.',
+            tradeoffs:
+              'An authenticated HTTPS endpoint with scaling, rate limits, and inference tables. You pay for provisioned capacity while it is up, size it for peak traffic, and own latency monitoring.',
           },
           {
             option: 'Batch scoring in a Lakeflow Job',
             when: 'Scores can be computed ahead of time, such as nightly churn or propensity, and consumers read a table.',
-            tradeoffs: 'No endpoint to size or secure beyond table grants, and job compute stops when the run ends. A score is as old as the last run, and the job cannot use values known only at request time.',
+            tradeoffs:
+              'No endpoint to size or secure beyond table grants, and job compute stops when the run ends. A score is as old as the last run, and the job cannot use values known only at request time.',
           },
           {
             option: 'Streaming job over events',
             when: 'Events arrive continuously and each one needs a score, but no caller waits for a reply.',
-            tradeoffs: 'Scores land in a table as events arrive, with no request and response. The job runs all the time, so compute is always on, and you manage the checkpoint.',
+            tradeoffs:
+              'Scores land in a table as events arrive, with no request and response. The job runs all the time, so compute is always on, and you manage the checkpoint.',
           },
         ],
-        recommendation: 'Use batch when a table of scores is enough. Add a serving endpoint when a person or application waits for the answer, or the input exists only at request time.',
+        recommendation:
+          'Use batch when a table of scores is enough. Add a serving endpoint when a person or application waits for the answer, or the input exists only at request time.',
       },
       links: [
         {
@@ -196,15 +257,18 @@ export const walkthrough: Walkthrough = {
           {
             option: 'Scale to zero',
             when: 'Dev and test endpoints, or rarely used internal tools.',
-            tradeoffs: 'Releases compute after idle time, so a quiet endpoint costs little. The next request waits for a cold start, and the docs say capacity is not guaranteed when scaled to zero.',
+            tradeoffs:
+              'Releases compute after idle time, so a quiet endpoint costs little. The next request waits for a cold start, and the docs say capacity is not guaranteed when scaled to zero.',
           },
           {
             option: 'A nonzero minimum with provisioned concurrency',
             when: 'Production endpoints with a latency target.',
-            tradeoffs: 'No cold start. You pay for the minimum around the clock, so size it from queries per second times latency, and requests above the maximum queue.',
+            tradeoffs:
+              'No cold start. You pay for the minimum around the clock, so size it from queries per second times latency, and requests above the maximum queue.',
           },
         ],
-        recommendation: 'Scale to zero in dev and test. Keep a nonzero minimum in production, because the docs advise against scale to zero there.',
+        recommendation:
+          'Scale to zero in dev and test. Keep a nonzero minimum in production, because the docs advise against scale to zero there.',
       },
       links: [
         {
@@ -225,8 +289,7 @@ export const walkthrough: Walkthrough = {
     {
       id: 'features',
       heading: 'Online features',
-      prose:
-        'A request should carry the key and anything only the caller knows. The endpoint can fetch the rest.',
+      prose: 'A request should carry the key and anything only the caller knows. The endpoint can fetch the rest.',
       points: [
         {
           strong: 'Feature Views feed the online store.',
@@ -251,20 +314,24 @@ export const walkthrough: Walkthrough = {
           {
             option: 'Look up from the online store by key',
             when: 'Features are aggregates or history for an entity, such as spend over 30 days.',
-            tradeoffs: 'The caller sends only the key, and the definition matches training. It adds an online store to run and pay for, and values are only as fresh as the last sync with the offline table.',
+            tradeoffs:
+              'The caller sends only the key, and the definition matches training. It adds an online store to run and pay for, and values are only as fresh as the last sync with the offline table.',
           },
           {
             option: 'Send the values in the request',
             when: 'The values exist only at call time, such as the current cart.',
-            tradeoffs: 'No lookup hop and no store. The caller must supply and compute every value, which makes payloads larger and risks differences from the training logic.',
+            tradeoffs:
+              'No lookup hop and no store. The caller must supply and compute every value, which makes payloads larger and risks differences from the training logic.',
           },
           {
             option: 'Both: key plus request-time values',
             when: 'Most models that combine history with the current event.',
-            tradeoffs: 'Looked-up and request values join at the endpoint. You keep two sources of inputs to document and test.',
+            tradeoffs:
+              'Looked-up and request values join at the endpoint. You keep two sources of inputs to document and test.',
           },
         ],
-        recommendation: 'Look up entity features by key and send only the values that exist at call time in the payload.',
+        recommendation:
+          'Look up entity features by key and send only the values that exist at call time in the payload.',
       },
       links: [
         {
@@ -314,7 +381,9 @@ w.serving_endpoints.put_ai_gateway(
     inference_table_config=AiGatewayInferenceTableConfig(
         enabled=True, catalog_name="main", schema_name="serving_logs", table_name_prefix="churn"),
 )`,
-          notes: ['Check the SDK version you use for the exact class names, and apply the same settings from your bundle in production.'],
+          notes: [
+            'Check the SDK version you use for the exact class names, and apply the same settings from your bundle in production.',
+          ],
         },
       ],
       links: [

@@ -12,23 +12,19 @@ export const walkthrough: Walkthrough = {
     outcomes: [
       {
         title: 'Fewer broken downstream reports',
-        body:
-          'Readers query a view, so a producer can swap tables or rename columns behind it. The old shape stays alive until consumers move.',
+        body: 'Readers query a view, so a producer can swap tables or rename columns behind it. The old shape stays alive until consumers move.',
       },
       {
         title: 'Bad data stopped at write time',
-        body:
-          'NOT NULL and CHECK constraints reject bad rows when they are written, so a producer cannot break the contract by accident.',
+        body: 'NOT NULL and CHECK constraints reject bad rows when they are written, so a producer cannot break the contract by accident.',
       },
       {
         title: 'Managed retirement',
-        body:
-          'Tag the old object as deprecated, find remaining readers with table lineage and query history, and drop it on the date you announced.',
+        body: 'Tag the old object as deprecated, find remaining readers with table lineage and query history, and drop it on the date you announced.',
       },
       {
         title: 'Governed sharing outside the workspace',
-        body:
-          'OpenSharing gives outside recipients a governed table or view. Check that their readers support the table features you enable before you share.',
+        body: 'OpenSharing gives outside recipients a governed table or view. Check that their readers support the table features you enable before you share.',
       },
     ],
   },
@@ -72,7 +68,12 @@ export const walkthrough: Walkthrough = {
             label: 'Add a nullable column',
             cells: [
               { state: 'own', text: 'Nonbreaking' },
-              { state: 'own', text: 'Schema evolution, ADD COLUMN' },
+              {
+                state: 'own',
+                text: 'Schema evolution, ADD COLUMN',
+                detail:
+                  'A reader that selects columns by name survives an added column, so this change can run in place.',
+              },
               { state: 'own', text: 'In place' },
             ],
           },
@@ -81,7 +82,12 @@ export const walkthrough: Walkthrough = {
             sub: 'for example int to bigint',
             cells: [
               { state: 'own', text: 'Nonbreaking' },
-              { state: 'own', text: 'Type widening' },
+              {
+                state: 'own',
+                text: 'Type widening',
+                detail:
+                  'Widens int to bigint or float to double without rewriting files. Streaming reads and Databricks-to-Databricks sharing work across the change.',
+              },
               { state: 'own', text: 'In place' },
             ],
           },
@@ -89,7 +95,12 @@ export const walkthrough: Walkthrough = {
             label: 'Rename a column',
             cells: [
               { state: 'none', text: 'Breaking' },
-              { state: 'optional', text: 'Column mapping, view' },
+              {
+                state: 'optional',
+                text: 'Column mapping, view',
+                detail:
+                  'Column mapping makes the rename metadata-only. A rename can break streaming readers, so restart the stream or use schema tracking.',
+              },
               { state: 'optional', text: 'Old name via view' },
             ],
           },
@@ -97,7 +108,12 @@ export const walkthrough: Walkthrough = {
             label: 'Drop a column',
             cells: [
               { state: 'none', text: 'Breaking' },
-              { state: 'optional', text: 'Column mapping' },
+              {
+                state: 'optional',
+                text: 'Column mapping',
+                detail:
+                  'Column mapping makes the drop metadata-only. A drop can break streaming readers, so restart the stream or use schema tracking.',
+              },
               { state: 'optional', text: 'Deprecate, then drop' },
             ],
           },
@@ -105,8 +121,18 @@ export const walkthrough: Walkthrough = {
             label: 'Narrow a type or change meaning',
             cells: [
               { state: 'none', text: 'Breaking' },
-              { state: 'none', text: 'New table version' },
-              { state: 'none', text: 'Behind a view' },
+              {
+                state: 'none',
+                text: 'New table version',
+                detail:
+                  'Narrowing a type or changing what a value means breaks readers, so ship it as a new table version.',
+              },
+              {
+                state: 'none',
+                text: 'Behind a view',
+                detail:
+                  'Readers query a view, so the old column names keep working on the new table version until they move.',
+              },
             ],
           },
         ],
@@ -157,7 +183,9 @@ ALTER TABLE main.sales.customers SET TBLPROPERTIES (
   'delta.minWriterVersion' = '5');
 ALTER TABLE main.sales.customers RENAME COLUMN full_name TO display_name;
 ALTER TABLE main.sales.customers DROP COLUMN legacy_flag;`,
-          notes: ['Column mapping raises the minimum reader version. Confirm every reader and sharing recipient supports it first.'],
+          notes: [
+            'Column mapping raises the minimum reader version. Confirm every reader and sharing recipient supports it first.',
+          ],
         },
         {
           label: 'Choose how Auto Loader treats new columns',
@@ -176,25 +204,30 @@ ALTER TABLE main.sales.customers DROP COLUMN legacy_flag;`,
           {
             option: 'addNewColumns (default)',
             when: 'Bronze ingestion where new source fields should reach the table.',
-            tradeoffs: 'The stream fails once with an UnknownFieldException after it adds the new columns, then resumes when restarted. Run it as a Lakeflow Job with automatic restart. Existing column types do not change.',
+            tradeoffs:
+              'The stream fails once with an UnknownFieldException after it adds the new columns, then resumes when restarted. Run it as a Lakeflow Job with automatic restart. Existing column types do not change.',
           },
           {
             option: 'rescue',
             when: 'The schema must stay put and nothing may be lost.',
-            tradeoffs: 'The schema never evolves and the stream does not fail. New fields land in the rescued data column, and someone has to read it and promote columns on purpose.',
+            tradeoffs:
+              'The schema never evolves and the stream does not fail. New fields land in the rescued data column, and someone has to read it and promote columns on purpose.',
           },
           {
             option: 'failOnNewColumns',
             when: 'A strict contract where the producer must announce changes.',
-            tradeoffs: 'No surprise columns. The stream stops and stays stopped until you update the schema or remove the offending file, so each upstream change pages someone.',
+            tradeoffs:
+              'No surprise columns. The stream stops and stays stopped until you update the schema or remove the offending file, so each upstream change pages someone.',
           },
           {
             option: 'none',
             when: 'Only a fixed set of columns matters.',
-            tradeoffs: 'New columns are ignored and the stream never fails. Data is not rescued unless you set the rescued data column, so values can disappear without a signal.',
+            tradeoffs:
+              'New columns are ignored and the stream never fails. Data is not rescued unless you set the rescued data column, so values can disappear without a signal.',
           },
         ],
-        recommendation: 'Use rescue for bronze tables that feed a reviewed gold layer, and addNewColumns where the producer adds fields often and a job restarts the stream. Use none only with a rescued data column set.',
+        recommendation:
+          'Use rescue for bronze tables that feed a reviewed gold layer, and addNewColumns where the producer adds fields often and a job restarts the stream. Use none only with a rescued data column set.',
       },
       links: [
         {
@@ -251,25 +284,30 @@ ALTER TABLE main.sales.customers
           {
             option: 'Table constraints (NOT NULL, CHECK)',
             when: 'Gold tables and any table whose readers rely on the rule.',
-            tradeoffs: 'A write that violates a constraint fails the whole transaction, so bad rows never land. The producer job fails and someone fixes the data. Adding a constraint checks existing rows and fails if any violate it.',
+            tradeoffs:
+              'A write that violates a constraint fails the whole transaction, so bad rows never land. The producer job fails and someone fixes the data. Adding a constraint checks existing rows and fails if any violate it.',
           },
           {
             option: 'Pipeline expectation that drops rows',
             when: 'Ingestion layers where losing a few rows is acceptable and you want counts.',
-            tradeoffs: 'Invalid records are dropped before they reach the target, and the pipeline UI shows how many. Dropped rows are gone from the table unless you capture them elsewhere.',
+            tradeoffs:
+              'Invalid records are dropped before they reach the target, and the pipeline UI shows how many. Dropped rows are gone from the table unless you capture them elsewhere.',
           },
           {
             option: 'Pipeline expectation that fails the update',
             when: 'Layers where one bad record means the data should not publish.',
-            tradeoffs: 'Invalid records stop the update, and manual intervention is required before reprocessing. Nothing bad lands, and the pipeline is down until someone acts.',
+            tradeoffs:
+              'Invalid records stop the update, and manual intervention is required before reprocessing. Nothing bad lands, and the pipeline is down until someone acts.',
           },
           {
             option: 'Quarantine pattern',
             when: 'You want good rows to flow and bad rows kept for review.',
-            tradeoffs: 'Valid rows reach the target and invalid rows go to a side table, with no loss and no failure. It takes extra pipeline logic, and someone has to review the quarantine table.',
+            tradeoffs:
+              'Valid rows reach the target and invalid rows go to a side table, with no loss and no failure. It takes extra pipeline logic, and someone has to review the quarantine table.',
           },
         ],
-        recommendation: 'Use constraints on gold tables, and expectations in ingestion pipelines with quarantine where bad rows need review. The default expectation action, warn, keeps invalid rows in the target.',
+        recommendation:
+          'Use constraints on gold tables, and expectations in ingestion pipelines with quarantine where bad rows need review. The default expectation action, warn, keeps invalid rows in the target.',
       },
       links: [
         {
@@ -294,13 +332,85 @@ ALTER TABLE main.sales.customers
         description:
           'Dashboards, jobs, and external recipients read a stable view. During a breaking change the old view keeps the previous column names and selects from the new table version. A new view exposes the new names. The previous table stays as an archive until the sunset.',
         nodes: [
-          { id: 'dash', label: 'Dashboards', sub: 'BI and Genie', col: 0, row: 0 },
-          { id: 'jobs', label: 'Downstream jobs', sub: 'Lakeflow Jobs', col: 0, row: 1 },
-          { id: 'ext', label: 'External recipients', sub: 'OpenSharing', col: 0, row: 2 },
-          { id: 'old', label: 'Deprecated view', sub: 'old column names', col: 2, row: 0, kind: 'surface' },
-          { id: 'new', label: 'Current view', sub: 'new column names', col: 2, row: 2, kind: 'highlight' },
-          { id: 'tbl', label: 'Versioned table', sub: 'current schema', col: 4, row: 1, kind: 'store' },
-          { id: 'arch', label: 'Archived table', sub: 'previous schema', col: 4, row: 2, kind: 'store' },
+          {
+            id: 'dash',
+            label: 'Dashboards',
+            sub: 'BI and Genie',
+            col: 0,
+            row: 0,
+            icon: 'dashboard',
+            domain: 'apps',
+            detail:
+              'BI dashboards and Genie read the deprecated view, so they keep the old column names while the table changes underneath.',
+          },
+          {
+            id: 'jobs',
+            label: 'Downstream jobs',
+            sub: 'Lakeflow Jobs',
+            col: 0,
+            row: 1,
+            icon: 'workflow',
+            domain: 'orchestration',
+            detail:
+              'Downstream Lakeflow Jobs read through the deprecated view and keep running during the breaking change.',
+          },
+          {
+            id: 'ext',
+            label: 'External recipients',
+            sub: 'OpenSharing',
+            col: 0,
+            row: 2,
+            icon: 'data-shares',
+            domain: 'apps',
+            detail:
+              'External recipients through OpenSharing read the current view. Check that each recipient client supports the table features first.',
+          },
+          {
+            id: 'old',
+            label: 'Deprecated view',
+            sub: 'old column names',
+            col: 2,
+            row: 0,
+            kind: 'surface',
+            icon: 'data-model',
+            domain: 'governance',
+            detail:
+              'Keeps the previous column names and selects from the new table version. It is tagged deprecated and stays until the sunset.',
+          },
+          {
+            id: 'new',
+            label: 'Current view',
+            sub: 'new column names',
+            col: 2,
+            row: 2,
+            kind: 'highlight',
+            icon: 'data-model',
+            domain: 'governance',
+            detail: 'Exposes the new column names. This is the interface readers move to.',
+          },
+          {
+            id: 'tbl',
+            label: 'Versioned table',
+            sub: 'current schema',
+            col: 4,
+            row: 1,
+            kind: 'store',
+            icon: 'database',
+            domain: 'data',
+            detail:
+              'The versioned table holds the current schema. Readers never query it directly, only through the views.',
+          },
+          {
+            id: 'arch',
+            label: 'Archived table',
+            sub: 'previous schema',
+            col: 4,
+            row: 2,
+            kind: 'store',
+            icon: 'database',
+            domain: 'data',
+            detail: 'The previous table version, kept as an archive until the sunset date.',
+          },
         ],
         edges: [
           { from: 'dash', to: 'old' },
@@ -336,20 +446,24 @@ ALTER TABLE main.sales.customers
           {
             option: 'Add the new column, keep the old one, then drop later',
             when: 'A rename that can run in two steps, with a grace period for readers.',
-            tradeoffs: 'Adding a nullable column is nonbreaking, so readers keep working while they move. Writers fill two columns for a while, and the copies can drift apart. You finish with a drop, which needs column mapping.',
+            tradeoffs:
+              'Adding a nullable column is nonbreaking, so readers keep working while they move. Writers fill two columns for a while, and the copies can drift apart. You finish with a drop, which needs column mapping.',
           },
           {
             option: 'Column mapping in place',
             when: 'You know every reader and can update them together.',
-            tradeoffs: 'A rename or drop is metadata only, with no files rewritten. It breaks queries that name the old column and can break streaming readers. It raises the minimum reader and writer protocol versions, so check every reader and share recipient first.',
+            tradeoffs:
+              'A rename or drop is metadata only, with no files rewritten. It breaks queries that name the old column and can break streaming readers. It raises the minimum reader and writer protocol versions, so check every reader and share recipient first.',
           },
           {
             option: 'A new versioned table behind a compatibility view',
             when: 'Readers you cannot move on your schedule, external recipients, a narrowed type, or a change in meaning.',
-            tradeoffs: 'Old names keep working through the view until the sunset date. You keep two tables for a while, need a backfill, and have to tag, announce, and retire the old view.',
+            tradeoffs:
+              'Old names keep working through the view until the sunset date. You keep two tables for a while, need a backfill, and have to tag, announce, and retire the old view.',
           },
         ],
-        recommendation: 'Add and deprecate first. Use column mapping when you control every reader, and use a versioned table behind a view when readers are outside your control or the meaning changes.',
+        recommendation:
+          'Add and deprecate first. Use column mapping when you control every reader, and use a versioned table behind a view when readers are outside your control or the meaning changes.',
       },
       links: [
         {
@@ -450,12 +564,71 @@ ORDER BY queries DESC;`,
         description:
           'A pull request changes a contract file. A check compares the old and new contract, classifies each change as breaking or nonbreaking, and compares the result to the version bump. A mismatch fails the check. A match lets the bundle deploy the change.',
         nodes: [
-          { id: 'pr', label: 'Pull request', sub: 'contract file changed', col: 0, row: 0 },
-          { id: 'diff', label: 'Diff the contracts', sub: 'old versus new', col: 1, row: 0 },
-          { id: 'cls', label: 'Classify changes', sub: 'breaking or not', col: 2, row: 0, kind: 'highlight' },
-          { id: 'bump', label: 'Bump matches?', sub: 'major or minor', col: 3, row: 0, kind: 'gate' },
-          { id: 'ok', label: 'Deploy', sub: 'bundle deploy', col: 4, row: 0, kind: 'store' },
-          { id: 'bad', label: 'Fail the check', sub: 'label the change', col: 3, row: 1, kind: 'surface' },
+          {
+            id: 'pr',
+            label: 'Pull request',
+            sub: 'contract file changed',
+            col: 0,
+            row: 0,
+            icon: 'data-file',
+            domain: 'orchestration',
+            detail: 'A pull request that changes a contract file starts the check.',
+          },
+          {
+            id: 'diff',
+            label: 'Diff the contracts',
+            sub: 'old versus new',
+            col: 1,
+            row: 0,
+            icon: 'gear-amber',
+            domain: 'orchestration',
+            detail: 'Compares the old and new contract to find what changed.',
+          },
+          {
+            id: 'cls',
+            label: 'Classify changes',
+            sub: 'breaking or not',
+            col: 2,
+            row: 0,
+            kind: 'highlight',
+            icon: 'checklist',
+            domain: 'governance',
+            detail:
+              'Labels each change as breaking or nonbreaking. A rename needs an explicit marker or it reads as a drop plus an add.',
+          },
+          {
+            id: 'bump',
+            label: 'Bump matches?',
+            sub: 'major or minor',
+            col: 3,
+            row: 0,
+            kind: 'gate',
+            domain: 'governance',
+            detail:
+              'Checks that the version bump matches the change. A breaking change needs a major bump and a nonbreaking addition needs a minor bump.',
+          },
+          {
+            id: 'ok',
+            label: 'Deploy',
+            sub: 'bundle deploy',
+            col: 4,
+            row: 0,
+            kind: 'store',
+            icon: 'workflow',
+            domain: 'orchestration',
+            detail: 'A matching bump lets the bundle deploy the change.',
+          },
+          {
+            id: 'bad',
+            label: 'Fail the check',
+            sub: 'label the change',
+            col: 3,
+            row: 1,
+            kind: 'surface',
+            icon: 'list',
+            domain: 'governance',
+            detail: 'A mismatch fails the check and blocks the merge until the change is labeled correctly.',
+          },
         ],
         edges: [
           { from: 'pr', to: 'diff' },

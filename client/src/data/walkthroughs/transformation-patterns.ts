@@ -12,23 +12,19 @@ export const walkthrough: Walkthrough = {
     outcomes: [
       {
         title: 'Less pipeline plumbing to maintain',
-        body:
-          'The pipeline resolves dependencies between datasets. Engineers write queries and stop hand-ordering steps, so changes are smaller and easier to review.',
+        body: 'The pipeline resolves dependencies between datasets. Engineers write queries and stop hand-ordering steps, so changes are smaller and easier to review.',
       },
       {
         title: 'Lower refresh cost',
-        body:
-          'On serverless pipelines, a materialized view refreshes only what changed when its query supports it. Teams avoid reprocessing everything on each run.',
+        body: 'On serverless pipelines, a materialized view refreshes only what changed when its query supports it. Teams avoid reprocessing everything on each run.',
       },
       {
         title: 'Bad data is caught and counted',
-        body:
-          'Expectations warn on, drop, or fail bad rows and record counts in the event log. Quality problems become visible numbers before they reach a report.',
+        body: 'Expectations warn on, drop, or fail bad rows and record counts in the event log. Quality problems become visible numbers before they reach a report.',
       },
       {
         title: 'Less manual tuning',
-        body:
-          'CLUSTER BY AUTO lets liquid clustering choose keys from how the table is queried. Engineers spend less time on partitioning decisions.',
+        body: 'CLUSTER BY AUTO lets liquid clustering choose keys from how the table is queried. Engineers spend less time on partitioning decisions.',
       },
     ],
   },
@@ -126,7 +122,9 @@ export const walkthrough: Walkthrough = {
           label: 'Check whether a materialized view refreshes incrementally',
           language: 'sql',
           code: 'EXPLAIN CREATE MATERIALIZED VIEW daily_revenue AS\nSELECT order_date, region, SUM(amount) AS revenue\nFROM silver_orders\nGROUP BY order_date, region;',
-          notes: ['The output names the refresh technique the planner would use, such as incremental aggregation or complete recompute.'],
+          notes: [
+            'The output names the refresh technique the planner would use, such as incremental aggregation or complete recompute.',
+          ],
         },
       ],
       links: [
@@ -186,11 +184,61 @@ export const walkthrough: Walkthrough = {
         description:
           'Raw orders are cast with try_cast. A row whose amount and quantity both cast goes to the valid table. Any other row goes to a reject table with a reason. Downstream views read only the valid table.',
         nodes: [
-          { id: 'orders', label: 'Raw orders', sub: 'values stored as text', col: 0, row: 0, kind: 'store' },
-          { id: 'gate', label: 'Both casts succeed?', sub: 'try_cast', col: 1, row: 0, kind: 'gate' },
-          { id: 'valid', label: 'Valid orders', sub: 'typed columns', col: 2, row: 0, kind: 'store' },
-          { id: 'rejects', label: 'Rejects', sub: 'row plus reason', col: 2, row: 1, kind: 'store' },
-          { id: 'down', label: 'Downstream views', sub: 'totals, pivot, last', col: 3, row: 0, kind: 'highlight' },
+          {
+            id: 'orders',
+            label: 'Raw orders',
+            sub: 'values stored as text',
+            col: 0,
+            row: 0,
+            kind: 'store',
+            icon: 'database',
+            domain: 'data',
+            detail: 'The raw orders table, with amounts and quantities stored as text.',
+          },
+          {
+            id: 'gate',
+            label: 'Both casts succeed?',
+            sub: 'try_cast',
+            col: 1,
+            row: 0,
+            kind: 'gate',
+            domain: 'governance',
+            detail:
+              'Runs try_cast on amount and quantity so one bad value does not fail the update. A row passes only if both casts succeed.',
+          },
+          {
+            id: 'valid',
+            label: 'Valid orders',
+            sub: 'typed columns',
+            col: 2,
+            row: 0,
+            kind: 'store',
+            icon: 'database',
+            domain: 'data',
+            detail: 'Holds the rows whose casts succeeded, with typed columns.',
+          },
+          {
+            id: 'rejects',
+            label: 'Rejects',
+            sub: 'row plus reason',
+            col: 2,
+            row: 1,
+            kind: 'store',
+            icon: 'list',
+            domain: 'governance',
+            detail: 'Holds each failed row with a reason, so someone can fix the source.',
+          },
+          {
+            id: 'down',
+            label: 'Downstream views',
+            sub: 'totals, pivot, last',
+            col: 3,
+            row: 0,
+            kind: 'highlight',
+            icon: 'data-model',
+            domain: 'data',
+            detail: 'Downstream views for totals, pivot, and last record read only the valid table.',
+          },
         ],
         edges: [
           { from: 'orders', to: 'gate' },
@@ -208,7 +256,9 @@ export const walkthrough: Walkthrough = {
           label: 'Drop bad rows with an expectation',
           language: 'sql',
           code: 'CREATE OR REFRESH MATERIALIZED VIEW silver_orders (\n  CONSTRAINT amount_is_numeric EXPECT (amount IS NOT NULL) ON VIOLATION DROP ROW\n) AS\nSELECT order_id, try_cast(amount_raw AS DECIMAL(12,2)) AS amount\nFROM bronze_orders;',
-          notes: ['The expectation drops the row and records the count in the pipeline event log. Keep the reject table when you need the rows themselves.'],
+          notes: [
+            'The expectation drops the row and records the count in the pipeline event log. Keep the reject table when you need the rows themselves.',
+          ],
         },
       ],
     },
@@ -224,16 +274,76 @@ export const walkthrough: Walkthrough = {
         corner: 'Pattern ↓ · Detail →',
         columns: ['Use it to', 'Key SQL'],
         rows: [
-          { label: 'Lookup enrichment', cells: [{ state: 'own', text: 'Add reference data' }, { state: 'own', text: 'LEFT JOIN' }] },
-          { label: 'Joins', cells: [{ state: 'own', text: 'Combine two datasets' }, { state: 'own', text: 'INNER, LEFT, FULL' }] },
-          { label: 'String functions', cells: [{ state: 'own', text: 'Standardize text' }, { state: 'own', text: 'trim, initcap' }] },
-          { label: 'Null and conditional', cells: [{ state: 'own', text: 'Fill or branch' }, { state: 'own', text: 'coalesce, CASE' }] },
-          { label: 'Date and time', cells: [{ state: 'own', text: 'Parse and shift zones' }, { state: 'own', text: 'from_utc_timestamp' }] },
-          { label: 'Cast with rejects', cells: [{ state: 'own', text: 'Type raw columns' }, { state: 'own', text: 'try_cast' }] },
-          { label: 'Running totals', cells: [{ state: 'own', text: 'Cumulative measures' }, { state: 'own', text: 'window sum' }] },
-          { label: 'Pivot and unpivot', cells: [{ state: 'own', text: 'Reshape rows and columns' }, { state: 'own', text: 'PIVOT, UNPIVOT' }] },
-          { label: 'Last record per group', cells: [{ state: 'own', text: 'Dedupe to the latest' }, { state: 'own', text: 'QUALIFY' }] },
-          { label: 'Per-group iteration', cells: [{ state: 'own', text: 'Loop inside a group' }, { state: 'own', text: 'transform, aggregate' }] },
+          {
+            label: 'Lookup enrichment',
+            cells: [
+              { state: 'own', text: 'Add reference data' },
+              { state: 'own', text: 'LEFT JOIN' },
+            ],
+          },
+          {
+            label: 'Joins',
+            cells: [
+              { state: 'own', text: 'Combine two datasets' },
+              { state: 'own', text: 'INNER, LEFT, FULL' },
+            ],
+          },
+          {
+            label: 'String functions',
+            cells: [
+              { state: 'own', text: 'Standardize text' },
+              { state: 'own', text: 'trim, initcap' },
+            ],
+          },
+          {
+            label: 'Null and conditional',
+            cells: [
+              { state: 'own', text: 'Fill or branch' },
+              { state: 'own', text: 'coalesce, CASE' },
+            ],
+          },
+          {
+            label: 'Date and time',
+            cells: [
+              { state: 'own', text: 'Parse and shift zones' },
+              { state: 'own', text: 'from_utc_timestamp' },
+            ],
+          },
+          {
+            label: 'Cast with rejects',
+            cells: [
+              { state: 'own', text: 'Type raw columns' },
+              { state: 'own', text: 'try_cast' },
+            ],
+          },
+          {
+            label: 'Running totals',
+            cells: [
+              { state: 'own', text: 'Cumulative measures' },
+              { state: 'own', text: 'window sum' },
+            ],
+          },
+          {
+            label: 'Pivot and unpivot',
+            cells: [
+              { state: 'own', text: 'Reshape rows and columns' },
+              { state: 'own', text: 'PIVOT, UNPIVOT' },
+            ],
+          },
+          {
+            label: 'Last record per group',
+            cells: [
+              { state: 'own', text: 'Dedupe to the latest' },
+              { state: 'own', text: 'QUALIFY' },
+            ],
+          },
+          {
+            label: 'Per-group iteration',
+            cells: [
+              { state: 'own', text: 'Loop inside a group' },
+              { state: 'own', text: 'transform, aggregate' },
+            ],
+          },
         ],
         legend: [{ state: 'own', label: 'One materialized view each' }],
       },
@@ -251,9 +361,34 @@ export const walkthrough: Walkthrough = {
         corner: 'Join ↓ · Rows →',
         columns: ['Matched', 'Left only', 'Right only'],
         rows: [
-          { label: 'INNER JOIN', cells: [{ state: 'own', text: 'kept' }, { state: 'none', text: 'dropped' }, { state: 'none', text: 'dropped' }] },
-          { label: 'LEFT JOIN', cells: [{ state: 'own', text: 'kept' }, { state: 'own', text: 'kept' }, { state: 'none', text: 'dropped' }] },
-          { label: 'FULL JOIN', cells: [{ state: 'own', text: 'kept' }, { state: 'own', text: 'kept' }, { state: 'own', text: 'kept' }] },
+          {
+            label: 'INNER JOIN',
+            cells: [
+              { state: 'own', text: 'kept' },
+              { state: 'none', text: 'dropped', detail: 'Use an inner join when an unmatched row is not useful.' },
+              { state: 'none', text: 'dropped' },
+            ],
+          },
+          {
+            label: 'LEFT JOIN',
+            cells: [
+              { state: 'own', text: 'kept' },
+              { state: 'own', text: 'kept', detail: 'Use a left join when the left side is the record of truth.' },
+              { state: 'none', text: 'dropped' },
+            ],
+          },
+          {
+            label: 'FULL JOIN',
+            cells: [
+              { state: 'own', text: 'kept' },
+              { state: 'own', text: 'kept' },
+              {
+                state: 'own',
+                text: 'kept',
+                detail: 'Use a full join when you reconcile two sources and need to see the gaps.',
+              },
+            ],
+          },
         ],
         legend: [
           { state: 'own', label: 'Kept' },

@@ -69,8 +69,18 @@ export const walkthrough: Walkthrough = {
             sub: 'schedule or file arrival',
             cells: [
               { state: 'optional', text: 'Minutes or more', sub: 'interval plus startup' },
-              { state: 'own', text: 'Lowest', sub: 'runs, then stops' },
-              { state: 'own', text: 'Analytics ETL', sub: 'hourly, daily, on arrival' },
+              {
+                state: 'own',
+                text: 'Lowest',
+                sub: 'runs, then stops',
+                detail: 'Compute stops between runs, so triggered mode costs the least.',
+              },
+              {
+                state: 'own',
+                text: 'Analytics ETL',
+                sub: 'hourly, daily, on arrival',
+                detail: 'Most analytics ETL fits here, so pay for no more speed than the latency target needs.',
+              },
             ],
           },
           {
@@ -78,7 +88,12 @@ export const walkthrough: Walkthrough = {
             sub: 'micro-batch, always on',
             cells: [
               { state: 'own', text: 'Seconds' },
-              { state: 'optional', text: 'Always running' },
+              {
+                state: 'optional',
+                text: 'Always running',
+                detail:
+                  'Continuous mode keeps a pipeline running all day, so it costs a running cluster. Serverless autoscaling cuts idle cost.',
+              },
               { state: 'own', text: 'Fresh dashboards', sub: 'near-real-time views' },
             ],
           },
@@ -86,8 +101,17 @@ export const walkthrough: Walkthrough = {
             label: 'Real-time mode',
             sub: 'long-running batches',
             cells: [
-              { state: 'own', text: 'Sub-second to ms' },
-              { state: 'none', text: 'Highest', sub: 'dedicated task slots' },
+              {
+                state: 'own',
+                text: 'Sub-second to ms',
+                detail: 'Real-time mode targets sub-second latency, which suits operational decisions.',
+              },
+              {
+                state: 'none',
+                text: 'Highest',
+                sub: 'dedicated task slots',
+                detail: 'Real-time mode keeps compute running with enough task slots for every stage at once.',
+              },
               { state: 'own', text: 'Operational actions', sub: 'fraud, personalization' },
             ],
           },
@@ -144,7 +168,10 @@ export const walkthrough: Walkthrough = {
           'Use a streaming table for append-only ingestion and a materialized view for transformations over bounded tables. Write a batch job only when the logic cannot be expressed declaratively.',
       },
       links: [
-        { label: 'Real-time mode concepts', url: 'https://docs.databricks.com/aws/en/structured-streaming/real-time/concepts' },
+        {
+          label: 'Real-time mode concepts',
+          url: 'https://docs.databricks.com/aws/en/structured-streaming/real-time/concepts',
+        },
         { label: 'Triggered vs continuous pipeline mode', url: 'https://docs.databricks.com/aws/en/ldp/pipeline-mode' },
         { label: 'Streaming tables', url: 'https://docs.databricks.com/aws/en/ldp/streaming-tables' },
         { label: 'Materialized views', url: 'https://docs.databricks.com/aws/en/ldp/materialized-views' },
@@ -206,7 +233,9 @@ def orders_bronze():
         .load()
         .selectExpr("CAST(key AS STRING) AS key", "CAST(value AS STRING) AS value", "timestamp")
     )`,
-          notes: ['Add authentication options for your broker. Event Hubs uses its Kafka-compatible endpoint with SASL.'],
+          notes: [
+            'Add authentication options for your broker. Event Hubs uses its Kafka-compatible endpoint with SASL.',
+          ],
         },
       ],
       options: {
@@ -235,8 +264,14 @@ def orders_bronze():
           'Use Auto Loader on files when minutes of latency are fine. Use a message bus when it already exists or several consumers need the events. Use Zerobus Ingest for direct application writes with no bus.',
       },
       links: [
-        { label: 'Auto Loader file events', url: 'https://docs.databricks.com/aws/en/ingestion/cloud-object-storage/auto-loader/file-events-explained' },
-        { label: 'Stream processing with Apache Kafka', url: 'https://docs.databricks.com/aws/en/connect/streaming/kafka' },
+        {
+          label: 'Auto Loader file events',
+          url: 'https://docs.databricks.com/aws/en/ingestion/cloud-object-storage/auto-loader/file-events-explained',
+        },
+        {
+          label: 'Stream processing with Apache Kafka',
+          url: 'https://docs.databricks.com/aws/en/connect/streaming/kafka',
+        },
         { label: 'Zerobus Ingest', url: 'https://docs.databricks.com/aws/en/ingestion/zerobus-ingest' },
       ],
     },
@@ -280,12 +315,20 @@ SELECT * FROM STREAM read_files('/Volumes/main/ingest/landing/events', format =>
 
 CREATE FLOW history AS INSERT INTO ONCE events_bronze BY NAME
 SELECT * FROM read_files('/Volumes/main/ingest/archive/events', format => 'json');`,
-          notes: ['The history flow runs once. Keep it in the pipeline source so a full refresh rebuilds the table the same way.'],
+          notes: [
+            'The history flow runs once. Keep it in the pipeline source so a full refresh rebuilds the table the same way.',
+          ],
         },
       ],
       links: [
-        { label: 'Backfill historical data with pipelines', url: 'https://docs.databricks.com/aws/en/ldp/flows-backfill' },
-        { label: 'Watermarks in Structured Streaming', url: 'https://docs.databricks.com/aws/en/structured-streaming/watermarks' },
+        {
+          label: 'Backfill historical data with pipelines',
+          url: 'https://docs.databricks.com/aws/en/ldp/flows-backfill',
+        },
+        {
+          label: 'Watermarks in Structured Streaming',
+          url: 'https://docs.databricks.com/aws/en/structured-streaming/watermarks',
+        },
       ],
     },
     {

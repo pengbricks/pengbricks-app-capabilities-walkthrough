@@ -12,23 +12,19 @@ export const walkthrough: Walkthrough = {
     outcomes: [
       {
         title: 'Answers people trust',
-        body:
-          'Example SQL, trusted assets, and metric views give the agent your definitions. Users can read the generated SQL and see where an answer came from.',
+        body: 'Example SQL, trusted assets, and metric views give the agent your definitions. Users can read the generated SQL and see where an answer came from.',
       },
       {
         title: 'Accuracy you can measure',
-        body:
-          'Benchmarks hold the questions people ask and the SQL that answers them. Rerunning them after each change shows whether the agent got better or worse before users notice.',
+        body: 'Benchmarks hold the questions people ask and the SQL that answers them. Rerunning them after each change shows whether the agent got better or worse before users notice.',
       },
       {
         title: 'Self-service without extra access',
-        body:
-          'Genie checks each question against the asker\'s own Unity Catalog permissions, so business users get answers without analyst tickets and without seeing data they should not.',
+        body: "Genie checks each question against the asker's own Unity Catalog permissions, so business users get answers without analyst tickets and without seeing data they should not.",
       },
       {
         title: 'A feedback loop with an owner',
-        body:
-          'Flagged answers go to a weekly review. Each fix becomes an instruction, example query, or trusted asset. The Teams app is Beta and Slack features are in preview, so confirm before committing.',
+        body: 'Flagged answers go to a weekly review. Each fix becomes an instruction, example query, or trusted asset. The Teams app is Beta and Slack features are in preview, so confirm before committing.',
       },
     ],
   },
@@ -70,11 +66,58 @@ export const walkthrough: Walkthrough = {
         description:
           'Curate the agent, score it with benchmarks, run a pilot with a small cohort, expand to more users and channels, and monitor feedback and usage. Monitoring findings return to the curate stage.',
         nodes: [
-          { id: 'curate', label: 'Curate', sub: 'data, SQL, instructions', col: 0, row: 0 },
-          { id: 'bench', label: 'Benchmark', sub: 'score accuracy', col: 1, row: 0, kind: 'highlight' },
-          { id: 'pilot', label: 'Pilot', sub: 'small cohort + training', col: 2, row: 0 },
-          { id: 'expand', label: 'Expand', sub: 'Genie One, Slack, Teams', col: 3, row: 0, kind: 'surface' },
-          { id: 'monitor', label: 'Monitor', sub: 'feedback and usage', col: 3, row: 1 },
+          {
+            id: 'curate',
+            label: 'Curate',
+            sub: 'data, SQL, instructions',
+            col: 0,
+            row: 0,
+            icon: 'data-model',
+            domain: 'apps',
+            detail: 'Set up the agent with the right data, example SQL, and instructions before anyone uses it.',
+          },
+          {
+            id: 'bench',
+            label: 'Benchmark',
+            sub: 'score accuracy',
+            col: 1,
+            row: 0,
+            kind: 'highlight',
+            icon: 'checklist',
+            domain: 'ai',
+            detail: "Score the agent's accuracy with benchmarks before it reaches users.",
+          },
+          {
+            id: 'pilot',
+            label: 'Pilot',
+            sub: 'small cohort + training',
+            col: 2,
+            row: 0,
+            icon: 'users',
+            domain: 'apps',
+            detail: 'A small cohort uses the agent, with training, before wider rollout.',
+          },
+          {
+            id: 'expand',
+            label: 'Expand',
+            sub: 'Genie One, Slack, Teams',
+            col: 3,
+            row: 0,
+            kind: 'surface',
+            icon: 'dashboard',
+            domain: 'apps',
+            detail: 'Open the agent to more users and channels, such as Genie One, Slack, and Teams.',
+          },
+          {
+            id: 'monitor',
+            label: 'Monitor',
+            sub: 'feedback and usage',
+            col: 3,
+            row: 1,
+            icon: 'list',
+            domain: 'apps',
+            detail: 'Track feedback and usage. Findings go back to the curate step as fixes.',
+          },
         ],
         edges: [
           { from: 'curate', to: 'bench' },
@@ -98,9 +141,15 @@ export const walkthrough: Walkthrough = {
         caption: 'What to give the agent, in priority order',
         columns: ['Input', 'Use it for'],
         rows: [
-          ['Unity Catalog descriptions and metric views', 'Table and column meaning. Review AI-generated comments before you keep them.'],
+          [
+            'Unity Catalog descriptions and metric views',
+            'Table and column meaning. Review AI-generated comments before you keep them.',
+          ],
           ['SQL expressions', 'Reusable measures, filters, and dimensions such as revenue or active customers'],
-          ['Example SQL queries', 'Hard or ambiguous questions. Title each with the most natural phrasing of the question.'],
+          [
+            'Example SQL queries',
+            'Hard or ambiguous questions. Title each with the most natural phrasing of the question.',
+          ],
           [
             'Trusted assets',
             'Parameterized example queries and Unity Catalog SQL functions whose logic you verified. Genie answers from them directly.',
@@ -229,8 +278,7 @@ export const walkthrough: Walkthrough = {
     {
       id: 'access',
       heading: 'Access and warehouse sizing',
-      prose:
-        'Share the agent with groups, not individuals, and let Unity Catalog decide what each person sees.',
+      prose: 'Share the agent with groups, not individuals, and let Unity Catalog decide what each person sees.',
       points: [
         {
           strong: 'Permissions follow the asker.',
@@ -259,8 +307,7 @@ export const walkthrough: Walkthrough = {
     {
       id: 'distribution',
       heading: 'Distribute where people work',
-      prose:
-        'Adoption depends on friction. Start with the built-in surfaces and add channels as the cohort grows.',
+      prose: 'Adoption depends on friction. Start with the built-in surfaces and add channels as the cohort grows.',
       options: {
         caption: 'Where users ask questions',
         rows: [
@@ -284,8 +331,7 @@ export const walkthrough: Walkthrough = {
           },
           {
             option: 'Genie One MCP server or the Conversation API',
-            when:
-              'Other agents call Genie as a tool through Unity Gateway, or you build a custom front end or scheduled quality checks.',
+            when: 'Other agents call Genie as a tool through Unity Gateway, or you build a custom front end or scheduled quality checks.',
             tradeoffs:
               'Most flexible, and the MCP server is generally available. It takes the most engineering, and you own the front end or agent that calls it.',
           },

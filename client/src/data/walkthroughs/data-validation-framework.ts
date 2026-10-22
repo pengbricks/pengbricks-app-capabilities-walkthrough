@@ -66,17 +66,134 @@ export const walkthrough: Walkthrough = {
         description:
           'The source system is read through remote_query into a bronze copy. A pipeline applies expectations to the copy, writes valid rows to silver and rejected rows to a quarantine table, and silver feeds a metric view. A check spec feeds one validation job. The job compares aggregates from the source and the copy, runs the other checks, and writes one results table, which drives an alert or a block on downstream tasks. Lineage shows what each failure affects.',
         nodes: [
-          { id: 'src', label: 'Source system', sub: 'ERP or database', col: 0, row: 0, kind: 'store' },
-          { id: 'bronze', label: 'Copy in Databricks', sub: 'faithful, no rules', col: 1, row: 0, kind: 'store' },
-          { id: 'pipe', label: 'Pipeline rules', sub: 'expectations', col: 2, row: 0, kind: 'box' },
-          { id: 'silver', label: 'Silver', sub: 'rows that pass', col: 3, row: 0, kind: 'store' },
-          { id: 'metric', label: 'Metric view', sub: 'one definition', col: 4, row: 0, kind: 'surface' },
-          { id: 'spec', label: 'Check spec', sub: 'YAML or UC table', col: 0, row: 1, kind: 'store' },
-          { id: 'runner', label: 'Validation job', sub: 'one runner', col: 1, row: 1, kind: 'highlight' },
-          { id: 'results', label: 'Results table', sub: 'one row per check', col: 2, row: 1, kind: 'store' },
-          { id: 'quar', label: 'Quarantine', sub: 'rejects with a reason', col: 3, row: 1, kind: 'store' },
-          { id: 'gate', label: 'Alert or block', sub: 'SQL alert, failed task', col: 2, row: 2, kind: 'gate' },
-          { id: 'lineage', label: 'Lineage', sub: 'what a failure affects', col: 3, row: 2, kind: 'surface' },
+          {
+            id: 'src',
+            label: 'Source system',
+            sub: 'ERP or database',
+            col: 0,
+            row: 0,
+            kind: 'store',
+            icon: 'database',
+            domain: 'neutral',
+            detail:
+              'The operational system of record, such as an ERP or database. It answers aggregate queries and holds no validation code.',
+          },
+          {
+            id: 'bronze',
+            label: 'Copy in Databricks',
+            sub: 'faithful, no rules',
+            col: 1,
+            row: 0,
+            kind: 'store',
+            icon: 'database',
+            domain: 'data',
+            detail:
+              'A faithful copy of the source in Databricks, loaded without rules so checks can compare it to the source.',
+          },
+          {
+            id: 'pipe',
+            label: 'Pipeline rules',
+            sub: 'expectations',
+            col: 2,
+            row: 0,
+            kind: 'box',
+            icon: 'gear-teal',
+            domain: 'data',
+            detail:
+              'The pipeline step that applies expectations to each row, passing good rows on and sending rejects to quarantine.',
+          },
+          {
+            id: 'silver',
+            label: 'Silver',
+            sub: 'rows that pass',
+            col: 3,
+            row: 0,
+            kind: 'store',
+            icon: 'database',
+            domain: 'data',
+            detail: 'Holds the rows that pass every drop rule. Metric views and downstream users read from here.',
+          },
+          {
+            id: 'metric',
+            label: 'Metric view',
+            sub: 'one definition',
+            col: 4,
+            row: 0,
+            kind: 'surface',
+            icon: 'data-model',
+            domain: 'apps',
+            detail:
+              'A metric view holds each business metric once, so dashboards, Genie, and SQL return the same number.',
+          },
+          {
+            id: 'spec',
+            label: 'Check spec',
+            sub: 'YAML or UC table',
+            col: 0,
+            row: 1,
+            kind: 'store',
+            icon: 'checklist',
+            domain: 'governance',
+            detail:
+              'The check definitions as rows of data, each with a type, a threshold, and a severity. One runner reads them.',
+          },
+          {
+            id: 'runner',
+            label: 'Validation job',
+            sub: 'one runner',
+            col: 1,
+            row: 1,
+            kind: 'highlight',
+            icon: 'gear-lava',
+            domain: 'orchestration',
+            detail:
+              'The single validation job. It runs every check from the spec the same way, including source aggregates, and writes one results table.',
+          },
+          {
+            id: 'results',
+            label: 'Results table',
+            sub: 'one row per check',
+            col: 2,
+            row: 1,
+            kind: 'store',
+            icon: 'list',
+            domain: 'governance',
+            detail: 'One row per check. A SQL alert reads it, and a failing task can stop downstream work.',
+          },
+          {
+            id: 'quar',
+            label: 'Quarantine',
+            sub: 'rejects with a reason',
+            col: 3,
+            row: 1,
+            kind: 'store',
+            icon: 'database',
+            domain: 'governance',
+            detail:
+              'Keeps every row a drop rule removed, with the name of the rule it broke, so owners can fix the source or the rule.',
+          },
+          {
+            id: 'gate',
+            label: 'Alert or block',
+            sub: 'SQL alert, failed task',
+            col: 2,
+            row: 2,
+            kind: 'gate',
+            domain: 'governance',
+            detail:
+              'A SQL alert reads the results table and tells the owner, and a failing task stops downstream work from using bad data.',
+          },
+          {
+            id: 'lineage',
+            label: 'Lineage',
+            sub: 'what a failure affects',
+            col: 3,
+            row: 2,
+            kind: 'surface',
+            icon: 'data-search',
+            domain: 'governance',
+            detail: 'Lists the tables and dashboards a failed check puts at risk.',
+          },
         ],
         edges: [
           { from: 'src', to: 'bronze', label: 'remote_query' },
@@ -96,7 +213,8 @@ export const walkthrough: Walkthrough = {
           { kind: 'gate', label: 'Decision point' },
           { kind: 'dashed', label: 'Read, no copy' },
         ],
-        caption: 'Rules live in the pipeline and the spec. The source answers aggregate queries and holds no validation code.',
+        caption:
+          'Rules live in the pipeline and the spec. The source answers aggregate queries and holds no validation code.',
       },
       table: {
         caption: 'The seven patterns',
@@ -175,15 +293,23 @@ export const walkthrough: Walkthrough = {
           label: 'Compare per-day counts and sums with the source',
           language: 'sql',
           code: "WITH src AS (\n  SELECT * FROM remote_query('erp_conn', database => 'erp',\n    query => 'SELECT CAST(order_date AS varchar) AS day, count(*) AS n, sum(amount) AS total FROM sales.orders GROUP BY 1')\n), tgt AS (\n  SELECT CAST(order_date AS STRING) AS day, count(*) AS n, sum(amount) AS total\n  FROM main.sales.bronze_orders GROUP BY 1\n)\nSELECT coalesce(s.day, t.day) AS day, s.n AS source_n, t.n AS target_n, s.total - t.total AS total_diff\nFROM src s FULL OUTER JOIN tgt t ON s.day = t.day\nWHERE s.n IS DISTINCT FROM t.n OR s.total IS DISTINCT FROM t.total;",
-          notes: ['An empty result means the two sides agree. A foreign catalog gives the same reach with ordinary table names.'],
+          notes: [
+            'An empty result means the two sides agree. A foreign catalog gives the same reach with ordinary table names.',
+          ],
         },
       ],
       links: [
-        { label: 'Run queries on a remote database with remote_query', url: 'https://docs.databricks.com/aws/en/query-federation/remote-queries' },
+        {
+          label: 'Run queries on a remote database with remote_query',
+          url: 'https://docs.databricks.com/aws/en/query-federation/remote-queries',
+        },
         { label: 'Lakehouse Federation', url: 'https://docs.databricks.com/aws/en/query-federation/' },
         { label: 'Federation with SQL Server', url: 'https://docs.databricks.com/aws/en/query-federation/sql-server' },
         { label: 'Lakeflow Connect', url: 'https://docs.databricks.com/aws/en/ingestion/lakeflow-connect/' },
-        { label: 'Lakebridge Reconcile (Databricks Labs)', url: 'https://databrickslabs.github.io/lakebridge/docs/reconcile/' },
+        {
+          label: 'Lakebridge Reconcile (Databricks Labs)',
+          url: 'https://databrickslabs.github.io/lakebridge/docs/reconcile/',
+        },
       ],
     },
     {
@@ -197,22 +323,26 @@ export const walkthrough: Walkthrough = {
           {
             option: 'Whole-table totals',
             when: 'A fast first check after every load: row count, sum of an amount, count of distinct keys.',
-            tradeoffs: 'Cheap on both sides. Practical guidance: offsetting errors cancel out, and a total cannot say where the drift is.',
+            tradeoffs:
+              'Cheap on both sides. Practical guidance: offsetting errors cancel out, and a total cannot say where the drift is.',
           },
           {
             option: 'Per-partition aggregates',
             when: 'Tables with a natural slice such as order date, load date, or key range. Use them to find the drift.',
-            tradeoffs: 'One row per slice, still small. Practical guidance: a slice that is still loading will differ, so compare finished slices.',
+            tradeoffs:
+              'One row per slice, still small. Practical guidance: a slice that is still loading will differ, so compare finished slices.',
           },
           {
             option: 'Per-partition checksums',
             when: 'A value can change without moving a count or a sum, such as a status, a date, or a key swap.',
-            tradeoffs: 'Reads every column in the checksum on both sides, so it costs more at the source. Needs one canonical row format on both sides.',
+            tradeoffs:
+              'Reads every column in the checksum on both sides, so it costs more at the source. Needs one canonical row format on both sides.',
           },
           {
             option: 'Row-level hashes',
             when: 'A drill-down on a slice already known to differ, to list the rows that changed.',
-            tradeoffs: 'Pulls one hash per row across the connection. Practical guidance: run it only on the slices that failed, not as a routine check.',
+            tradeoffs:
+              'Pulls one hash per row across the connection. Practical guidance: run it only on the slices that failed, not as a routine check.',
           },
         ],
         recommendation:
@@ -229,7 +359,10 @@ export const walkthrough: Walkthrough = {
         },
       ],
       links: [
-        { label: 'Run queries on a remote database with remote_query', url: 'https://docs.databricks.com/aws/en/query-federation/remote-queries' },
+        {
+          label: 'Run queries on a remote database with remote_query',
+          url: 'https://docs.databricks.com/aws/en/query-federation/remote-queries',
+        },
       ],
     },
     {
@@ -243,10 +376,52 @@ export const walkthrough: Walkthrough = {
         description:
           'The landed copy feeds a silver table, which keeps rows that pass every drop rule. The same copy feeds a quarantine table, which keeps the rows that failed a drop rule, with the rule names and a timestamp. Each expectation also writes pass and fail counts to the pipeline event log.',
         nodes: [
-          { id: 'landed', label: 'Landed copy', sub: 'dv_orders_landed', mono: true, col: 0, row: 0, kind: 'store' },
-          { id: 'silver', label: 'Silver', sub: 'drop and warn rules', col: 1, row: 0, kind: 'store' },
-          { id: 'quar', label: 'Quarantine', sub: 'inverse of drop rules', col: 1, row: 1, kind: 'store' },
-          { id: 'log', label: 'Event log', sub: 'passed, failed counts', col: 2, row: 0, kind: 'surface' },
+          {
+            id: 'landed',
+            label: 'Landed copy',
+            sub: 'dv_orders_landed',
+            mono: true,
+            col: 0,
+            row: 0,
+            kind: 'store',
+            icon: 'database',
+            domain: 'data',
+            detail: 'The landed copy of the orders data. Both silver and quarantine are built from it.',
+          },
+          {
+            id: 'silver',
+            label: 'Silver',
+            sub: 'drop and warn rules',
+            col: 1,
+            row: 0,
+            kind: 'store',
+            icon: 'database',
+            domain: 'data',
+            detail: 'Keeps rows that pass every drop rule. Warn rules also apply here.',
+          },
+          {
+            id: 'quar',
+            label: 'Quarantine',
+            sub: 'inverse of drop rules',
+            col: 1,
+            row: 1,
+            kind: 'store',
+            icon: 'database',
+            domain: 'governance',
+            detail:
+              'Holds the rows that failed a drop rule, with the rule names and a timestamp. It selects the inverse of the drop rules.',
+          },
+          {
+            id: 'log',
+            label: 'Event log',
+            sub: 'passed, failed counts',
+            col: 2,
+            row: 0,
+            kind: 'surface',
+            icon: 'list',
+            domain: 'governance',
+            detail: 'The pipeline event log. Each expectation writes its pass and fail counts here.',
+          },
         ],
         edges: [
           { from: 'landed', to: 'silver', label: 'rules pass' },
@@ -265,22 +440,26 @@ export const walkthrough: Walkthrough = {
           {
             option: 'Warn (expect)',
             when: 'The rule is advisory, or you are learning how often it fails before enforcing it.',
-            tradeoffs: 'Docs: invalid rows are written to the target and the failure is counted. Bad rows reach consumers, so use it only when that is acceptable.',
+            tradeoffs:
+              'Docs: invalid rows are written to the target and the failure is counted. Bad rows reach consumers, so use it only when that is acceptable.',
           },
           {
             option: 'Drop (expect_or_drop)',
             when: 'The row is unusable and consumers should never see it, but the update should go on.',
-            tradeoffs: 'Docs: invalid rows are removed before the write and the dropped count is logged. Practical guidance: on its own it loses the rows, so pair it with quarantine.',
+            tradeoffs:
+              'Docs: invalid rows are removed before the write and the dropped count is logged. Practical guidance: on its own it loses the rows, so pair it with quarantine.',
           },
           {
             option: 'Fail (expect_or_fail)',
             when: 'One bad row means the load is wrong, such as a missing primary key. Use it sparingly.',
-            tradeoffs: 'Docs: the update fails and needs manual action, and metrics are not recorded for a fail action. In a triggered pipeline only that flow rolls back.',
+            tradeoffs:
+              'Docs: the update fails and needs manual action, and metrics are not recorded for a fail action. In a triggered pipeline only that flow rolls back.',
           },
           {
             option: 'Quarantine table',
             when: 'You need the rejected rows to investigate, fix, and replay.',
-            tradeoffs: 'Docs describe this advanced pattern. Practical guidance: one more table to store and secure, and the rules must stay in step in both places, so define them once.',
+            tradeoffs:
+              'Docs describe this advanced pattern. Practical guidance: one more table to store and secure, and the rules must stay in step in both places, so define them once.',
           },
         ],
         recommendation:
@@ -309,9 +488,18 @@ export const walkthrough: Walkthrough = {
         },
       ],
       links: [
-        { label: 'Manage data quality with pipeline expectations', url: 'https://docs.databricks.com/aws/en/ldp/expectations' },
-        { label: 'Expectation recommendations and advanced patterns', url: 'https://docs.databricks.com/aws/en/ldp/expectation-patterns' },
-        { label: 'Monitor pipelines with the event log', url: 'https://docs.databricks.com/aws/en/ldp/monitor-event-logs' },
+        {
+          label: 'Manage data quality with pipeline expectations',
+          url: 'https://docs.databricks.com/aws/en/ldp/expectations',
+        },
+        {
+          label: 'Expectation recommendations and advanced patterns',
+          url: 'https://docs.databricks.com/aws/en/ldp/expectation-patterns',
+        },
+        {
+          label: 'Monitor pipelines with the event log',
+          url: 'https://docs.databricks.com/aws/en/ldp/monitor-event-logs',
+        },
       ],
     },
     {
@@ -338,17 +526,20 @@ export const walkthrough: Walkthrough = {
           {
             option: 'Pipeline expectations',
             when: 'Row-level rules that decide whether a row enters a table.',
-            tradeoffs: 'Docs: a constraint cannot call custom Python functions or external services, or use subqueries on other tables. Metrics land in the event log, not in a table you design.',
+            tradeoffs:
+              'Docs: a constraint cannot call custom Python functions or external services, or use subqueries on other tables. Metrics land in the event log, not in a table you design.',
           },
           {
             option: 'A spec-driven validation job',
             when: 'Table-level and cross-system checks, such as counts, uniqueness, reconciliation, and freshness.',
-            tradeoffs: 'Practical guidance: you own a small runner and a results table. In return every check has one format and a severity that can block work.',
+            tradeoffs:
+              'Practical guidance: you own a small runner and a results table. In return every check has one format and a severity that can block work.',
           },
           {
             option: 'Data quality monitoring',
             when: 'Anomaly detection for freshness and completeness across a schema, and profiling for statistics and drift, on top of explicit rules.',
-            tradeoffs: 'Docs: anomaly detection is Public Preview and learns from history, so it needs time and can flag changes that are real. It flags that something moved and does not say which rule broke.',
+            tradeoffs:
+              'Docs: anomaly detection is Public Preview and learns from history, so it needs time and can flag changes that are real. It flags that something moved and does not say which rule broke.',
           },
         ],
         recommendation:
@@ -376,17 +567,23 @@ export const walkthrough: Walkthrough = {
         {
           label: 'Two checks in the spec',
           language: 'yaml',
-          code: "checks:\n  - name: orders_daily_vs_source\n    type: reconciliation\n    dataset: bronze_orders\n    severity: warn\n    source: live            # or snapshot\n    source_table: orders\n    grain: order_date\n    metrics: [row_count, \"sum:amount\", checksum]\n    threshold: 0            # slices allowed to differ\n\n  - name: silver_customer_exists\n    type: referential\n    dataset: silver_orders\n    column: customer_id\n    ref_dataset: customers\n    ref_column: customer_id\n    severity: error\n    threshold: 0            # orphan rows allowed",
+          code: 'checks:\n  - name: orders_daily_vs_source\n    type: reconciliation\n    dataset: bronze_orders\n    severity: warn\n    source: live            # or snapshot\n    source_table: orders\n    grain: order_date\n    metrics: [row_count, "sum:amount", checksum]\n    threshold: 0            # slices allowed to differ\n\n  - name: silver_customer_exists\n    type: referential\n    dataset: silver_orders\n    column: customer_id\n    ref_dataset: customers\n    ref_column: customer_id\n    severity: error\n    threshold: 0            # orphan rows allowed',
         },
         {
           label: 'The results table',
           language: 'sql',
-          code: "CREATE TABLE IF NOT EXISTS main.quality.check_results (\n  run_id STRING, checked_at TIMESTAMP, check_name STRING, check_type STRING,\n  dataset STRING, severity STRING, observed DOUBLE, operator STRING,\n  expected DOUBLE, status STRING, details STRING\n);",
+          code: 'CREATE TABLE IF NOT EXISTS main.quality.check_results (\n  run_id STRING, checked_at TIMESTAMP, check_name STRING, check_type STRING,\n  dataset STRING, severity STRING, observed DOUBLE, operator STRING,\n  expected DOUBLE, status STRING, details STRING\n);',
         },
       ],
       links: [
-        { label: 'Data quality monitoring', url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/data-quality-monitoring/' },
-        { label: 'Expectation recommendations and advanced patterns', url: 'https://docs.databricks.com/aws/en/ldp/expectation-patterns' },
+        {
+          label: 'Data quality monitoring',
+          url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/data-quality-monitoring/',
+        },
+        {
+          label: 'Expectation recommendations and advanced patterns',
+          url: 'https://docs.databricks.com/aws/en/ldp/expectation-patterns',
+        },
         { label: 'Lakeflow Jobs', url: 'https://docs.databricks.com/aws/en/jobs/' },
       ],
     },
@@ -426,9 +623,18 @@ export const walkthrough: Walkthrough = {
         },
       ],
       links: [
-        { label: 'Data quality monitoring', url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/data-quality-monitoring/' },
-        { label: 'Anomaly detection', url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/data-quality-monitoring/anomaly-detection/' },
-        { label: 'Data profiling', url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/data-quality-monitoring/data-profiling/' },
+        {
+          label: 'Data quality monitoring',
+          url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/data-quality-monitoring/',
+        },
+        {
+          label: 'Anomaly detection',
+          url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/data-quality-monitoring/anomaly-detection/',
+        },
+        {
+          label: 'Data profiling',
+          url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/data-quality-monitoring/data-profiling/',
+        },
       ],
     },
     {
@@ -442,17 +648,20 @@ export const walkthrough: Walkthrough = {
           {
             option: 'Fail the runner task',
             when: 'An error-severity check failed and downstream tasks must not run on this data.',
-            tradeoffs: 'Docs: downstream tasks run only when their Run if condition holds, and the default is that all upstream tasks succeeded. Blocks reliably, but it is all or nothing for that task.',
+            tradeoffs:
+              'Docs: downstream tasks run only when their Run if condition holds, and the default is that all upstream tasks succeeded. Blocks reliably, but it is all or nothing for that task.',
           },
           {
             option: 'Job failure notifications',
             when: 'Someone must hear that a run stopped, with no extra objects to maintain.',
-            tradeoffs: 'Docs list failure, success, and duration notifications on jobs. Practical guidance: the message says which task failed, not which check, so the results table is still where you look.',
+            tradeoffs:
+              'Docs list failure, success, and duration notifications on jobs. Practical guidance: the message says which task failed, not which check, so the results table is still where you look.',
           },
           {
             option: 'SQL alert on the results view',
             when: 'Warnings, trends, and failures from more than one job, sent to a team on a schedule.',
-            tradeoffs: 'Needs a SQL warehouse and a schedule. Practical guidance: it reports after the fact and cannot stop a run on its own.',
+            tradeoffs:
+              'Needs a SQL warehouse and a schedule. Practical guidance: it reports after the fact and cannot stop a run on its own.',
           },
         ],
         recommendation:
@@ -465,7 +674,7 @@ export const walkthrough: Walkthrough = {
         },
         {
           strong: 'Alert from one view.',
-          text: 'A view of the latest run\'s non-passing checks gives the alert one stable query, whatever checks the spec holds.',
+          text: "A view of the latest run's non-passing checks gives the alert one stable query, whatever checks the spec holds.",
         },
         {
           strong: 'Run impact analysis even after a failure.',
@@ -480,7 +689,7 @@ export const walkthrough: Walkthrough = {
         {
           label: 'Block one task, run another regardless',
           language: 'yaml',
-          code: "tasks:\n  - task_key: run_validations\n    notebook_task: {notebook_path: ../run_validations.py}\n  - task_key: publish_metric_view      # skipped when run_validations fails\n    depends_on: [{task_key: run_validations}]\n    notebook_task: {notebook_path: ../publish.py}\n  - task_key: read_lineage             # runs after success or failure\n    depends_on: [{task_key: publish_metric_view}]\n    run_if: ALL_DONE\n    notebook_task: {notebook_path: ../lineage.py}",
+          code: 'tasks:\n  - task_key: run_validations\n    notebook_task: {notebook_path: ../run_validations.py}\n  - task_key: publish_metric_view      # skipped when run_validations fails\n    depends_on: [{task_key: run_validations}]\n    notebook_task: {notebook_path: ../publish.py}\n  - task_key: read_lineage             # runs after success or failure\n    depends_on: [{task_key: publish_metric_view}]\n    run_if: ALL_DONE\n    notebook_task: {notebook_path: ../lineage.py}',
         },
         {
           label: 'The view an alert reads',
@@ -525,8 +734,14 @@ export const walkthrough: Walkthrough = {
         },
       ],
       links: [
-        { label: 'View data lineage in Unity Catalog', url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/data-lineage' },
-        { label: 'Lineage system tables reference', url: 'https://docs.databricks.com/aws/en/admin/system-tables/lineage' },
+        {
+          label: 'View data lineage in Unity Catalog',
+          url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/data-lineage',
+        },
+        {
+          label: 'Lineage system tables reference',
+          url: 'https://docs.databricks.com/aws/en/admin/system-tables/lineage',
+        },
       ],
     },
     {
@@ -540,17 +755,20 @@ export const walkthrough: Walkthrough = {
           {
             option: 'Metric view',
             when: 'A KPI used by more than one dashboard, Genie space, or query, or one that needs governance.',
-            tradeoffs: 'Docs: a Unity Catalog securable with standard privileges, queried with MEASURE(). Consumers must use the metric syntax. A change is one edit, reviewed in one place.',
+            tradeoffs:
+              'Docs: a Unity Catalog securable with standard privileges, queried with MEASURE(). Consumers must use the metric syntax. A change is one edit, reviewed in one place.',
           },
           {
             option: 'Regular view',
             when: 'A fixed result set or a join that everyone reads as columns.',
-            tradeoffs: 'Practical guidance: it fixes the grouping, so a ratio or distinct count has to be recalculated at each new grain, and each consumer can compute it differently.',
+            tradeoffs:
+              'Practical guidance: it fixes the grouping, so a ratio or distinct count has to be recalculated at each new grain, and each consumer can compute it differently.',
           },
           {
             option: 'Dashboard-level definition',
             when: 'A one-off number used on one dashboard.',
-            tradeoffs: 'Fast to build. Practical guidance: the definition sits inside one dashboard, so other tools and Genie cannot reuse it, and copies drift.',
+            tradeoffs:
+              'Fast to build. Practical guidance: the definition sits inside one dashboard, so other tools and Genie cannot reuse it, and copies drift.',
           },
         ],
         recommendation:
@@ -579,7 +797,10 @@ export const walkthrough: Walkthrough = {
       ],
       links: [
         { label: 'Unity Catalog metric views', url: 'https://docs.databricks.com/aws/en/metric-views/' },
-        { label: 'Semantic metadata in metric views', url: 'https://docs.databricks.com/aws/en/metric-views/data-modeling/semantic-metadata' },
+        {
+          label: 'Semantic metadata in metric views',
+          url: 'https://docs.databricks.com/aws/en/metric-views/data-modeling/semantic-metadata',
+        },
       ],
     },
     {
@@ -593,17 +814,20 @@ export const walkthrough: Walkthrough = {
           {
             option: 'Pages (Beta)',
             when: 'Terms, acronyms, and KPIs that need one authoritative definition, owned by a domain.',
-            tradeoffs: 'Docs: Pages sit in the Discover page, inherit access from the domain, and Genie One uses them and cites them in answers. Beta, so stage and availability may change.',
+            tradeoffs:
+              'Docs: Pages sit in the Discover page, inherit access from the domain, and Genie One uses them and cites them in answers. Beta, so stage and availability may change.',
           },
           {
             option: 'Comments and governed tags',
             when: 'Meaning that belongs next to one table or column, such as a description, a sensitivity label, or an owner.',
-            tradeoffs: 'Generally available. Practical guidance: good for objects, weak for a concept that spans many tables, and tags need a naming standard.',
+            tradeoffs:
+              'Generally available. Practical guidance: good for objects, weak for a concept that spans many tables, and tags need a naming standard.',
           },
           {
             option: 'Certification status tag',
             when: 'Marking which tables, views, and metric views the organization trusts, and which are deprecated.',
-            tradeoffs: 'Docs: a system tag with the values certified and deprecated, applied with ASSIGN on the tag. It signals trust and defines nothing, so pair it with a description.',
+            tradeoffs:
+              'Docs: a system tag with the values certified and deprecated, applied with ASSIGN on the tag. It signals trust and defines nothing, so pair it with a description.',
           },
         ],
         recommendation:
@@ -629,7 +853,10 @@ export const walkthrough: Walkthrough = {
       links: [
         { label: 'Pages (Beta)', url: 'https://docs.databricks.com/aws/en/uc-semantics/pages' },
         { label: 'Unity Catalog semantics', url: 'https://docs.databricks.com/aws/en/uc-semantics' },
-        { label: 'Certification and deprecation', url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/certify-deprecate-data' },
+        {
+          label: 'Certification and deprecation',
+          url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/certify-deprecate-data',
+        },
         { label: 'Governed tags', url: 'https://docs.databricks.com/aws/en/admin/governed-tags' },
       ],
     },

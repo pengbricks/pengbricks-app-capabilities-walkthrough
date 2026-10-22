@@ -54,9 +54,18 @@ export const walkthrough: Walkthrough = {
         columns: ['To do this', 'You need'],
         rows: [
           ['Create a standard catalog', 'CREATE CATALOG on the metastore'],
-          ['Give the catalog its own storage path', 'CREATE MANAGED STORAGE on the external location that holds the path'],
-          ['Create a foreign catalog (Lakehouse Federation)', 'Ownership of the connection, or CREATE FOREIGN CATALOG on it'],
-          ['Create a catalog from a Delta Sharing share', 'USE PROVIDER on the metastore, or ownership of the provider'],
+          [
+            'Give the catalog its own storage path',
+            'CREATE MANAGED STORAGE on the external location that holds the path',
+          ],
+          [
+            'Create a foreign catalog (Lakehouse Federation)',
+            'Ownership of the connection, or CREATE FOREIGN CATALOG on it',
+          ],
+          [
+            'Create a catalog from a Delta Sharing share',
+            'USE PROVIDER on the metastore, or ownership of the provider',
+          ],
           ['Create schemas in a catalog someone else made', 'USE CATALOG and CREATE SCHEMA on that catalog'],
         ],
       },
@@ -70,12 +79,17 @@ SHOW GRANTS ON CATALOG dev_sales;
 
 -- As a metastore admin: let a group create catalogs
 GRANT CREATE CATALOG ON METASTORE TO \`data-platform\`;`,
-          notes: ['If SHOW CATALOGS lists only main, samples, and system, ask an admin for a catalog or for CREATE CATALOG.'],
+          notes: [
+            'If SHOW CATALOGS lists only main, samples, and system, ask an admin for a catalog or for CREATE CATALOG.',
+          ],
         },
       ],
       links: [
         { label: 'Create catalogs', url: 'https://docs.databricks.com/aws/en/catalogs/create-catalog' },
-        { label: 'Unity Catalog privileges and securable objects', url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/manage-privileges/privileges' },
+        {
+          label: 'Unity Catalog privileges and securable objects',
+          url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/manage-privileges/privileges',
+        },
       ],
     },
     {
@@ -103,8 +117,14 @@ GRANT CREATE CATALOG ON METASTORE TO \`data-platform\`;`,
           'Give production catalogs their own MANAGED LOCATION. Inherited storage is fine for dev and sandbox catalogs when the workspace has it.',
       },
       links: [
-        { label: 'Managed storage locations', url: 'https://docs.databricks.com/aws/en/connect/unity-catalog/cloud-storage/managed-storage' },
-        { label: 'External locations', url: 'https://docs.databricks.com/aws/en/connect/unity-catalog/cloud-storage/external-locations' },
+        {
+          label: 'Managed storage locations',
+          url: 'https://docs.databricks.com/aws/en/connect/unity-catalog/cloud-storage/managed-storage',
+        },
+        {
+          label: 'External locations',
+          url: 'https://docs.databricks.com/aws/en/connect/unity-catalog/cloud-storage/external-locations',
+        },
       ],
     },
     {
@@ -123,8 +143,14 @@ GRANT CREATE CATALOG ON METASTORE TO \`data-platform\`;`,
         ],
       },
       links: [
-        { label: 'Unity Catalog best practices', url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/best-practices' },
-        { label: 'Limit catalog access to specific workspaces', url: 'https://docs.databricks.com/aws/en/catalogs/binding' },
+        {
+          label: 'Unity Catalog best practices',
+          url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/best-practices',
+        },
+        {
+          label: 'Limit catalog access to specific workspaces',
+          url: 'https://docs.databricks.com/aws/en/catalogs/binding',
+        },
       ],
     },
     {
@@ -157,7 +183,10 @@ GRANT CREATE CATALOG ON METASTORE TO \`data-platform\`;`,
       },
       links: [
         { label: 'Bundle resources: catalog', url: 'https://docs.databricks.com/aws/en/dev-tools/bundles/resources' },
-        { label: 'CREATE CATALOG', url: 'https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-ddl-create-catalog' },
+        {
+          label: 'CREATE CATALOG',
+          url: 'https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-ddl-create-catalog',
+        },
       ],
     },
     {

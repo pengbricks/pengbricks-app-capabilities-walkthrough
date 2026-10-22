@@ -12,23 +12,19 @@ export const walkthrough: Walkthrough = {
     outcomes: [
       {
         title: 'One identity source',
-        body:
-          'Users and groups sync from your identity provider to the account, and grants go to account groups. When someone leaves, removing them from the group removes their access everywhere.',
+        body: 'Users and groups sync from your identity provider to the account, and grants go to account groups. When someone leaves, removing them from the group removes their access everywhere.',
       },
       {
         title: 'Fewer long-lived secrets',
-        body:
-          'OAuth for people and automation replaces personal access tokens, which are legacy. Service principals run production jobs, so no pipeline depends on a person\'s credential.',
+        body: "OAuth for people and automation replaces personal access tokens, which are legacy. Service principals run production jobs, so no pipeline depends on a person's credential.",
       },
       {
         title: 'Network and encryption set up front',
-        body:
-          'Private Link, IP access lists, serverless egress control, and customer-managed keys are cheaper to design in at the start than to retrofit after workloads depend on open paths.',
+        body: 'Private Link, IP access lists, serverless egress control, and customer-managed keys are cheaper to design in at the start than to retrofit after workloads depend on open paths.',
       },
       {
         title: 'Repeatable, reviewable setup',
-        body:
-          'Terraform or bundles hold workspace and compute configuration in Git, so changes are reviewed and a new workspace matches the standard. System tables enabled early give you history for audit and cost.',
+        body: 'Terraform or bundles hold workspace and compute configuration in Git, so changes are reviewed and a new workspace matches the standard. System tables enabled early give you history for audit and cost.',
       },
     ],
   },
@@ -71,13 +67,86 @@ export const walkthrough: Walkthrough = {
           { label: 'Workspaces', fromRow: 2, toRow: 2 },
         ],
         nodes: [
-          { id: 'id', label: 'Identity', sub: 'users, groups, SPs', col: 0, row: 0, kind: 'highlight' },
-          { id: 'net', label: 'Network and keys', sub: 'policies, CMK', col: 1, row: 0 },
-          { id: 'bill', label: 'Billing and budgets', sub: 'system.billing', col: 2, row: 0 },
-          { id: 'ms', label: 'Metastore', sub: 'one per region', col: 0, row: 1, kind: 'store' },
-          { id: 'cat', label: 'Catalogs', sub: 'dev, staging, prod', col: 1, row: 1, kind: 'store' },
-          { id: 'dev', label: 'Dev workspace', sub: 'binds dev catalog', col: 0, row: 2, kind: 'surface' },
-          { id: 'prod', label: 'Prod workspace', sub: 'binds prod catalog', col: 1, row: 2, kind: 'surface' },
+          {
+            id: 'id',
+            label: 'Identity',
+            sub: 'users, groups, SPs',
+            col: 0,
+            row: 0,
+            kind: 'highlight',
+            icon: 'id-provider',
+            domain: 'governance',
+            detail:
+              'Users and groups sync from your identity provider to the account. Grants go to account groups, so removing someone in the IdP removes their access.',
+          },
+          {
+            id: 'net',
+            label: 'Network and keys',
+            sub: 'policies, CMK',
+            col: 1,
+            row: 0,
+            icon: 'cloud-network',
+            domain: 'governance',
+            detail:
+              'Network policies and customer-managed keys are chosen at design time, because they touch how workspaces, storage, and clients connect.',
+          },
+          {
+            id: 'bill',
+            label: 'Billing and budgets',
+            sub: 'system.billing',
+            col: 2,
+            row: 0,
+            icon: 'list',
+            domain: 'governance',
+            detail:
+              'Billing and budgets sit at the account. Budgets alert by email when monthly spend crosses a threshold, and system.billing holds the usage records.',
+          },
+          {
+            id: 'ms',
+            label: 'Metastore',
+            sub: 'one per region',
+            col: 0,
+            row: 1,
+            kind: 'store',
+            domain: 'governance',
+            detail:
+              'One metastore per region. Every workspace in that region attaches to it, so most governance work happens here and not in each workspace.',
+          },
+          {
+            id: 'cat',
+            label: 'Catalogs',
+            sub: 'dev, staging, prod',
+            col: 1,
+            row: 1,
+            kind: 'store',
+            domain: 'governance',
+            detail:
+              'Catalogs per environment, such as dev, staging, and prod. Workspace-catalog bindings decide which workspaces can reach each one.',
+          },
+          {
+            id: 'dev',
+            label: 'Dev workspace',
+            sub: 'binds dev catalog',
+            col: 0,
+            row: 2,
+            kind: 'surface',
+            icon: 'gear-navy',
+            domain: 'apps',
+            detail:
+              'Where dev compute, jobs, and day-to-day work run. It binds the dev catalog, so other workspaces are denied access to that catalog.',
+          },
+          {
+            id: 'prod',
+            label: 'Prod workspace',
+            sub: 'binds prod catalog',
+            col: 1,
+            row: 2,
+            kind: 'surface',
+            icon: 'gear-navy',
+            domain: 'apps',
+            detail:
+              'Where prod work runs. It binds the prod catalog, so the dev workspace is denied access even for users who hold privileges on it.',
+          },
         ],
         edges: [
           { from: 'id', to: 'ms' },
@@ -297,8 +366,7 @@ export const walkthrough: Walkthrough = {
         rows: [
           {
             option: 'Terraform provider',
-            when:
-              'Account and platform objects such as workspaces, metastores, networking, groups, catalogs, grants, and policies.',
+            when: 'Account and platform objects such as workspaces, metastores, networking, groups, catalogs, grants, and policies.',
             tradeoffs:
               'Covers the account and workspace layers, and a scheduled plan shows drift. You manage state files, keep account and workspace state separate, and the platform team owns the review.',
           },

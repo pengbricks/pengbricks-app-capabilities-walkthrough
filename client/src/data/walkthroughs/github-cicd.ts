@@ -12,23 +12,19 @@ export const walkthrough: Walkthrough = {
     outcomes: [
       {
         title: 'Gated releases',
-        body:
-          'Pull requests run unit tests and bundle validate --strict, and later environments require named reviewers. A broken change stops before it reaches production.',
+        body: 'Pull requests run unit tests and bundle validate --strict, and later environments require named reviewers. A broken change stops before it reaches production.',
       },
       {
         title: 'One tested commit deploys',
-        body:
-          'The same commit SHA deploys to dev, test, stage, and prod, so what passed testing is what runs in production.',
+        body: 'The same commit SHA deploys to dev, test, stage, and prod, so what passed testing is what runs in production.',
       },
       {
         title: 'No stored deploy secrets',
-        body:
-          'GitHub signs in as a service principal through OIDC workload identity federation, so no token or client secret sits in GitHub to leak or expire.',
+        body: 'GitHub signs in as a service principal through OIDC workload identity federation, so no token or client secret sits in GitHub to leak or expire.',
       },
       {
         title: 'Smaller blast radius',
-        body:
-          'Deploy identity and run identity are separate service principals. The account that deploys is not the account that runs production jobs, and neither is a person.',
+        body: 'Deploy identity and run identity are separate service principals. The account that deploys is not the account that runs production jobs, and neither is a person.',
       },
     ],
   },
@@ -66,14 +62,94 @@ export const walkthrough: Walkthrough = {
         description:
           'A developer works in an IDE or a personal Git folder on a short-lived branch and opens a pull request. CI runs unit tests and bundle validate on the pull request and blocks the merge on failure. After the merge to main, CI deploys the same commit to dev with a smoke run, then to test with an integration run, then to stage, then to prod. Test, stage, and prod each wait for a reviewer to approve.',
         nodes: [
-          { id: 'dev', label: 'IDE or Git folder', sub: 'your own short branch', col: 0, row: 0, kind: 'surface' },
-          { id: 'pr', label: 'Pull request', sub: 'review, required checks', col: 1, row: 0 },
-          { id: 'ci', label: 'CI checks', sub: 'tests, validate --strict', col: 2, row: 0, kind: 'gate' },
-          { id: 'merge', label: 'Merge to main', sub: 'one commit SHA', col: 3, row: 0 },
-          { id: 'denv', label: 'Deploy to dev', sub: 'smoke run', col: 3, row: 1, kind: 'highlight' },
-          { id: 'tenv', label: 'Deploy to test', sub: 'integration run', col: 2, row: 1, kind: 'highlight' },
-          { id: 'senv', label: 'Deploy to stage', sub: 'production-like check', col: 1, row: 1, kind: 'highlight' },
-          { id: 'penv', label: 'Deploy to prod', sub: 'mode: production', col: 0, row: 1, kind: 'store' },
+          {
+            id: 'dev',
+            label: 'IDE or Git folder',
+            sub: 'your own short branch',
+            col: 0,
+            row: 0,
+            kind: 'surface',
+            domain: 'neutral',
+            icon: 'users',
+            detail:
+              'Where people work: an IDE or a personal Git folder on a short-lived branch. Production never runs from here.',
+          },
+          {
+            id: 'pr',
+            label: 'Pull request',
+            sub: 'review, required checks',
+            col: 1,
+            row: 0,
+            domain: 'apps',
+            icon: 'list',
+            detail: 'Opens review and runs the required checks before anything reaches main.',
+          },
+          {
+            id: 'ci',
+            label: 'CI checks',
+            sub: 'tests, validate --strict',
+            col: 2,
+            row: 0,
+            kind: 'gate',
+            domain: 'orchestration',
+            detail:
+              'Runs unit tests and bundle validate --strict on the pull request. A failure blocks the merge, so a broken change stops here.',
+          },
+          {
+            id: 'merge',
+            label: 'Merge to main',
+            sub: 'one commit SHA',
+            col: 3,
+            row: 0,
+            domain: 'orchestration',
+            icon: 'workflow',
+            detail: 'Merging to main fixes one commit SHA. Every environment then deploys that same commit.',
+          },
+          {
+            id: 'denv',
+            label: 'Deploy to dev',
+            sub: 'smoke run',
+            col: 3,
+            row: 1,
+            kind: 'highlight',
+            domain: 'orchestration',
+            icon: 'gear-amber',
+            detail: 'Deploys the commit to dev on its own after the merge and runs a smoke check.',
+          },
+          {
+            id: 'tenv',
+            label: 'Deploy to test',
+            sub: 'integration run',
+            col: 2,
+            row: 1,
+            kind: 'highlight',
+            domain: 'orchestration',
+            icon: 'gear-amber',
+            detail: 'Deploys the same commit to test and runs an integration run. It waits for a reviewer to approve.',
+          },
+          {
+            id: 'senv',
+            label: 'Deploy to stage',
+            sub: 'production-like check',
+            col: 1,
+            row: 1,
+            kind: 'highlight',
+            domain: 'orchestration',
+            icon: 'gear-amber',
+            detail: 'Deploys the same commit to stage for a production-like check, after a reviewer approves.',
+          },
+          {
+            id: 'penv',
+            label: 'Deploy to prod',
+            sub: 'mode: production',
+            col: 0,
+            row: 1,
+            kind: 'store',
+            domain: 'orchestration',
+            icon: 'gear-amber',
+            detail:
+              'Deploys the same commit in production mode under a service principal, after a reviewer approves. Nobody edits a production copy by hand.',
+          },
         ],
         edges: [
           { from: 'dev', to: 'pr', label: 'push' },
@@ -117,7 +193,7 @@ export const walkthrough: Walkthrough = {
       points: [
         {
           strong: 'Why a production Git folder is the weaker pattern.',
-          text: 'The older pattern keeps a production Git folder on a release branch and updates it through the Git folders API after each merge. That syncs files only. It has no resource definitions, so jobs and pipelines are created and changed separately. It has no run_as, so run identity is whoever owns the job. It has no environment targets, so dev, test, and prod differences live in people\'s heads. A bundle puts all of these in one reviewed definition.',
+          text: "The older pattern keeps a production Git folder on a release branch and updates it through the Git folders API after each merge. That syncs files only. It has no resource definitions, so jobs and pipelines are created and changed separately. It has no run_as, so run identity is whoever owns the job. It has no environment targets, so dev, test, and prod differences live in people's heads. A bundle puts all of these in one reviewed definition.",
         },
         {
           strong: 'When a production Git folder is still acceptable.',
@@ -190,7 +266,7 @@ export const walkthrough: Walkthrough = {
       id: 'bundle-practices',
       heading: 'Bundle practices',
       prose:
-        'These live in databricks.yml and its resource files, so they are reviewed like code. The dev and test targets in this repository\'s reference bundle show variables, presets, and release tags.',
+        "These live in databricks.yml and its resource files, so they are reviewed like code. The dev and test targets in this repository's reference bundle show variables, presets, and release tags.",
       table: {
         caption: 'Bundle configuration practices',
         columns: ['Practice', 'What to do'],
@@ -370,20 +446,24 @@ jobs:
           {
             option: 'OIDC workload identity federation',
             when: 'GitHub Actions, or any CI that can present an OIDC token.',
-            tradeoffs: 'No secret sits in GitHub and nothing needs rotating. You create a federation policy on each service principal, and the subject has to match the repository and environment exactly, including the numeric IDs that newer repositories carry.',
+            tradeoffs:
+              'No secret sits in GitHub and nothing needs rotating. You create a federation policy on each service principal, and the subject has to match the repository and environment exactly, including the numeric IDs that newer repositories carry.',
           },
           {
             option: 'OAuth M2M with a service principal secret',
             when: 'A CI system that cannot issue OIDC tokens.',
-            tradeoffs: 'Works with any CI. The client ID and secret live in the CI secret store and have to be rotated, access tokens last one hour, and a leaked secret works from anywhere until you revoke it.',
+            tradeoffs:
+              'Works with any CI. The client ID and secret live in the CI secret store and have to be rotated, access tokens last one hour, and a leaked secret works from anywhere until you revoke it.',
           },
           {
             option: 'Personal access token',
             when: 'Throwaway tests only.',
-            tradeoffs: 'The token belongs to a person, so the pipeline breaks when that person leaves. Databricks recommends OAuth over PATs where possible, and it revokes PATs unused for 90 days.',
+            tradeoffs:
+              'The token belongs to a person, so the pipeline breaks when that person leaves. Databricks recommends OAuth over PATs where possible, and it revokes PATs unused for 90 days.',
           },
         ],
-        recommendation: 'Use OIDC federation. Fall back to OAuth M2M only where the CI system cannot present OIDC tokens, and avoid PATs in pipelines.',
+        recommendation:
+          'Use OIDC federation. Fall back to OAuth M2M only where the CI system cannot present OIDC tokens, and avoid PATs in pipelines.',
       },
       links: [
         {
@@ -437,15 +517,18 @@ jobs:
           {
             option: 'Deploy on every merge to main, with reviewers on the environment',
             when: 'Trunk-based teams making small, steady changes.',
-            tradeoffs: 'Each merged commit moves toward prod and waits at the approval gate, so changes ship in small steps. It relies on protected main and good tests, because the merge itself starts the pipeline.',
+            tradeoffs:
+              'Each merged commit moves toward prod and waits at the approval gate, so changes ship in small steps. It relies on protected main and good tests, because the merge itself starts the pipeline.',
           },
           {
             option: 'Release tag or workflow_dispatch',
             when: 'Fixed release windows, or change management that wants an explicit release.',
-            tradeoffs: 'You choose when prod changes and which SHA ships, and a rollback is the same workflow run on an older tag. Main can run ahead of prod, so releases bundle more changes and test and prod drift further apart.',
+            tradeoffs:
+              'You choose when prod changes and which SHA ships, and a rollback is the same workflow run on an older tag. Main can run ahead of prod, so releases bundle more changes and test and prod drift further apart.',
           },
         ],
-        recommendation: 'Deploy on merge with required reviewers on stage and prod, and keep a workflow_dispatch run on a tag for rollbacks and hotfixes.',
+        recommendation:
+          'Deploy on merge with required reviewers on stage and prod, and keep a workflow_dispatch run on a tag for rollbacks and hotfixes.',
       },
       links: [
         {
