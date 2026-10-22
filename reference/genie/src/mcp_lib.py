@@ -6,11 +6,13 @@ MCP server are not listed in the public docs, so the code picks tools from the s
 
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
-from typing import Any, Callable
+from typing import Any, Callable, TypeVar
 
 from genie_lib import sql_str
 
@@ -22,6 +24,24 @@ GUIDE = "genie-external-ai"
 GENIE_ONE_PATH = "/ai-gateway/mcp-services/system.ai.genie_one_mcp"  # generally available, scope ai-gateway
 GENIE_AGENT_PATH = "/api/2.0/mcp/genie"  # + /<genie-space-id>, preview, scope genie, skips Unity Gateway
 SERVERS = ("genie_agent", "genie_one")
+
+T = TypeVar("T")
+
+
+def call_sync(fn: Callable[..., T], *args: Any, **kwargs: Any) -> T:
+    """Call a blocking function that runs `asyncio.run` inside, even when this thread already has a running event loop.
+
+    `DatabricksMCPClient.list_tools()` and `call_tool()` (databricks-mcp, `mcp.py`) each call `asyncio.run(...)`. That raises
+    `RuntimeError: asyncio.run() cannot be called from a running event loop` in a notebook, where IPython keeps a loop
+    running. A fresh worker thread has no loop, so the call runs there and this thread waits for the result. With no running
+    loop, `fn` is called directly. Exceptions from `fn` propagate unchanged.
+    """
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return fn(*args, **kwargs)
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        return pool.submit(fn, *args, **kwargs).result()
 
 
 def normalize_host(host: str) -> str:

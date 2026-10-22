@@ -22,7 +22,7 @@ The data is generated from a fixed seed (`use_cases/data_quality.yml`, `src/aidq
 - **As a job:** run `capability-guides-ai-functions-data-quality`, or Quick run in the app.
 - **Compute:** serverless notebook compute, as the other jobs in the `ai-functions` bundle. No SQL warehouse is needed. A Pro or serverless SQL warehouse also runs these functions if you attach one by hand. Classic SQL warehouses do not.
 - **Billing lags.** `04_accuracy_and_cost` polls `system.billing.usage` for a few minutes and records `billing_status` as `complete`, `partial`, or `not_available`. Run it again later if it is not `complete`.
-- **Safe to rerun:** every table is replaced, never appended, so row counts stay the same. Model answers can vary between runs, so scores can move a little.
+- **Safe to rerun:** every table is replaced, never appended, so row counts stay the same. AI results can differ slightly between runs for borderline rows: `aidq_quarantine` and `aidq_records_accepted` can move by a row or two (one reference job pair gave 18 and 19 accepted records). The `ai_query` check sets temperature 0.0, which lowers the variance and does not remove it. Judge a change by precision and recall against the labels, not by exact counts.
 - **Cost while idle:** none. The guide creates tables only. Drop the `aidq_` tables to remove it.
 
 ## Required setup

@@ -11,6 +11,12 @@ sys.path.insert(0, str(ROOT / "src"))
 import aidq_lib as q  # noqa: E402
 
 
+def test_model_parameters_pin_temperature_to_zero():
+    assert q.MODEL_PARAMETERS_SQL == "named_struct('temperature', 0.0)"
+    notebook = (ROOT / "guides" / "ai-functions-data-quality" / "03_ai_checks.py").read_text()
+    assert "modelParameters => {q.MODEL_PARAMETERS_SQL}" in notebook
+
+
 @pytest.fixture
 def spec():
     return q.load_spec(str(ROOT / "use_cases" / "data_quality.yml"))

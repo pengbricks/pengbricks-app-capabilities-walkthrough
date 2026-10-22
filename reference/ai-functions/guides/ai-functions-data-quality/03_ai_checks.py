@@ -18,11 +18,11 @@ dbutils.library.restartPython()
 # MAGIC | `address` | `ai_extract` (version 2.1) | `pass` when a five-digit postal code comes back, `fail` when not |
 # MAGIC | `duplicate_company` | `ai_similarity` over blocked pairs | `fail` at or above `fail_at`, `pass` below `pass_below`, `review` in between |
 # MAGIC | `sensitive_note` | `ai_mask` | `fail` when masking changed the note |
-# MAGIC | `status_comment` | `ai_query` with `responseFormat` and `failOnError => false` | `pass` or `fail` with a reason, `review` when the response cannot be read |
+# MAGIC | `status_comment` | `ai_query` with `responseFormat`, `modelParameters` (temperature 0.0), and `failOnError => false` | `pass` or `fail` with a reason, `review` when the response cannot be read |
 # MAGIC
 # MAGIC Each call runs once and the response is stored in `aidq_ai_results`. The quality table, the quarantine table, and the accepted table read stored results, so reporting never calls a model again. Anything the model cannot settle goes to `review`, which is a person.
 # MAGIC
-# MAGIC Safe to rerun: every table is replaced and the step's rows in `aidq_results` are swapped, not added. Model answers can differ between runs. Required setup: AI Functions in the workspace region, and an `ai_query` endpoint that serves batch calls (see `00_start_here`). Beta and Preview: `ai_fix_grammar`, mentioned in the walkthrough, is Public Preview and is not run here.
+# MAGIC Safe to rerun: every table is replaced and the step's rows in `aidq_results` are swapped, not added. AI results can differ slightly between runs for borderline rows, so counts in `aidq_quarantine` and `aidq_records_accepted` can move by a row or two. Judge a change by precision and recall in notebook 4, not by exact counts. Required setup: AI Functions in the workspace region, and an `ai_query` endpoint that serves batch calls (see `00_start_here`). Beta and Preview: `ai_fix_grammar`, mentioned in the walkthrough, is Public Preview and is not run here.
 
 # COMMAND ----------
 
@@ -151,7 +151,7 @@ log_call("sensitive_note", "ai_mask", len(rows), sum(r.chars for r in rows), sta
 # MAGIC %md
 # MAGIC ## status_comment: `ai_query` with structured output returns pass, fail, and a reason
 # MAGIC
-# MAGIC `responseFormat` takes a JSON schema, so the model returns `{"verdict": "pass" | "fail", "reason": "..."}` instead of free text. `failOnError => false` returns a struct with `response` and `errorMessage` (per the ai_query docs), so one bad row does not fail the batch. The SQL reads the struct with `to_json` and the code accepts either `response` or the older `result` key. A response that is not the expected JSON becomes `review`. Structured output needs a chat model; if the endpoint rejects batch calls or `responseFormat`, the `errorMessage` shows it and every row lands in review.
+# MAGIC `responseFormat` takes a JSON schema, so the model returns `{"verdict": "pass" | "fail", "reason": "..."}` instead of free text. `failOnError => false` returns a struct with `response` and `errorMessage` (per the ai_query docs), so one bad row does not fail the batch. The SQL reads the struct with `to_json` and the code accepts either `response` or the older `result` key. `modelParameters => named_struct('temperature', 0.0)` asks for the least random output; it lowers the variance and does not remove it. `ai_classify`, `ai_extract`, `ai_similarity`, and `ai_mask` document no determinism option. A response that is not the expected JSON becomes `review`. Structured output needs a chat model; if the endpoint rejects batch calls or `responseFormat`, the `errorMessage` shows it and every row lands in review.
 
 # COMMAND ----------
 
@@ -163,7 +163,7 @@ rows = spark.sql(f"""
 SELECT record_id, to_json(r) AS payload, chars FROM (
   SELECT t.record_id, length(t.order_status) + length(t.comment) AS chars,
          ai_query({endpoint}, concat({instructions}, ' Status: ', t.order_status, '. Comment: ', t.comment),
-                  responseFormat => {fmt}, failOnError => false) AS r
+                  responseFormat => {fmt}, modelParameters => {q.MODEL_PARAMETERS_SQL}, failOnError => false) AS r
   FROM {T['records']} t {residue('status_comment')} WHERE t.comment IS NOT NULL)""").collect()
 for r in rows:
     raw, error = q.split_query_struct(r.payload)

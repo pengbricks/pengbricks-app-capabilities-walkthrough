@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import sys
+import threading
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -13,6 +15,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from mcp_lib import (  # noqa: E402
     ask_arguments,
     audit_sql,
+    call_sync,
     classify_tools,
     content_text,
     extract_answer,
@@ -135,3 +138,46 @@ def test_audit_queries_use_documented_columns() -> None:
     assert "genie_space_id = 'abc''1'" in sql and "executed_as" in sql
     usage = gateway_usage_sql()
     assert "service_type = 'MCP_SERVICE'" in usage and "mcp_metadata.tool_name" in usage
+
+
+def _blocking_client_call(value):
+    """Stands in for DatabricksMCPClient.call_tool: runs asyncio.run internally and reports its thread."""
+
+    async def inner():
+        return value
+
+    return asyncio.run(inner()), threading.current_thread()
+
+
+def test_call_sync_without_a_loop_calls_directly():
+    result, thread = call_sync(_blocking_client_call, "ok")
+    assert result == "ok"
+    assert thread is threading.current_thread()
+
+
+def test_call_sync_inside_a_running_loop_uses_a_worker_thread():
+    async def caller():
+        with pytest.raises(RuntimeError, match="cannot be called from a running event loop"):
+            _blocking_client_call("direct")  # the failure seen in a notebook
+        return call_sync(_blocking_client_call, "ok")
+
+    result, thread = asyncio.run(caller())
+    assert result == "ok"
+    assert thread is not threading.current_thread()
+
+
+def test_call_sync_passes_arguments_and_propagates_errors():
+    def add(a, b=0):
+        return a + b
+
+    def boom():
+        raise ValueError("bad")
+
+    assert call_sync(add, 1, b=2) == 3
+
+    async def caller():
+        assert call_sync(add, 1, b=2) == 3
+        with pytest.raises(ValueError, match="bad"):
+            call_sync(boom)
+
+    asyncio.run(caller())
