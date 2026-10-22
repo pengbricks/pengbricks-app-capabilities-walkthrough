@@ -16,7 +16,7 @@ dbutils.library.restartPython()
 # MAGIC
 # MAGIC The job runs this as the job's run-as identity. An assistant signs in as the person instead, through OAuth, and Unity Catalog then checks that person.
 # MAGIC
-# MAGIC Safe to rerun: the call is read-only, and this step's rows in `genie_external_ai_results` are replaced.
+# MAGIC Safe to rerun, in a notebook or as a job task: the call is read-only, and this step's rows in `genie_external_ai_results` are replaced.
 
 # COMMAND ----------
 
@@ -31,7 +31,7 @@ from datetime import datetime, timedelta, timezone
 from databricks.sdk import WorkspaceClient
 from databricks_mcp import DatabricksMCPClient
 from mcp_lib import (
-    GUIDE, SERVERS, ask_arguments, audit_sql, classify_tools, content_text, extract_answer, extract_ids, extract_sql,
+    GUIDE, SERVERS, ask_arguments, audit_sql, call_sync, classify_tools, content_text, extract_answer, extract_ids, extract_sql,
     extract_status, follow_up_arguments, gateway_usage_sql, mcp_url, oauth_scope, poll_until_done, result_row, tool_field, write_rows,
 )
 
@@ -49,12 +49,12 @@ rows = [result_row(run_id, "call", "endpoint", server, f"scope {oauth_scope(serv
 # MAGIC %md
 # MAGIC ## Connect and list the tools
 # MAGIC
-# MAGIC `DatabricksMCPClient` takes the server URL and a `WorkspaceClient`. `list_tools()` returns the tools the caller is allowed to see.
+# MAGIC `DatabricksMCPClient` takes the server URL and a `WorkspaceClient`. `list_tools()` returns the tools the caller is allowed to see. The client runs `asyncio.run` inside each call, and a notebook already has a running event loop, so `call_sync` runs each client call in a worker thread.
 
 # COMMAND ----------
 
 mcp = DatabricksMCPClient(server_url=url, workspace_client=w)
-tools = mcp.list_tools()
+tools = call_sync(mcp.list_tools)
 for tool in tools:
     print(f"- {tool_field(tool, 'name')}: {(tool_field(tool, 'description') or '')[:100]}")
 picked = classify_tools(tools)
@@ -76,14 +76,14 @@ if not picked["ask"]:
 
 started = datetime.now(timezone.utc) - timedelta(seconds=30)  # margin for clock skew when matching query history
 question = params["mcp_question"]
-reply = content_text(mcp.call_tool(picked["ask"], ask_arguments(by_name[picked["ask"]], question)))
+reply = content_text(call_sync(mcp.call_tool, picked["ask"], ask_arguments(by_name[picked["ask"]], question)))
 ids = extract_ids(reply)
 status = extract_status(reply)
 print("ask reply status:", status, ids)
 
 if picked["poll"] and ids:
     poll_args = follow_up_arguments(by_name[picked["poll"]], ids)
-    reply, polls = poll_until_done(lambda: content_text(mcp.call_tool(picked["poll"], poll_args)), attempts=40, pause_seconds=5)
+    reply, polls = poll_until_done(lambda: content_text(call_sync(mcp.call_tool, picked["poll"], poll_args)), attempts=40, pause_seconds=5)
     status = extract_status(reply)
     rows.append(result_row(run_id, "call", "polls", polls, "poll calls made, one at a time"))
 

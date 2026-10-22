@@ -269,6 +269,10 @@ def response_format_json() -> str:
     })
 
 
+# Passed to ai_query as modelParameters; the parameter must be a constant struct, per the ai_query docs.
+# https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_query
+MODEL_PARAMETERS_SQL = "named_struct('temperature', 0.0)"
+
 VALIDATION_INSTRUCTIONS = ("You check one order record. The order status is the system of record. Return fail when the "
                            "customer comment contradicts the status, and pass when it is consistent. Give a one-sentence reason.")
 

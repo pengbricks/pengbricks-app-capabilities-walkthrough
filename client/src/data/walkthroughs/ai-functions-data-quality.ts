@@ -826,7 +826,7 @@ SELECT r.* FROM raw.records r LEFT ANTI JOIN quality.quarantine q ON q.record_id
       id: 'accuracy',
       heading: 'Accuracy: measure each check',
       prose:
-        'An AI check is a classifier. Score it like one. Label a sample of the rows that reach the model, run the check, and compute precision and recall with fail as the positive class. Precision is the share of fail verdicts that were real problems. Recall is the share of real problems the check caught.',
+        'An AI check is a classifier. Score it like one. Label a sample of the rows that reach the model, run the check, and compute precision and recall with fail as the positive class. Precision is the share of fail verdicts that were real problems. Recall is the share of real problems the check caught. AI results can differ slightly between runs for borderline rows, so counts of accepted and quarantined rows can move by a row or two even when the tables are replaced on each run. Judge a change by precision and recall against the labels, not by exact counts.',
       options: {
         caption: 'What to do with an uncertain verdict',
         rows: [

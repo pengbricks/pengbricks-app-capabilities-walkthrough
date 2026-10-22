@@ -370,7 +370,7 @@
       "startLine": 158,
       "endLine": 172,
       "language": "py",
-      "code": "fmt = a.sql_string(q.response_format_json())\ninstructions = a.sql_string(q.VALIDATION_INSTRUCTIONS)\nendpoint = a.sql_string(spec[\"endpoint\"])\nstarted = datetime.now(timezone.utc)\nrows = spark.sql(f\"\"\"\nSELECT record_id, to_json(r) AS payload, chars FROM (\n  SELECT t.record_id, length(t.order_status) + length(t.comment) AS chars,\n         ai_query({endpoint}, concat({instructions}, ' Status: ', t.order_status, '. Comment: ', t.comment),\n                  responseFormat => {fmt}, failOnError => false) AS r\n  FROM {T['records']} t {residue('status_comment')} WHERE t.comment IS NOT NULL)\"\"\").collect()\nfor r in rows:\n    raw, error = q.split_query_struct(r.payload)\n    verdict, reason = q.parse_verdict(raw)\n    ai_rows.append((r.record_id, \"status_comment\", verdict, error or reason, None, raw, spec[\"endpoint\"]))\nlog_call(\"status_comment\", \"ai_query\", len(rows), sum(r.chars for r in rows), started)",
+      "code": "fmt = a.sql_string(q.response_format_json())\ninstructions = a.sql_string(q.VALIDATION_INSTRUCTIONS)\nendpoint = a.sql_string(spec[\"endpoint\"])\nstarted = datetime.now(timezone.utc)\nrows = spark.sql(f\"\"\"\nSELECT record_id, to_json(r) AS payload, chars FROM (\n  SELECT t.record_id, length(t.order_status) + length(t.comment) AS chars,\n         ai_query({endpoint}, concat({instructions}, ' Status: ', t.order_status, '. Comment: ', t.comment),\n                  responseFormat => {fmt}, modelParameters => {q.MODEL_PARAMETERS_SQL}, failOnError => false) AS r\n  FROM {T['records']} t {residue('status_comment')} WHERE t.comment IS NOT NULL)\"\"\").collect()\nfor r in rows:\n    raw, error = q.split_query_struct(r.payload)\n    verdict, reason = q.parse_verdict(raw)\n    ai_rows.append((r.record_id, \"status_comment\", verdict, error or reason, None, raw, spec[\"endpoint\"]))\nlog_call(\"status_comment\", \"ai_query\", len(rows), sum(r.chars for r in rows), started)",
       "functions": {
         "parse_verdict": "Read ai_query's JSON text into (verdict, reason). Anything unreadable becomes ('review', why).",
         "residue": "The records of this check that the rules left unknown.",
@@ -382,8 +382,8 @@
     {
       "path": "reference/ai-functions/src/aidq_lib.py",
       "symbol": "parse_verdict",
-      "startLine": 331,
-      "endLine": 342,
+      "startLine": 335,
+      "endLine": 346,
       "language": "py",
       "code": "def parse_verdict(raw: str | None) -> tuple[str, str]:\n    \"\"\"Read ai_query's JSON text into (verdict, reason). Anything unreadable becomes ('review', why).\"\"\"\n    if not raw:\n        return \"review\", \"empty response\"\n    try:\n        data = json.loads(raw)\n        verdict = str(data[\"verdict\"]).lower()\n    except (ValueError, KeyError, TypeError):\n        return \"review\", \"response was not the expected JSON\"\n    if verdict not in (\"pass\", \"fail\"):\n        return \"review\", f\"unexpected verdict {verdict}\"\n    return verdict, str(data.get(\"reason\", \"\"))",
       "functions": {
@@ -393,8 +393,8 @@
     {
       "path": "reference/ai-functions/src/aidq_lib.py",
       "symbol": "quarantine_sql",
-      "startLine": 416,
-      "endLine": 423,
+      "startLine": 420,
+      "endLine": 427,
       "language": "py",
       "code": "def quarantine_sql(quality: str) -> str:\n    return f\"\"\"\nSELECT record_id,\n       array_sort(collect_set(CASE WHEN verdict = 'fail' THEN check_name END)) AS failed_checks,\n       array_sort(collect_set(CASE WHEN verdict = 'review' THEN check_name END)) AS review_checks,\n       concat_ws('; ', collect_list(CASE WHEN verdict <> 'pass' THEN concat(check_name, ': ', reason) END)) AS reasons,\n       current_timestamp() AS quarantined_at\nFROM {quality} GROUP BY record_id HAVING max(CASE WHEN verdict IN ('fail', 'review') THEN 1 ELSE 0 END) = 1\"\"\"",
       "functions": {}
@@ -402,8 +402,8 @@
     {
       "path": "reference/ai-functions/src/aidq_lib.py",
       "symbol": "confusion",
-      "startLine": 364,
-      "endLine": 378,
+      "startLine": 368,
+      "endLine": 382,
       "language": "py",
       "code": "def confusion(pairs: list[tuple[bool, str]]) -> dict[str, float]:\n    \"\"\"pairs are (truth_is_bad, verdict). 'fail' is the positive class; 'review' rows are counted apart, not guessed.\"\"\"\n    tp = sum(bad and v == \"fail\" for bad, v in pairs)\n    fp = sum((not bad) and v == \"fail\" for bad, v in pairs)\n    fn = sum(bad and v == \"pass\" for bad, v in pairs)\n    tn = sum((not bad) and v == \"pass\" for bad, v in pairs)\n    review = sum(v == \"review\" for _, v in pairs)\n    bad_total = sum(bad for bad, _ in pairs)\n    return {\n        \"rows\": float(len(pairs)), \"tp\": float(tp), \"fp\": float(fp), \"fn\": float(fn), \"tn\": float(tn), \"review\": float(review),\n        \"precision\": tp / (tp + fp) if tp + fp else 1.0,\n        \"recall\": tp / (tp + fn) if tp + fn else 1.0,\n        \"review_share\": review / len(pairs) if pairs else 0.0,\n        \"missed_in_review\": float(sum(bad and v == \"review\" for bad, v in pairs)) / bad_total if bad_total else 0.0,\n    }",
       "functions": {
@@ -413,8 +413,8 @@
     {
       "path": "reference/ai-functions/src/aidq_lib.py",
       "symbol": "gate",
-      "startLine": 381,
-      "endLine": 389,
+      "startLine": 385,
+      "endLine": 393,
       "language": "py",
       "code": "def gate(metrics: dict[str, float], thresholds: dict[str, Any]) -> str:\n    \"\"\"'ok', or the first threshold the check misses.\"\"\"\n    if metrics[\"precision\"] < thresholds[\"min_precision\"]:\n        return \"precision below threshold\"\n    if metrics[\"recall\"] < thresholds[\"min_recall\"]:\n        return \"recall below threshold\"\n    if metrics[\"review_share\"] > thresholds[\"max_review_share\"]:\n        return \"too many rows in human review\"\n    return \"ok\"",
       "functions": {
@@ -2446,8 +2446,8 @@
     {
       "path": "reference/genie/src/mcp_lib.py",
       "symbol": "mcp_url",
-      "startLine": 35,
-      "endLine": 44,
+      "startLine": 55,
+      "endLine": 64,
       "language": "py",
       "code": "def mcp_url(server: str, host: str, space_id: str = \"\") -> str:\n    \"\"\"The MCP endpoint for `genie_agent` (needs the agent ID) or `genie_one`.\"\"\"\n    base = normalize_host(host)\n    if server == \"genie_one\":\n        return base + GENIE_ONE_PATH\n    if server == \"genie_agent\":\n        if not space_id:\n            raise ValueError(\"genie_agent needs a Genie Agent ID\")\n        return f\"{base}{GENIE_AGENT_PATH}/{space_id}\"\n    raise ValueError(f\"server must be one of {SERVERS}, got {server!r}\")",
       "functions": {
@@ -2461,14 +2461,16 @@
       "startLine": 56,
       "endLine": 57,
       "language": "py",
-      "code": "mcp = DatabricksMCPClient(server_url=url, workspace_client=w)\ntools = mcp.list_tools()",
-      "functions": {}
+      "code": "mcp = DatabricksMCPClient(server_url=url, workspace_client=w)\ntools = call_sync(mcp.list_tools)",
+      "functions": {
+        "call_sync": "Call a blocking function that runs `asyncio.run` inside, even when this thread already has a running event loop."
+      }
     },
     {
       "path": "reference/genie/src/mcp_lib.py",
       "symbol": "classify_tools",
-      "startLine": 55,
-      "endLine": 69,
+      "startLine": 75,
+      "endLine": 89,
       "language": "py",
       "code": "def classify_tools(tools: list[Any]) -> dict[str, str | None]:\n    \"\"\"Pick the ask, poll, and result tools by name. `genie_ask` and `genie_poll_response` are documented for Genie One.\n\n    For the Genie Agent server, an ask tool is any tool whose name has `ask` or `query` and not `poll` or `result`.\n    \"\"\"\n    names = [tool_field(tool, \"name\") for tool in tools if tool_field(tool, \"name\")]\n\n    def first(test: Callable[[str], bool]) -> str | None:\n        return next((name for name in names if test(name.lower())), None)\n\n    return {\n        \"ask\": first(lambda n: (\"ask\" in n or \"query\" in n) and \"poll\" not in n and \"result\" not in n and \"view\" not in n),\n        \"poll\": first(lambda n: \"poll\" in n),\n        \"result\": first(lambda n: \"result\" in n and \"poll\" not in n),\n    }",
       "functions": {
@@ -2481,8 +2483,9 @@
       "startLine": 79,
       "endLine": 88,
       "language": "py",
-      "code": "reply = content_text(mcp.call_tool(picked[\"ask\"], ask_arguments(by_name[picked[\"ask\"]], question)))\nids = extract_ids(reply)\nstatus = extract_status(reply)\nprint(\"ask reply status:\", status, ids)\n\nif picked[\"poll\"] and ids:\n    poll_args = follow_up_arguments(by_name[picked[\"poll\"]], ids)\n    reply, polls = poll_until_done(lambda: content_text(mcp.call_tool(picked[\"poll\"], poll_args)), attempts=40, pause_seconds=5)\n    status = extract_status(reply)\n    rows.append(result_row(run_id, \"call\", \"polls\", polls, \"poll calls made, one at a time\"))",
+      "code": "reply = content_text(call_sync(mcp.call_tool, picked[\"ask\"], ask_arguments(by_name[picked[\"ask\"]], question)))\nids = extract_ids(reply)\nstatus = extract_status(reply)\nprint(\"ask reply status:\", status, ids)\n\nif picked[\"poll\"] and ids:\n    poll_args = follow_up_arguments(by_name[picked[\"poll\"]], ids)\n    reply, polls = poll_until_done(lambda: content_text(call_sync(mcp.call_tool, picked[\"poll\"], poll_args)), attempts=40, pause_seconds=5)\n    status = extract_status(reply)\n    rows.append(result_row(run_id, \"call\", \"polls\", polls, \"poll calls made, one at a time\"))",
       "functions": {
+        "call_sync": "Call a blocking function that runs `asyncio.run` inside, even when this thread already has a running event loop.",
         "content_text": "All text blocks of an MCP CallToolResult (object or dict), joined.",
         "follow_up_arguments": "Arguments for a poll or result call: pass each ID the tool's schema names, from the ask response.",
         "poll_until_done": "Call `fetch` (a poll tool call that returns reply text) until the status is final. Returns (last text, polls used).",
@@ -2492,8 +2495,8 @@
     {
       "path": "reference/genie/src/mcp_lib.py",
       "symbol": "audit_sql",
-      "startLine": 227,
-      "endLine": 234,
+      "startLine": 247,
+      "endLine": 254,
       "language": "py",
       "code": "def audit_sql(space_id: str, since_iso: str) -> str:\n    \"\"\"Statements the Genie Agent ran for this MCP session, from system.query.history.\"\"\"\n    return f\"\"\"\nSELECT executed_by, executed_as, compute.warehouse_id AS warehouse_id, client_application, execution_status, CAST(start_time AS STRING) AS start_time\nFROM system.query.history\nWHERE query_source.genie_space_id = {sql_str(space_id)} AND start_time >= TIMESTAMP {sql_str(since_iso)}\nORDER BY start_time\n\"\"\".strip()",
       "functions": {
@@ -2503,8 +2506,8 @@
     {
       "path": "reference/genie/src/mcp_lib.py",
       "symbol": "gateway_usage_sql",
-      "startLine": 237,
-      "endLine": 245,
+      "startLine": 257,
+      "endLine": 265,
       "language": "py",
       "code": "def gateway_usage_sql(service_name: str = \"system.ai.genie_one_mcp\") -> str:\n    \"\"\"Gateway MCP calls by tool, from the query in the Govern an MCP docs.\"\"\"\n    return f\"\"\"\nSELECT mcp_metadata.tool_name AS tool_name, COUNT(*) AS calls\nFROM system.ai_gateway.usage\nWHERE service_type = 'MCP_SERVICE' AND service_name = {sql_str(service_name)}\nGROUP BY mcp_metadata.tool_name\nORDER BY calls DESC\n\"\"\".strip()",
       "functions": {
