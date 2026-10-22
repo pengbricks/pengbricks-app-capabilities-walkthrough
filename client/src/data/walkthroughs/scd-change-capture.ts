@@ -12,23 +12,19 @@ export const walkthrough: Walkthrough = {
     outcomes: [
       {
         title: 'History for audits',
-        body:
-          'SCD type 2 keeps every version of a row with start and end timestamps. Auditors and analysts can see what a customer record looked like on a past date.',
+        body: 'SCD type 2 keeps every version of a row with start and end timestamps. Auditors and analysts can see what a customer record looked like on a past date.',
       },
       {
         title: 'Out-of-order events handled',
-        body:
-          'SEQUENCE BY applies the event with the highest sequence value per key. Late or duplicated events do not overwrite newer data and quietly corrupt reports.',
+        body: 'SEQUENCE BY applies the event with the highest sequence value per key. Late or duplicated events do not overwrite newer data and quietly corrupt reports.',
       },
       {
         title: 'Deletes handled by design',
-        body:
-          'APPLY AS DELETE WHEN removes the row in type 1 and closes the current version in type 2, so deleted source records do not linger in reporting tables.',
+        body: 'APPLY AS DELETE WHEN removes the row in type 1 and closes the current version in type 2, so deleted source records do not linger in reporting tables.',
       },
       {
         title: 'Controlled table growth',
-        body:
-          'TRACK HISTORY ON limits new versions to meaningful columns. A last-login timestamp does not create a new row and inflate storage and query cost.',
+        body: 'TRACK HISTORY ON limits new versions to meaningful columns. A last-login timestamp does not create a new row and inflate storage and query cost.',
       },
     ],
   },
@@ -64,15 +60,13 @@ export const walkthrough: Walkthrough = {
         rows: [
           {
             option: 'Type 1',
-            when:
-              'You need current state, such as the customer\'s current address, or the table is large and history is rarely read.',
+            when: "You need current state, such as the customer's current address, or the table is large and history is rarely read.",
             tradeoffs:
               'One row per key, overwritten on update, so the table stays small and queries are simple. Past values are gone, so keep history in the bronze change feed.',
           },
           {
             option: 'Type 2',
-            when:
-              'You need what a row looked like before, such as the address when the order shipped, or you must audit who changed what and when.',
+            when: 'You need what a row looked like before, such as the address when the order shipped, or you must audit who changed what and when.',
             tradeoffs:
               'One row per version with __START_AT and __END_AT, which supports point-in-time joins and audits. The table grows with every tracked change, and queries need a date filter or a current-row filter.',
           },
@@ -80,9 +74,7 @@ export const walkthrough: Walkthrough = {
         recommendation:
           'Use type 1 unless a report, audit, or point-in-time join needs earlier values. When you use type 2, track history on the columns that matter so the table does not grow on every minor change.',
       },
-      links: [
-        { label: 'AUTO CDC in pipelines', url: 'https://docs.databricks.com/aws/en/ldp/cdc' },
-      ],
+      links: [{ label: 'AUTO CDC in pipelines', url: 'https://docs.databricks.com/aws/en/ldp/cdc' }],
     },
     {
       id: 'types',
@@ -96,9 +88,44 @@ export const walkthrough: Walkthrough = {
         corner: 'Change ↓ · Table →',
         columns: ['SCD type 1', 'SCD type 2'],
         rows: [
-          { label: 'INSERT', cells: [{ state: 'own', text: 'new row' }, { state: 'own', text: 'new current row' }] },
-          { label: 'UPDATE', cells: [{ state: 'own', text: 'row overwritten' }, { state: 'own', text: 'old closed, new added' }] },
-          { label: 'DELETE', cells: [{ state: 'own', text: 'row removed' }, { state: 'own', text: 'current row closed' }] },
+          {
+            label: 'INSERT',
+            cells: [
+              { state: 'own', text: 'new row' },
+              { state: 'own', text: 'new current row', detail: 'Type 2 adds the new row as the current version.' },
+            ],
+          },
+          {
+            label: 'UPDATE',
+            cells: [
+              {
+                state: 'own',
+                text: 'row overwritten',
+                detail: 'Type 1 keeps one row per key, so the new value overwrites the old one.',
+              },
+              {
+                state: 'own',
+                text: 'old closed, new added',
+                detail:
+                  'Type 2 closes the current version and adds a new one. TRACK HISTORY ON limits which columns create a version.',
+              },
+            ],
+          },
+          {
+            label: 'DELETE',
+            cells: [
+              {
+                state: 'own',
+                text: 'row removed',
+                detail: 'Type 1 removes the row when the change_type column says DELETE.',
+              },
+              {
+                state: 'own',
+                text: 'current row closed',
+                detail: 'Type 2 closes the current version and adds no new row.',
+              },
+            ],
+          },
         ],
         legend: [{ state: 'own', label: 'Result in this table' }],
       },

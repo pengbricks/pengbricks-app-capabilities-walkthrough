@@ -68,13 +68,88 @@ export const walkthrough: Walkthrough = {
         description:
           'Source tables in Unity Catalog and a YAML file in Git feed a metric view. AI/BI dashboards, Genie Agents, SQL and notebooks, and BI tools all query the metric view.',
         nodes: [
-          { id: 'git', label: 'YAML in Git', sub: 'reviewed, versioned', col: 0, row: 0, kind: 'box' },
-          { id: 'tables', label: 'Source tables', sub: 'orders, customers', col: 0, row: 2, kind: 'store' },
-          { id: 'mv', label: 'Metric view', sub: 'fields and measures', col: 1, row: 1, kind: 'highlight' },
-          { id: 'dash', label: 'AI/BI dashboards', sub: 'published', col: 2, row: 0, kind: 'surface' },
-          { id: 'genie', label: 'Genie Agents', sub: 'plain-language questions', col: 2, row: 1, kind: 'surface' },
-          { id: 'sql', label: 'SQL and notebooks', sub: 'MEASURE()', col: 2, row: 2, kind: 'surface' },
-          { id: 'bi', label: 'BI tools', sub: 'custom SQL, wrapper view', col: 2, row: 3, kind: 'surface' },
+          {
+            id: 'git',
+            label: 'YAML in Git',
+            sub: 'reviewed, versioned',
+            col: 0,
+            row: 0,
+            kind: 'box',
+            icon: 'data-file',
+            domain: 'orchestration',
+            detail:
+              'The metric YAML lives in Git, so a pull request shows every change to a measure and a job deploys it to Unity Catalog.',
+          },
+          {
+            id: 'tables',
+            label: 'Source tables',
+            sub: 'orders, customers',
+            col: 0,
+            row: 2,
+            kind: 'store',
+            icon: 'database',
+            domain: 'data',
+            detail:
+              'The Unity Catalog tables the metric view reads from. Joins to dimension tables are declared in the same YAML.',
+          },
+          {
+            id: 'mv',
+            label: 'Metric view',
+            sub: 'fields and measures',
+            col: 1,
+            row: 1,
+            kind: 'highlight',
+            icon: 'data-model',
+            domain: 'governance',
+            detail:
+              'Stores fields and measures once in Unity Catalog. Consumers pick any grouping and the engine writes the SQL for it.',
+          },
+          {
+            id: 'dash',
+            label: 'AI/BI dashboards',
+            sub: 'published',
+            col: 2,
+            row: 0,
+            kind: 'surface',
+            icon: 'dashboard',
+            domain: 'apps',
+            detail: 'Published AI/BI dashboards query the metric view and apply MEASURE() for the author.',
+          },
+          {
+            id: 'genie',
+            label: 'Genie Agents',
+            sub: 'plain-language questions',
+            col: 2,
+            row: 1,
+            kind: 'surface',
+            icon: 'data-search',
+            domain: 'apps',
+            detail:
+              'Genie Agents answer plain-language questions from the view and import its synonyms and display names.',
+          },
+          {
+            id: 'sql',
+            label: 'SQL and notebooks',
+            sub: 'MEASURE()',
+            col: 2,
+            row: 2,
+            kind: 'surface',
+            icon: 'warehouse',
+            domain: 'apps',
+            detail: 'SQL users and notebooks call MEASURE() on the view and group by any field it defines.',
+          },
+          {
+            id: 'bi',
+            label: 'BI tools',
+            sub: 'custom SQL, wrapper view',
+            col: 2,
+            row: 3,
+            kind: 'surface',
+            icon: 'network',
+            domain: 'apps',
+            detail:
+              'External BI tools use custom SQL, a wrapper view, or a partner integration, because they cannot write MEASURE() themselves.',
+          },
         ],
         edges: [
           { from: 'git', to: 'mv', label: 'deploy' },
@@ -92,7 +167,13 @@ export const walkthrough: Walkthrough = {
         ],
         caption: 'The reference job builds this chain with two metric views, one over orders and one over sessions.',
       },
-      links: [{ label: 'Unity Catalog metric views', url: `${DOCS}/`, note: 'Overview page that links to every metric view docs page.' }],
+      links: [
+        {
+          label: 'Unity Catalog metric views',
+          url: `${DOCS}/`,
+          note: 'Overview page that links to every metric view docs page.',
+        },
+      ],
     },
     {
       id: 'choose',
@@ -170,10 +251,18 @@ export const walkthrough: Walkthrough = {
         },
       ],
       links: [
-        { label: 'Model metric views', url: `${DOCS}/basic-modeling`, note: 'Sources, filters, fields, measures, best practices.' },
+        {
+          label: 'Model metric views',
+          url: `${DOCS}/basic-modeling`,
+          note: 'Sources, filters, fields, measures, best practices.',
+        },
         { label: 'Create a metric view', url: `${DOCS}/create`, note: 'Prerequisites and the SQL and UI routes.' },
         { label: 'Metric view YAML syntax reference', url: `${DOCS}/yaml-reference` },
-        { label: 'CREATE VIEW', url: 'https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-ddl-create-view', note: 'The WITH METRICS clause.' },
+        {
+          label: 'CREATE VIEW',
+          url: 'https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-ddl-create-view',
+          note: 'The WITH METRICS clause.',
+        },
       ],
     },
     {
@@ -225,8 +314,16 @@ fields:
         },
       ],
       links: [
-        { label: 'Joins in metric views', url: `${DOCS}/joins`, note: 'Cardinality, rely, star and snowflake schemas.' },
-        { label: 'Metric view feature availability', url: `${DOCS}/feature-availability`, note: 'Minimum runtime for each feature.' },
+        {
+          label: 'Joins in metric views',
+          url: `${DOCS}/joins`,
+          note: 'Cardinality, rely, star and snowflake schemas.',
+        },
+        {
+          label: 'Metric view feature availability',
+          url: `${DOCS}/feature-availability`,
+          note: 'Minimum runtime for each feature.',
+        },
         { label: 'Tutorial: build a metric view with joins', url: `${DOCS}/tpch-example` },
       ],
     },
@@ -258,8 +355,16 @@ fields:
         },
       ],
       links: [
-        { label: 'Model metric views: measures', url: `${DOCS}/basic-modeling`, note: 'Ratio, distinct-count, and filtered measures.' },
-        { label: 'Advanced techniques: composability', url: `${DOCS}/advanced-techniques`, note: 'Building a measure from other measures.' },
+        {
+          label: 'Model metric views: measures',
+          url: `${DOCS}/basic-modeling`,
+          note: 'Ratio, distinct-count, and filtered measures.',
+        },
+        {
+          label: 'Advanced techniques: composability',
+          url: `${DOCS}/advanced-techniques`,
+          note: 'Building a measure from other measures.',
+        },
       ],
     },
     {
@@ -290,14 +395,17 @@ fields:
         },
       ],
       links: [
-        { label: 'Advanced techniques: window measures', url: `${DOCS}/advanced-techniques`, note: 'Ranges, offset, inclusive and exclusive, numeric index.' },
+        {
+          label: 'Advanced techniques: window measures',
+          url: `${DOCS}/advanced-techniques`,
+          note: 'Ranges, offset, inclusive and exclusive, numeric index.',
+        },
       ],
     },
     {
       id: 'scope',
       heading: 'One wide metric view or several focused ones',
-      prose:
-        'The source of a metric view has one grain and one filter. That limit decides how many views you need.',
+      prose: 'The source of a metric view has one grain and one filter. That limit decides how many views you need.',
       options: {
         caption: 'How many metric views per subject area',
         rows: [
@@ -352,7 +460,11 @@ fields:
         },
       ],
       links: [
-        { label: 'Agent metadata in metric views', url: 'https://docs.databricks.com/aws/en/uc-semantics/agent-metadata', note: 'Display names, synonyms, formats.' },
+        {
+          label: 'Agent metadata in metric views',
+          url: 'https://docs.databricks.com/aws/en/uc-semantics/agent-metadata',
+          note: 'Display names, synonyms, formats.',
+        },
         { label: 'Genie Agents', url: 'https://docs.databricks.com/aws/en/genie/' },
       ],
     },
@@ -365,12 +477,27 @@ fields:
         caption: 'How each consumer reads a metric view',
         columns: ['Consumer', 'How it reads the metric view'],
         rows: [
-          ['SQL editor, notebooks, jobs', 'SELECT fields and MEASURE(measure) with GROUP BY ALL, on a SQL warehouse or compute on runtime 16.4 or above.'],
-          ['AI/BI dashboards', 'Use the metric view as a dataset. MEASURE() is applied for you, and display names and formats show in the UI.'],
-          ['Genie Agents', 'Add the metric view as a source. Synonyms and comments are imported, and the agent writes MEASURE() queries.'],
+          [
+            'SQL editor, notebooks, jobs',
+            'SELECT fields and MEASURE(measure) with GROUP BY ALL, on a SQL warehouse or compute on runtime 16.4 or above.',
+          ],
+          [
+            'AI/BI dashboards',
+            'Use the metric view as a dataset. MEASURE() is applied for you, and display names and formats show in the UI.',
+          ],
+          [
+            'Genie Agents',
+            'Add the metric view as a source. Synonyms and comments are imported, and the agent writes MEASURE() queries.',
+          ],
           ['Alerts', 'Alert on a measure, such as conversion rate dropping under a threshold.'],
-          ['Tableau, Sigma, other SQL tools', 'Custom SQL with the MEASURE() pattern, or a wrapper view. Tableau can also enable BI compatibility mode from Initial SQL.'],
-          ['Power BI', 'Native query in DirectQuery mode with MEASURE(), or a wrapper view. The BI compatibility mode option was removed from the Power BI connector.'],
+          [
+            'Tableau, Sigma, other SQL tools',
+            'Custom SQL with the MEASURE() pattern, or a wrapper view. Tableau can also enable BI compatibility mode from Initial SQL.',
+          ],
+          [
+            'Power BI',
+            'Native query in DirectQuery mode with MEASURE(), or a wrapper view. The BI compatibility mode option was removed from the Power BI connector.',
+          ],
         ],
       },
       points: [
@@ -417,7 +544,11 @@ GROUP BY ALL;`,
       ],
       links: [
         { label: 'Query metric views', url: `${DOCS}/query` },
-        { label: 'Use metric views with external BI tools', url: `${DOCS}/bi-tools`, note: 'Custom SQL, wrapper view, compatibility mode, partner support.' },
+        {
+          label: 'Use metric views with external BI tools',
+          url: `${DOCS}/bi-tools`,
+          note: 'Custom SQL, wrapper view, compatibility mode, partner support.',
+        },
         { label: 'MEASURE function', url: 'https://docs.databricks.com/aws/en/sql/language-manual/functions/measure' },
         { label: 'Use parameters with metric views', url: `${DOCS}/use-parameters` },
       ],
@@ -451,8 +582,14 @@ GROUP BY ALL;`,
       ],
       links: [
         { label: 'Manage metric views', url: `${DOCS}/manage`, note: 'Privileges, ownership, editing, dropping.' },
-        { label: 'Certify or deprecate data', url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/certify-deprecate-data' },
-        { label: 'View data lineage', url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/data-lineage' },
+        {
+          label: 'Certify or deprecate data',
+          url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/certify-deprecate-data',
+        },
+        {
+          label: 'View data lineage',
+          url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/data-lineage',
+        },
       ],
     },
     {
@@ -466,12 +603,74 @@ GROUP BY ALL;`,
         description:
           'A reviewed pull request is deployed by a bundle. A SQL task creates the metric view in the target catalog. A verify task compares each measure with plain SQL and writes a results table.',
         nodes: [
-          { id: 'pr', label: 'Pull request', sub: 'YAML reviewed', col: 0, row: 0, kind: 'box' },
-          { id: 'deploy', label: 'bundle deploy', mono: true, sub: '--target test or prod', col: 1, row: 0 },
-          { id: 'task', label: 'SQL task', sub: 'CREATE OR REPLACE VIEW', col: 2, row: 0 },
-          { id: 'mv', label: 'Metric view', sub: 'in the target catalog', col: 3, row: 0, kind: 'highlight' },
-          { id: 'verify', label: 'Verify task', sub: 'MEASURE() vs plain SQL', col: 3, row: 1, kind: 'gate' },
-          { id: 'results', label: 'Results table', sub: 'pass or fail per measure', col: 3, row: 2, kind: 'store' },
+          {
+            id: 'pr',
+            label: 'Pull request',
+            sub: 'YAML reviewed',
+            col: 0,
+            row: 0,
+            kind: 'box',
+            icon: 'data-file',
+            domain: 'orchestration',
+            detail: 'The YAML change is reviewed in a pull request before it reaches any workspace.',
+          },
+          {
+            id: 'deploy',
+            label: 'bundle deploy',
+            mono: true,
+            sub: '--target test or prod',
+            col: 1,
+            row: 0,
+            icon: 'workflow',
+            domain: 'orchestration',
+            detail:
+              'Deploys the job to a target. The catalog variable changes per target, so the same file builds the view in dev, test, and prod.',
+          },
+          {
+            id: 'task',
+            label: 'SQL task',
+            sub: 'CREATE OR REPLACE VIEW',
+            col: 2,
+            row: 0,
+            icon: 'gear-amber',
+            domain: 'orchestration',
+            detail:
+              'A Lakeflow Jobs SQL task runs the .sql file on a serverless SQL warehouse. Bundles have no metric view resource, so SQL does the creating.',
+          },
+          {
+            id: 'mv',
+            label: 'Metric view',
+            sub: 'in the target catalog',
+            col: 3,
+            row: 0,
+            kind: 'highlight',
+            icon: 'data-model',
+            domain: 'governance',
+            detail:
+              'The deployed metric view in the target catalog. Replacing it can drop the certification tag, so re-apply grants and tags.',
+          },
+          {
+            id: 'verify',
+            label: 'Verify task',
+            sub: 'MEASURE() vs plain SQL',
+            col: 3,
+            row: 1,
+            kind: 'gate',
+            domain: 'governance',
+            detail:
+              'Queries each measure with MEASURE(), recomputes it with plain SQL, and fails the job on any difference.',
+          },
+          {
+            id: 'results',
+            label: 'Results table',
+            sub: 'pass or fail per measure',
+            col: 3,
+            row: 2,
+            kind: 'store',
+            icon: 'database',
+            domain: 'data',
+            detail: 'Holds a pass or fail row for each measure, so you can see which one disagreed.',
+          },
         ],
         edges: [
           { from: 'pr', to: 'deploy' },
@@ -523,10 +722,22 @@ GROUP BY ALL;`,
         },
       ],
       links: [
-        { label: 'SQL task for jobs', url: 'https://docs.databricks.com/aws/en/jobs/tasks/sql', note: 'File source, parameters, multiple statements.' },
-        { label: 'Bundle resources', url: 'https://docs.databricks.com/aws/en/dev-tools/bundles/resources', note: 'No metric view resource is listed.' },
+        {
+          label: 'SQL task for jobs',
+          url: 'https://docs.databricks.com/aws/en/jobs/tasks/sql',
+          note: 'File source, parameters, multiple statements.',
+        },
+        {
+          label: 'Bundle resources',
+          url: 'https://docs.databricks.com/aws/en/dev-tools/bundles/resources',
+          note: 'No metric view resource is listed.',
+        },
         { label: 'Bundle variables', url: 'https://docs.databricks.com/aws/en/dev-tools/bundles/variables' },
-        { label: 'Edit a metric view with ALTER VIEW', url: `${DOCS}/manage`, note: 'ALTER VIEW replaces the full YAML.' },
+        {
+          label: 'Edit a metric view with ALTER VIEW',
+          url: `${DOCS}/manage`,
+          note: 'ALTER VIEW replaces the full YAML.',
+        },
       ],
     },
     {
@@ -601,31 +812,59 @@ GROUP BY ALL;`,
         },
       ],
       links: [
-        { label: 'Add metric views to a share', url: 'https://docs.databricks.com/aws/en/opensharing/create-share', note: 'Requirements, SQL, CLI, and Catalog Explorer.' },
+        {
+          label: 'Add metric views to a share',
+          url: 'https://docs.databricks.com/aws/en/opensharing/create-share',
+          note: 'Requirements, SQL, CLI, and Catalog Explorer.',
+        },
       ],
     },
     {
       id: 'stages',
       heading: 'Release stages, as of October 21, 2026',
-      prose:
-        'Stages come from the docs pages and the release notes. Where neither states a stage, the table says so.',
+      prose: 'Stages come from the docs pages and the release notes. Where neither states a stage, the table says so.',
       table: {
         columns: ['Feature', 'Stage and requirement'],
         rows: [
-          ['Joins (star, snowflake), filters, fields, measures, MEASURE()', 'No preview label on the docs pages. Snowflake joins need runtime 17.3 or above.'],
-          ['YAML specification version 1.1', 'Current version. Adds agent metadata and comment (runtime 17.3 or above), cardinality, offset, and inclusive modifiers (runtime 18.1 or above).'],
+          [
+            'Joins (star, snowflake), filters, fields, measures, MEASURE()',
+            'No preview label on the docs pages. Snowflake joins need runtime 17.3 or above.',
+          ],
+          [
+            'YAML specification version 1.1',
+            'Current version. Adds agent metadata and comment (runtime 17.3 or above), cardinality, offset, and inclusive modifiers (runtime 18.1 or above).',
+          ],
           ['Window measures', 'Generally available since October 6, 2026.'],
-          ['Window measures on a numeric index', 'Added September 14, 2026. Needs runtime 19. The release note gives no stage.'],
-          ['Sharing with OpenSharing', 'Generally available since September 24, 2026. The Manage metric views page still says Beta.'],
+          [
+            'Window measures on a numeric index',
+            'Added September 14, 2026. Needs runtime 19. The release note gives no stage.',
+          ],
+          [
+            'Sharing with OpenSharing',
+            'Generally available since September 24, 2026. The Manage metric views page still says Beta.',
+          ],
           ['Parameters', 'Public Preview. Needs runtime 18.2 or above.'],
-          ['Materialization', 'Needs serverless compute and runtime 17.3 or above. The docs page and the release notes I searched give no stage, so confirm before you rely on it.'],
-          ['BI compatibility mode', 'Launched as a Beta for Power BI. The Power BI connector no longer offers it. The docs still describe it for Tableau through Initial SQL, with no stage stated.'],
-          ['Certification status tag', 'Listed as Public Preview in the release notes I found. Check the current certification page.'],
+          [
+            'Materialization',
+            'Needs serverless compute and runtime 17.3 or above. The docs page and the release notes I searched give no stage, so confirm before you rely on it.',
+          ],
+          [
+            'BI compatibility mode',
+            'Launched as a Beta for Power BI. The Power BI connector no longer offers it. The docs still describe it for Tableau through Initial SQL, with no stage stated.',
+          ],
+          [
+            'Certification status tag',
+            'Listed as Public Preview in the release notes I found. Check the current certification page.',
+          ],
         ],
       },
       links: [
         { label: 'Metric view feature availability', url: `${DOCS}/feature-availability` },
-        { label: 'Materialization for metric views', url: `${DOCS}/materialization`, note: 'Pre-computed aggregations and query rewrite.' },
+        {
+          label: 'Materialization for metric views',
+          url: `${DOCS}/materialization`,
+          note: 'Pre-computed aggregations and query rewrite.',
+        },
         { label: 'Databricks release notes', url: 'https://docs.databricks.com/aws/en/release-notes/' },
       ],
     },
@@ -637,13 +876,31 @@ GROUP BY ALL;`,
       table: {
         columns: ['Finding', 'Result'],
         rows: [
-          ['Deploy', 'Two SQL tasks ran in parallel and created mv_orders_metrics (17 columns) and mv_funnel_metrics (10 columns). Both read back as type METRIC_VIEW.'],
-          ['Measures against hand-written SQL', 'All 67 measure checks passed: 43 on orders and 24 on sessions, 884 groups in total. Groupings were total, segment, product category, month, region and channel, session channel, and session month.'],
-          ['Window measures', 'Prior month, month-over-month growth, rolling three months, and running total matched LAG and framed SUM over monthly totals, by month (21 groups) and by month and segment (83 groups).'],
-          ['Ratio pitfalls', 'Conversion rate over all sessions was 8.63%, and the average of daily rates was 14.23%. Average order value was 1,236.59 overall and 1,242.59 as an average of segments. Active customers were 240 overall and 2,274 when added up by month.'],
-          ['Lineage', 'The lineage API listed all three source tables for the orders view and both for the sessions view. Lineage was readable within the same job run.'],
+          [
+            'Deploy',
+            'Two SQL tasks ran in parallel and created mv_orders_metrics (17 columns) and mv_funnel_metrics (10 columns). Both read back as type METRIC_VIEW.',
+          ],
+          [
+            'Measures against hand-written SQL',
+            'All 67 measure checks passed: 43 on orders and 24 on sessions, 884 groups in total. Groupings were total, segment, product category, month, region and channel, session channel, and session month.',
+          ],
+          [
+            'Window measures',
+            'Prior month, month-over-month growth, rolling three months, and running total matched LAG and framed SUM over monthly totals, by month (21 groups) and by month and segment (83 groups).',
+          ],
+          [
+            'Ratio pitfalls',
+            'Conversion rate over all sessions was 8.63%, and the average of daily rates was 14.23%. Average order value was 1,236.59 overall and 1,242.59 as an average of segments. Active customers were 240 overall and 2,274 when added up by month.',
+          ],
+          [
+            'Lineage',
+            'The lineage API listed all three source tables for the orders view and both for the sessions view. Lineage was readable within the same job run.',
+          ],
           ['Certification tag', 'system.certification_status = certified was set on both views and read back.'],
-          ['Tags on redeploy', 'CREATE OR REPLACE VIEW dropped the certification tag. ALTER VIEW kept it. The SQL parser on this warehouse rejected COPY *.'],
+          [
+            'Tags on redeploy',
+            'CREATE OR REPLACE VIEW dropped the certification tag. ALTER VIEW kept it. The SQL parser on this warehouse rejected COPY *.',
+          ],
           ['Rerun', 'A second run left 70 rows in the verify step, not 140, and every table kept its row count.'],
         ],
       },

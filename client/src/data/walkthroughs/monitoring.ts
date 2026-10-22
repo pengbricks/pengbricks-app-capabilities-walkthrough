@@ -12,23 +12,19 @@ export const walkthrough: Walkthrough = {
     outcomes: [
       {
         title: 'Audit evidence already exists',
-        body:
-          'system.access.audit records access and permission events, so a CISO can answer who touched what from a table query instead of requesting logs from each team.',
+        body: 'system.access.audit records access and permission events, so a CISO can answer who touched what from a table query instead of requesting logs from each team.',
       },
       {
         title: 'Cost questions answered from billing',
-        body:
-          'system.billing.usage covers the whole account. Finance can see spend by workspace and product, and Budgets email an owner when monthly spend crosses a line.',
+        body: 'system.billing.usage covers the whole account. Finance can see spend by workspace and product, and Budgets email an owner when monthly spend crosses a line.',
       },
       {
         title: 'Job failures reach the right person',
-        body:
-          'Lakeflow Jobs notifications and health rules flag failures and slow runs, so the owning team hears about a problem before a business user does.',
+        body: 'Lakeflow Jobs notifications and health rules flag failures and slow runs, so the owning team hears about a problem before a business user does.',
       },
       {
         title: 'Access to logs stays controlled',
-        body:
-          'Only admins read system tables by default. Teams get views limited to their own columns and workspaces, so monitoring does not widen who sees sensitive audit detail.',
+        body: 'Only admins read system tables by default. Teams get views limited to their own columns and workspaces, so monitoring does not widen who sees sensitive audit detail.',
       },
     ],
   },
@@ -126,11 +122,62 @@ export const walkthrough: Walkthrough = {
         description:
           'System tables in the system catalog feed views in a catalog you own. The views filter by workspace and select a safe set of columns. Dashboards, SQL alerts, and team queries read the views, and consumers get SELECT on the views only.',
         nodes: [
-          { id: 'sys', label: 'System tables', sub: 'audit, billing, lakeflow', col: 0, row: 0, kind: 'store' },
-          { id: 'view', label: 'Views you own', sub: 'filtered, fewer columns', col: 1, row: 0, kind: 'highlight' },
-          { id: 'dash', label: 'AI/BI dashboards', sub: 'trends and drill-down', col: 2, row: 0, kind: 'surface' },
-          { id: 'alert', label: 'SQL alerts', sub: 'query-based conditions', col: 2, row: 1, kind: 'surface' },
-          { id: 'team', label: 'Team queries', sub: 'SELECT on the view', col: 2, row: 2, kind: 'surface' },
+          {
+            id: 'sys',
+            label: 'System tables',
+            sub: 'audit, billing, lakeflow',
+            col: 0,
+            row: 0,
+            kind: 'store',
+            icon: 'database',
+            domain: 'governance',
+            detail:
+              'Audit, billing, and Lakeflow tables in the system catalog. They cover every workspace in scope and every user.',
+          },
+          {
+            id: 'view',
+            label: 'Views you own',
+            sub: 'filtered, fewer columns',
+            col: 1,
+            row: 0,
+            kind: 'highlight',
+            icon: 'data-model',
+            domain: 'governance',
+            detail:
+              'Views in a catalog you own that filter by workspace and select a safe set of columns. Consumers get SELECT on the view only.',
+          },
+          {
+            id: 'dash',
+            label: 'AI/BI dashboards',
+            sub: 'trends and drill-down',
+            col: 2,
+            row: 0,
+            kind: 'surface',
+            icon: 'dashboard',
+            domain: 'apps',
+            detail: 'AI/BI dashboards that read the views for trends and drill-down.',
+          },
+          {
+            id: 'alert',
+            label: 'SQL alerts',
+            sub: 'query-based conditions',
+            col: 2,
+            row: 1,
+            kind: 'surface',
+            domain: 'apps',
+            detail: 'SQL alerts that check a condition on the views and notify when it is met.',
+          },
+          {
+            id: 'team',
+            label: 'Team queries',
+            sub: 'SELECT on the view',
+            col: 2,
+            row: 2,
+            kind: 'surface',
+            icon: 'users',
+            domain: 'apps',
+            detail: 'Teams query the views directly with SELECT on the view, not on the system tables.',
+          },
         ],
         edges: [
           { from: 'sys', to: 'view' },
@@ -161,8 +208,7 @@ export const walkthrough: Walkthrough = {
           },
           {
             option: 'Scheduled copy into your own tables',
-            when:
-              'Dashboards are slow, you want history longer than the system tables keep, or you join with your own data.',
+            when: 'Dashboards are slow, you want history longer than the system tables keep, or you join with your own data.',
             tradeoffs:
               'Dashboards read a table you control, so they are faster and more predictable. You pay for a job and for storage, you maintain the pipeline, and the copy is only as fresh as its last run. You also set the grants and filters on the copy yourself.',
           },

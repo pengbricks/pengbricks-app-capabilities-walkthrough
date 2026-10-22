@@ -12,23 +12,19 @@ export const walkthrough: Walkthrough = {
     outcomes: [
       {
         title: 'Rollback in one step',
-        body:
-          'A release moves a Unity Catalog alias to a new model version, and a rollback moves it back. Versions are immutable, so the previous model is still there.',
+        body: 'A release moves a Unity Catalog alias to a new model version, and a rollback moves it back. Versions are immutable, so the previous model is still there.',
       },
       {
         title: 'Weak models caught before release',
-        body:
-          'Signature checks, a prediction smoke test, and a comparison against the current champion run before promotion. LLM apps gate on an MLflow 3 GenAI evaluation.',
+        body: 'Signature checks, a prediction smoke test, and a comparison against the current champion run before promotion. LLM apps gate on an MLflow 3 GenAI evaluation.',
       },
       {
         title: 'Approval on record',
-        body:
-          'Required reviewers on a protected CI environment approve each release, and the job records who did. Auditors can see who signed off.',
+        body: 'Required reviewers on a protected CI environment approve each release, and the job records who did. Auditors can see who signed off.',
       },
       {
         title: 'Gradual exposure',
-        body:
-          'Traffic splits, Unity Gateway rate limits, and inference tables let a team watch a new model on part of the traffic before full cutover.',
+        body: 'Traffic splits, Unity Gateway rate limits, and inference tables let a team watch a new model on part of the traffic before full cutover.',
       },
     ],
   },
@@ -58,22 +54,105 @@ export const walkthrough: Walkthrough = {
     {
       id: 'flow',
       heading: 'The release pattern',
-      prose:
-        'Each step produces an input for the next, and any failed gate leaves the champion alias where it was.',
+      prose: 'Each step produces an input for the next, and any failed gate leaves the champion alias where it was.',
       diagram: {
         type: 'flow',
         title: 'From a trained version to a live endpoint',
         description:
           'Training logs a model version to Unity Catalog and sets the challenger alias. Test gates check the signature, a smoke test, and the metric against the champion. A protected environment holds the approval. After approval the champion alias moves, or the version is copied to the production catalog. The endpoint deploys the champion, traffic shifts gradually, and a release record is written.',
         nodes: [
-          { id: 'train', label: 'Train and log', sub: 'new UC model version', col: 0, row: 0 },
-          { id: 'chal', label: '@challenger', sub: 'alias on the new version', mono: true, col: 1, row: 0, kind: 'store' },
-          { id: 'gates', label: 'Test gates', sub: 'signature, smoke, metric', col: 2, row: 0, kind: 'gate' },
-          { id: 'appr', label: 'Approval', sub: 'protected environment', col: 3, row: 0, kind: 'gate' },
-          { id: 'champ', label: '@champion', sub: 'or copy to prod catalog', mono: true, col: 3, row: 1, kind: 'highlight' },
-          { id: 'ep', label: 'Serving endpoint', sub: 'traffic split, canary', col: 2, row: 1 },
-          { id: 'gw', label: 'Unity Gateway', sub: 'rate limits, inference log', col: 1, row: 1, kind: 'surface' },
-          { id: 'rec', label: 'Release record', sub: 'who, what, when', col: 0, row: 1, kind: 'store' },
+          {
+            id: 'train',
+            label: 'Train and log',
+            sub: 'new UC model version',
+            col: 0,
+            row: 0,
+            icon: 'gear-maroon',
+            domain: 'ai',
+            detail:
+              'Training runs from the same reviewed code in each environment and logs a new immutable model version to Unity Catalog.',
+          },
+          {
+            id: 'chal',
+            label: '@challenger',
+            sub: 'alias on the new version',
+            mono: true,
+            col: 1,
+            row: 0,
+            kind: 'store',
+            icon: 'data-model',
+            domain: 'governance',
+            detail: 'Aliases are mutable names on immutable versions. challenger marks the candidate under test.',
+          },
+          {
+            id: 'gates',
+            label: 'Test gates',
+            sub: 'signature, smoke, metric',
+            col: 2,
+            row: 0,
+            kind: 'gate',
+            domain: 'governance',
+            detail:
+              'Three checks stop the release on failure. The model needs a signature, a smoke test must pass, and the metric must clear the bar set against the champion.',
+          },
+          {
+            id: 'appr',
+            label: 'Approval',
+            sub: 'protected environment',
+            col: 3,
+            row: 0,
+            kind: 'gate',
+            domain: 'orchestration',
+            detail:
+              'A protected CI environment with required reviewers holds the promotion. The job waits, and the approving actor is recorded.',
+          },
+          {
+            id: 'champ',
+            label: '@champion',
+            sub: 'or copy to prod catalog',
+            mono: true,
+            col: 3,
+            row: 1,
+            kind: 'highlight',
+            icon: 'data-model',
+            domain: 'governance',
+            detail:
+              'The alias for the version in production, or a copy of the version in the prod catalog. Consumers load by alias and pick up the move on their next load.',
+          },
+          {
+            id: 'ep',
+            label: 'Serving endpoint',
+            sub: 'traffic split, canary',
+            col: 2,
+            row: 1,
+            icon: 'gear-maroon',
+            domain: 'ai',
+            detail:
+              'A serving endpoint deploys the champion and can hold two versions at once, so traffic shifts gradually in a canary split.',
+          },
+          {
+            id: 'gw',
+            label: 'Unity Gateway',
+            sub: 'rate limits, inference log',
+            col: 1,
+            row: 1,
+            kind: 'surface',
+            icon: 'network',
+            domain: 'ai',
+            detail: 'Unity Gateway sits in front of the endpoint and gives each release rate limits and a request log.',
+          },
+          {
+            id: 'rec',
+            label: 'Release record',
+            sub: 'who, what, when',
+            col: 0,
+            row: 1,
+            kind: 'store',
+            icon: 'list',
+            domain: 'governance',
+            detail:
+              'The last job step writes who shipped which version, when, and with what evidence, in a queryable record.',
+          },
         ],
         edges: [
           { from: 'train', to: 'chal' },
@@ -133,7 +212,9 @@ copied = client.copy_model_version(
 
 # Point production consumers at it
 client.set_registered_model_alias("prod.churn.classifier", "champion", copied.version)`,
-          notes: ['The copy keeps the artifacts and signature. Tag the new version with the source version and the approver.'],
+          notes: [
+            'The copy keeps the artifacts and signature. Tag the new version with the source version and the approver.',
+          ],
         },
       ],
       options: {
@@ -142,20 +223,24 @@ client.set_registered_model_alias("prod.churn.classifier", "champion", copied.ve
           {
             option: 'Deploy code: train in each environment',
             when: 'The default. Production data is restricted to production.',
-            tradeoffs: 'Databricks recommends it. Production data stays in production, and retraining is safer because the training code is reviewed and tested. Data scientists have to hand off code and read results from the production environment, and you pay for training in more than one environment. A hybrid trains once in staging on the full data.',
+            tradeoffs:
+              'Databricks recommends it. Production data stays in production, and retraining is safer because the training code is reviewed and tested. Data scientists have to hand off code and read results from the production environment, and you pay for training in more than one environment. A hybrid trains once in staging on the full data.',
           },
           {
             option: 'Deploy models: train once, copy the version up',
             when: 'Training is very expensive or hard to reproduce, or you work in one workspace without CI/CD.',
-            tradeoffs: 'Simple handoff and a single training run. It does not work when dev cannot reach production data, automated retraining is harder to trust, and the code for features, inference, and monitoring has to be deployed separately.',
+            tradeoffs:
+              'Simple handoff and a single training run. It does not work when dev cannot reach production data, automated retraining is harder to trust, and the code for features, inference, and monitoring has to be deployed separately.',
           },
           {
             option: 'One catalog, aliases only',
             when: 'A small team that accepts one set of grants for every stage.',
-            tradeoffs: 'No copy step, and moving an alias is the promotion. Grants apply to the registered model, so you cannot give production different access than development.',
+            tradeoffs:
+              'No copy step, and moving an alias is the promotion. Grants apply to the registered model, so you cannot give production different access than development.',
           },
         ],
-        recommendation: 'Deploy code, with a catalog per environment. Choose deploy models when training is too costly to repeat or production data is out of reach from dev.',
+        recommendation:
+          'Deploy code, with a catalog per environment. Choose deploy models when training is too costly to repeat or production data is out of reach from dev.',
       },
       links: [
         {
@@ -315,7 +400,9 @@ if not passed:
     {"served_model_name": "canary", "traffic_percentage": 10}
   ]}
 }`,
-          notes: ['Apply with the endpoint config update API. Move to 100 and remove the old entity when the canary holds.'],
+          notes: [
+            'Apply with the endpoint config update API. Move to 100 and remove the old entity when the canary holds.',
+          ],
         },
       ],
       options: {
@@ -324,15 +411,18 @@ if not passed:
           {
             option: 'Move the alias and update the endpoint',
             when: 'Internal consumers, low-risk changes, or consumers that load by alias.',
-            tradeoffs: 'The simplest path, and rollback is moving the alias back because versions are immutable. All traffic sees the new version at once, so a bad model reaches everyone before metrics show it.',
+            tradeoffs:
+              'The simplest path, and rollback is moving the alias back because versions are immutable. All traffic sees the new version at once, so a bad model reaches everyone before metrics show it.',
           },
           {
             option: 'Canary with a traffic split on one endpoint',
             when: 'Customer-facing or high-impact models.',
-            tradeoffs: 'Two served entities share the endpoint, so you pay for both while the split runs. You widen the share as metrics hold, and the same mechanism runs A/B tests. It needs enough traffic and a metric to read.',
+            tradeoffs:
+              'Two served entities share the endpoint, so you pay for both while the split runs. You widen the share as metrics hold, and the same mechanism runs A/B tests. It needs enough traffic and a metric to read.',
           },
         ],
-        recommendation: 'Use a canary split for models that touch customers or money, and flip the alias for the rest. Keep a documented rollback path for both.',
+        recommendation:
+          'Use a canary split for models that touch customers or money, and flip the alias for the rest. Keep a documented rollback path for both.',
       },
       links: [
         {

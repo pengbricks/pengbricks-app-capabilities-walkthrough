@@ -12,23 +12,19 @@ export const walkthrough: Walkthrough = {
     outcomes: [
       {
         title: 'Shorter engineering queue',
-        body:
-          'Business users build flows with drag-and-drop operators or natural language, so routine data prep does not wait for an engineer.',
+        body: 'Business users build flows with drag-and-drop operators or natural language, so routine data prep does not wait for an engineer.',
       },
       {
         title: 'Governed by default',
-        body:
-          'A flow reads and writes with the privileges of the signed-in user. Builders write to a sandbox schema, and outputs reach production schemas only when someone promotes them.',
+        body: 'A flow reads and writes with the privileges of the signed-in user. Builders write to a sandbox schema, and outputs reach production schemas only when someone promotes them.',
       },
       {
         title: 'No rebuild for production',
-        body:
-          'Each flow saves as a notebook, so it can live in a Git folder, run as a scheduled job, or deploy with a bundle.',
+        body: 'Each flow saves as a notebook, so it can live in a Git folder, run as a scheduled job, or deploy with a bundle.',
       },
       {
         title: 'Consistent business definitions',
-        body:
-          'A Source can read a metric view, so a measure in a prepared dataset matches the same measure in dashboards.',
+        body: 'A Source can read a metric view, so a measure in a prepared dataset matches the same measure in dashboards.',
       },
     ],
   },
@@ -66,13 +62,78 @@ export const walkthrough: Walkthrough = {
         description:
           'Two Source operators read an orders table and a customers table. A Filter operator keeps the rows you want. A Join operator links orders to customers on a key. A Select operator renames columns. A Custom columns operator derives new fields. An Output operator writes a table to Unity Catalog.',
         nodes: [
-          { id: 'orders', label: 'Orders', sub: 'Source', col: 0, row: 0 },
-          { id: 'filter', label: 'Filter', sub: 'keep matching rows', col: 1, row: 0 },
-          { id: 'customers', label: 'Customers', sub: 'Source', col: 1, row: 1 },
-          { id: 'join', label: 'Join', sub: 'on a shared key', col: 2, row: 0, kind: 'highlight' },
-          { id: 'select', label: 'Select', sub: 'rename columns', col: 3, row: 0 },
-          { id: 'custom', label: 'Custom columns', sub: 'derive new fields', col: 4, row: 0 },
-          { id: 'out', label: 'Output', sub: 'table in Unity Catalog', col: 4, row: 1, kind: 'store' },
+          {
+            id: 'orders',
+            label: 'Orders',
+            sub: 'Source',
+            col: 0,
+            row: 0,
+            icon: 'database',
+            domain: 'data',
+            detail: 'A Source operator that reads the orders table.',
+          },
+          {
+            id: 'filter',
+            label: 'Filter',
+            sub: 'keep matching rows',
+            col: 1,
+            row: 0,
+            icon: 'gear-data',
+            domain: 'data',
+            detail: 'A Filter operator that keeps the rows you want.',
+          },
+          {
+            id: 'customers',
+            label: 'Customers',
+            sub: 'Source',
+            col: 1,
+            row: 1,
+            icon: 'database',
+            domain: 'data',
+            detail: 'A Source operator that reads the customers table.',
+          },
+          {
+            id: 'join',
+            label: 'Join',
+            sub: 'on a shared key',
+            col: 2,
+            row: 0,
+            kind: 'highlight',
+            icon: 'gear-lava',
+            domain: 'data',
+            detail: 'A Join operator that links orders to customers on a shared key.',
+          },
+          {
+            id: 'select',
+            label: 'Select',
+            sub: 'rename columns',
+            col: 3,
+            row: 0,
+            icon: 'gear-data',
+            domain: 'data',
+            detail: 'A Select operator that renames columns.',
+          },
+          {
+            id: 'custom',
+            label: 'Custom columns',
+            sub: 'derive new fields',
+            col: 4,
+            row: 0,
+            icon: 'gear-data',
+            domain: 'data',
+            detail: 'A Custom columns operator that derives new fields.',
+          },
+          {
+            id: 'out',
+            label: 'Output',
+            sub: 'table in Unity Catalog',
+            col: 4,
+            row: 1,
+            kind: 'store',
+            icon: 'database',
+            domain: 'governance',
+            detail: 'An Output operator that writes the result as a table in Unity Catalog.',
+          },
         ],
         edges: [
           { from: 'orders', to: 'filter' },
@@ -128,10 +189,19 @@ export const walkthrough: Walkthrough = {
       id: 'saved',
       heading: 'Save, schedule, and promote',
       points: [
-        { strong: 'Saved flow.', text: 'Designer saves the visual data prep as <name>.designer.ipynb. Place it in a Git folder to version it.' },
+        {
+          strong: 'Saved flow.',
+          text: 'Designer saves the visual data prep as <name>.designer.ipynb. Place it in a Git folder to version it.',
+        },
         { strong: 'Schedule.', text: 'Use the Schedule button in Designer, or run the file as a job task.' },
-        { strong: 'Write mode.', text: 'Output defaults to Overwrite. Append and Merge are available for tables, so pick the one that matches how the data arrives.' },
-        { strong: 'Edited in Git.', text: 'If someone changes an operator’s generated code outside Designer, Designer blocks edits to that operator until you choose Regenerate code.' },
+        {
+          strong: 'Write mode.',
+          text: 'Output defaults to Overwrite. Append and Merge are available for tables, so pick the one that matches how the data arrives.',
+        },
+        {
+          strong: 'Edited in Git.',
+          text: 'If someone changes an operator’s generated code outside Designer, Designer blocks edits to that operator until you choose Regenerate code.',
+        },
       ],
       links: [
         {
@@ -149,25 +219,30 @@ export const walkthrough: Walkthrough = {
           {
             option: 'Lakeflow Designer',
             when: 'Repeatable cleanup and joins by a business user.',
-            tradeoffs: 'Generally available. Visual steps save as a file you can version in Git, schedule, and promote. Outputs go to a sandbox schema, and logic that outgrows the operators belongs in code.',
+            tradeoffs:
+              'Generally available. Visual steps save as a file you can version in Git, schedule, and promote. Outputs go to a sandbox schema, and logic that outgrows the operators belongs in code.',
           },
           {
             option: 'Genie Agents or Genie One',
             when: 'A one-off answer in plain language.',
-            tradeoffs: 'Quick answers with no saved pipeline. Accuracy depends on how well the space is set up, so check the SQL it shows. It does not produce a repeatable table.',
+            tradeoffs:
+              'Quick answers with no saved pipeline. Accuracy depends on how well the space is set up, so check the SQL it shows. It does not produce a repeatable table.',
           },
           {
             option: 'Genie Code',
             when: 'Help writing or fixing SQL or Python.',
-            tradeoffs: 'It speeds up authors who can read and judge the code. The person still runs, reviews, and owns the result.',
+            tradeoffs:
+              'It speeds up authors who can read and judge the code. The person still runs, reviews, and owns the result.',
           },
           {
             option: 'SQL or a Lakeflow Spark Declarative Pipeline owned by data engineering',
             when: 'Tested, shared, or high-volume transformations.',
-            tradeoffs: 'Review, tests, and scale controls. It takes engineering time and changes more slowly than a visual flow.',
+            tradeoffs:
+              'Review, tests, and scale controls. It takes engineering time and changes more slowly than a visual flow.',
           },
         ],
-        recommendation: 'Let business users build repeatable cleanup in Designer and ask questions in Genie. Hand a flow to data engineering when it becomes shared or high volume.',
+        recommendation:
+          'Let business users build repeatable cleanup in Designer and ask questions in Genie. Hand a flow to data engineering when it becomes shared or high volume.',
       },
       links: [
         {

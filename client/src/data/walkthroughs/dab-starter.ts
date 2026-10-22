@@ -12,23 +12,19 @@ export const walkthrough: Walkthrough = {
     outcomes: [
       {
         title: 'Repeatable deploys',
-        body:
-          'One databricks.yml deploys to dev and prod through different targets. Environments match because they come from one definition, not from clicking through the UI twice.',
+        body: 'One databricks.yml deploys to dev and prod through different targets. Environments match because they come from one definition, not from clicking through the UI twice.',
       },
       {
         title: 'Safe experimentation',
-        body:
-          'Development mode prefixes names with the developer, pauses schedules, and gives each person a separate schema, so tests do not touch the shared production copy.',
+        body: 'Development mode prefixes names with the developer, pauses schedules, and gives each person a separate schema, so tests do not touch the shared production copy.',
       },
       {
         title: 'Rollback and cleanup',
-        body:
-          'A bad release rolls back by redeploying the previous commit. The destroy command removes everything the bundle created, so nothing is left running.',
+        body: 'A bad release rolls back by redeploying the previous commit. The destroy command removes everything the bundle created, so nothing is left running.',
       },
       {
         title: 'Review before release',
-        body:
-          'A GitHub Actions workflow validates every pull request and deploys main, so reviewers see job settings and schedules as a diff before they go live.',
+        body: 'A GitHub Actions workflow validates every pull request and deploys main, so reviewers see job settings and schedules as a diff before they go live.',
       },
     ],
   },
@@ -66,13 +62,85 @@ export const walkthrough: Walkthrough = {
         description:
           'The Databricks CLI reads the bundle folder from your Git repo, applies the chosen target and its variables, and creates a schema, a pipeline, and a job in the workspace. The job runs the pipeline, and the pipeline writes bronze, silver, and gold tables to the schema.',
         nodes: [
-          { id: 'repo', label: 'Your Git repo', sub: 'databricks.yml + code', col: 0, row: 1, kind: 'store' },
-          { id: 'target', label: 'Target + variables', sub: 'dev or prod, catalog', col: 0, row: 0 },
-          { id: 'cli', label: 'Databricks CLI', sub: 'validate, deploy, run', col: 1, row: 1, kind: 'highlight' },
-          { id: 'job', label: 'Job', sub: 'runs pipeline, then check', col: 2, row: 0 },
-          { id: 'pipeline', label: 'Pipeline', sub: 'serverless, dbldatagen', col: 2, row: 1, kind: 'highlight' },
-          { id: 'schema', label: 'Schema', sub: 'dev_<you>_dab_starter', col: 2, row: 2, kind: 'store' },
-          { id: 'tables', label: 'Bronze, silver, gold', sub: 'Unity Catalog tables', col: 3, row: 1, kind: 'surface' },
+          {
+            id: 'repo',
+            label: 'Your Git repo',
+            sub: 'databricks.yml + code',
+            col: 0,
+            row: 1,
+            kind: 'store',
+            icon: 'data-file',
+            domain: 'orchestration',
+            detail:
+              'Holds databricks.yml and the code. The CLI deploys the files in your folder, and Git is where the team reviews them and CI picks them up.',
+          },
+          {
+            id: 'target',
+            label: 'Target + variables',
+            sub: 'dev or prod, catalog',
+            col: 0,
+            row: 0,
+            icon: 'data-file',
+            domain: 'orchestration',
+            detail:
+              'The target (dev or prod) and its variables, such as the catalog, decide where and how the bundle deploys.',
+          },
+          {
+            id: 'cli',
+            label: 'Databricks CLI',
+            sub: 'validate, deploy, run',
+            col: 1,
+            row: 1,
+            kind: 'highlight',
+            icon: 'gear-lava',
+            domain: 'orchestration',
+            detail:
+              'Reads databricks.yml, merges the included files, applies the target, and calls the Databricks APIs to make the workspace match.',
+          },
+          {
+            id: 'job',
+            label: 'Job',
+            sub: 'runs pipeline, then check',
+            col: 2,
+            row: 0,
+            icon: 'workflow',
+            domain: 'orchestration',
+            detail: 'Runs the pipeline, then checks the tables. It has a daily schedule, paused in dev mode.',
+          },
+          {
+            id: 'pipeline',
+            label: 'Pipeline',
+            sub: 'serverless, dbldatagen',
+            col: 2,
+            row: 1,
+            kind: 'highlight',
+            icon: 'gear-teal',
+            domain: 'data',
+            detail:
+              'A serverless pipeline that uses dbldatagen to generate orders and writes the bronze, silver, and gold tables.',
+          },
+          {
+            id: 'schema',
+            label: 'Schema',
+            sub: 'dev_<you>_dab_starter',
+            col: 2,
+            row: 2,
+            kind: 'store',
+            icon: 'data-model',
+            domain: 'governance',
+            detail: 'The schema the tables land in. In dev it is dev_<you>_dab_starter, so each person gets their own.',
+          },
+          {
+            id: 'tables',
+            label: 'Bronze, silver, gold',
+            sub: 'Unity Catalog tables',
+            col: 3,
+            row: 1,
+            kind: 'surface',
+            icon: 'database',
+            domain: 'data',
+            detail: 'The bronze, silver, and gold Unity Catalog tables the pipeline writes into the schema.',
+          },
         ],
         edges: [
           { from: 'repo', to: 'cli', label: 'files' },
@@ -94,14 +162,20 @@ export const walkthrough: Walkthrough = {
         columns: ['File', 'What it holds'],
         rows: [
           ['databricks.yml', 'Bundle name, variables (catalog, schema, row_count), and the dev and prod targets.'],
-          ['resources/orders.pipeline.yml', 'The serverless pipeline, with dbldatagen as a dependency and row_count as a setting.'],
+          [
+            'resources/orders.pipeline.yml',
+            'The serverless pipeline, with dbldatagen as a dependency and row_count as a setting.',
+          ],
           ['resources/orders.job.yml', 'The job: run the pipeline, then check the tables. A daily schedule.'],
           ['resources/orders.schema.yml', 'The schema the tables land in.'],
           ['guides/dab-starter/pipeline/orders.py', 'The pipeline source: bronze, silver with expectations, and gold.'],
         ],
       },
       links: [
-        { label: 'What are Declarative Automation Bundles?', url: 'https://docs.databricks.com/aws/en/dev-tools/bundles' },
+        {
+          label: 'What are Declarative Automation Bundles?',
+          url: 'https://docs.databricks.com/aws/en/dev-tools/bundles',
+        },
         { label: 'Bundle configuration', url: 'https://docs.databricks.com/aws/en/dev-tools/bundles/settings' },
         { label: 'Bundle variables', url: 'https://docs.databricks.com/aws/en/dev-tools/bundles/variables' },
       ],
@@ -110,7 +184,7 @@ export const walkthrough: Walkthrough = {
       id: 'download-and-push',
       heading: 'Download it and push it to your Git repo',
       prose:
-        'Use Download the starter bundle at the top of this page. Unzip it, then make it a Git repo of your own. Create an empty repo on GitHub first. The download has a .gitignore that keeps the CLI\'s local state (.databricks/) out of Git.',
+        "Use Download the starter bundle at the top of this page. Unzip it, then make it a Git repo of your own. Create an empty repo on GitHub first. The download has a .gitignore that keeps the CLI's local state (.databricks/) out of Git.",
       steps: [
         {
           title: 'Unzip and commit',
@@ -159,8 +233,14 @@ databricks auth profiles`,
         },
       ],
       points: [
-        { strong: 'You need a catalog.', text: 'The bundle creates its own schema, so your user needs USE CATALOG and CREATE SCHEMA on the catalog you pass in.' },
-        { strong: 'Serverless must be on.', text: 'The pipeline and the check notebook run on serverless compute. There is no cluster to configure.' },
+        {
+          strong: 'You need a catalog.',
+          text: 'The bundle creates its own schema, so your user needs USE CATALOG and CREATE SCHEMA on the catalog you pass in.',
+        },
+        {
+          strong: 'Serverless must be on.',
+          text: 'The pipeline and the check notebook run on serverless compute. There is no cluster to configure.',
+        },
       ],
       links: [
         { label: 'Install the Databricks CLI', url: 'https://docs.databricks.com/aws/en/dev-tools/cli/install' },
@@ -182,9 +262,14 @@ databricks auth profiles`,
       ],
       points: [
         { strong: 'What a pass looks like.', text: 'The bundle name, target, workspace path, and Validation OK!' },
-        { strong: 'Typical failures.', text: 'A missing variable, a misspelled key, or a catalog you cannot use. The message names the file and line.' },
+        {
+          strong: 'Typical failures.',
+          text: 'A missing variable, a misspelled key, or a catalog you cannot use. The message names the file and line.',
+        },
       ],
-      links: [{ label: 'Bundle CLI commands', url: 'https://docs.databricks.com/aws/en/dev-tools/cli/bundle-commands' }],
+      links: [
+        { label: 'Bundle CLI commands', url: 'https://docs.databricks.com/aws/en/dev-tools/cli/bundle-commands' },
+      ],
     },
     {
       id: 'deploy',
@@ -203,8 +288,14 @@ databricks auth profiles`,
         columns: ['Change', 'What you see'],
         rows: [
           ['Name prefix', 'Jobs and pipelines are named [dev <you>] dab-starter-orders.'],
-          ['Paused schedules', 'The job has a daily 06:00 UTC schedule, and it shows as paused. Nothing runs until you start it.'],
-          ['Per-user schema', 'The schema is dev_<you>_dab_starter, so two people can deploy the same bundle without colliding.'],
+          [
+            'Paused schedules',
+            'The job has a daily 06:00 UTC schedule, and it shows as paused. Nothing runs until you start it.',
+          ],
+          [
+            'Per-user schema',
+            'The schema is dev_<you>_dab_starter, so two people can deploy the same bundle without colliding.',
+          ],
           ['Your own copy of the files', 'Files go to a folder under your user, named for the bundle and target.'],
         ],
       },
@@ -220,25 +311,32 @@ databricks auth profiles`,
           {
             option: 'Databricks CLI on your machine',
             when: 'The dev target while you iterate.',
-            tradeoffs: 'Fast loop under your own OAuth identity, and development mode keeps your copy separate. The result depends on your CLI version and local files, and nothing records who deployed what to a shared target.',
+            tradeoffs:
+              'Fast loop under your own OAuth identity, and development mode keeps your copy separate. The result depends on your CLI version and local files, and nothing records who deployed what to a shared target.',
           },
           {
             option: 'CI under a service principal',
             when: 'Test, stage, and prod.',
-            tradeoffs: 'The same reviewed commit deploys every time, with no personal credentials and a run log. You must set up the workflow, a federation policy, and GitHub environments first, and you debug failures from logs.',
+            tradeoffs:
+              'The same reviewed commit deploys every time, with no personal credentials and a run log. You must set up the workflow, a federation policy, and GitHub environments first, and you debug failures from logs.',
           },
           {
             option: 'Bundle editor in the workspace',
             when: 'Developing in the workspace on serverless, with no local setup.',
-            tradeoffs: 'You edit, commit, deploy, and run from a Git folder in the UI. It cannot deploy to another workspace, so promotion still goes through CI.',
+            tradeoffs:
+              'You edit, commit, deploy, and run from a Git folder in the UI. It cannot deploy to another workspace, so promotion still goes through CI.',
           },
         ],
-        recommendation: 'Deploy dev from the CLI or the workspace editor, and deploy every shared target from CI so each release is a reviewed commit.',
+        recommendation:
+          'Deploy dev from the CLI or the workspace editor, and deploy every shared target from CI so each release is a reviewed commit.',
       },
       links: [
         { label: 'Deployment modes', url: 'https://docs.databricks.com/aws/en/dev-tools/bundles/deployment-modes' },
         { label: 'Bundle resources', url: 'https://docs.databricks.com/aws/en/dev-tools/bundles/resources' },
-        { label: 'Bundles in the workspace', url: 'https://docs.databricks.com/aws/en/dev-tools/bundles/workspace-bundles' },
+        {
+          label: 'Bundles in the workspace',
+          url: 'https://docs.databricks.com/aws/en/dev-tools/bundles/workspace-bundles',
+        },
       ],
     },
     {
@@ -252,11 +350,66 @@ databricks auth profiles`,
         description:
           'dbldatagen generates 100,000 seeded orders into the bronze table. The silver table keeps the orders that pass three drop rules and one warning rule. The gold table totals orders, units, and revenue per day and category. A check notebook then reads all three tables and the pipeline event log.',
         nodes: [
-          { id: 'gen', label: 'dbldatagen', sub: 'seeded, 100,000 orders', col: 0, row: 0, kind: 'box' },
-          { id: 'bronze', label: 'orders_bronze', sub: 'raw, bad rows included', col: 1, row: 0, kind: 'store', mono: true },
-          { id: 'silver', label: 'orders_silver', sub: '3 drop rules, 1 warning', col: 2, row: 0, kind: 'gate', mono: true },
-          { id: 'gold', label: 'orders_daily_revenue', sub: 'day x category', col: 3, row: 0, kind: 'store', mono: true },
-          { id: 'check', label: 'check_gold', sub: 'counts + expectations', col: 3, row: 1, kind: 'surface', mono: true },
+          {
+            id: 'gen',
+            label: 'dbldatagen',
+            sub: 'seeded, 100,000 orders',
+            col: 0,
+            row: 0,
+            kind: 'box',
+            icon: 'gear-data',
+            domain: 'data',
+            detail: 'dbldatagen generates 100,000 seeded orders, so a rerun gives the same counts.',
+          },
+          {
+            id: 'bronze',
+            label: 'orders_bronze',
+            sub: 'raw, bad rows included',
+            col: 1,
+            row: 0,
+            kind: 'store',
+            mono: true,
+            icon: 'database',
+            domain: 'data',
+            detail: 'The raw orders with the bad rows still in them.',
+          },
+          {
+            id: 'silver',
+            label: 'orders_silver',
+            sub: '3 drop rules, 1 warning',
+            col: 2,
+            row: 0,
+            kind: 'gate',
+            mono: true,
+            domain: 'governance',
+            detail:
+              'Expectations keep the orders that pass three drop rules and one warning rule. The pipeline graph shows the counts.',
+          },
+          {
+            id: 'gold',
+            label: 'orders_daily_revenue',
+            sub: 'day x category',
+            col: 3,
+            row: 0,
+            kind: 'store',
+            mono: true,
+            icon: 'database',
+            domain: 'data',
+            detail: 'Totals orders, units, and revenue per day and category.',
+          },
+          {
+            id: 'check',
+            label: 'check_gold',
+            sub: 'counts + expectations',
+            col: 3,
+            row: 1,
+            kind: 'surface',
+            mono: true,
+            icon: 'checklist',
+            domain: 'orchestration',
+            detail:
+              'A check notebook reads the three tables and the pipeline event log, and prints row counts and expectation results.',
+          },
         ],
         edges: [
           { from: 'gen', to: 'bronze' },
@@ -300,7 +453,10 @@ GROUP BY product_category ORDER BY revenue DESC;`,
       links: [
         { label: 'Manage data quality with expectations', url: 'https://docs.databricks.com/aws/en/ldp/expectations' },
         { label: 'Lakeflow Spark Declarative Pipelines', url: 'https://docs.databricks.com/aws/en/ldp' },
-        { label: 'Pipeline dependencies', url: 'https://docs.databricks.com/aws/en/ldp/developer/external-dependencies' },
+        {
+          label: 'Pipeline dependencies',
+          url: 'https://docs.databricks.com/aws/en/ldp/developer/external-dependencies',
+        },
       ],
     },
     {
@@ -356,7 +512,10 @@ databricks bundle run capability_guides_dab_starter -t prod --var catalog=<catal
         ],
       },
       points: [
-        { strong: 'Schedule.', text: 'Remove the schedule block in resources/orders.job.yml if you do not want a daily run in prod.' },
+        {
+          strong: 'Schedule.',
+          text: 'Remove the schedule block in resources/orders.job.yml if you do not want a daily run in prod.',
+        },
         {
           strong: 'Before you rely on prod.',
           text: 'Deploy as a service principal and add run_as to the prod target, so scheduled runs do not depend on one person.',
@@ -386,14 +545,29 @@ databricks bundle run capability_guides_dab_starter -t prod --var catalog=<catal
           strong: 'Add a federation policy to the service principal.',
           text: 'Issuer https://token.actions.githubusercontent.com. One policy with subject repo:<org>/<repo>:environment:prod for the deploy job, and one with repo:<org>/<repo>:pull_request for validate. Copy the exact sub from a GitHub run: newer repositories include numeric IDs in it.',
         },
-        { strong: 'Grant the service principal what it needs.', text: 'USE CATALOG and CREATE SCHEMA on the catalog, and permission to create jobs and pipelines.' },
-        { strong: 'DATABRICKS_BUNDLE_TARGET picks the target.', text: 'The workflow sets it to prod and passes the commit SHA as BUNDLE_VAR_release, so the same commands you ran by hand run in CI and every deploy is tagged with its commit.' },
-        { strong: 'Protect main.', text: 'Require the test and validate checks and a review before merge, and add required reviewers to the prod environment, so a deploy only follows a reviewed change.' },
+        {
+          strong: 'Grant the service principal what it needs.',
+          text: 'USE CATALOG and CREATE SCHEMA on the catalog, and permission to create jobs and pipelines.',
+        },
+        {
+          strong: 'DATABRICKS_BUNDLE_TARGET picks the target.',
+          text: 'The workflow sets it to prod and passes the commit SHA as BUNDLE_VAR_release, so the same commands you ran by hand run in CI and every deploy is tagged with its commit.',
+        },
+        {
+          strong: 'Protect main.',
+          text: 'Require the test and validate checks and a review before merge, and add required reviewers to the prod environment, so a deploy only follows a reviewed change.',
+        },
       ],
       links: [
         { label: 'GitHub Actions with Databricks', url: 'https://docs.databricks.com/aws/en/dev-tools/ci-cd/github' },
-        { label: 'Sign in from GitHub Actions with OIDC', url: 'https://docs.databricks.com/aws/en/dev-tools/auth/provider-github' },
-        { label: 'Service principals', url: 'https://docs.databricks.com/aws/en/admin/users-groups/service-principals' },
+        {
+          label: 'Sign in from GitHub Actions with OIDC',
+          url: 'https://docs.databricks.com/aws/en/dev-tools/auth/provider-github',
+        },
+        {
+          label: 'Service principals',
+          url: 'https://docs.databricks.com/aws/en/admin/users-groups/service-principals',
+        },
       ],
     },
     {
@@ -405,20 +579,62 @@ databricks bundle run capability_guides_dab_starter -t prod --var catalog=<catal
         caption: 'What to put in place, in the order a change travels',
         columns: ['Practice', 'What to do'],
         rows: [
-          ['Ship everything as a bundle from Git', 'Jobs, pipelines, schemas, and permissions live in the repo and deploy through CI. Nobody edits prod by hand. Keep Terraform for cloud-level resources such as workspaces and networking.'],
-          ['Trunk-based flow', 'Short-lived feature branches merge to main, and main stays deployable. CI deploys main forward through the environments.'],
-          ['Sign in to Databricks with OIDC', 'Add a federation policy to the service principal (issuer https://token.actions.githubusercontent.com, subject repo:<org>/<repo>:environment:<env>), set DATABRICKS_AUTH_TYPE=github-oidc, and grant the job id-token: write. No PAT and no stored client secret. Copy the exact sub from GitHub: repositories created after July 15, 2026 include numeric IDs in it.'],
-          ['Split deploy and run identities', 'The deploy service principal gets little data access. Each stage and prod job or pipeline runs as its own service principal through run_as, scoped to the data that workload needs.'],
-          ['mode: production on stage and prod', 'It checks that pipelines are not in development mode, leaves schedules live, and fails a deploy from the wrong branch when the target sets git: branch: main. Pair it with run_as and a fixed root_path; never deploy to /Workspace/Shared.'],
-          ['Gate every pull request', 'Run unit tests and databricks bundle validate --strict, and make both required checks on main. Validation catches schema and variable errors. A deploy to a non-prod workspace catches the rest.'],
-          ['Run integration in test', 'Deploy to test, run the job, and assert row counts, schema, and data-quality results. The starter\'s check_gold task is the pattern. Passing there is the gate for stage.'],
-          ['Promote one commit', 'dev, then test, then stage, then prod, each from the same SHA. One GitHub environment per target, with required reviewers on stage and prod. Pass the SHA as the release variable.'],
-          ['Pin the CLI version', 'Use a release tag such as databricks/setup-cli@v1.17.0 (the version the starter pins), not @main. A floating CLI changes behavior between runs: the direct deployment engine became the default for new bundles in CLI 1.3.0.'],
-          ['Variables for environment values', 'Catalog, host, and service principal IDs are bundle variables set per target. CI passes them as BUNDLE_VAR_<name>. Nothing environment-specific is hard-coded in resource files.'],
-          ['Tag with environment and release', 'Set presets.tags on each target: environment and release. System tables and billing then report by environment and by commit.'],
-          ['Keep secrets out of the bundle', 'Store them in Databricks secret scopes backed by your cloud secret manager, and read them at run time. Never commit tokens, credentials, or files with PII.'],
-          ['Serverless compute and usage policies', 'Run jobs and pipelines on serverless compute. Assign a serverless usage policy (Public Preview, formerly budget policy) per environment so its tags land in system.billing.usage.'],
-          ['Generated data outside prod', 'Dev and test run on generated or masked samples. Bind the prod catalog to the prod workspace only, so prod data cannot reach lower environments.'],
+          [
+            'Ship everything as a bundle from Git',
+            'Jobs, pipelines, schemas, and permissions live in the repo and deploy through CI. Nobody edits prod by hand. Keep Terraform for cloud-level resources such as workspaces and networking.',
+          ],
+          [
+            'Trunk-based flow',
+            'Short-lived feature branches merge to main, and main stays deployable. CI deploys main forward through the environments.',
+          ],
+          [
+            'Sign in to Databricks with OIDC',
+            'Add a federation policy to the service principal (issuer https://token.actions.githubusercontent.com, subject repo:<org>/<repo>:environment:<env>), set DATABRICKS_AUTH_TYPE=github-oidc, and grant the job id-token: write. No PAT and no stored client secret. Copy the exact sub from GitHub: repositories created after July 15, 2026 include numeric IDs in it.',
+          ],
+          [
+            'Split deploy and run identities',
+            'The deploy service principal gets little data access. Each stage and prod job or pipeline runs as its own service principal through run_as, scoped to the data that workload needs.',
+          ],
+          [
+            'mode: production on stage and prod',
+            'It checks that pipelines are not in development mode, leaves schedules live, and fails a deploy from the wrong branch when the target sets git: branch: main. Pair it with run_as and a fixed root_path; never deploy to /Workspace/Shared.',
+          ],
+          [
+            'Gate every pull request',
+            'Run unit tests and databricks bundle validate --strict, and make both required checks on main. Validation catches schema and variable errors. A deploy to a non-prod workspace catches the rest.',
+          ],
+          [
+            'Run integration in test',
+            "Deploy to test, run the job, and assert row counts, schema, and data-quality results. The starter's check_gold task is the pattern. Passing there is the gate for stage.",
+          ],
+          [
+            'Promote one commit',
+            'dev, then test, then stage, then prod, each from the same SHA. One GitHub environment per target, with required reviewers on stage and prod. Pass the SHA as the release variable.',
+          ],
+          [
+            'Pin the CLI version',
+            'Use a release tag such as databricks/setup-cli@v1.17.0 (the version the starter pins), not @main. A floating CLI changes behavior between runs: the direct deployment engine became the default for new bundles in CLI 1.3.0.',
+          ],
+          [
+            'Variables for environment values',
+            'Catalog, host, and service principal IDs are bundle variables set per target. CI passes them as BUNDLE_VAR_<name>. Nothing environment-specific is hard-coded in resource files.',
+          ],
+          [
+            'Tag with environment and release',
+            'Set presets.tags on each target: environment and release. System tables and billing then report by environment and by commit.',
+          ],
+          [
+            'Keep secrets out of the bundle',
+            'Store them in Databricks secret scopes backed by your cloud secret manager, and read them at run time. Never commit tokens, credentials, or files with PII.',
+          ],
+          [
+            'Serverless compute and usage policies',
+            'Run jobs and pipelines on serverless compute. Assign a serverless usage policy (Public Preview, formerly budget policy) per environment so its tags land in system.billing.usage.',
+          ],
+          [
+            'Generated data outside prod',
+            'Dev and test run on generated or masked samples. Bind the prod catalog to the prod workspace only, so prod data cannot reach lower environments.',
+          ],
         ],
       },
       steps: [
@@ -445,28 +661,38 @@ databricks bundle deploy -t prod --var catalog=<catalog> --var release=<previous
           {
             option: 'One bundle for the whole project',
             when: 'One team ships its jobs, pipelines, and dashboards on the same cadence.',
-            tradeoffs: 'One validate and one deploy, with shared variables and targets. Any workload you roll back is rolled back with its neighbors, because you redeploy the whole commit.',
+            tradeoffs:
+              'One validate and one deploy, with shared variables and targets. Any workload you roll back is rolled back with its neighbors, because you redeploy the whole commit.',
           },
           {
             option: 'One bundle per team or lifecycle, in one repository',
             when: 'Workloads with different owners, schedules, or release rhythm.',
-            tradeoffs: 'You can roll back one workload without touching the others, and each bundle gets its own permissions and run identities. You maintain more databricks.yml files and CI jobs, and shared code travels through sync.paths or a wheel. Databricks recommends one repository for multiple bundles.',
+            tradeoffs:
+              'You can roll back one workload without touching the others, and each bundle gets its own permissions and run identities. You maintain more databricks.yml files and CI jobs, and shared code travels through sync.paths or a wheel. Databricks recommends one repository for multiple bundles.',
           },
           {
             option: 'One repository per bundle',
             when: 'Regulated teams that must keep code access and review rules apart.',
-            tradeoffs: 'The strongest separation of code access. Shared code has to ship as a package, and a change that spans bundles needs coordinated pull requests. The docs name regulated industries as the exception to the single-repository advice.',
+            tradeoffs:
+              'The strongest separation of code access. Shared code has to ship as a package, and a change that spans bundles needs coordinated pull requests. The docs name regulated industries as the exception to the single-repository advice.',
           },
         ],
-        recommendation: 'Start with one bundle per team and lifecycle inside one repository. Split into separate repositories only when regulation requires it.',
+        recommendation:
+          'Start with one bundle per team and lifecycle inside one repository. Split into separate repositories only when regulation requires it.',
       },
       links: [
         { label: 'Developer best practices', url: 'https://docs.databricks.com/aws/en/developers/best-practices' },
-        { label: 'Workload identity federation for GitHub Actions', url: 'https://docs.databricks.com/aws/en/dev-tools/auth/provider-github' },
+        {
+          label: 'Workload identity federation for GitHub Actions',
+          url: 'https://docs.databricks.com/aws/en/dev-tools/auth/provider-github',
+        },
         { label: 'Specify a run identity', url: 'https://docs.databricks.com/aws/en/dev-tools/bundles/run-as' },
         { label: 'Deployment modes', url: 'https://docs.databricks.com/aws/en/dev-tools/bundles/deployment-modes' },
         { label: 'Pin the CLI with setup-cli', url: 'https://github.com/databricks/setup-cli#github-actions' },
-        { label: 'GitHub environments and required reviewers', url: 'https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/control-deployments' },
+        {
+          label: 'GitHub environments and required reviewers',
+          url: 'https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/control-deployments',
+        },
         { label: 'Secret management', url: 'https://docs.databricks.com/aws/en/security/secrets/' },
         { label: 'Serverless usage policies', url: 'https://docs.databricks.com/aws/en/admin/usage/budget-policies' },
       ],
@@ -485,7 +711,10 @@ databricks bundle destroy -t prod --var catalog=<catalog>`,
         },
       ],
       points: [
-        { strong: 'Only bundle resources.', text: 'destroy removes what this bundle created. Anything you made by hand in the same schema goes with the schema, so keep your own tables elsewhere.' },
+        {
+          strong: 'Only bundle resources.',
+          text: 'destroy removes what this bundle created. Anything you made by hand in the same schema goes with the schema, so keep your own tables elsewhere.',
+        },
         { strong: 'The repo stays.', text: 'Your Git repo and local folder are untouched. Deploy again any time.' },
       ],
     },

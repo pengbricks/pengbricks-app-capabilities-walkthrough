@@ -12,23 +12,19 @@ export const walkthrough: Walkthrough = {
     outcomes: [
       {
         title: 'No copies to reconcile',
-        body:
-          'OpenSharing shares live Unity Catalog data, so recipients read current data. There are no extracts to send, no stale copies, and no second set of files to secure.',
+        body: 'OpenSharing shares live Unity Catalog data, so recipients read current data. There are no extracts to send, no stale copies, and no second set of files to secure.',
       },
       {
         title: 'Share only what is approved',
-        body:
-          'A view fixes the rows and columns a recipient sees, and the share holds the view, not the base table. Revoking the share ends access.',
+        body: 'A view fixes the rows and columns a recipient sees, and the share holds the view, not the base table. Revoking the share ends access.',
       },
       {
         title: 'Controlled access for outside recipients',
-        body:
-          'Databricks-to-Databricks sharing needs no token. For open recipients, OIDC federation, short token lifetimes, and IP access lists limit the risk of a leaked credential.',
+        body: 'Databricks-to-Databricks sharing needs no token. For open recipients, OIDC federation, short token lifetimes, and IP access lists limit the risk of a leaked credential.',
       },
       {
         title: 'A record of who received what',
-        body:
-          'Sharing activity appears in system tables, so security can review it. Cross-region and cross-cloud transfer is billed by the cloud provider, which finance should plan for.',
+        body: 'Sharing activity appears in system tables, so security can review it. Cross-region and cross-cloud transfer is billed by the cloud provider, which finance should plan for.',
       },
     ],
   },
@@ -78,14 +74,28 @@ export const walkthrough: Walkthrough = {
           {
             label: 'Authentication',
             cells: [
-              { state: 'own', text: 'Sharing identifier, no token' },
-              { state: 'optional', text: 'OIDC federation or bearer token' },
+              {
+                state: 'own',
+                text: 'Sharing identifier, no token',
+                detail: 'The provider identifies the recipient by its sharing identifier, so no token is issued.',
+              },
+              {
+                state: 'optional',
+                text: 'OIDC federation or bearer token',
+                detail:
+                  'The recipient reads through an OpenSharing client or connector with a credential from the provider.',
+              },
             ],
           },
           {
             label: 'Recipient governance',
             cells: [
-              { state: 'own', text: 'Grants, lineage, and its own row filters and masks' },
+              {
+                state: 'own',
+                text: 'Grants, lineage, and its own row filters and masks',
+                detail:
+                  'The recipient mounts the share as a catalog in its own Unity Catalog metastore, so it governs the data itself.',
+              },
               { state: 'none', text: 'Whatever the client provides' },
             ],
           },
@@ -241,7 +251,7 @@ GRANT SELECT ON SHARE partner_orders TO RECIPIENT partner_acme;`,
         rows: [
           {
             option: 'OIDC federation',
-            when: 'The recipient\'s identity provider can issue JWTs and their client supports federation.',
+            when: "The recipient's identity provider can issue JWTs and their client supports federation.",
             tradeoffs:
               'Tokens are short-lived and the identity provider enforces MFA and sets lifetimes. Databricks never issues a long-lived secret. The recipient needs an identity provider you can write a federation policy for, and email activation is not available.',
           },
@@ -285,7 +295,7 @@ GRANT SELECT ON SHARE partner_orders TO RECIPIENT partner_acme;`,
           },
           {
             option: 'Clean Rooms',
-            when: 'Two or more parties compute on combined sensitive data without seeing each other\'s raw rows.',
+            when: "Two or more parties compute on combined sensitive data without seeing each other's raw rows.",
             tradeoffs:
               'Strongest isolation, because only approved code runs, on serverless compute over OpenSharing. It takes more setup and approval than a plain share, and collaborators work inside what the clean room allows.',
           },
@@ -303,7 +313,7 @@ GRANT SELECT ON SHARE partner_orders TO RECIPIENT partner_acme;`,
           },
         ],
         recommendation:
-          'Start with a share to a named recipient. Move to Clean Rooms when neither side may see the other\'s raw rows, to Marketplace when the audience is open, and replicate only when the recipient needs a writable or isolated copy.',
+          "Start with a share to a named recipient. Move to Clean Rooms when neither side may see the other's raw rows, to Marketplace when the audience is open, and replicate only when the recipient needs a writable or isolated copy.",
       },
       links: [
         { label: 'Clean Rooms', url: 'https://docs.databricks.com/aws/en/clean-rooms/' },

@@ -12,23 +12,19 @@ export const walkthrough: Walkthrough = {
     outcomes: [
       {
         title: 'PII masked at query time',
-        body:
-          'Column masks rewrite values for people without the right group membership. Analysts keep working on the same table and see masked values, so no separate redacted copy exists.',
+        body: 'Column masks rewrite values for people without the right group membership. Analysts keep working on the same table and see masked values, so no separate redacted copy exists.',
       },
       {
         title: 'One policy covers new tables',
-        body:
-          'An ABAC policy on a catalog or schema applies to every table or column with the governed tag, including tables created later. Coverage does not depend on someone remembering to add a rule.',
+        body: 'An ABAC policy on a catalog or schema applies to every table or column with the governed tag, including tables created later. Coverage does not depend on someone remembering to add a rule.',
       },
       {
         title: 'Regional or team data separation',
-        body:
-          'Row filters show each group only its own rows, such as one region or business unit. The rule lives on the data, so every dashboard, notebook, and Genie question follows it.',
+        body: 'Row filters show each group only its own rows, such as one region or business unit. The rule lives on the data, so every dashboard, notebook, and Genie question follows it.',
       },
       {
         title: 'Evidence of what is enforced',
-        body:
-          'You can list the policies, filters, and masks in force and test them as the people they target. Auditors get an answer from the catalog. ABAC on views and metastore scope are in beta.',
+        body: 'You can list the policies, filters, and masks in force and test them as the people they target. Auditors get an answer from the catalog. ABAC on views and metastore scope are in beta.',
       },
     ],
   },
@@ -66,11 +62,62 @@ export const walkthrough: Walkthrough = {
         description:
           'A steward defines a governed tag and assigns it to columns, by hand or from data classification. A single ABAC policy at the catalog or schema matches columns by that tag. Every table and every future table with a tagged column is masked for the principals in the policy, and principals in EXCEPT see real values. Supported external engines get the same enforcement through serverless compute.',
         nodes: [
-          { id: 'tag', label: 'Governed tag', sub: 'class = email', col: 0, row: 0, kind: 'highlight' },
-          { id: 'cols', label: 'Tagged columns', sub: 'any table in scope', col: 1, row: 0, kind: 'store' },
-          { id: 'pol', label: 'One ABAC policy', sub: 'catalog or schema', col: 1, row: 1, kind: 'gate' },
-          { id: 'fn', label: 'SQL mask function', sub: 'reused across tables', col: 0, row: 1 },
-          { id: 'res', label: 'Enforced at query', sub: 'SQL and external engines', col: 2, row: 1, kind: 'surface' },
+          {
+            id: 'tag',
+            label: 'Governed tag',
+            sub: 'class = email',
+            col: 0,
+            row: 0,
+            kind: 'highlight',
+            icon: 'checklist',
+            domain: 'governance',
+            detail:
+              'A governed tag, such as class = email, that a steward assigns to columns by hand or from data classification.',
+          },
+          {
+            id: 'cols',
+            label: 'Tagged columns',
+            sub: 'any table in scope',
+            col: 1,
+            row: 0,
+            kind: 'store',
+            icon: 'database',
+            domain: 'governance',
+            detail: 'Columns that carry the tag, in any table in scope.',
+          },
+          {
+            id: 'pol',
+            label: 'One ABAC policy',
+            sub: 'catalog or schema',
+            col: 1,
+            row: 1,
+            kind: 'gate',
+            domain: 'governance',
+            detail:
+              'One ABAC policy at the catalog or schema level. It matches columns by tag and covers future tables with tagged columns.',
+          },
+          {
+            id: 'fn',
+            label: 'SQL mask function',
+            sub: 'reused across tables',
+            col: 0,
+            row: 1,
+            icon: 'gear-data',
+            domain: 'governance',
+            detail: 'A SQL mask function that the policy applies. The same function is reused across tables.',
+          },
+          {
+            id: 'res',
+            label: 'Enforced at query',
+            sub: 'SQL and external engines',
+            col: 2,
+            row: 1,
+            kind: 'surface',
+            icon: 'warehouse',
+            domain: 'governance',
+            detail:
+              'The policy applies when a query runs. Principals in the policy see masked values, and those in EXCEPT see real values.',
+          },
         ],
         edges: [
           { from: 'tag', to: 'cols' },

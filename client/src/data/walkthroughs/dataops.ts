@@ -12,23 +12,19 @@ export const walkthrough: Walkthrough = {
     outcomes: [
       {
         title: 'Safe reruns',
-        body:
-          'Tasks use MERGE or overwrite by partition, so a retry or repair run replaces the first attempt instead of duplicating rows.',
+        body: 'Tasks use MERGE or overwrite by partition, so a retry or repair run replaces the first attempt instead of duplicating rows.',
       },
       {
         title: 'Less rework after a failure',
-        body:
-          'A repair run re-executes only the failed and skipped tasks and keeps the successful ones, so a team does not rerun a whole job to fix one task.',
+        body: 'A repair run re-executes only the failed and skipped tasks and keeps the successful ones, so a team does not rerun a whole job to fix one task.',
       },
       {
         title: 'Earlier warning',
-        body:
-          'Failure and duration alerts go to Slack, PagerDuty, Teams, or a webhook. A SQL alert on system tables catches slow drift that single-run alerts miss.',
+        body: 'Failure and duration alerts go to Slack, PagerDuty, Teams, or a webhook. A SQL alert on system tables catches slow drift that single-run alerts miss.',
       },
       {
         title: 'A plan for bad writes',
-        body:
-          'RESTORE works only inside the retention window and on one table. The guide sets out when to use deep clone backups or redeploy the last good release instead.',
+        body: 'RESTORE works only inside the retention window and on one table. The guide sets out when to use deep clone backups or redeploy the last good release instead.',
       },
     ],
   },
@@ -98,20 +94,24 @@ SELECT * FROM staged_daily_totals WHERE event_date = DATE'2026-10-19';`,
           {
             option: 'MERGE on a business key',
             when: 'Entity tables with a stable key, such as customers or transactions.',
-            tradeoffs: 'A second run updates the same rows and inserts only what is missing. It needs a reliable key in the source, and the merge has to match against the target, so cost grows with the table.',
+            tradeoffs:
+              'A second run updates the same rows and inserts only what is missing. It needs a reliable key in the source, and the merge has to match against the target, so cost grows with the table.',
           },
           {
             option: 'Overwrite one slice with replaceWhere or REPLACE WHERE',
             when: 'Fact tables loaded by date or partition.',
-            tradeoffs: 'A second run replaces that slice with identical data and needs no key. If the source query returns no rows, REPLACE WHERE can delete the slice, so check for an empty load first.',
+            tradeoffs:
+              'A second run replaces that slice with identical data and needs no key. If the source query returns no rows, REPLACE WHERE can delete the slice, so check for an empty load first.',
           },
           {
             option: 'Streaming table or Auto Loader with a checkpoint',
             when: 'Files or events that arrive continuously or in increments.',
-            tradeoffs: 'A second run picks up from the checkpoint and skips files already processed. The checkpoint holds the state, so deleting or moving it reprocesses everything.',
+            tradeoffs:
+              'A second run picks up from the checkpoint and skips files already processed. The checkpoint holds the state, so deleting or moving it reprocesses everything.',
           },
         ],
-        recommendation: 'Match the pattern to the table grain: MERGE for keyed entities, REPLACE WHERE for date-sliced facts, a checkpointed stream for incremental files. A plain INSERT or append duplicates the first attempt\'s rows on a rerun, so use it only where duplicates are harmless.',
+        recommendation:
+          "Match the pattern to the table grain: MERGE for keyed entities, REPLACE WHERE for date-sliced facts, a checkpointed stream for incremental files. A plain INSERT or append duplicates the first attempt's rows on a rerun, so use it only where duplicates are harmless.",
       },
       links: [
         {
@@ -160,16 +160,25 @@ SELECT * FROM staged_daily_totals WHERE event_date = DATE'2026-10-19';`,
             label: 'Repair run',
             sub: 'from the run page or the API',
             cells: [
-              { state: 'own', text: 'Cause fixed after failure' },
+              {
+                state: 'own',
+                text: 'Cause fixed after failure',
+                detail: 'A repair uses current job and task settings, so you can fix a path or a parameter first.',
+              },
               { state: 'own', text: 'Failed, skipped, and dependent tasks' },
-              { state: 'own', text: 'Two or more tasks' },
+              { state: 'own', text: 'Two or more tasks', detail: 'Repair is not available for single-task jobs.' },
             ],
           },
           {
             label: 'New run',
             sub: 'run now with parameters',
             cells: [
-              { state: 'optional', text: 'Single-task job, or new inputs' },
+              {
+                state: 'optional',
+                text: 'Single-task job, or new inputs',
+                detail:
+                  'A single-task job cannot be repaired, so a new run is the option. Run now also takes fresh parameters.',
+              },
               { state: 'optional', text: 'Every task' },
               { state: 'optional', text: 'Idempotent tasks' },
             ],
@@ -383,20 +392,24 @@ DEEP CLONE silver.transactions;`,
           {
             option: 'RESTORE the table',
             when: 'One table, and the good version is still within retention.',
-            tradeoffs: 'Rolls the table back to an earlier version and records the restore in table history. It works only while the old files exist (7 days by default, with 30 days of log), acts on one table, and can break streaming checkpoints.',
+            tradeoffs:
+              'Rolls the table back to an earlier version and records the restore in table history. It works only while the old files exist (7 days by default, with 30 days of log), acts on one table, and can break streaming checkpoints.',
           },
           {
             option: 'Redeploy the last good release and rerun',
             when: 'Several tables are wrong, or the logic itself was wrong.',
-            tradeoffs: 'Restores job and pipeline definitions, then recomputes the data from a known input. It costs a full reprocess and only works if tasks are idempotent and the inputs are still available.',
+            tradeoffs:
+              'Restores job and pipeline definitions, then recomputes the data from a known input. It costs a full reprocess and only works if tasks are idempotent and the inputs are still available.',
           },
           {
             option: 'Restore from a deep clone backup',
             when: 'A recovery need that outlasts Delta retention.',
-            tradeoffs: 'A deep clone is an independent copy of data and metadata, so it survives VACUUM on the source. It costs storage and needs a job to refresh it, and reruns copy only what changed.',
+            tradeoffs:
+              'A deep clone is an independent copy of data and metadata, so it survives VACUUM on the source. It costs storage and needs a job to refresh it, and reruns copy only what changed.',
           },
         ],
-        recommendation: 'Use RESTORE for one table inside the retention window, deep clone backups for tables that need longer recovery, and a redeploy with a rerun when several tables are bad.',
+        recommendation:
+          'Use RESTORE for one table inside the retention window, deep clone backups for tables that need longer recovery, and a redeploy with a rerun when several tables are bad.',
       },
       links: [
         {

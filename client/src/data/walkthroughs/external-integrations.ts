@@ -78,7 +78,12 @@ export const walkthrough: Walkthrough = {
             cells: [
               { state: 'own', text: 'Lakehouse Federation' },
               { state: 'own', text: 'No, query in place' },
-              { state: 'optional', text: 'Ad hoc, small, fresh' },
+              {
+                state: 'optional',
+                text: 'Ad hoc, small, fresh',
+                detail:
+                  'Every query hits the source, so speed depends on the source and pushdown. Heavy or repeated use loads the source and calls for ingestion.',
+              },
             ],
           },
           {
@@ -86,7 +91,12 @@ export const walkthrough: Walkthrough = {
             sub: 'SaaS apps and databases',
             cells: [
               { state: 'own', text: 'Lakeflow Connect' },
-              { state: 'optional', text: 'Yes, incremental' },
+              {
+                state: 'optional',
+                text: 'Yes, incremental',
+                detail:
+                  'Managed connectors load incrementally into Delta tables. You pay for pipeline compute, and data is as fresh as the last sync.',
+              },
               { state: 'own', text: 'Repeated or heavy use' },
             ],
           },
@@ -102,7 +112,12 @@ export const walkthrough: Walkthrough = {
             label: 'Serve a transactional app',
             cells: [
               { state: 'own', text: 'Lakebase + synced tables' },
-              { state: 'optional', text: 'Synced copy' },
+              {
+                state: 'optional',
+                text: 'Synced copy',
+                detail:
+                  'Synced tables copy Unity Catalog data into Lakebase for low-latency reads, so the app reads a copy.',
+              },
               { state: 'own', text: 'Low-latency OLTP reads' },
             ],
           },
@@ -187,8 +202,14 @@ export const walkthrough: Walkthrough = {
           'Use user-to-machine OAuth for interactive BI and machine-to-machine OAuth with a scoped service principal for scheduled reports and apps. Use a token only where the tool has no OAuth option.',
       },
       links: [
-        { label: 'OAuth user-to-machine (U2M) authentication', url: 'https://docs.databricks.com/aws/en/dev-tools/auth/oauth-u2m' },
-        { label: 'OAuth machine-to-machine (M2M) authentication', url: 'https://docs.databricks.com/aws/en/dev-tools/auth/oauth-m2m' },
+        {
+          label: 'OAuth user-to-machine (U2M) authentication',
+          url: 'https://docs.databricks.com/aws/en/dev-tools/auth/oauth-u2m',
+        },
+        {
+          label: 'OAuth machine-to-machine (M2M) authentication',
+          url: 'https://docs.databricks.com/aws/en/dev-tools/auth/oauth-m2m',
+        },
         {
           label: 'Connect Power BI',
           url: 'https://docs.databricks.com/aws/en/partners/bi/power-bi',
@@ -328,9 +349,15 @@ export const walkthrough: Walkthrough = {
         rows: [
           ['Interactive BI user', 'OAuth user-to-machine; the user’s own Unity Catalog permissions apply'],
           ['Scheduled report or app', 'Service principal with OAuth M2M over HTTPS to /sql/1.0/warehouses/<id>'],
-          ['Federation', 'Credentials in a Unity Catalog connection, from a secret or OAuth; grant USE CONNECTION narrowly'],
+          [
+            'Federation',
+            'Credentials in a Unity Catalog connection, from a secret or OAuth; grant USE CONNECTION narrowly',
+          ],
           ['Outside Iceberg engine', 'Service principal with OAuth M2M and credential vending'],
-          ['Private networks', 'Use private connectivity and IP access lists for the workspace; check that the tool can reach the warehouse'],
+          [
+            'Private networks',
+            'Use private connectivity and IP access lists for the workspace; check that the tool can reach the warehouse',
+          ],
         ],
       },
     },

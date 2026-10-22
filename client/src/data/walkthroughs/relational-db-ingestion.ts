@@ -20,7 +20,7 @@ export const walkthrough: Walkthrough = {
       },
       {
         title: 'Match cost to freshness',
-        body: 'Query-based connectors poll on a schedule and need no CDC setup on the source. Check each connector\'s release stage before committing a production plan.',
+        body: "Query-based connectors poll on a schedule and need no CDC setup on the source. Check each connector's release stage before committing a production plan.",
       },
       {
         title: 'Proof the copy is right',
@@ -80,8 +80,14 @@ export const walkthrough: Walkthrough = {
           'Use a Lakeflow Connect CDC connector for tables people read often and that must track deletes. Use a query-based connector when CDC is unavailable and a cursor column exists. Use Federation for exploration, one-time loads, and small or rarely read tables.',
       },
       links: [
-        { label: 'Managed database connectors (CDC)', url: 'https://docs.databricks.com/aws/en/ingestion/lakeflow-connect/cdc-overview' },
-        { label: 'Query-based connectors', url: 'https://docs.databricks.com/aws/en/ingestion/lakeflow-connect/query-based-overview' },
+        {
+          label: 'Managed database connectors (CDC)',
+          url: 'https://docs.databricks.com/aws/en/ingestion/lakeflow-connect/cdc-overview',
+        },
+        {
+          label: 'Query-based connectors',
+          url: 'https://docs.databricks.com/aws/en/ingestion/lakeflow-connect/query-based-overview',
+        },
         { label: 'Lakehouse Federation', url: 'https://docs.databricks.com/aws/en/query-federation/' },
       ],
     },
@@ -118,12 +124,72 @@ export const walkthrough: Walkthrough = {
         description:
           'Databricks sends the query text over the Unity Catalog connection. The database joins tables, filters rows, calls its own functions, aggregates, and applies window functions. Only the result set returns to Databricks and is written to a Delta table.',
         nodes: [
-          { id: 'join', label: 'JOIN', sub: 'tables in the source', col: 0, row: 0 },
-          { id: 'filter', label: 'WHERE', sub: 'filter at the source', col: 1, row: 0 },
-          { id: 'fn', label: 'Database function', sub: 'runs in the database', col: 2, row: 0, kind: 'highlight' },
-          { id: 'agg', label: 'GROUP BY', sub: 'count and sum', col: 3, row: 0 },
-          { id: 'win', label: 'Window function', sub: 'rank, running total', col: 3, row: 1, kind: 'highlight' },
-          { id: 'result', label: 'Delta table', sub: 'result only', col: 2, row: 1, kind: 'store' },
+          {
+            id: 'join',
+            label: 'JOIN',
+            sub: 'tables in the source',
+            col: 0,
+            row: 0,
+            icon: 'gear-navy',
+            domain: 'neutral',
+            detail: 'The query text joins source tables inside the database, so the join runs where the data lives.',
+          },
+          {
+            id: 'filter',
+            label: 'WHERE',
+            sub: 'filter at the source',
+            col: 1,
+            row: 0,
+            icon: 'gear-navy',
+            domain: 'neutral',
+            detail: 'A WHERE clause filters rows at the source, so unneeded rows never cross the wire.',
+          },
+          {
+            id: 'fn',
+            label: 'Database function',
+            sub: 'runs in the database',
+            col: 2,
+            row: 0,
+            kind: 'highlight',
+            icon: 'gear-lava',
+            domain: 'neutral',
+            detail:
+              'Database functions run inside the database, which is why remote_query takes a query written in the source dialect.',
+          },
+          {
+            id: 'agg',
+            label: 'GROUP BY',
+            sub: 'count and sum',
+            col: 3,
+            row: 0,
+            icon: 'gear-navy',
+            domain: 'neutral',
+            detail: 'Counts and sums run at the source, so only the aggregated rows travel to Databricks.',
+          },
+          {
+            id: 'win',
+            label: 'Window function',
+            sub: 'rank, running total',
+            col: 3,
+            row: 1,
+            kind: 'highlight',
+            icon: 'gear-lava',
+            domain: 'neutral',
+            detail:
+              'Window functions such as rank and running total also run in the database, so only a small result crosses the wire.',
+          },
+          {
+            id: 'result',
+            label: 'Delta table',
+            sub: 'result only',
+            col: 2,
+            row: 1,
+            kind: 'store',
+            icon: 'database',
+            domain: 'data',
+            detail:
+              'Only the result set returns to Databricks and is written to a Delta table, for example with CREATE OR REPLACE TABLE AS SELECT.',
+          },
         ],
         edges: [
           { from: 'join', to: 'filter' },
@@ -183,7 +249,10 @@ SELECT * FROM remote_query(
           'Use remote_query when the source can do the heavy part of the work, and a foreign catalog for simple reads. Switch to a query-based pipeline when the result must refresh incrementally.',
       },
       links: [
-        { label: 'Query external databases using remote_query', url: 'https://docs.databricks.com/aws/en/query-federation/remote-queries' },
+        {
+          label: 'Query external databases using remote_query',
+          url: 'https://docs.databricks.com/aws/en/query-federation/remote-queries',
+        },
       ],
     },
     {

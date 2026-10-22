@@ -12,23 +12,19 @@ export const walkthrough: Walkthrough = {
     outcomes: [
       {
         title: 'Auditable change history',
-        body:
-          'Every change to shared code is a commit on a branch with a pull request, so you can show who changed what, who approved it, and when.',
+        body: 'Every change to shared code is a commit on a branch with a pull request, so you can show who changed what, who approved it, and when.',
       },
       {
         title: 'Safer production',
-        body:
-          'Production deploys from CI through a bundle, not from a folder people edit. A merge to main is the only route for a change to reach shared workspaces.',
+        body: 'Production deploys from CI through a bundle, not from a folder people edit. A merge to main is the only route for a change to reach shared workspaces.',
       },
       {
         title: 'Work survives people and folders',
-        body:
-          'Anything committed and pushed outlives a deleted workspace folder or a departed employee. Work that exists only in the workspace is at risk.',
+        body: 'Anything committed and pushed outlives a deleted workspace folder or a departed employee. Work that exists only in the workspace is at risk.',
       },
       {
         title: 'Automation without personal accounts',
-        body:
-          'Jobs and CI run as service principals with their own Git credential, so production does not depend on one person staying employed or keeping a token current.',
+        body: 'Jobs and CI run as service principals with their own Git credential, so production does not depend on one person staying employed or keeping a token current.',
       },
     ],
   },
@@ -66,14 +62,91 @@ export const walkthrough: Walkthrough = {
         description:
           'A developer works in a personal Git folder in the workspace or in an IDE and pushes a feature branch to the Git provider. A pull request is reviewed by code owners and must pass CI checks, which run tests and bundle validate. Merging to the protected main branch triggers CI to deploy with a bundle under a service principal, which creates or updates production jobs and pipelines.',
         nodes: [
-          { id: 'gf', label: 'Your Git folder', sub: 'workspace, your branch', col: 0, row: 0, kind: 'surface' },
-          { id: 'ide', label: 'Your IDE', sub: 'local clone', col: 0, row: 1, kind: 'surface' },
-          { id: 'remote', label: 'Git provider', sub: 'feature branch', col: 1, row: 0, kind: 'store' },
-          { id: 'pr', label: 'Pull request', sub: 'review, code owners', col: 2, row: 0 },
-          { id: 'ci', label: 'CI checks', sub: 'tests, bundle validate', col: 3, row: 0, kind: 'gate' },
-          { id: 'main', label: 'Protected main', sub: 'merge after checks', col: 3, row: 1 },
-          { id: 'deploy', label: 'Bundle deploy', sub: 'service principal', col: 2, row: 1, kind: 'highlight' },
-          { id: 'prod', label: 'Prod jobs, pipelines', sub: 'no hand edits', col: 1, row: 1 },
+          {
+            id: 'gf',
+            label: 'Your Git folder',
+            sub: 'workspace, your branch',
+            col: 0,
+            row: 0,
+            kind: 'surface',
+            domain: 'orchestration',
+            detail:
+              'A working copy of the repository in the workspace, on your own branch. Anything you want to keep is committed and pushed.',
+          },
+          {
+            id: 'ide',
+            label: 'Your IDE',
+            sub: 'local clone',
+            col: 0,
+            row: 1,
+            kind: 'surface',
+            domain: 'orchestration',
+            detail: 'A local clone of the same repository. It pushes to the same remote as the workspace Git folder.',
+          },
+          {
+            id: 'remote',
+            label: 'Git provider',
+            sub: 'feature branch',
+            col: 1,
+            row: 0,
+            kind: 'store',
+            icon: 'saas',
+            domain: 'neutral',
+            detail:
+              'The remote repository holds the code and your feature branch. It is the source of truth for every surface you edit in.',
+          },
+          {
+            id: 'pr',
+            label: 'Pull request',
+            sub: 'review, code owners',
+            col: 2,
+            row: 0,
+            icon: 'checklist',
+            domain: 'orchestration',
+            detail: 'Where the change is reviewed by code owners and tested before it can reach main.',
+          },
+          {
+            id: 'ci',
+            label: 'CI checks',
+            sub: 'tests, bundle validate',
+            col: 3,
+            row: 0,
+            kind: 'gate',
+            domain: 'orchestration',
+            detail: 'Runs tests and bundle validate on the pull request. A failing check blocks the merge.',
+          },
+          {
+            id: 'main',
+            label: 'Protected main',
+            sub: 'merge after checks',
+            col: 3,
+            row: 1,
+            domain: 'orchestration',
+            detail:
+              'The branch that production deploys from. A change reaches it only after review and passing checks.',
+          },
+          {
+            id: 'deploy',
+            label: 'Bundle deploy',
+            sub: 'service principal',
+            col: 2,
+            row: 1,
+            kind: 'highlight',
+            icon: 'gear-lava',
+            domain: 'orchestration',
+            detail:
+              'CI deploys the merged commit with a bundle under a service principal. It is the only path to production.',
+          },
+          {
+            id: 'prod',
+            label: 'Prod jobs, pipelines',
+            sub: 'no hand edits',
+            col: 1,
+            row: 1,
+            icon: 'workflow',
+            domain: 'orchestration',
+            detail: 'Production jobs and pipelines created or updated by the bundle deploy. Nobody edits them by hand.',
+          },
         ],
         edges: [
           { from: 'gf', to: 'remote', label: 'commit, push' },
@@ -121,7 +194,7 @@ export const walkthrough: Walkthrough = {
         },
         {
           strong: 'Automation: a service principal with its own Git credential.',
-          text: 'Jobs, CI pipelines, and anything else that should not depend on a person run as a service principal. Add the credential on the service principal\'s Git integration tab or with the CLI. Back it with a dedicated bot or machine account.',
+          text: "Jobs, CI pipelines, and anything else that should not depend on a person run as a service principal. Add the credential on the service principal's Git integration tab or with the CLI. Back it with a dedicated bot or machine account.",
         },
         {
           strong: 'Set your commit identity.',
@@ -142,20 +215,24 @@ export const walkthrough: Walkthrough = {
           {
             option: 'Databricks GitHub app (OAuth)',
             when: 'People using hosted GitHub or GitHub Enterprise Cloud.',
-            tradeoffs: 'It uses OAuth 2.0, renews tokens automatically, and limits access to the repositories you choose. GitHub Enterprise Server cannot link this way, and Enterprise Managed Users can use it for organization repositories only.',
+            tradeoffs:
+              'It uses OAuth 2.0, renews tokens automatically, and limits access to the repositories you choose. GitHub Enterprise Server cannot link this way, and Enterprise Managed Users can use it for organization repositories only.',
           },
           {
             option: 'Personal access token',
             when: 'Providers without OAuth linking, such as Azure DevOps, and GitHub Enterprise Server.',
-            tradeoffs: 'Works with any provider reached over HTTPS. The token belongs to one person, expires, and has to be rotated by hand. Scope it to the repositories and permissions you need and set an expiry. Azure DevOps does not accept Microsoft Entra ID tokens for Git folders.',
+            tradeoffs:
+              'Works with any provider reached over HTTPS. The token belongs to one person, expires, and has to be rotated by hand. Scope it to the repositories and permissions you need and set an expiry. Azure DevOps does not accept Microsoft Entra ID tokens for Git folders.',
           },
           {
             option: 'Service principal with its own Git credential',
             when: 'Jobs, CI pipelines, and anything that should not depend on a person.',
-            tradeoffs: 'Automation keeps working when a person leaves, and commits show a machine identity. It is still a stored token on a dedicated bot or machine account, so give it an owner and an expiry.',
+            tradeoffs:
+              'Automation keeps working when a person leaves, and commits show a machine identity. It is still a stored token on a dedicated bot or machine account, so give it an owner and an expiry.',
           },
         ],
-        recommendation: 'Link the GitHub app for people on hosted GitHub, use a scoped token elsewhere, and run every job and pipeline as a service principal with its own credential.',
+        recommendation:
+          'Link the GitHub app for people on hosted GitHub, use a scoped token elsewhere, and run every job and pipeline as a service principal with its own credential.',
       },
       links: [
         {
@@ -271,20 +348,24 @@ export const walkthrough: Walkthrough = {
           {
             option: 'Squash merge',
             when: 'Short-lived branches where one pull request is one logical change.',
-            tradeoffs: 'One commit per pull request on main, which is easy to read and revert. Branch history is gone, so delete the branch after merging instead of working on it further.',
+            tradeoffs:
+              'One commit per pull request on main, which is easy to read and revert. Branch history is gone, so delete the branch after merging instead of working on it further.',
           },
           {
             option: 'Merge commit',
             when: 'Each commit on the branch means something and you want to keep it.',
-            tradeoffs: 'History stays complete and no rewrite happens. The log on main gets longer and includes merge commits.',
+            tradeoffs:
+              'History stays complete and no rewrite happens. The log on main gets longer and includes merge commits.',
           },
           {
             option: 'Rebase and merge',
             when: 'A linear history on a branch only you use.',
-            tradeoffs: 'The history is linear. Rebase rewrites commits and forces a push, which the Databricks docs warn can cause trouble for others on the same branch.',
+            tradeoffs:
+              'The history is linear. Rebase rewrites commits and forces a push, which the Databricks docs warn can cause trouble for others on the same branch.',
           },
         ],
-        recommendation: 'Squash merge is a good default for short-lived branches. Pick one strategy per repository and set it in your Git provider, because Databricks does not enforce it.',
+        recommendation:
+          'Squash merge is a good default for short-lived branches. Pick one strategy per repository and set it in your Git provider, because Databricks does not enforce it.',
       },
       links: [
         {
@@ -297,8 +378,7 @@ export const walkthrough: Walkthrough = {
     {
       id: 'notebooks',
       heading: 'Notebooks under version control',
-      prose:
-        'Notebooks are code, so treat them like code: reviewable diffs, no generated output, no secrets.',
+      prose: 'Notebooks are code, so treat them like code: reviewable diffs, no generated output, no secrets.',
       points: [
         {
           strong: 'Pick one notebook format per repository.',
@@ -370,7 +450,7 @@ data/
         rows: [
           [
             'Real-time co-editing',
-            'Pairing on a notebook, a live debugging session, or a workshop. Several people edit the same cell and see each other\'s changes.',
+            "Pairing on a notebook, a live debugging session, or a workshop. Several people edit the same cell and see each other's changes.",
           ],
           [
             'Comments',
@@ -474,7 +554,7 @@ databricks bundle validate --target dev`,
         },
         {
           strong: 'Editing the same file in several places.',
-          text: 'A Git folder, an IDE clone, and the extension\'s sync folder are separate copies. Treat the Git provider as the only place they meet.',
+          text: "A Git folder, an IDE clone, and the extension's sync folder are separate copies. Treat the Git provider as the only place they meet.",
         },
       ],
     },

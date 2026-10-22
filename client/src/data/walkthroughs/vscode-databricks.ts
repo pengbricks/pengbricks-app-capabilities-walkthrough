@@ -12,23 +12,19 @@ export const walkthrough: Walkthrough = {
     outcomes: [
       {
         title: 'Faster onboarding',
-        body:
-          'The project carries the bundle, targets, and environment setup. A teammate who clones the repository repeats only the sign-in and the compute choice.',
+        body: 'The project carries the bundle, targets, and environment setup. A teammate who clones the repository repeats only the sign-in and the compute choice.',
       },
       {
         title: 'Fewer environment mismatches',
-        body:
-          'The extension builds a local environment that matches the Python and package versions of the chosen compute, so version gaps show up in the editor instead of on the cluster.',
+        body: 'The extension builds a local environment that matches the Python and package versions of the chosen compute, so version gaps show up in the editor instead of on the cluster.',
       },
       {
         title: 'Fewer long-lived secrets',
-        body:
-          'OAuth sign-in replaces personal access tokens, and the CLI, SDKs, and Databricks Connect reuse one profile. Security teams have fewer tokens to track.',
+        body: 'OAuth sign-in replaces personal access tokens, and the CLI, SDKs, and Databricks Connect reuse one profile. Security teams have fewer tokens to track.',
       },
       {
         title: 'Production stays controlled',
-        body:
-          'Sync to the workspace is one way and for development only. Real changes go through Git and a bundle deploy, so nobody edits a live copy by hand.',
+        body: 'Sync to the workspace is one way and for development only. Real changes go through Git and a bundle deploy, so nobody edits a live copy by hand.',
       },
     ],
   },
@@ -73,14 +69,95 @@ export const walkthrough: Walkthrough = {
         description:
           'The editor with the Databricks extension signs in through a CLI profile that uses OAuth. The profile maps to a bundle target in databricks.yml, which points at a workspace. The workspace receives synced files and bundle deploys, and shows job runs. Separately, the editor builds a local virtual environment that matches the runtime, installs a pinned Databricks Connect, and sends Spark work to serverless or cluster compute. Results return to the Debug Console.',
         nodes: [
-          { id: 'editor', label: 'VS Code or Cursor', sub: 'Databricks extension', col: 0, row: 0, kind: 'surface' },
-          { id: 'profile', label: 'CLI profile', sub: 'OAuth U2M, no token', col: 1, row: 0, kind: 'highlight' },
-          { id: 'target', label: 'Bundle target', sub: 'databricks.yml', mono: true, col: 2, row: 0 },
-          { id: 'ws', label: 'Workspace', sub: 'sync, deploy, jobs', col: 3, row: 0, kind: 'store' },
-          { id: 'venv', label: '.venv', sub: 'matches the runtime', mono: true, col: 0, row: 1 },
-          { id: 'dbc', label: 'Databricks Connect', sub: 'pinned to X.Y.*', col: 1, row: 1 },
-          { id: 'compute', label: 'Compute', sub: 'serverless or cluster', col: 2, row: 1, kind: 'gate' },
-          { id: 'out', label: 'Output', sub: 'Debug Console, job run', col: 3, row: 1 },
+          {
+            id: 'editor',
+            label: 'VS Code or Cursor',
+            sub: 'Databricks extension',
+            col: 0,
+            row: 0,
+            kind: 'surface',
+            icon: 'users',
+            domain: 'neutral',
+            detail:
+              'VS Code or Cursor with the Databricks extension installed. It is where you write code and start syncs, deploys, and runs.',
+          },
+          {
+            id: 'profile',
+            label: 'CLI profile',
+            sub: 'OAuth U2M, no token',
+            col: 1,
+            row: 0,
+            kind: 'highlight',
+            icon: 'id-provider',
+            domain: 'governance',
+            detail:
+              'A Databricks CLI profile that signs in with OAuth user-to-machine, so no personal access token is stored.',
+          },
+          {
+            id: 'target',
+            label: 'Bundle target',
+            sub: 'databricks.yml',
+            mono: true,
+            col: 2,
+            row: 0,
+            icon: 'workflow',
+            domain: 'orchestration',
+            detail: 'A target in databricks.yml that the profile maps to. It points the bundle at one workspace.',
+          },
+          {
+            id: 'ws',
+            label: 'Workspace',
+            sub: 'sync, deploy, jobs',
+            col: 3,
+            row: 0,
+            kind: 'store',
+            domain: 'data',
+            detail: 'Receives synced files and bundle deploys, and shows the job runs.',
+          },
+          {
+            id: 'venv',
+            label: '.venv',
+            sub: 'matches the runtime',
+            mono: true,
+            col: 0,
+            row: 1,
+            icon: 'gear-navy',
+            domain: 'neutral',
+            detail:
+              'A local virtual environment built to match the Databricks runtime, so local code sees the same Python and libraries.',
+          },
+          {
+            id: 'dbc',
+            label: 'Databricks Connect',
+            sub: 'pinned to X.Y.*',
+            col: 1,
+            row: 1,
+            icon: 'network',
+            domain: 'apps',
+            detail:
+              'The Databricks Connect package, pinned to the runtime version, that sends Spark work from the editor to remote compute.',
+          },
+          {
+            id: 'compute',
+            label: 'Compute',
+            sub: 'serverless or cluster',
+            col: 2,
+            row: 1,
+            kind: 'gate',
+            icon: 'gear-navy',
+            domain: 'data',
+            detail: 'Serverless or cluster compute that runs the Spark work sent from the editor.',
+          },
+          {
+            id: 'out',
+            label: 'Output',
+            sub: 'Debug Console, job run',
+            col: 3,
+            row: 1,
+            icon: 'list',
+            domain: 'neutral',
+            detail: 'Results come back to the Debug Console, and job runs show in the workspace.',
+          },
         ],
         edges: [
           { from: 'editor', to: 'profile' },
@@ -132,7 +209,9 @@ code .
 
 # Later: pick up changes to the starter
 git pull`,
-          notes: ['Or download the zip from the top of this page (it comes from the same GitHub repository) and unzip it.'],
+          notes: [
+            'Or download the zip from the top of this page (it comes from the same GitHub repository) and unzip it.',
+          ],
         },
         {
           label: 'Sign in, deploy, and run from a terminal',
@@ -154,7 +233,9 @@ databricks bundle destroy
 # No dev_sales catalog? The demo target deploys to exactly the catalog you name
 databricks bundle deploy -t demo --var catalog=main
 databricks bundle run capability_guides_vscode_starter -t demo --var catalog=main`,
-          notes: ['The README in the repository has the full terminal flow, including tests, bundle summary, and redeploying after a change.'],
+          notes: [
+            'The README in the repository has the full terminal flow, including tests, bundle summary, and redeploying after a change.',
+          ],
         },
       ],
       links: [
@@ -279,25 +360,30 @@ databricks auth profiles`,
           {
             option: 'Debug current file with Databricks Connect',
             when: 'You are working out why logic fails and want breakpoints.',
-            tradeoffs: 'Python runs locally with your debugger. DataFrame and SQL work runs on serverless or the selected cluster, and output goes to the Debug Console. It hides differences in libraries, parameters, and permissions that a job run exposes.',
+            tradeoffs:
+              'Python runs locally with your debugger. DataFrame and SQL work runs on serverless or the selected cluster, and output goes to the Debug Console. It hides differences in libraries, parameters, and permissions that a job run exposes.',
           },
           {
             option: 'Upload and Run File',
             when: 'You want the file to run on a cluster you selected.',
-            tradeoffs: 'The file uploads and runs on that cluster, with output in the Debug Console. It is not available on serverless compute, and the cluster has to be running.',
+            tradeoffs:
+              'The file uploads and runs on that cluster, with output in the Debug Console. It is not available on serverless compute, and the cluster has to be running.',
           },
           {
             option: 'Run File as Workflow',
             when: 'You want to see the file or notebook run as a job in the workspace, for .py, .ipynb, .sql, .r, or .scala.',
-            tradeoffs: 'It runs as a Lakeflow Job, and output shows in a Databricks Job Run tab with a link to the run. You get no local debugger, and each run starts a job, so the loop is slower than Connect.',
+            tradeoffs:
+              'It runs as a Lakeflow Job, and output shows in a Databricks Job Run tab with a link to the run. You get no local debugger, and each run starts a job, so the loop is slower than Connect.',
           },
           {
             option: 'Bundle Resource Explorer play icon',
             when: 'You want a last check with the real job or pipeline before a pull request.',
-            tradeoffs: 'It deploys the bundle and runs a job or pipeline with its real settings, parameters, and permissions. It is the closest to production and the slowest, because it deploys first.',
+            tradeoffs:
+              'It deploys the bundle and runs a job or pipeline with its real settings, parameters, and permissions. It is the closest to production and the slowest, because it deploys first.',
           },
         ],
-        recommendation: 'Debug with Databricks Connect while you write the logic, then run it as a workflow or a bundle job before you open a pull request.',
+        recommendation:
+          'Debug with Databricks Connect while you write the logic, then run it as a workflow or a bundle job before you open a pull request.',
       },
       links: [
         {
@@ -373,15 +459,18 @@ display(df.limit(20))`,
           {
             option: 'Source format (.py, .sql)',
             when: 'Reviewers read diffs in plain pull request views and most of the logic is code.',
-            tradeoffs: 'A change is a few lines and reviews like any script. It captures only source code, so visualization definitions, widgets, and outputs stay out of the repository.',
+            tradeoffs:
+              'A change is a few lines and reviews like any script. It captures only source code, so visualization definitions, widgets, and outputs stay out of the repository.',
           },
           {
             option: '.ipynb',
             when: 'Your team relies on notebook visualizations and widgets, or wants outputs versioned.',
-            tradeoffs: 'It captures source code, the notebook environment, visualization definitions, widgets, and optional outputs, and it is the default for new notebooks. The raw JSON is noisy to review without the rich diffs that GitHub and GitLab provide. Committed outputs can carry data into the repository, so leave them off for sensitive tables.',
+            tradeoffs:
+              'It captures source code, the notebook environment, visualization definitions, widgets, and optional outputs, and it is the default for new notebooks. The raw JSON is noisy to review without the rich diffs that GitHub and GitLab provide. Committed outputs can carry data into the repository, so leave them off for sensitive tables.',
           },
         ],
-        recommendation: 'Use source format for code-heavy repositories that are reviewed in plain pull request views. Use .ipynb when the team depends on visualizations and widgets, and pick one format per repository.',
+        recommendation:
+          'Use source format for code-heavy repositories that are reviewed in plain pull request views. Use .ipynb when the team depends on visualizations and widgets, and pick one format per repository.',
       },
       links: [
         {
@@ -518,8 +607,7 @@ display(df.limit(20))`,
     {
       id: 'choose',
       heading: 'When to use VS Code, the workspace editor, or a Git folder',
-      prose:
-        'They are not rivals. Most teams use all three on one repository, with Git in the middle.',
+      prose: 'They are not rivals. Most teams use all three on one repository, with Git in the middle.',
       table: {
         caption: 'Pick the surface by the task',
         columns: ['Surface', 'Use it for'],
@@ -541,7 +629,7 @@ display(df.limit(20))`,
       points: [
         {
           strong: 'Git carries work between them.',
-          text: 'Commit and push from the editor, pull into your Git folder to run it in the workspace, and the reverse. The extension\'s sync folder is not Git and is not a handoff path.',
+          text: "Commit and push from the editor, pull into your Git folder to run it in the workspace, and the reverse. The extension's sync folder is not Git and is not a handoff path.",
         },
         {
           strong: 'Keep one source of truth.',

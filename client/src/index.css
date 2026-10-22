@@ -146,51 +146,89 @@ body,
 .walkthrough .value-icon { display: inline-flex; align-items: center; justify-content: center; width: 2.5rem; height: 2.5rem; margin: 0 auto 0.75rem; border-radius: 999px; color: var(--brand); background: color-mix(in oklab, var(--brand) 10%, transparent); }
 .walkthrough .value-list h3 { font-size: 0.9375rem; font-weight: 600; line-height: 1.35; }
 .walkthrough .value-list p { margin-top: 0.375rem; font-size: 0.8125rem; line-height: 1.6; color: var(--muted-foreground); }
-.walkthrough .diagram { margin-top: 1.5rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); overflow: hidden; }
-.walkthrough .diagram-scroll { overflow-x: auto; padding: clamp(0.75rem, 2vw, 1.5rem); }
-.walkthrough .diagram { position: relative; }
-.walkthrough .diagram-expand { position: absolute; top: 0.5rem; right: 0.5rem; z-index: 1; border: 1px solid var(--border); border-radius: 999px; background: var(--background); padding: 0.125rem 0.625rem; font-size: 0.75rem; cursor: pointer; }
-.walkthrough .diagram-expand:hover { background: var(--muted); }
-.walkthrough .diagram:fullscreen { display: flex; flex-direction: column; margin: 0; border: 0; border-radius: 0; background: var(--background); }
+/* Diagrams use the Genie Design databricks-architecture library; the rest of the app keeps its look. */
+.walkthrough .diagram {
+  --d-oat: #F9F7F4; --d-oat-2: #EEEDE9; --d-line: #DAD6CE; --d-line-cool: #D5DDE0;
+  --d-ink: #1B3139; --d-ink-2: #44565D; --d-lava: #FF5F46; --d-lava-deep: #E22D17; --d-slate: #618794; --d-blue: #4359FF;
+  --d-sans: 'DM Sans Variable', 'DM Sans', 'Helvetica Neue', Arial, sans-serif;
+  --d-mono: 'DM Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  position: relative; margin-top: 1.5rem; border: 1px solid var(--d-line); border-radius: 16px; background: var(--d-oat); color: var(--d-ink); font-family: var(--d-sans);
+}
+.walkthrough .diagram-scroll { border-radius: 15px; overflow-x: auto; padding: clamp(0.75rem, 2vw, 1.5rem); }
+.walkthrough .diagram-expand { position: absolute; top: 0.5rem; right: 0.5rem; z-index: 2; border: 1px solid var(--d-line); border-radius: 999px; background: #fff; color: var(--d-ink); padding: 0.125rem 0.75rem; font: 500 0.75rem var(--d-mono); letter-spacing: 0.04em; cursor: pointer; }
+.walkthrough .diagram-expand:hover { background: var(--d-oat-2); }
+.walkthrough .diagram-expand:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(67, 89, 255, 0.35); }
+.walkthrough .diagram:fullscreen { display: flex; flex-direction: column; margin: 0; border: 0; border-radius: 0; background: var(--d-oat); }
 .walkthrough .diagram:fullscreen .diagram-scroll { flex: 1; padding: 3rem 1.5rem 1.5rem; }
+.walkthrough .diagram:fullscreen .d-stage { height: 100%; }
 .walkthrough .diagram:fullscreen .d-svg { width: 100%; max-width: none; min-width: 0; height: 100%; }
-.walkthrough .diagram::backdrop { background: var(--background); }
-.walkthrough .d-svg { display: block; width: 100%; max-width: 1100px; min-width: 860px; height: auto; margin-inline: auto; }
+.walkthrough .diagram::backdrop { background: var(--d-oat); }
+.walkthrough .d-stage { position: relative; }
+.walkthrough .d-svg { display: block; width: 100%; max-width: 1100px; min-width: 860px; height: auto; margin-inline: auto; font-family: var(--d-sans); }
 .walkthrough .d-svg-md { max-width: 760px; min-width: 620px; }
-.walkthrough figcaption { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; border-top: 1px solid var(--border); padding: 0.75rem clamp(0.75rem, 2vw, 1.5rem); font-size: 0.75rem; color: var(--muted-foreground); background: var(--muted); }
+.walkthrough .diagram figcaption { border-radius: 0 0 15px 15px; display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; border-top: 1px solid var(--d-line); padding: 0.75rem clamp(0.75rem, 2vw, 1.5rem); font: 400 0.75rem var(--d-mono); color: var(--d-ink-2); background: var(--d-oat-2); }
 .walkthrough .legend-item { display: flex; align-items: center; gap: 0.5rem; }
 .walkthrough .legend-item svg { width: 32px; height: 16px; flex: none; overflow: visible; }
 
 /* Diagram primitives */
-.walkthrough .d-frame { fill: none; stroke: var(--border); stroke-width: 1.5; }
-.walkthrough .d-frame-inner { fill: var(--muted); stroke: var(--border); }
-.walkthrough .d-metastore { fill: var(--background); stroke: var(--muted-foreground); stroke-width: 1; stroke-dasharray: 2 3; }
-.walkthrough .d-lane { fill: var(--muted); stroke: var(--border); }
-.walkthrough .d-box { fill: var(--background); stroke: var(--muted-foreground); stroke-width: 1.25; }
-.walkthrough .d-surface-box { fill: var(--muted); stroke: var(--border); stroke-width: 1.25; }
-.walkthrough .d-prod { stroke: var(--foreground); stroke-width: 2.5; }
-.walkthrough .d-line { fill: none; stroke: var(--foreground); stroke-width: 1.5; }
-.walkthrough .d-dash { fill: none; stroke: var(--brand); stroke-width: 1.5; stroke-dasharray: 5 4; }
-.walkthrough .d-arrowhead { fill: var(--foreground); }
-.walkthrough .d-arrowhead-muted { fill: var(--muted-foreground); }
-.walkthrough .d-gate { fill: var(--accent); stroke: var(--brand); stroke-width: 1.5; }
-.walkthrough .d-cell-own { fill: var(--foreground); }
-.walkthrough .d-prod-cell { stroke: var(--brand); stroke-width: 2.5; }
-.walkthrough .d-cell-none { fill: var(--muted); stroke: var(--border); }
-.walkthrough .d-cell-optional { fill: var(--accent); stroke: var(--brand); stroke-dasharray: 4 3; }
-.walkthrough .t, .walkthrough .t-m, .walkthrough .t-inv, .walkthrough .t-inv-m, .walkthrough .t-label, .walkthrough .t-gutter, .walkthrough .t-gutter-sub { font-family: inherit; }
-.walkthrough .t { font-size: 14px; fill: var(--foreground); }
+.walkthrough .d-lane { fill: var(--d-oat-2); stroke: var(--d-line); }
+.walkthrough .d-rule { fill: var(--d-lava); }
+.walkthrough .d-box { fill: #fff; stroke: var(--d-line-cool); stroke-width: 1; }
+.walkthrough .d-node .d-box, .walkthrough .d-node .d-surface-box { filter: drop-shadow(0 2px 4px rgba(20, 35, 41, 0.08)) drop-shadow(0 1px 1px rgba(20, 35, 41, 0.04)); }
+.walkthrough .d-surface-box { fill: var(--d-oat-2); stroke: var(--d-line); stroke-width: 1; }
+.walkthrough .d-prod { fill: var(--d-ink); stroke: var(--d-ink); }
+.walkthrough .d-icon-chip { fill: #fff; }
+.walkthrough .d-line { fill: none; stroke: var(--d-lava-deep); stroke-width: 1.75; }
+.walkthrough .d-dash { fill: none; stroke: var(--d-slate); stroke-width: 1.75; stroke-dasharray: 5 4; }
+.walkthrough .d-arrowhead { fill: var(--d-lava-deep); }
+.walkthrough .d-arrowhead-muted { fill: var(--d-slate); }
+.walkthrough .d-gate { fill: #FFF3D1; stroke: #FFAB00; stroke-width: 2; }
+.walkthrough .d-cell-own { fill: var(--d-ink); }
+.walkthrough .d-cell-none { fill: var(--d-oat-2); stroke: var(--d-line); }
+.walkthrough .d-cell-optional { fill: #FFEFEC; stroke: var(--d-lava-deep); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.walkthrough .d-node { outline: none; }
+.walkthrough .d-node[data-d-node] { cursor: default; }
+.walkthrough .d-ring { display: none; }
+.walkthrough .d-node:focus-visible .d-ring { display: inline; }
+.walkthrough .d-ring-halo { fill: none; stroke: rgba(67, 89, 255, 0.35); stroke-width: 4; }
+.walkthrough .d-ring-line { fill: none; stroke: var(--d-blue); stroke-width: 1.5; }
+.walkthrough .d-svg .is-dim { opacity: 0.28; }
+.walkthrough .d-svg .d-line.is-on, .walkthrough .d-svg .d-dash.is-on { stroke-width: 2.5; }
+@media (prefers-reduced-motion: no-preference) {
+  .walkthrough .d-svg .d-node, .walkthrough .d-svg .d-line, .walkthrough .d-svg .d-dash, .walkthrough .d-svg .t-edge { transition: opacity 150ms ease; }
+}
+.walkthrough .t, .walkthrough .t-m, .walkthrough .t-inv, .walkthrough .t-inv-m, .walkthrough .t-label, .walkthrough .t-edge { font-family: var(--d-sans); }
+.walkthrough .t { font-size: 14px; font-weight: 500; fill: var(--d-ink); }
 .walkthrough .t-strong { font-weight: 600; }
-.walkthrough .t-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
-.walkthrough .t-m { font-size: 12px; fill: var(--muted-foreground); }
+.walkthrough .t-mono { font-family: var(--d-mono); font-size: 13px; font-weight: 500; }
+.walkthrough .t-m { font-size: 12px; fill: var(--d-ink-2); }
+.walkthrough .t-sub, .walkthrough .t-edge { font-family: var(--d-mono); font-size: 11.5px; }
+.walkthrough .t-edge { fill: var(--d-ink-2); }
 .walkthrough .t-c { text-anchor: middle; }
-.walkthrough .t-halo { paint-order: stroke; stroke: var(--background); stroke-width: 5px; stroke-linejoin: round; }
-.walkthrough .t-halo-lane { paint-order: stroke; stroke: var(--muted); stroke-width: 5px; stroke-linejoin: round; }
-.walkthrough .t-inv { font-size: 14px; font-weight: 600; fill: var(--primary-foreground); }
-.walkthrough .t-inv-m { font-size: 12px; fill: color-mix(in oklab, var(--primary-foreground) 78%, transparent); }
-.walkthrough .t-label { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; fill: var(--muted-foreground); }
-.walkthrough .t-gutter { font-size: 14px; font-weight: 600; fill: var(--foreground); }
-.walkthrough .t-gutter-sub { font-size: 12px; fill: var(--muted-foreground); }
+.walkthrough .t-halo { paint-order: stroke; stroke: var(--d-oat); stroke-width: 4px; stroke-linejoin: round; }
+.walkthrough .t-halo-lane { paint-order: stroke; stroke: var(--d-oat-2); stroke-width: 4px; stroke-linejoin: round; }
+.walkthrough .t-inv { font-size: 14px; font-weight: 600; fill: #fff; }
+.walkthrough .t-inv-m { font-family: var(--d-mono); font-size: 11.5px; fill: #D5DDE0; }
+.walkthrough .t-label { font-family: var(--d-mono); font-size: 11px; font-weight: 500; letter-spacing: 0.12em; fill: var(--d-ink-2); }
+
+/* Tooltip card, an HTML overlay inside .d-stage */
+.walkthrough .d-tip { position: absolute; z-index: 3; width: max-content; max-width: min(320px, calc(100% - 16px)); pointer-events: none; background: #fff; border: 1px solid var(--d-line-cool); border-radius: 12px; padding: 1rem; box-shadow: 0 6px 20px rgba(20, 35, 41, 0.14), 0 1px 3px rgba(20, 35, 41, 0.08); font: 400 0.8125rem/1.5 var(--d-sans); color: var(--d-ink); text-align: left; }
+.walkthrough .d-tip p { margin: 0; line-height: 1.45; }
+.walkthrough .d-tip-eyebrow { display: flex; align-items: center; gap: 0.4rem; font: 500 0.6875rem var(--d-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--d-ink-2); }
+.walkthrough .d-tip-dot { width: 8px; height: 8px; border-radius: 999px; flex: none; }
+.walkthrough .d-tip-swatch { width: 12px; height: 12px; border-radius: 3px; flex: none; border: 1px solid var(--d-line); }
+.walkthrough .d-tip-swatch-own { background: var(--d-ink); border-color: var(--d-ink); }
+.walkthrough .d-tip-swatch-optional { background: #FFEFEC; border: 1.5px dashed var(--d-lava-deep); }
+.walkthrough .d-tip-swatch-none { background: var(--d-oat-2); }
+.walkthrough .d-tip-title { margin-top: 0.25rem !important; font-size: 0.9375rem; font-weight: 600; line-height: 1.3; }
+.walkthrough .d-tip-sub { margin-top: 0.125rem !important; font: 400 0.75rem var(--d-mono); color: var(--d-ink-2); overflow-wrap: anywhere; }
+.walkthrough .d-tip-body { margin-top: 0.625rem !important; color: var(--d-ink-2); }
+.walkthrough .d-tip-strong { color: var(--d-ink); font-weight: 600; }
+.walkthrough .d-tip-group { margin-top: 0.75rem; padding-top: 0.625rem; border-top: 1px solid var(--d-line); }
+.walkthrough .d-tip-group ul { margin: 0.25rem 0 0; padding: 0; list-style: none; display: grid; gap: 0.25rem; }
+.walkthrough .d-tip-node { font-weight: 600; }
+.walkthrough .d-tip-edge { margin-left: 0.4rem; font: 400 0.75rem var(--d-mono); color: var(--d-ink-2); }
+.walkthrough .d-tip-flag { margin-left: 0.4rem; border: 1px dashed var(--d-slate); border-radius: 999px; padding: 0 0.4rem; font: 400 0.6875rem var(--d-mono); color: var(--d-ink-2); white-space: nowrap; }
 
 /* Tables and lists */
 .walkthrough .table-title { margin-top: 2rem; font-size: 1rem; font-weight: 600; }

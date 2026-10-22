@@ -12,23 +12,19 @@ export const walkthrough: Walkthrough = {
     outcomes: [
       {
         title: 'Reruns that do no harm',
-        body:
-          'A MERGE keyed on a stable business key gives the same result when a batch is rerun. A failed overnight load can be retried without duplicate or missing rows.',
+        body: 'A MERGE keyed on a stable business key gives the same result when a batch is rerun. A failed overnight load can be retried without duplicate or missing rows.',
       },
       {
         title: 'Right pattern for each load',
-        body:
-          'MERGE for batch upserts, AUTO CDC for ordered feeds, and INSERT OVERWRITE or REPLACE WHERE for partitions each fit a load shape. Teams avoid full table rewrites.',
+        body: 'MERGE for batch upserts, AUTO CDC for ordered feeds, and INSERT OVERWRITE or REPLACE WHERE for partitions each fit a load shape. Teams avoid full table rewrites.',
       },
       {
         title: 'Loads that stay fast',
-        body:
-          'Liquid clustering on the merge key and deletion vectors let MERGE touch fewer files. Predictive optimization keeps the table healthy, so load windows hold as data grows.',
+        body: 'Liquid clustering on the merge key and deletion vectors let MERGE touch fewer files. Predictive optimization keeps the table healthy, so load windows hold as data grows.',
       },
       {
         title: 'Governed file delivery',
-        body:
-          'Files for partners or legacy systems are written to a Unity Catalog volume, and volume privileges control who can read them. Access to outputs follows the same model as tables.',
+        body: 'Files for partners or legacy systems are written to a Unity Catalog volume, and volume privileges control who can read them. Access to outputs follows the same model as tables.',
       },
     ],
   },
@@ -114,9 +110,27 @@ export const walkthrough: Walkthrough = {
         corner: 'Change type ↓ · Detail →',
         columns: ['Clause', 'Fires when'],
         rows: [
-          { label: 'DELETE', cells: [{ state: 'own', text: 'WHEN MATCHED' }, { state: 'own', text: 'key exists' }] },
-          { label: 'UPDATE', cells: [{ state: 'own', text: 'WHEN MATCHED' }, { state: 'own', text: 'key exists' }] },
-          { label: 'INSERT', cells: [{ state: 'own', text: 'WHEN NOT MATCHED' }, { state: 'own', text: 'key is new' }] },
+          {
+            label: 'DELETE',
+            cells: [
+              { state: 'own', text: 'WHEN MATCHED' },
+              { state: 'own', text: 'key exists' },
+            ],
+          },
+          {
+            label: 'UPDATE',
+            cells: [
+              { state: 'own', text: 'WHEN MATCHED' },
+              { state: 'own', text: 'key exists' },
+            ],
+          },
+          {
+            label: 'INSERT',
+            cells: [
+              { state: 'own', text: 'WHEN NOT MATCHED' },
+              { state: 'own', text: 'key is new' },
+            ],
+          },
         ],
         legend: [{ state: 'own', label: 'Clause that applies' }],
       },
@@ -184,7 +198,10 @@ export const walkthrough: Walkthrough = {
         columns: ['Reader', 'Format and writer'],
         rows: [
           ['Another Spark or SQL system', 'Parquet or Delta, written with Spark'],
-          ['A partner system or legacy loader', 'CSV or pipe-delimited text, written with Spark (coalesce only if the consumer needs one file)'],
+          [
+            'A partner system or legacy loader',
+            'CSV or pipe-delimited text, written with Spark (coalesce only if the consumer needs one file)',
+          ],
           ['An API or event consumer', 'JSON lines, written with Spark'],
           ['A person opening it in Excel', 'XLSX, written with openpyxl for small extracts'],
         ],

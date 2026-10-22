@@ -93,7 +93,10 @@ export const walkthrough: Walkthrough = {
       links: [
         { label: 'Bundle variables', url: 'https://docs.databricks.com/aws/en/dev-tools/bundles/variables' },
         { label: 'Job parameters', url: 'https://docs.databricks.com/aws/en/jobs/parameters' },
-        { label: 'Run a parameterized job task in a loop (for_each)', url: 'https://docs.databricks.com/aws/en/jobs/for-each' },
+        {
+          label: 'Run a parameterized job task in a loop (for_each)',
+          url: 'https://docs.databricks.com/aws/en/jobs/for-each',
+        },
       ],
     },
     {
@@ -105,12 +108,71 @@ export const walkthrough: Walkthrough = {
         description:
           'A bundle variable is set at deploy and becomes the default of a job parameter. The job parameter is passed to each task. An upstream task writes a list of sources as a task value, and a for-each task runs the shared ingestion task once per item. A pipeline reads its own configuration values set from the same bundle variables.',
         nodes: [
-          { id: 'var', label: 'Bundle variables', sub: 'set per target', col: 0, row: 0, kind: 'surface' },
-          { id: 'jobp', label: 'Job parameters', sub: 'defaults from variables', col: 1, row: 0 },
-          { id: 'taskp', label: 'Task parameters', sub: '{{job.parameters.x}}', col: 2, row: 0 },
-          { id: 'list', label: 'Source list', sub: 'task value or static', col: 2, row: 1 },
-          { id: 'each', label: 'for_each task', sub: 'one run per item', col: 3, row: 1, kind: 'highlight' },
-          { id: 'pipe', label: 'Pipeline configuration', sub: '${key} in SQL', col: 1, row: 1 },
+          {
+            id: 'var',
+            label: 'Bundle variables',
+            sub: 'set per target',
+            col: 0,
+            row: 0,
+            kind: 'surface',
+            icon: 'data-file',
+            domain: 'orchestration',
+            detail: 'Bundle variables are set per target at deploy, such as the catalog and the list of sources.',
+          },
+          {
+            id: 'jobp',
+            label: 'Job parameters',
+            sub: 'defaults from variables',
+            col: 1,
+            row: 0,
+            icon: 'workflow',
+            domain: 'orchestration',
+            detail: 'Each job parameter takes its default from a bundle variable and can be overridden for a run.',
+          },
+          {
+            id: 'taskp',
+            label: 'Task parameters',
+            sub: '{{job.parameters.x}}',
+            col: 2,
+            row: 0,
+            icon: 'gear-amber',
+            domain: 'orchestration',
+            detail:
+              'Tasks read job parameters with {{job.parameters.x}}, so one task definition serves every environment.',
+          },
+          {
+            id: 'list',
+            label: 'Source list',
+            sub: 'task value or static',
+            col: 2,
+            row: 1,
+            icon: 'list',
+            domain: 'orchestration',
+            detail: 'The sources to ingest, either static or written by an upstream task as a task value.',
+          },
+          {
+            id: 'each',
+            label: 'for_each task',
+            sub: 'one run per item',
+            col: 3,
+            row: 1,
+            kind: 'highlight',
+            icon: 'gear-lava',
+            domain: 'orchestration',
+            detail:
+              'A for_each task runs the shared ingestion task once per item. Adding a source adds a name to the list, not a copied task.',
+          },
+          {
+            id: 'pipe',
+            label: 'Pipeline configuration',
+            sub: '${key} in SQL',
+            col: 1,
+            row: 1,
+            icon: 'gear-teal',
+            domain: 'data',
+            detail:
+              'A pipeline reads its own configuration values, set from the same bundle variables. SQL reads them as ${key}.',
+          },
         ],
         edges: [
           { from: 'var', to: 'jobp' },
@@ -213,16 +275,21 @@ resources:
           'Start with a catalog per environment in one workspace and bind catalogs to workspaces when you split. Move to a workspace per environment when prod needs separate admins, networking, or compliance scope.',
       },
       links: [
-        { label: 'Declarative Automation Bundles settings', url: 'https://docs.databricks.com/aws/en/dev-tools/bundles/settings' },
+        {
+          label: 'Declarative Automation Bundles settings',
+          url: 'https://docs.databricks.com/aws/en/dev-tools/bundles/settings',
+        },
         { label: 'Deployment modes', url: 'https://docs.databricks.com/aws/en/dev-tools/bundles/deployment-modes' },
-        { label: 'Limit catalog access to specific workspaces', url: 'https://docs.databricks.com/aws/en/catalogs/binding' },
+        {
+          label: 'Limit catalog access to specific workspaces',
+          url: 'https://docs.databricks.com/aws/en/catalogs/binding',
+        },
       ],
     },
     {
       id: 'template',
       heading: 'Templates and shared code',
-      prose:
-        'Parameters reuse one deployment. Templates and packages reuse the project across teams.',
+      prose: 'Parameters reuse one deployment. Templates and packages reuse the project across teams.',
       points: [
         {
           strong: 'Custom bundle templates.',
@@ -295,19 +362,33 @@ resources:
       },
       links: [
         { label: 'Custom bundle templates', url: 'https://docs.databricks.com/aws/en/dev-tools/bundles/templates' },
-        { label: 'Build a Python wheel with a bundle', url: 'https://docs.databricks.com/aws/en/dev-tools/bundles/python-wheel' },
-        { label: 'Bundle library dependencies', url: 'https://docs.databricks.com/aws/en/dev-tools/bundles/library-dependencies' },
+        {
+          label: 'Build a Python wheel with a bundle',
+          url: 'https://docs.databricks.com/aws/en/dev-tools/bundles/python-wheel',
+        },
+        {
+          label: 'Bundle library dependencies',
+          url: 'https://docs.databricks.com/aws/en/dev-tools/bundles/library-dependencies',
+        },
       ],
     },
     {
       id: 'onboarding',
       heading: 'Onboarding a new source',
-      prose:
-        'Measure reuse by what a new source costs. The target is a config entry and a review, not a new job.',
+      prose: 'Measure reuse by what a new source costs. The target is a config entry and a review, not a new job.',
       steps: [
-        { title: 'Add the source to the spec', body: 'Format, mapping, keys, and rules go in the shared spec or a new file.' },
-        { title: 'Render and check', body: 'Run the renderer and the drift check locally. CI runs the same check on the pull request.' },
-        { title: 'Deploy', body: 'Deploy the bundle. The for_each list or the pipeline configuration picks the source up with no new job.' },
+        {
+          title: 'Add the source to the spec',
+          body: 'Format, mapping, keys, and rules go in the shared spec or a new file.',
+        },
+        {
+          title: 'Render and check',
+          body: 'Run the renderer and the drift check locally. CI runs the same check on the pull request.',
+        },
+        {
+          title: 'Deploy',
+          body: 'Deploy the bundle. The for_each list or the pipeline configuration picks the source up with no new job.',
+        },
         {
           title: 'Escalate only when needed',
           body: 'If the source needs behavior the spec cannot express, add an adapter to the shared package instead of forking a job.',

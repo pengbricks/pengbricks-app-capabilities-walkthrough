@@ -8,27 +8,23 @@ export const walkthrough: Walkthrough = {
     'An experiment is reproducible when its run records the data, code, and environment that produced the result, and when that record is enough to run it again. MLflow tracking holds those records. This page covers the pattern: log the dataset version with mlflow.data and mlflow.log_input, capture the Git commit and a pinned environment, fix the sources of randomness, and keep the old data version alive long enough to replay.',
   businessValue: {
     summary:
-      'Any model result can be traced to the data, code, and environment that produced it. ML program owners and reviewers can rerun a result instead of relying on someone\'s memory.',
+      "Any model result can be traced to the data, code, and environment that produced it. ML program owners and reviewers can rerun a result instead of relying on someone's memory.",
     outcomes: [
       {
         title: 'Defensible results',
-        body:
-          'Each run records the Delta table and version, the Git commit, and pinned requirements, so a team can show how a number was produced.',
+        body: 'Each run records the Delta table and version, the Git commit, and pinned requirements, so a team can show how a number was produced.',
       },
       {
         title: 'Easier handoffs',
-        body:
-          'A new team member or reviewer can replay a run from its record. Nothing depends on the original author remembering the setup.',
+        body: 'A new team member or reviewer can replay a run from its record. Nothing depends on the original author remembering the setup.',
       },
       {
         title: 'Fair comparisons',
-        body:
-          'Fixed seeds and a tolerance on comparisons keep teams from chasing small metric shifts that threads or hardware cause.',
+        body: 'Fixed seeds and a tolerance on comparisons keep teams from chasing small metric shifts that threads or hardware cause.',
       },
       {
         title: 'A retention decision to make',
-        body:
-          'Replay works only while Delta keeps the old files. Sponsors should set retention longer than the replay window they need, or snapshot the table.',
+        body: 'Replay works only while Delta keeps the old files. Sponsors should set retention longer than the replay window they need, or snapshot the table.',
       },
     ],
   },
@@ -158,20 +154,24 @@ with mlflow.start_run() as run:
           {
             option: 'mlflow.autolog()',
             when: 'Supported libraries, and exploration where you want records with no extra code.',
-            tradeoffs: 'Logs parameters, metrics, and the model for supported libraries with no extra code. What it records varies by library, and it does not know your data version, seed, or commit.',
+            tradeoffs:
+              'Logs parameters, metrics, and the model for supported libraries with no extra code. What it records varies by library, and it does not know your data version, seed, or commit.',
           },
           {
             option: 'Manual log calls',
             when: 'A custom training loop, a library autologging does not cover, or a fixed set of names across teams.',
-            tradeoffs: 'You decide the names and exactly what is recorded. Every call is code to maintain, and a missed call is a missing record.',
+            tradeoffs:
+              'You decide the names and exactly what is recorded. Every call is code to maintain, and a missed call is a missing record.',
           },
           {
             option: 'Autolog plus explicit calls for the rest',
             when: 'Most production runs.',
-            tradeoffs: 'Default coverage plus the pieces autologging misses: the logged dataset, the seed, the Git commit, and pinned requirements. A short helper keeps the explicit part the same in every project.',
+            tradeoffs:
+              'Default coverage plus the pieces autologging misses: the logged dataset, the seed, the Git commit, and pinned requirements. A short helper keeps the explicit part the same in every project.',
           },
         ],
-        recommendation: 'Turn on autologging and add explicit calls for the data input, seed, commit, and pinned requirements.',
+        recommendation:
+          'Turn on autologging and add explicit calls for the data input, seed, commit, and pinned requirements.',
       },
       links: [
         {
@@ -191,12 +191,71 @@ with mlflow.start_run() as run:
         description:
           'A tracked run records its dataset input, Git commit, parameters, seed, and environment. The rerun reads those records, loads the Delta table at the recorded version, checks out the commit, builds the same environment, trains, and compares its metric to the original within a tolerance.',
         nodes: [
-          { id: 'run', label: 'Tracked run', sub: 'inputs, tags, params', col: 0, row: 0 },
-          { id: 'data', label: 'Dataset input', sub: 'Delta table and version', col: 1, row: 0, kind: 'store' },
-          { id: 'code', label: 'Git commit', sub: 'code at that SHA', col: 1, row: 1, kind: 'surface' },
-          { id: 'env', label: 'Pinned environment', sub: 'requirements, seed', col: 1, row: 2, kind: 'surface' },
-          { id: 're', label: 'Rerun', sub: 'reads only the record', col: 2, row: 1, kind: 'highlight' },
-          { id: 'cmp', label: 'Compare', sub: 'metric within tolerance', col: 3, row: 1, kind: 'gate' },
+          {
+            id: 'run',
+            label: 'Tracked run',
+            sub: 'inputs, tags, params',
+            col: 0,
+            row: 0,
+            icon: 'list',
+            domain: 'ai',
+            detail: 'A tracked run records its dataset input, Git commit, parameters, seed, and environment.',
+          },
+          {
+            id: 'data',
+            label: 'Dataset input',
+            sub: 'Delta table and version',
+            col: 1,
+            row: 0,
+            kind: 'store',
+            icon: 'database',
+            domain: 'data',
+            detail: 'The Delta table and the version the run read, so the rerun loads the same data.',
+          },
+          {
+            id: 'code',
+            label: 'Git commit',
+            sub: 'code at that SHA',
+            col: 1,
+            row: 1,
+            kind: 'surface',
+            icon: 'workflow',
+            domain: 'orchestration',
+            detail: 'The Git commit the run used. The rerun checks out the code at that SHA.',
+          },
+          {
+            id: 'env',
+            label: 'Pinned environment',
+            sub: 'requirements, seed',
+            col: 1,
+            row: 2,
+            kind: 'surface',
+            icon: 'gear-navy',
+            domain: 'neutral',
+            detail: 'The pinned requirements and seed. The rerun builds the same environment from them.',
+          },
+          {
+            id: 're',
+            label: 'Rerun',
+            sub: 'reads only the record',
+            col: 2,
+            row: 1,
+            kind: 'highlight',
+            icon: 'gear-lava',
+            domain: 'ai',
+            detail:
+              'Reads only the record, then loads the data, checks out the commit, builds the environment, and trains.',
+          },
+          {
+            id: 'cmp',
+            label: 'Compare',
+            sub: 'metric within tolerance',
+            col: 3,
+            row: 1,
+            kind: 'gate',
+            domain: 'ai',
+            detail: 'Compares the rerun metric to the original within a tolerance.',
+          },
         ],
         edges: [
           { from: 'run', to: 'data' },
@@ -255,20 +314,24 @@ with mlflow.start_run() as run:
           {
             option: 'Log the Delta table version and rely on time travel',
             when: 'Replays within weeks, on tables you control.',
-            tradeoffs: 'No copy and no extra storage. It works only while the old files exist. VACUUM removes files older than 7 days by default, and raising retention keeps more files, which costs storage on that table.',
+            tradeoffs:
+              'No copy and no extra storage. It works only while the old files exist. VACUUM removes files older than 7 days by default, and raising retention keeps more files, which costs storage on that table.',
           },
           {
             option: 'Deep clone the training set',
             when: 'Models you must reproduce or audit months or years later.',
-            tradeoffs: 'An independent copy of data and metadata that survives VACUUM and later changes to the source. It costs storage, and you log the clone name as the input. A shallow clone still references the source files, so it does not give you this.',
+            tradeoffs:
+              'An independent copy of data and metadata that survives VACUUM and later changes to the source. It costs storage, and you log the clone name as the input. A shallow clone still references the source files, so it does not give you this.',
           },
           {
             option: 'Export to a versioned volume path',
             when: 'The source is not Delta, or an auditor needs plain files.',
-            tradeoffs: 'Portable files with a path you can log. You maintain naming, versioning, and permissions yourself, and the link to table lineage is lost.',
+            tradeoffs:
+              'Portable files with a path you can log. You maintain naming, versioning, and permissions yourself, and the link to table lineage is lost.',
           },
         ],
-        recommendation: 'Pin a Delta version for routine runs and raise retention on tables behind important models. Deep clone the training set when a model has to be reproducible years later.',
+        recommendation:
+          'Pin a Delta version for routine runs and raise retention on tables behind important models. Deep clone the training set when a model has to be reproducible years later.',
       },
       links: [
         {

@@ -12,23 +12,19 @@ export const walkthrough: Walkthrough = {
     outcomes: [
       {
         title: 'Fewer failed deployments',
-        body:
-          'mlflow.models.predict loads the model in an isolated environment built from its pinned requirements and runs an example. A failure shows up before registration, not at deployment.',
+        body: 'mlflow.models.predict loads the model in an isolated environment built from its pinned requirements and runs an example. A failure shows up before registration, not at deployment.',
       },
       {
         title: 'A clear contract for callers',
-        body:
-          'The logged signature defines what a caller must send, and Unity Catalog requires one. Application teams know the inputs without asking the data scientist.',
+        body: 'The logged signature defines what a caller must send, and Unity Catalog requires one. Application teams know the inputs without asking the data scientist.',
       },
       {
         title: 'Lower security risk',
-        body:
-          'Pickle runs code on load. MLflow flavors, ONNX, and skops avoid that, and trusted pickle files can be wrapped as pyfunc models.',
+        body: 'Pickle runs code on load. MLflow flavors, ONNX, and skops avoid that, and trusted pickle files can be wrapped as pyfunc models.',
       },
       {
         title: 'Consistent predictions',
-        body:
-          'A Feature View defines a feature once for training and serving, which removes the most common source of training-serving skew.',
+        body: 'A Feature View defines a feature once for training and serving, which removes the most common source of training-serving skew.',
       },
     ],
   },
@@ -66,12 +62,73 @@ export const walkthrough: Walkthrough = {
         description:
           'Training produces a fitted model. Logging stores it with a signature, input example, and pinned requirements. A validation step loads the logged model in an isolated environment and runs the input example. A passing model registers in Unity Catalog with an alias.',
         nodes: [
-          { id: 'fit', label: 'Train', sub: 'fitted model, metrics', col: 0, row: 0 },
-          { id: 'log', label: 'log_model', sub: 'signature and example', mono: true, col: 1, row: 0, kind: 'highlight' },
-          { id: 'req', label: 'Pinned requirements', sub: 'exact versions', col: 1, row: 1, kind: 'surface' },
-          { id: 'val', label: 'Validate', sub: 'mlflow.models.predict', mono: true, col: 2, row: 0, kind: 'gate' },
-          { id: 'reg', label: 'Unity Catalog', sub: 'version plus alias', col: 3, row: 0, kind: 'store' },
-          { id: 'srv', label: 'Serve or batch score', sub: 'load by alias', col: 4, row: 0 },
+          {
+            id: 'fit',
+            label: 'Train',
+            sub: 'fitted model, metrics',
+            col: 0,
+            row: 0,
+            icon: 'gear-maroon',
+            domain: 'ai',
+            detail: 'Training produces the fitted model and its metrics.',
+          },
+          {
+            id: 'log',
+            label: 'log_model',
+            sub: 'signature and example',
+            mono: true,
+            col: 1,
+            row: 0,
+            kind: 'highlight',
+            icon: 'gear-lava',
+            domain: 'ai',
+            detail:
+              'Stores the model with a signature, an input example, and pinned requirements. Without them the model works on your cluster and fails on the endpoint.',
+          },
+          {
+            id: 'req',
+            label: 'Pinned requirements',
+            sub: 'exact versions',
+            col: 1,
+            row: 1,
+            kind: 'surface',
+            icon: 'list',
+            domain: 'ai',
+            detail: 'Exact package versions logged with the model, so the serving environment matches training.',
+          },
+          {
+            id: 'val',
+            label: 'Validate',
+            sub: 'mlflow.models.predict',
+            mono: true,
+            col: 2,
+            row: 0,
+            kind: 'gate',
+            domain: 'ai',
+            detail:
+              'Loads the logged model in an isolated environment and runs the input example. A model that fails here never gets registered.',
+          },
+          {
+            id: 'reg',
+            label: 'Unity Catalog',
+            sub: 'version plus alias',
+            col: 3,
+            row: 0,
+            kind: 'store',
+            icon: 'database',
+            domain: 'governance',
+            detail: 'A passing model registers in Unity Catalog as a new version with an alias.',
+          },
+          {
+            id: 'srv',
+            label: 'Serve or batch score',
+            sub: 'load by alias',
+            col: 4,
+            row: 0,
+            icon: 'gear-maroon',
+            domain: 'ai',
+            detail: 'Serving and batch scoring load the model by alias.',
+          },
         ],
         edges: [
           { from: 'fit', to: 'log' },
@@ -186,12 +243,14 @@ mlflow.models.predict(
           {
             option: 'MLflow native flavor (sklearn, xgboost, lightgbm, pytorch, transformers)',
             when: 'The default.',
-            tradeoffs: 'The flavor handles serialization, versions, and the signature. It covers the frameworks MLflow has a flavor for, and anything else needs a pyfunc wrapper.',
+            tradeoffs:
+              'The flavor handles serialization, versions, and the signature. It covers the frameworks MLflow has a flavor for, and anything else needs a pyfunc wrapper.',
           },
           {
             option: 'ONNX',
             when: 'Portable across frameworks and runtimes, and fast for inference. Convert once, then serve anywhere ONNX Runtime runs.',
-            tradeoffs: 'The conversion is an extra step that can fail on unsupported operators. Compare predictions with the original model before you register it.',
+            tradeoffs:
+              'The conversion is an extra step that can fail on unsupported operators. Compare predictions with the original model before you register it.',
           },
           {
             option: 'skops',
@@ -201,10 +260,12 @@ mlflow.models.predict(
           {
             option: 'Pickle or cloudpickle',
             when: 'A last resort for a model you cannot retrain.',
-            tradeoffs: 'Loading runs arbitrary code from the file and breaks across library versions. Load only files from a source you control, and pin the library versions.',
+            tradeoffs:
+              'Loading runs arbitrary code from the file and breaks across library versions. Load only files from a source you control, and pin the library versions.',
           },
         ],
-        recommendation: 'Use the native flavor by default. Convert to ONNX when you need portability, and wrap a pickled pipeline in a pyfunc model only when retraining is impossible.',
+        recommendation:
+          'Use the native flavor by default. Convert to ONNX when you need portability, and wrap a pickled pipeline in a pyfunc model only when retraining is impossible.',
       },
     },
     {
@@ -266,20 +327,24 @@ mlflow.models.predict(
           {
             option: 'Feature Views, looked up at serving',
             when: 'Features are shared across models, use time windows, or are needed online.',
-            tradeoffs: 'One definition serves training and serving, with point-in-time joins for training sets. You manage materialization and an online store, which adds cost and a sync delay.',
+            tradeoffs:
+              'One definition serves training and serving, with point-in-time joins for training sets. You manage materialization and an online store, which adds cost and a sync delay.',
           },
           {
             option: 'Transformations packaged inside the model',
             when: 'Features come from the request alone, or only one model uses them.',
-            tradeoffs: 'Nothing extra to deploy, and the same code runs at training and serving if you reuse it. It cannot look up history or aggregates at request time, and each model repeats its own logic.',
+            tradeoffs:
+              'Nothing extra to deploy, and the same code runs at training and serving if you reuse it. It cannot look up history or aggregates at request time, and each model repeats its own logic.',
           },
           {
             option: 'Features computed by the caller',
             when: 'The caller already owns the values, such as the current cart in a web app.',
-            tradeoffs: 'No lookup at the endpoint. The caller must reproduce the training logic, which is how training-serving skew starts, so test for parity.',
+            tradeoffs:
+              'No lookup at the endpoint. The caller must reproduce the training logic, which is how training-serving skew starts, so test for parity.',
           },
         ],
-        recommendation: 'Use Feature Views for shared, time-windowed, or online features. Package request-only transformations in the model, and accept caller-computed values only with a parity test against training.',
+        recommendation:
+          'Use Feature Views for shared, time-windowed, or online features. Package request-only transformations in the model, and accept caller-computed values only with a parity test against training.',
       },
       links: [
         {

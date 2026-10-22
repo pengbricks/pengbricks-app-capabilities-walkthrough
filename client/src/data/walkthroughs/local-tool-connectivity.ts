@@ -12,23 +12,19 @@ export const walkthrough: Walkthrough = {
     outcomes: [
       {
         title: 'No tool migration',
-        body:
-          'Every client reaches one serverless SQL warehouse, so teams keep the tools they know and a single warehouse serves them all.',
+        body: 'Every client reaches one serverless SQL warehouse, so teams keep the tools they know and a single warehouse serves them all.',
       },
       {
         title: 'Stronger sign-in',
-        body:
-          'People sign in with OAuth in the browser, and scheduled tools use a service principal. No password or personal access token sits in a shared workbook.',
+        body: 'People sign in with OAuth in the browser, and scheduled tools use a service principal. No password or personal access token sits in a shared workbook.',
       },
       {
         title: 'Permissions enforced at the source',
-        body:
-          'A local client sees only the tables its signed-in user or service principal can read, so Unity Catalog rules apply in Excel or Power BI as they do in the workspace.',
+        body: 'A local client sees only the tables its signed-in user or service principal can read, so Unity Catalog rules apply in Excel or Power BI as they do in the workspace.',
       },
       {
         title: 'Capacity you can plan',
-        body:
-          'The guide covers sizing the warehouse for the BI crowd and restricting network access, so heavy concurrent use does not surprise the platform owner.',
+        body: 'The guide covers sizing the warehouse for the BI crowd and restricting network access, so heavy concurrent use does not surprise the platform owner.',
       },
     ],
   },
@@ -67,13 +63,79 @@ export const walkthrough: Walkthrough = {
         corner: 'Tool ↓ · Detail →',
         columns: ['Client', 'Compute', 'Sign-in'],
         rows: [
-          { label: 'Excel', sub: 'pivot, SQL, write back', cells: [{ state: 'own', text: 'Excel Add-in (GA)' }, { state: 'own', text: 'SQL warehouse' }, { state: 'own', text: 'OAuth U2M' }] },
-          { label: 'Power BI', sub: 'reports, semantic models', cells: [{ state: 'own', text: 'Databricks connector' }, { state: 'own', text: 'SQL warehouse' }, { state: 'own', text: 'OAuth U2M or M2M' }] },
-          { label: 'Tableau', sub: 'Desktop, Cloud', cells: [{ state: 'own', text: 'Databricks connector' }, { state: 'own', text: 'SQL warehouse' }, { state: 'own', text: 'OAuth' }] },
-          { label: 'Python', sub: 'pandas, scripts', cells: [{ state: 'own', text: 'SQL connector' }, { state: 'own', text: 'SQL warehouse' }, { state: 'own', text: 'U2M or M2M' }] },
-          { label: 'Python (Spark API)', sub: 'DataFrame code', cells: [{ state: 'own', text: 'Databricks Connect' }, { state: 'own', text: 'Serverless' }, { state: 'own', text: 'U2M or M2M' }] },
-          { label: 'R', sub: 'DBI, dplyr', cells: [{ state: 'own', text: 'odbc or RJDBC' }, { state: 'own', text: 'SQL warehouse' }, { state: 'own', text: 'U2M or M2M' }] },
-          { label: 'SAS and SPSS', sub: 'SAS/ACCESS, Database Wizard', cells: [{ state: 'own', text: 'ODBC or JDBC' }, { state: 'own', text: 'SQL warehouse' }, { state: 'optional', text: 'M2M for batch' }] },
+          {
+            label: 'Excel',
+            sub: 'pivot, SQL, write back',
+            cells: [
+              { state: 'own', text: 'Excel Add-in (GA)' },
+              { state: 'own', text: 'SQL warehouse' },
+              { state: 'own', text: 'OAuth U2M' },
+            ],
+          },
+          {
+            label: 'Power BI',
+            sub: 'reports, semantic models',
+            cells: [
+              { state: 'own', text: 'Databricks connector' },
+              { state: 'own', text: 'SQL warehouse' },
+              { state: 'own', text: 'OAuth U2M or M2M' },
+            ],
+          },
+          {
+            label: 'Tableau',
+            sub: 'Desktop, Cloud',
+            cells: [
+              { state: 'own', text: 'Databricks connector' },
+              { state: 'own', text: 'SQL warehouse' },
+              { state: 'own', text: 'OAuth' },
+            ],
+          },
+          {
+            label: 'Python',
+            sub: 'pandas, scripts',
+            cells: [
+              { state: 'own', text: 'SQL connector' },
+              { state: 'own', text: 'SQL warehouse' },
+              { state: 'own', text: 'U2M or M2M' },
+            ],
+          },
+          {
+            label: 'Python (Spark API)',
+            sub: 'DataFrame code',
+            cells: [
+              { state: 'own', text: 'Databricks Connect' },
+              {
+                state: 'own',
+                text: 'Serverless',
+                detail:
+                  'Developers who write Spark code in an IDE connect with Databricks Connect and have no cluster to manage.',
+              },
+              { state: 'own', text: 'U2M or M2M' },
+            ],
+          },
+          {
+            label: 'R',
+            sub: 'DBI, dplyr',
+            cells: [
+              { state: 'own', text: 'odbc or RJDBC' },
+              { state: 'own', text: 'SQL warehouse' },
+              { state: 'own', text: 'U2M or M2M' },
+            ],
+          },
+          {
+            label: 'SAS and SPSS',
+            sub: 'SAS/ACCESS, Database Wizard',
+            cells: [
+              { state: 'own', text: 'ODBC or JDBC' },
+              { state: 'own', text: 'SQL warehouse' },
+              {
+                state: 'optional',
+                text: 'M2M for batch',
+                detail:
+                  "Batch SAS jobs run unattended, so they sign in as a service principal. Everyone using it gets that principal's access.",
+              },
+            ],
+          },
         ],
         legend: [
           { state: 'own', label: 'Recommended path' },
@@ -110,12 +172,71 @@ export const walkthrough: Walkthrough = {
           { label: 'Workspace', fromRow: 1, toRow: 1 },
         ],
         nodes: [
-          { id: 'tool', label: 'Local client', sub: 'Excel, BI, Python, R', col: 0, row: 0 },
-          { id: 'u2m', label: 'Browser sign-in', sub: 'OAuth U2M', col: 1, row: 0 },
-          { id: 'm2m', label: 'Client ID and secret', sub: 'OAuth M2M', col: 2, row: 0 },
-          { id: 'token', label: 'Workspace OAuth', sub: 'issues a token', col: 1, row: 1, kind: 'highlight' },
-          { id: 'wh', label: 'SQL warehouse', sub: 'runs the statement', col: 2, row: 1 },
-          { id: 'uc', label: 'Unity Catalog', sub: 'checks privileges', col: 3, row: 1, kind: 'gate' },
+          {
+            id: 'tool',
+            label: 'Local client',
+            sub: 'Excel, BI, Python, R',
+            col: 0,
+            row: 0,
+            icon: 'users',
+            domain: 'apps',
+            detail:
+              'Excel, a BI tool, Python, or R on your machine. It asks for a token, then sends the token and a SQL statement to the warehouse.',
+          },
+          {
+            id: 'u2m',
+            label: 'Browser sign-in',
+            sub: 'OAuth U2M',
+            col: 1,
+            row: 0,
+            icon: 'id-provider',
+            domain: 'governance',
+            detail:
+              'The user signs in through the browser once and a token is cached. Queries then run as that person, so per-user grants and masks apply.',
+          },
+          {
+            id: 'm2m',
+            label: 'Client ID and secret',
+            sub: 'OAuth M2M',
+            col: 2,
+            row: 0,
+            icon: 'id-provider',
+            domain: 'governance',
+            detail:
+              'A service principal exchanges its client ID and secret for a token. It runs unattended, and each access token lasts one hour.',
+          },
+          {
+            id: 'token',
+            label: 'Workspace OAuth',
+            sub: 'issues a token',
+            col: 1,
+            row: 1,
+            kind: 'highlight',
+            icon: 'id-provider',
+            domain: 'governance',
+            detail: 'The workspace OAuth endpoint issues the token for either path.',
+          },
+          {
+            id: 'wh',
+            label: 'SQL warehouse',
+            sub: 'runs the statement',
+            col: 2,
+            row: 1,
+            icon: 'warehouse',
+            domain: 'apps',
+            detail: 'Receives the bearer token and runs the SQL statement. A serverless warehouse starts in seconds.',
+          },
+          {
+            id: 'uc',
+            label: 'Unity Catalog',
+            sub: 'checks privileges',
+            col: 3,
+            row: 1,
+            kind: 'gate',
+            domain: 'governance',
+            detail:
+              'Checks Unity Catalog privileges for the signed-in identity, so a client sees only the tables that identity can read.',
+          },
         ],
         edges: [
           { from: 'tool', to: 'u2m' },
@@ -135,7 +256,7 @@ export const walkthrough: Walkthrough = {
         {
           label: 'Sign in from a terminal',
           language: 'sh',
-          code: '# U2M: opens a browser once and caches a token\ndatabricks auth login --host https://<workspace-host>\n\n# M2M: a service principal\'s OAuth secret\nexport DATABRICKS_HOST=https://<workspace-host>\nexport DATABRICKS_CLIENT_ID=<application-id>\nexport DATABRICKS_CLIENT_SECRET=<oauth-secret>',
+          code: "# U2M: opens a browser once and caches a token\ndatabricks auth login --host https://<workspace-host>\n\n# M2M: a service principal's OAuth secret\nexport DATABRICKS_HOST=https://<workspace-host>\nexport DATABRICKS_CLIENT_ID=<application-id>\nexport DATABRICKS_CLIENT_SECRET=<oauth-secret>",
           notes: ['The SQL connector, Databricks Connect, and odbc::databricks() all read these settings.'],
         },
       ],
@@ -145,20 +266,24 @@ export const walkthrough: Walkthrough = {
           {
             option: 'OAuth U2M: the user signs in',
             when: 'Excel, Power BI Desktop, Tableau, and interactive Python or R.',
-            tradeoffs: 'Queries run as the person, so Unity Catalog grants, row filters, and masks apply per user and the audit log names them. It needs an interactive browser sign-in, so it cannot run unattended.',
+            tradeoffs:
+              'Queries run as the person, so Unity Catalog grants, row filters, and masks apply per user and the audit log names them. It needs an interactive browser sign-in, so it cannot run unattended.',
           },
           {
             option: 'OAuth M2M: a service principal',
             when: 'Scheduled reports, batch SAS jobs, and shared refreshes.',
-            tradeoffs: 'Runs unattended. Everyone using it gets the service principal\'s access, so per-person row filters do not apply. The client secret has to be stored and rotated, and each access token lasts one hour.',
+            tradeoffs:
+              "Runs unattended. Everyone using it gets the service principal's access, so per-person row filters do not apply. The client secret has to be stored and rotated, and each access token lasts one hour.",
           },
           {
             option: 'OAuth token federation',
             when: 'Your identity provider already issues tokens.',
-            tradeoffs: 'The client holds no Databricks secret. You set up a federation policy and depend on the identity provider\'s tokens.',
+            tradeoffs:
+              "The client holds no Databricks secret. You set up a federation policy and depend on the identity provider's tokens.",
           },
         ],
-        recommendation: 'Use U2M for people, M2M for scheduled unattended work, and token federation where your identity provider can supply tokens.',
+        recommendation:
+          'Use U2M for people, M2M for scheduled unattended work, and token federation where your identity provider can supply tokens.',
       },
       links: [
         {
@@ -214,10 +339,22 @@ export const walkthrough: Walkthrough = {
       id: 'examples',
       heading: 'Developer and statistics tools',
       points: [
-        { strong: 'Python SQL connector.', text: 'sql.connect with credentials_provider=lambda: cfg.authenticate works for U2M and M2M.' },
-        { strong: 'Databricks Connect.', text: 'DatabricksSession.builder.serverless(True) runs DataFrame code on serverless compute from your IDE.' },
-        { strong: 'R.', text: 'DBI with odbc::databricks() reads tables on the warehouse. For Spark work from R, use sparklyr through Databricks Connect.' },
-        { strong: 'SAS, SPSS, and other desktop tools.', text: 'Configure the Databricks ODBC or JDBC driver with the warehouse host and HTTP path, and sign in with OAuth.' },
+        {
+          strong: 'Python SQL connector.',
+          text: 'sql.connect with credentials_provider=lambda: cfg.authenticate works for U2M and M2M.',
+        },
+        {
+          strong: 'Databricks Connect.',
+          text: 'DatabricksSession.builder.serverless(True) runs DataFrame code on serverless compute from your IDE.',
+        },
+        {
+          strong: 'R.',
+          text: 'DBI with odbc::databricks() reads tables on the warehouse. For Spark work from R, use sparklyr through Databricks Connect.',
+        },
+        {
+          strong: 'SAS, SPSS, and other desktop tools.',
+          text: 'Configure the Databricks ODBC or JDBC driver with the warehouse host and HTTP path, and sign in with OAuth.',
+        },
       ],
       options: {
         caption: 'Which client to use from Python and other languages',
@@ -225,20 +362,24 @@ export const walkthrough: Walkthrough = {
           {
             option: 'Databricks SQL connector for Python',
             when: 'A script or app that sends SQL and wants rows back, for example into pandas.',
-            tradeoffs: 'A light client with no Spark install. SQL runs on a SQL warehouse and you pay for the warehouse. There is no DataFrame API, and results must fit in the local process.',
+            tradeoffs:
+              'A light client with no Spark install. SQL runs on a SQL warehouse and you pay for the warehouse. There is no DataFrame API, and results must fit in the local process.',
           },
           {
             option: 'Databricks Connect',
             when: 'DataFrame code written locally and run on serverless compute.',
-            tradeoffs: 'The full DataFrame API with local debugging and tests. The install is heavier, the client version must match the compute, and serverless limits apply.',
+            tradeoffs:
+              'The full DataFrame API with local debugging and tests. The install is heavier, the client version must match the compute, and serverless limits apply.',
           },
           {
             option: 'ODBC or JDBC driver',
             when: 'Tools that only speak ODBC or JDBC, such as SAS and SPSS, or R with odbc.',
-            tradeoffs: 'Works with many desktop tools through generic drivers. It needs per-tool driver setup and gives you no DataFrame API.',
+            tradeoffs:
+              'Works with many desktop tools through generic drivers. It needs per-tool driver setup and gives you no DataFrame API.',
           },
         ],
-        recommendation: 'Use the SQL connector for scripts that need rows, Databricks Connect for DataFrame code and tests, and ODBC or JDBC only where the tool requires it.',
+        recommendation:
+          'Use the SQL connector for scripts that need rows, Databricks Connect for DataFrame code and tests, and ODBC or JDBC only where the tool requires it.',
       },
       links: [
         {

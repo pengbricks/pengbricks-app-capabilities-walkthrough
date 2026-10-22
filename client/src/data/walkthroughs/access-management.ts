@@ -12,23 +12,19 @@ export const walkthrough: Walkthrough = {
     outcomes: [
       {
         title: 'Least privilege that survives turnover',
-        body:
-          'Grants go to account-level groups. When someone changes roles, they move groups in the identity provider and no grant needs editing, so no forgotten direct grants remain.',
+        body: 'Grants go to account-level groups. When someone changes roles, they move groups in the identity provider and no grant needs editing, so no forgotten direct grants remain.',
       },
       {
         title: 'Production walled off from development',
-        body:
-          'One catalog per environment, bound to its own workspaces, keeps a dev mistake from reaching production data. Two schemas in one catalog share a blast radius.',
+        body: 'One catalog per environment, bound to its own workspaces, keeps a dev mistake from reaching production data. Two schemas in one catalog share a blast radius.',
       },
       {
         title: 'Fewer rules to maintain',
-        body:
-          'ABAC with governed tags lets one policy cover every table that carries a tag. Admins stop writing a grant or function per table, which removes a common source of gaps.',
+        body: 'ABAC with governed tags lets one policy cover every table that carries a tag. Admins stop writing a grant or function per table, which removes a common source of gaps.',
       },
       {
         title: 'Permission changes are visible',
-        body:
-          'system.access.audit records grants, revokes, and ownership changes. Security can review them and alert on the ones that matter, such as a grant to a person instead of a group.',
+        body: 'system.access.audit records grants, revokes, and ownership changes. Security can review them and alert on the ones that matter, such as a grant to a person instead of a group.',
       },
     ],
   },
@@ -119,7 +115,12 @@ WHERE grantee LIKE '%@%';`,
             label: 'Engineers',
             cells: [
               { state: 'own', text: 'Read, write, create' },
-              { state: 'optional', text: 'Read only' },
+              {
+                state: 'optional',
+                text: 'Read only',
+                detail:
+                  'Code moves to prod through CI running as a service principal. People do not edit prod data by hand.',
+              },
             ],
           },
           {
@@ -133,7 +134,12 @@ WHERE grantee LIKE '%@%';`,
             label: 'Deploy service principal',
             cells: [
               { state: 'none', text: 'None needed' },
-              { state: 'own', text: 'Write, owner of objects' },
+              {
+                state: 'own',
+                text: 'Write, owner of objects',
+                detail:
+                  'CI runs as this service principal to promote code, and production objects are owned by a service principal instead of a person.',
+              },
             ],
           },
         ],
@@ -190,8 +196,7 @@ WHERE grantee LIKE '%@%';`,
           },
           {
             option: 'ABAC policies on governed tags',
-            when:
-              'A rule follows a classification across many tables, such as hiding PII from everyone but compliance.',
+            when: 'A rule follows a classification across many tables, such as hiding PII from everyone but compliance.',
             tradeoffs:
               'One policy covers every tagged table, including new ones. Tagging becomes a security control, so restrict who can assign tags. It needs governed tags and MANAGE on the scope, and policies have quotas and compute requirements.',
           },
