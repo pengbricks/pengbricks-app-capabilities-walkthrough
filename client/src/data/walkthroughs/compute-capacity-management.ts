@@ -35,7 +35,7 @@ export const walkthrough: Walkthrough = {
     },
     {
       title: 'Pro for custom networking, classic for little.',
-      body: 'Pro keeps compute in your AWS account and drops Intelligent Workload Management. Classic also drops Predictive IO and cannot run AI Functions or materialized views. Through the API, set warehouse_type and enable_serverless_compute yourself, because the API default is classic.',
+      body: 'Pro keeps compute in your cloud account and drops Intelligent Workload Management. Classic also drops Predictive IO and cannot run AI Functions or materialized views. Through the API, set warehouse_type and enable_serverless_compute yourself, because the API default is classic.',
     },
     {
       title: 'Serverless jobs and notebooks for the rest.',
@@ -110,13 +110,13 @@ export const walkthrough: Walkthrough = {
             cells: [
               {
                 state: 'optional',
-                text: 'Your AWS account',
-                detail: 'The compute layer sits in your AWS account, so you can use your own networking.',
+                text: 'Your cloud account',
+                detail: 'The compute layer sits in your cloud account, so you can use your own networking.',
               },
               {
                 state: 'optional',
-                text: 'Your AWS account',
-                detail: 'The compute layer sits in your AWS account, so you can use your own networking.',
+                text: 'Your cloud account',
+                detail: 'The compute layer sits in your cloud account, so you can use your own networking.',
               },
               {
                 state: 'own',
@@ -297,7 +297,7 @@ export const walkthrough: Walkthrough = {
         },
         {
           strong: 'Pro lacks.',
-          text: 'IWM. It reacts more slowly to swings in demand, cannot autoscale as fast, and takes about 4 minutes to start. In return the compute sits in your AWS account.',
+          text: 'IWM. It reacts more slowly to swings in demand, cannot autoscale as fast, and takes about 4 minutes to start. In return the compute sits in your cloud account.',
         },
         {
           strong: 'Serverless networking.',
@@ -305,7 +305,7 @@ export const walkthrough: Walkthrough = {
         },
         {
           strong: 'Serverless limits.',
-          text: 'Cluster policies, including spot policies, are not supported. Serverless warehouses do not use customer-managed keys for EBS encryption and cannot run in a workspace that uses a legacy external Hive metastore. The CPU architecture can change between restarts, which can break Unity Catalog Python UDFs that use platform-specific wheels.',
+          text: 'Cluster policies, including spot policies, are not supported. Serverless warehouses do not use customer-managed keys for instance disk encryption and cannot run in a workspace that uses a legacy external Hive metastore. The CPU architecture can change between restarts, which can break Unity Catalog Python UDFs that use platform-specific wheels.',
         },
         {
           strong: 'UI and API defaults differ.',
@@ -381,7 +381,7 @@ export const walkthrough: Walkthrough = {
         },
         {
           strong: 'Cost model by type.',
-          text: 'On pro and classic you pay DBUs plus the instances in your AWS account, and autoscaling adds a cluster after 2 to 6 minutes of estimated load. Scale-down comes after 15 consecutive minutes of low load. Serverless bills in the Databricks account with no instances in yours, though private connectivity and cross-region transfer can add network charges. Compare current rates on the Databricks SQL pricing page.',
+          text: 'On pro and classic you pay DBUs plus the instances in your cloud account, and autoscaling adds a cluster after 2 to 6 minutes of estimated load. Scale-down comes after 15 consecutive minutes of low load. Serverless bills in the Databricks account with no instances in yours, though private connectivity and cross-region transfer can add network charges. Compare current rates on the Databricks SQL pricing page.',
         },
         {
           strong: 'Test with realistic load.',

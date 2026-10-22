@@ -20,7 +20,7 @@ export const faqs: Faq[] = [
   {
     question: 'How do I connect a private or on-premises Git server?',
     answer:
-      'Use the Git server proxy, which routes Git commands through a compute resource in your workspace. Serverless Private Git, in Public Preview, does the same through serverless compute and PrivateLink. Cloud-hosted providers on the public internet need neither.',
+      'Use the Git server proxy, which routes Git commands through a compute resource in your workspace. Serverless Private Git, in Public Preview, does the same through serverless compute and private connectivity. Cloud-hosted providers on the public internet need neither.',
     links: [{ label: 'Git server proxy for Git folders', url: 'https://docs.databricks.com/aws/en/repos/git-proxy' }],
   },
   {

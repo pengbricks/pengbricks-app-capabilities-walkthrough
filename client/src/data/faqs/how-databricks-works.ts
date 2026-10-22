@@ -4,12 +4,12 @@ export const faqs: Faq[] = [
   {
     question: 'Does stopping compute delete my data?',
     answer:
-      'No. Tables are Delta or Iceberg files in your own ADLS, S3, or GCS account, so stopping or replacing compute deletes nothing. You can run DESCRIBE DETAIL again after a warehouse restarts and see the same files.',
+      'No. Tables are Delta or Iceberg files in your own cloud object storage, so stopping or replacing compute deletes nothing. You can run DESCRIBE DETAIL again after a warehouse restarts and see the same files.',
   },
   {
     question: 'When should I use classic compute instead of serverless?',
     answer:
-      'Start on serverless, and move a single workload to classic only when it needs R, Spark RDD APIs, Maven libraries, a specific instance type or GPU, or a network path your own VPC controls. Classic gives full control over runtime and libraries, but you size the cluster and set auto-termination yourself.',
+      'Start on serverless, and move a single workload to classic only when it needs R, Spark RDD APIs, Maven libraries, a specific instance type or GPU, or a network path your own virtual network controls. Classic gives full control over runtime and libraries, but you size the cluster and set auto-termination yourself.',
     links: [
       {
         label: 'Serverless compute limitations',

@@ -201,7 +201,7 @@ export const walkthrough: Walkthrough = {
         },
         {
           strong: 'Private paths.',
-          text: 'For regulated workloads, front the workspace with Private Link and restrict ingress, so the endpoint is reachable only from your network.',
+          text: 'For regulated workloads, front the workspace with private connectivity and restrict ingress, so the endpoint is reachable only from your network.',
         },
       ],
       links: [
