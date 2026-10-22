@@ -2585,10 +2585,10 @@
     {
       "path": "reference/lakebase-apps/resources/lakebase.postgres.yml",
       "symbol": null,
-      "startLine": 12,
-      "endLine": 39,
+      "startLine": 13,
+      "endLine": 32,
       "language": "yml",
-      "code": "  postgres_projects:\n    lakebase_apps:\n      project_id: ${var.lakebase_project}\n      display_name: Capability guides, app development with Lakebase\n      pg_version: 17\n      # Delete the project's data when the bundle is destroyed, so a destroy leaves nothing billing.\n      purge_on_delete: true\n      default_endpoint_settings:\n        autoscaling_limit_min_cu: 0.5\n        autoscaling_limit_max_cu: 2\n        # Scale to zero after five idle minutes. The default is 24 hours, which suits production.\n        suspend_timeout_duration: 300s\n\n  postgres_branches:\n    dev:\n      parent: ${resources.postgres_projects.lakebase_apps.id}\n      branch_id: dev\n      source_branch: ${resources.postgres_projects.lakebase_apps.id}/branches/production\n      ttl: 604800s\n\n  postgres_endpoints:\n    dev_rw:\n      parent: ${resources.postgres_branches.dev.id}\n      endpoint_id: primary\n      endpoint_type: ENDPOINT_TYPE_READ_WRITE\n      autoscaling_limit_min_cu: 0.5\n      autoscaling_limit_max_cu: 2\n      suspend_timeout_duration: 300s",
+      "code": "resources:\n  postgres_projects:\n    lakebase_apps:\n      project_id: ${var.lakebase_project}\n      display_name: Capability guides, app development with Lakebase\n      pg_version: 17\n      # Delete the project's data when the bundle is destroyed, so a destroy leaves nothing billing.\n      purge_on_delete: true\n      default_endpoint_settings:\n        autoscaling_limit_min_cu: 0.5\n        autoscaling_limit_max_cu: 2\n        # Scale to zero after five idle minutes. The default is 24 hours, which suits production.\n        suspend_timeout_duration: 300s\n\n  postgres_branches:\n    dev:\n      parent: ${resources.postgres_projects.lakebase_apps.id}\n      branch_id: dev\n      source_branch: ${resources.postgres_projects.lakebase_apps.id}/branches/production\n      ttl: 604800s",
       "functions": {}
     },
     {
