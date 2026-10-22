@@ -2,6 +2,8 @@
 # MAGIC %md
 # MAGIC # CDC and incremental refresh in pipelines
 # MAGIC
+# MAGIC Safe to rerun: it only lists links to the deployed job and pipeline and writes nothing.
+# MAGIC
 # MAGIC This guide loads change data from three kinds of source into one serverless Lakeflow Declarative Pipeline with AUTO CDC, then measures what an incremental update, a full refresh and a selective full refresh each do. The sources are Debezium-style change files, the Delta change data feed of an operational table, and a snapshot table that is replaced whole on every run. A materialized view over the type 1 table shows incremental materialized view refresh.
 # MAGIC
 # MAGIC ## Notebooks, in run order

@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # 2. Prepare the semantics
 # MAGIC
-# MAGIC Adds table and column comments, tags, and the `sales_metrics` metric view. Comments and tags are set in place, and the metric view is created or replaced.
+# MAGIC Adds table and column comments, tags, and the `sales_metrics` metric view. Safe to rerun: comments and tags are set in place, and the metric view is created or replaced.
 
 # COMMAND ----------
 

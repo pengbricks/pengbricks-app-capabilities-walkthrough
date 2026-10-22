@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 2. Transform
 # MAGIC
-# MAGIC Generates sample data from the use-case spec, injects the edge cases the spec lists, applies the `dx_demo` transforms, and writes a Delta table. The write overwrites the table, so a rerun replaces it.
+# MAGIC Generates sample data from the use-case spec, injects the edge cases the spec lists, applies the `dx_demo` transforms, and writes a Delta table. Safe to rerun: the write overwrites the table, so a rerun replaces it.
 
 # COMMAND ----------
 

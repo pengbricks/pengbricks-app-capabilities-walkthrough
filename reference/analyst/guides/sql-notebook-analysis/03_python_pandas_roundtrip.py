@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # 3. Python notebook: SQL to pandas and back
 # MAGIC
-# MAGIC Query a governed table, analyze the result in pandas, and write it back to Unity Catalog.
+# MAGIC Query a governed table, analyze the result in pandas, and write it back to Unity Catalog. Safe to rerun: the result table is overwritten.
 
 # COMMAND ----------
 

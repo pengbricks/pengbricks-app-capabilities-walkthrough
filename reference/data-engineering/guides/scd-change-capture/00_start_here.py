@@ -2,6 +2,8 @@
 # MAGIC %md
 # MAGIC # SCD change capture
 # MAGIC
+# MAGIC Safe to rerun: it only lists links to the deployed job and pipeline and writes nothing.
+# MAGIC
 # MAGIC This guide builds slowly changing dimensions from one change feed with AUTO CDC in a Lakeflow Declarative Pipeline. Type 1 keeps one current row per key. Type 2 keeps every version with start and end timestamps. The run applies an initial snapshot, then a batch of inserts, updates and deletes, and records counts before and after.
 # MAGIC
 # MAGIC ## Notebooks, in run order

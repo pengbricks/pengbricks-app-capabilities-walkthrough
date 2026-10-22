@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # 5. Verify the tables
 # MAGIC
-# MAGIC Checks that the ingested tables match the files copied from SFTP: every copied file appears exactly once.
+# MAGIC Checks that the ingested tables match the files copied from SFTP: every copied file appears exactly once. Safe to rerun: it only reads.
 
 # COMMAND ----------
 

@@ -2,6 +2,8 @@
 # MAGIC %md
 # MAGIC # 4. Snapshot the source aggregates
 # MAGIC
+# MAGIC Safe to rerun: the snapshot rows for a `run_id` are replaced; each job run adds its own rows to `dv_source_snapshot`, a history table.
+# MAGIC
 # MAGIC Queries the source once for every reconciliation check marked `source: snapshot` and stores the per-day aggregates in `dv_source_snapshot`. The checks then compare the target with the snapshot, so a re-run of a check does not touch the source again. Use this when the source is busy, when the federated query is slow, or when you want to know what the source held at a given time.
 # MAGIC
 # MAGIC The aggregates run inside the source through `remote_query`. Only one row per day comes back.

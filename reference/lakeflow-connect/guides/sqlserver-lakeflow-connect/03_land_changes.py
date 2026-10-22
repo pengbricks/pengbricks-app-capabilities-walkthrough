@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 3. Watch the changes land in bronze
 # MAGIC
-# MAGIC The gateway has been reading the change log since step 1. This step runs the ingestion pipeline, then checks every expected change in bronze: the new orders exist, the shipped ones show `SHIPPED`, the deleted ones are gone, and each customer who changed plan has a new current version and a closed old one. If the newest changes were not staged yet, it waits a minute and runs the pipeline again, up to `max_wait_minutes`.
+# MAGIC The gateway has been reading the change log since step 1. This step runs the ingestion pipeline, then checks every expected change in bronze: the new orders exist, the shipped ones show `SHIPPED`, the deleted ones are gone, and each customer who changed plan has a new current version and a closed old one. If the newest changes were not staged yet, it waits a minute and runs the pipeline again, up to `max_wait_minutes`. Safe to rerun: each pipeline update is incremental, and this step's rows in `lfc_results` are replaced.
 
 # COMMAND ----------
 

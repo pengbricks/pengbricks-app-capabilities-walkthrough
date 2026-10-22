@@ -14,7 +14,7 @@ dbutils.library.restartPython()
 # MAGIC 1. the `approved_by` job parameter (CI passes the GitHub actor after the environment approval);
 # MAGIC 2. a row in `model_approvals` for this model version with status `approved`.
 # MAGIC
-# MAGIC With no approval the notebook prints why, sets `promoted=false`, and finishes successfully.
+# MAGIC With no approval the notebook prints why, sets `promoted=false`, and finishes successfully. Safe to rerun: the `champion` alias is set, not added.
 
 # COMMAND ----------
 

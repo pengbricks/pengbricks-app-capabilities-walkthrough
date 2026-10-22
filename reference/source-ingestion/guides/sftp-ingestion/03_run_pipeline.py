@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # 3. Run the pipeline
 # MAGIC
-# MAGIC Starts a full refresh of the pipeline and shows what it produced.
+# MAGIC Starts a pipeline update and shows what it produced. Safe to rerun: Auto Loader reads only new files, so an update with no new files adds no rows.
 
 # COMMAND ----------
 

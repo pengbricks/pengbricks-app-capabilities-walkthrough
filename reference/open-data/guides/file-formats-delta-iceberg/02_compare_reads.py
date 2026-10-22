@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # 2. Compare reads
 # MAGIC
-# MAGIC Reads each format back and measures three things: the types the reader infers, the time a selective query takes, and the evidence that Parquet-based formats read less than a full scan. The query is the same everywhere: two columns, one date filter, an aggregate.
+# MAGIC Reads each format back and measures three things: the types the reader infers, the time a selective query takes, and the evidence that Parquet-based formats read less than a full scan. The query is the same everywhere: two columns, one date filter, an aggregate. Safe to rerun: the step's `reads` rows in `ff_results` are replaced.
 
 # COMMAND ----------
 
@@ -173,5 +173,5 @@ for day in DAYS:
 
 # COMMAND ----------
 
-append_rows(spark, N["results"], results, RESULT_COLUMNS)
+append_rows(spark, N["results"], results, RESULT_COLUMNS, replace_where="step = 'reads'")
 display(spark.sql(f"SELECT format, metric, value, detail FROM {N['results']} WHERE run_id = '{RUN_ID}' AND step = 'reads' AND metric NOT LIKE 'type:%' AND metric NOT LIKE 'nested:%' ORDER BY metric, format"))

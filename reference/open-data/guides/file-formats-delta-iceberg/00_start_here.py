@@ -18,7 +18,7 @@
 # MAGIC
 # MAGIC ## How to run
 # MAGIC
-# MAGIC Run the job `capability-guides-format-compare` (or **Quick run** in the app). To run by hand, open the notebooks in order and use Run all in each. Every run overwrites the data and appends its measurements to `ff_results`, so reruns keep the same row counts and the results table keeps a history.
+# MAGIC Run the job `capability-guides-format-compare` (or **Quick run** in the app). To run by hand, open the notebooks in order and use Run all in each. Safe to rerun: every run overwrites the data, and each notebook replaces its own step's rows in `ff_results`, so reruns keep the same row counts.
 # MAGIC
 # MAGIC ## Variables
 # MAGIC

@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # 4. Record the lineage
 # MAGIC
-# MAGIC Reads the table lineage Unity Catalog captured for the source table, the feature table and the training set, checks that each shows the expected upstream table, and records the result in `feature_lineage`. Lineage can take a few minutes to appear, so the notebook polls for up to five minutes. This table is a log: each run adds three rows.
+# MAGIC Reads the table lineage Unity Catalog captured for the source table, the feature table and the training set, checks that each shows the expected upstream table, and records the result in `feature_lineage`. Lineage can take a few minutes to appear, so the notebook polls for up to five minutes. Safe to rerun: it only reads lineage. The table is a log, so each run adds three rows.
 
 # COMMAND ----------
 

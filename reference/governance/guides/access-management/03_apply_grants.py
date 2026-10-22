@@ -12,6 +12,8 @@ dbutils.library.restartPython()
 # MAGIC
 # MAGIC Grants the group schema and table privileges that differ by environment: broad read-write on dev, read-only on named tables in prod. Grants are idempotent, so rerunning changes nothing.
 
+# MAGIC
+# MAGIC Safe to rerun: a GRANT that already holds is a no-op, and `access_grants_applied` is replaced.
 # COMMAND ----------
 
 import sys, os

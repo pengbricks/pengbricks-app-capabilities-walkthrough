@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 4. Read the conversations back
 # MAGIC
-# MAGIC Lists the conversations, lists each one's messages, reads every message, and reads one query result, then records the field names the platform stores (never the values). The recorded fields answer "what does Genie keep": the question, the generated SQL and its description, the statement ID, timestamps, status, feedback, and a handle to the result.
+# MAGIC Lists the conversations, lists each one's messages, reads every message, and reads one query result, then records the field names the platform stores (never the values). The recorded fields answer "what does Genie keep": the question, the generated SQL and its description, the statement ID, timestamps, status, feedback, and a handle to the result. Safe to rerun: the step's rows in `genie_agents_results` are replaced.
 
 # COMMAND ----------
 

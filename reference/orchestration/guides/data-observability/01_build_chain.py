@@ -10,6 +10,8 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 1. Build the table chain
 # MAGIC
+# MAGIC Safe to rerun: the three tables are overwritten or replaced from a fixed seed.
+# MAGIC
 # MAGIC Builds three tables with SQL so Unity Catalog records lineage: source, then silver, then gold. Each table is overwritten or replaced, so a rerun gives the same rows.
 
 # COMMAND ----------

@@ -12,6 +12,8 @@ dbutils.library.restartPython()
 # MAGIC
 # MAGIC Reads every warehouse's settings (read only) into `warehouse_settings` and creates two workspace-scoped views over `system.query.history` and `system.compute.warehouse_events`.
 
+# MAGIC
+# MAGIC Safe to rerun: `warehouse_settings` is replaced and the views use `CREATE OR REPLACE`. It changes no warehouse.
 # COMMAND ----------
 
 import sys, os

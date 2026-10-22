@@ -1,6 +1,6 @@
 -- Layout (a): one catalog per environment, each with its own managed storage location.
 -- Run as a metastore admin in any workspace attached to the metastore. Not executed by this repo:
--- replace the <placeholders>. The storage credentials (dev_storage ... prod_storage) come from
+-- replace the <placeholders>. Safe to rerun: every object is created IF NOT EXISTS. The storage credentials (dev_storage ... prod_storage) come from
 -- 02_credentials_and_bindings.sh and each one points at a different cloud role.
 
 -- One external location per environment, on that environment's own bucket or container.

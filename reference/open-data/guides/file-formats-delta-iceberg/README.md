@@ -2,7 +2,7 @@
 
 ## Overview
 
-One generated dataset of 1,000,000 orders is written as JSON, CSV and Parquet files, a managed Delta table and a managed Iceberg table. The job measures file count and bytes, the types each reader infers, the time and scan cost of one selective query, and then tries UPDATE, DELETE, MERGE, time travel, schema changes and concurrent writes on each. A last notebook lists where Delta and Iceberg keep their metadata. Every measurement lands in `ff_results`, a run log that grows by one run each time.
+One generated dataset of 1,000,000 orders is written as JSON, CSV and Parquet files, a managed Delta table and a managed Iceberg table. The job measures file count and bytes, the types each reader infers, the time and scan cost of one selective query, and then tries UPDATE, DELETE, MERGE, time travel, schema changes and concurrent writes on each. A last notebook lists where Delta and Iceberg keep their metadata. Every measurement lands in `ff_results`, which each notebook rewrites for its own step on every run.
 
 It does not repeat two other guides. `file-format-ingestion` lands CSV, Excel, JSON and XML through one ingestion pipeline. `iceberg-support` covers managed Iceberg and the REST catalog read from PyIceberg. This guide compares the formats.
 
@@ -92,11 +92,11 @@ All code is in `reference/open-data/`.
 
 ## Artifacts produced
 
-- Tables `ff_orders_delta`, `ff_orders_iceberg`, `ff_orders_uniform`, the working copies `ff_work_delta`, `ff_work_iceberg`, `ff_work_acid_delta`, `ff_work_acid_iceberg`, and the run log `ff_results`. The prefix `ff_` avoids the `fmt_` tables the file-ingestion guide owns.
+- Tables `ff_orders_delta`, `ff_orders_iceberg`, `ff_orders_uniform`, the working copies `ff_work_delta`, `ff_work_iceberg`, `ff_work_acid_delta`, `ff_work_acid_iceberg`, and the results table `ff_results`. The prefix `ff_` avoids the `fmt_` tables the file-ingestion guide owns.
 - Volume `format_compare` with folders `json`, `csv`, `parquet`, `delta_layout` and work folders.
 - Job `capability_guides_format_compare` and its runs.
 
-Every write overwrites, so a rerun keeps the same row counts. Only `ff_results` grows.
+Every write overwrites, and each notebook replaces its own step's rows in `ff_results`, so a rerun keeps the same row counts.
 
 ## Findings that differ from what you might expect
 

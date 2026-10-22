@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 2. Ask before the semantic layer
 # MAGIC
-# MAGIC Updates the baseline Genie space in place by title (it creates the space only if none exists), asks every question in the spec, and records the SQL Genie wrote and whether its rows match the known-good query. The space covers the raw tables only: no comments, no metric view, no instructions. This stage's rows in `ontology_comparison` are replaced.
+# MAGIC Updates the baseline Genie space in place by title (it creates the space only if none exists), asks every question in the spec, and records the SQL Genie wrote and whether its rows match the known-good query. The space covers the raw tables only: no comments, no metric view, no instructions. Safe to rerun: the space is updated in place by title, earlier conversations are deleted, and this stage's rows in `ontology_comparison` are replaced.
 
 # COMMAND ----------
 
@@ -52,6 +52,8 @@ register_space(spark, base, "genie_spaces", (run_id, "ontology", STAGE, space_id
 
 # COMMAND ----------
 
+for old_id in client.list_conversation_ids(space_id):
+    client.delete_conversation(space_id, old_id)  # conversations from earlier runs
 rows_out = ask_all(spark, client, space_id, spec, catalog, schema, STAGE, run_id)
 write_answers(spark, base, STAGE, rows_out)
 displayHTML(f'<a href="{url}">Open the {STAGE} space</a>')

@@ -105,6 +105,21 @@ def psi_label(value: float, threshold: float = 0.2) -> str:
 # --- schema drift --------------------------------------------------------------------------
 
 
+def rebuild_silver(spark, silver: str, prefix: str) -> None:
+    """Recreate the silver table from the source table, the same statement as 01_build_chain.
+
+    Schema drift changes the silver table's schema, so a rerun of that notebook starts from this reset.
+    """
+    spark.sql(
+        f"""
+        CREATE OR REPLACE TABLE {silver} AS
+        SELECT order_id, customer_id, order_ts, region, status, quantity, ROUND(amount, 2) AS amount
+        FROM {prefix}.obs_source_orders
+        WHERE amount > 0
+        """
+    )
+
+
 def diff_schemas(before: dict[str, str], after: dict[str, str]) -> list[dict[str, str | None]]:
     """Compare {column: data_type} snapshots and list column-level drift events."""
     events: list[dict[str, str | None]] = []

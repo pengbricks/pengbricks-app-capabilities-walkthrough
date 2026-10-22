@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # 5. Read expectation metrics
 # MAGIC
-# MAGIC The pipeline task has already run. This notebook reads the pass and fail count of every expectation from the pipeline event log (`event_log(<pipeline id>)`) for the latest update and stores them in `dv_expectation_metrics`. Rows dropped by a drop rule appear as `failed_records`, and the same rows are in the quarantine table.
+# MAGIC Safe to rerun: `dv_expectation_metrics_latest` is overwritten, and the rows for a `run_id` are replaced in `dv_expectation_metrics`, a history table that gains one set per job run. The pipeline task has already run. This notebook reads the pass and fail count of every expectation from the pipeline event log (`event_log(<pipeline id>)`) for the latest update and stores them in `dv_expectation_metrics`. Rows dropped by a drop rule appear as `failed_records`, and the same rows are in the quarantine table.
 
 # COMMAND ----------
 

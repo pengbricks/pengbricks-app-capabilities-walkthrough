@@ -12,6 +12,8 @@ dbutils.library.restartPython()
 # MAGIC
 # MAGIC Reads the load back from `system.query.history` and `system.compute.warehouse_events` and summarizes wait times and peak concurrency. System tables can lag the statements, so the notebook polls for up to 20 minutes.
 
+# MAGIC
+# MAGIC Safe to rerun: the query, summary, and event tables are replaced.
 # COMMAND ----------
 
 import sys, os

@@ -2,6 +2,8 @@
 # MAGIC %md
 # MAGIC # 2. Validate
 # MAGIC
+# MAGIC Safe to rerun: the valid-rows table is overwritten from the raw table.
+# MAGIC
 # MAGIC Reads the upstream task value, rejects bad rows, and publishes the valid-row count for the condition task. Run by hand, there is no upstream task value, so the notebook reads the table that `01_extract` wrote.
 
 # COMMAND ----------

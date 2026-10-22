@@ -12,7 +12,7 @@ dbutils.library.restartPython()
 # MAGIC
 # MAGIC Groups recent `system.access.audit` events by service and action.
 # MAGIC
-# MAGIC Each row is written to `admin_actions` with a merge keyed on the run, category, action and target, so a retried or repeated task updates its own rows.
+# MAGIC Each row is written to `admin_actions` with a merge keyed on the run, category, action and target, so a retried or repeated task updates its own rows. Safe to rerun: it only reads. A retry updates its own ledger rows.
 
 # COMMAND ----------
 

@@ -12,6 +12,8 @@ dbutils.library.restartPython()
 # MAGIC
 # MAGIC Lists the masks and row filters attached to this guide's tables from `information_schema` and asserts the expected counts.
 
+# MAGIC
+# MAGIC Safe to rerun: it only reads `information_schema`, and `policy_inventory` is replaced.
 # COMMAND ----------
 
 import sys, os

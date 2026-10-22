@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 3. Reconcile
 # MAGIC
-# MAGIC Generates the sample input, runs the converted pipeline in the target schema, and compares each output table with an independent pure-Python reference implementation. Needs the table from `02_convert`.
+# MAGIC Generates the sample input, runs the converted pipeline in the target schema, and compares each output table with an independent pure-Python reference implementation. Needs the table from `02_convert`. Safe to rerun: outputs and temp tables are dropped first, the sample input is regenerated with a fixed seed, and the results table is overwritten.
 
 # COMMAND ----------
 

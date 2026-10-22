@@ -12,6 +12,8 @@ dbutils.library.restartPython()
 # MAGIC
 # MAGIC Creates the principal-to-region mapping table, a mask function per sensitive column, an attribute row filter and a dynamic row filter, and attaches them with `ALTER TABLE`. Changing who sees what is an `INSERT` into the mapping table, not a policy rewrite.
 
+# MAGIC
+# MAGIC Safe to rerun: the mapping table and mask and filter functions use `CREATE OR REPLACE`, and `SET MASK` and `SET ROW FILTER` replace what is attached.
 # COMMAND ----------
 
 import sys, os

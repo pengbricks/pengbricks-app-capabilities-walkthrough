@@ -12,6 +12,8 @@ dbutils.library.restartPython()
 # MAGIC
 # MAGIC Creates a 2X-Small serverless warehouse named `capability-guides-capacity-test`. It deletes a stale one with the same name first, so there is never more than one. The id goes to `capacity_test_warehouse`.
 
+# MAGIC
+# MAGIC Safe to rerun: a test warehouse left by an earlier run is deleted first, and the test warehouse's row in `warehouse_settings` is replaced, not added.
 # COMMAND ----------
 
 import sys, os
@@ -76,7 +78,10 @@ def create_load_warehouse(args, spark) -> None:
         enable_serverless_compute=True, warehouse_type=CreateWarehouseRequestWarehouseType.PRO)
     wh = w.warehouses.get(wh.id)
     row = _settings_row(wh, "test warehouse (deleted at end of run)")
-    spark.createDataFrame([row], SETTINGS_DDL).write.mode("append").saveAsTable(qualified(args.catalog, args.schema, "warehouse_settings"))
+    settings = qualified(args.catalog, args.schema, "warehouse_settings")
+    if spark.catalog.tableExists(settings):
+        spark.sql(f"DELETE FROM {settings} WHERE name = '{TEST_WAREHOUSE}'")  # replace the row, never add a second
+    spark.createDataFrame([row], SETTINGS_DDL).write.mode("append").saveAsTable(settings)
     spark.createDataFrame([(wh.id,)], "warehouse_id string").write.mode("overwrite").saveAsTable(
         qualified(args.catalog, args.schema, "capacity_test_warehouse"))
     print("created", row)

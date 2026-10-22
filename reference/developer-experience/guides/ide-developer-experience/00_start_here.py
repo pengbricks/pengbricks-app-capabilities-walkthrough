@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # IDE developer experience: tested transforms on Databricks
 # MAGIC
-# MAGIC This guide shows a workflow you can develop in an IDE and run on Databricks. Transformations live in a small Python package, `dx_demo`, as pure DataFrame functions with unit tests. The job runs the same pytest suite on serverless, builds a Delta table from a use-case spec, and checks the output with SQL assertions.
+# MAGIC This guide shows a workflow you can develop in an IDE and run on Databricks. Transformations live in a small Python package, `dx_demo`, as pure DataFrame functions with unit tests. The job runs the same pytest suite on serverless, builds a Delta table from a use-case spec, and checks the output with SQL assertions. Safe to rerun: the transform overwrites its table, and the tests and SQL checks only read.
 # MAGIC
 # MAGIC ## Notebooks, in run order
 # MAGIC

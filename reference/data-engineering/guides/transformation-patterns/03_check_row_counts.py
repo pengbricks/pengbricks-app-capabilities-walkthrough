@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # 3. Check the row counts
 # MAGIC
-# MAGIC Counts the rows in every pattern view and compares each count with an independent query on the sources. The results go to `tp_view_counts`, a run log that gains one run's rows per run.
+# MAGIC Safe to rerun: the views are only read; `tp_view_counts` is a run log, so it is the one table that gains rows. Counts the rows in every pattern view and compares each count with an independent query on the sources. The results go to `tp_view_counts`, a run log that gains one run's rows per run.
 
 # COMMAND ----------
 

@@ -2,6 +2,8 @@
 # MAGIC %md
 # MAGIC # 10. Bulk pause: resume all
 # MAGIC
+# MAGIC Safe to rerun: only jobs this run paused are restored, so a second run finds nothing to change.
+# MAGIC
 # MAGIC Restores only the jobs this run paused. Jobs that were already paused before the maintenance window stay paused. Use the same `run_id` as the pause notebook: the `paused_by_run` rows link the two.
 
 # COMMAND ----------

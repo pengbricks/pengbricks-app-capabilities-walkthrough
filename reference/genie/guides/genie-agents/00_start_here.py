@@ -29,6 +29,8 @@
 # MAGIC | `run_id` | Set by the job on tasks 02 to 05. Defaults to `manual` when run by hand. |
 # MAGIC
 # MAGIC Every variable is a widget. Leave one blank and it takes the default of the deployed job's parameter with the same name. Type a value to override it for one run.
+# MAGIC
+# MAGIC Safe to rerun: the agent is found by title and updated in place, earlier conversations are deleted, and each step replaces its own rows in `genie_agents_results`.
 
 # COMMAND ----------
 

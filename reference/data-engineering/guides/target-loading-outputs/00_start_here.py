@@ -2,6 +2,8 @@
 # MAGIC %md
 # MAGIC # Target loading and file outputs
 # MAGIC
+# MAGIC Safe to rerun: it only lists links to the deployed job and pipeline and writes nothing.
+# MAGIC
 # MAGIC This guide loads a Delta target with one MERGE that inserts, updates and deletes rows, and records the operation metrics from Delta history. It then writes the merged table to a volume as comma-delimited, pipe-delimited, Excel and JSON files.
 # MAGIC
 # MAGIC ## Notebooks, in run order

@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # 2. Build the flow output with SQL
 # MAGIC
-# MAGIC The same steps a Lakeflow Designer flow performs in the UI: browse, filter, join, rename, derive, save. Both tables use `CREATE OR REPLACE`, so a rerun replaces them.
+# MAGIC The same steps a Lakeflow Designer flow performs in the UI: browse, filter, join, rename, derive, save. Safe to rerun: both tables use `CREATE OR REPLACE`.
 
 # COMMAND ----------
 

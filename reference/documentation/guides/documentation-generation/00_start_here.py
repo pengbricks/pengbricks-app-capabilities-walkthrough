@@ -2,6 +2,8 @@
 # MAGIC %md
 # MAGIC # Automated data documentation
 # MAGIC
+# MAGIC Safe to rerun: it only lists links to the deployed job and writes nothing.
+# MAGIC
 # MAGIC This guide builds a bronze, silver and gold table chain from a spec file, then writes a markdown page for each table: schema, lineage, quality, ownership and usage. It applies AI-drafted descriptions back to Unity Catalog as table and column comments. Each refresh overwrites the pages and adds one row to a log table.
 # MAGIC
 # MAGIC ## Notebooks, in run order

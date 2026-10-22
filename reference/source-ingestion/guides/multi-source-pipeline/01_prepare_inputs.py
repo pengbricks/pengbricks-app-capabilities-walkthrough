@@ -16,7 +16,7 @@ dbutils.library.restartPython()
 # MAGIC - landed files: a CSV with the provider's own column names
 # MAGIC - API output: one JSON-lines file per API page, written by the authenticated pagination client
 # MAGIC
-# MAGIC The landing folder is cleared first and the table is overwritten, so a rerun replaces its own output.
+# MAGIC Safe to rerun: the landing folder is cleared first and the table is overwritten, so a rerun replaces its own output.
 
 # COMMAND ----------
 

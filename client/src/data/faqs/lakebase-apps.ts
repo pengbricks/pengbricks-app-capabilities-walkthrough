@@ -27,7 +27,7 @@ export const faqs: Faq[] = [
     kind: 'decision',
     question: 'For a new app, should I choose Lakebase Autoscaling or Lakebase Provisioned?',
     answer:
-      'Choose the current Lakebase platform, which was previously called Lakebase Autoscaling. Provisioned was the original version, with fixed-size compute that you scaled by hand. The Provisioned page says you cannot create new Provisioned databases after March 12, 2026, that all existing instances were upgraded to the new platform by July 2026, and that the old Provisioned UI stays available until September 1, 2026. The upgrade kept connection strings, API calls and app environment variables, so existing apps keep working.',
+      'Choose the current Lakebase platform, which was previously called Lakebase Autoscaling. Provisioned was the original version, with fixed-size compute that you scaled by hand. The Provisioned page says you cannot create new Provisioned databases after March 12, 2026, that all existing instances were upgraded to the new platform by July 2026, and that the old Provisioned UI was available until September 1, 2026. The upgrade kept connection strings, API calls and app environment variables, so existing apps keep working.',
     links: [
       { label: 'Lakebase Provisioned', url: 'https://docs.databricks.com/aws/en/oltp/instances/' },
       {
@@ -89,7 +89,7 @@ export const faqs: Faq[] = [
     kind: 'decision',
     question: 'Should the app query Lakebase as itself or on behalf of each user?',
     answer:
-      'Use the app identity unless users need different data access, and enforce per-user rules in your app code. The app identity is the service principal, whose Postgres role Databricks creates when you add the resource. Databricks Apps also supports user authorization, which forwards the user token in the x-forwarded-access-token header, with scopes you choose. The Apps authorization docs list scopes such as sql, files and genie, with none for Lakebase, and every identity that connects to Lakebase needs its own Postgres role. Check both pages before you build per-user database access.',
+      'Use the app identity unless users need different data access, and enforce per-user rules in your app code. The app identity is the service principal, whose Postgres role Databricks creates when you add the resource. Databricks Apps also supports user authorization, which forwards the user token in the x-forwarded-access-token header, with scopes you choose. The Apps authorization docs (updated October 9, 2026) list postgres among the supported scopes, and every identity that connects to Lakebase needs its own Postgres role. The docs show no worked per-user Lakebase example, so test the full path before you build on it.',
     links: [
       {
         label: 'Databricks Apps authorization',
@@ -147,13 +147,13 @@ export const faqs: Faq[] = [
     kind: 'tradeoff',
     question: 'Which synced table mode should I pick, and what does freshness cost?',
     answer:
-      'Pick Triggered for a known refresh schedule, Continuous only when the app needs seconds-old data, and Snapshot for infrequent bulk loads. Continuous streams with seconds of latency, costs the most and has a 15-second minimum interval. Triggered balances cost and latency, but the docs call it expensive when triggered more often than every 5 minutes. Snapshot is a full copy and the docs call it about 10x more efficient when more than 10% of rows change per cycle. Triggered and Continuous need Change Data Feed on the source. The docs give about 150 rows per second per capacity unit for those modes and up to 2,000 for Snapshot.',
+      'Pick Triggered for a known refresh schedule, Continuous only when the app needs seconds-old data, and Snapshot for infrequent bulk loads. Continuous streams with seconds of latency, costs the most and has a 15-second minimum interval. Triggered balances cost and latency, but the docs call it expensive when triggered more often than every 5 minutes. Snapshot is a full copy and the docs call it about 10x more efficient when more than 10% of rows change per cycle. Triggered and Continuous need a change feed on the source, either Delta Change Data Feed or Automatic change data feed (generally available September 1, 2026). The docs give about 150 rows per second per capacity unit for those modes and up to 2,000 for Snapshot.',
     links: [{ label: 'Synced tables', url: 'https://docs.databricks.com/aws/en/oltp/projects/sync-tables' }],
   },
   {
     question: 'How do I get data my app wrote to Lakebase back into Delta?',
     answer:
-      'Use Lakebase Change Data Feed, which records row-level changes from Postgres tables as Unity Catalog managed Delta tables. It is in Public Preview. You configure it per schema, so current and future tables in that schema are included. The quickstart requires Postgres replica identity set to FULL to capture old and new row values. The history tables carry _pg_change_type, _timestamp, _pg_lsn and _pg_xid columns. The docs say changes appear within seconds and give no latency guarantee.',
+      'Use Lakebase Change Data Feed, which records row-level changes from Postgres tables as Unity Catalog managed Delta tables. It is in Public Preview. You configure it per schema, so current and future tables in that schema are included. The quickstart requires Postgres replica identity set to FULL to capture old and new row values. The history tables carry _pg_change_type, _timestamp, _pg_lsn and _pg_xid columns. The docs say changes are batched and flushed about every 15 seconds. A workspace admin must enable the preview, and destination catalogs that use default storage are not supported.',
     links: [
       {
         label: 'Quickstart: Lakebase Change Data Feed',
@@ -190,7 +190,7 @@ export const faqs: Faq[] = [
   {
     question: 'Can I define Lakebase and the app together in Declarative Automation Bundles?',
     answer:
-      'Yes. Bundles support postgres_project, postgres_branch and postgres_endpoint resources, added with Databricks CLI 0.287.0 on February 5, 2026. The older database_instance, database_catalog and synced_database_table resources also exist. An app can reference a database through its resources block. The bundle reference points to the REST API objects for their fields. Defining catalogs in a bundle requires the direct deployment engine.',
+      'Yes. Bundles support postgres_project, postgres_branch and postgres_endpoint resources, added with Databricks CLI 0.287.0 on February 5, 2026. They are in Beta. The older database_instance, database_catalog and synced_database_table resources also exist. An app can reference a database through its resources block. The bundle reference points to the REST API objects for their fields. Defining catalogs in a bundle requires the direct deployment engine.',
     links: [{ label: 'Bundle resources', url: 'https://docs.databricks.com/aws/en/dev-tools/bundles/resources' }],
   },
   {

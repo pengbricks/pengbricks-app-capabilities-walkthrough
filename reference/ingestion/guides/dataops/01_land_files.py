@@ -21,7 +21,7 @@ from capability_framework.use_case import load_use_case
 # MAGIC %md
 # MAGIC ## Create the framework tables and land the feed files
 # MAGIC
-# MAGIC Same step as in *Configuration-driven ingestion*. `overwrite` replaces each feed's folder, so a rerun leaves the same files.
+# MAGIC Same step as in *Configuration-driven ingestion*. Safe to rerun: `overwrite` replaces each feed's folder, so a rerun leaves the same files.
 
 # COMMAND ----------
 

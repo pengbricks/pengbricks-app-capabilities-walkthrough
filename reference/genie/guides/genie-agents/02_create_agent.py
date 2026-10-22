@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 2. Create or update the agent
 # MAGIC
-# MAGIC Builds the agent definition from the spec's `genie_agent` block and sends it through the REST API: `POST /api/2.0/genie/spaces` the first time, `PATCH` on every later run. The title identifies the agent, so a rerun updates it in place and deletes any duplicate with the same title. The notebook then reads the stored definition back and records what it holds, plus the type of the SQL warehouse the agent is attached to.
+# MAGIC Builds the agent definition from the spec's `genie_agent` block and sends it through the REST API: `POST /api/2.0/genie/spaces` the first time, `PATCH` on every later run. Safe to rerun: the title identifies the agent, so a rerun updates it in place and deletes any duplicate with the same title. The notebook then reads the stored definition back and records what it holds, plus the type of the SQL warehouse the agent is attached to.
 # MAGIC
 # MAGIC This guide uses the REST helper and not a `genie_spaces` bundle resource because the agent needs the metric view that task 1 creates, and a bundle deploy creates the agent before any task runs. The README shows the bundle resource for a team whose data already exists.
 

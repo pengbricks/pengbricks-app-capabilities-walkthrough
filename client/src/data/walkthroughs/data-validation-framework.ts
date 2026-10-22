@@ -807,7 +807,7 @@ export const walkthrough: Walkthrough = {
       id: 'glossary',
       heading: 'Pattern 7, continued: A shared business glossary',
       prose:
-        'Use this when teams use the same word for different things, or when new people cannot tell which table to trust. Databricks has a glossary-style feature called Pages. A Page is a governed definition of a business concept, such as a term, an entity, or an acronym. It has a domain, an owner, synonyms, a description, a body, related assets, and sources. Pages are part of Unity Catalog semantics, which also holds metric views, domains, and certification. The docs mark Pages as Beta, and account admins control access from the Previews page, so confirm with the account team that it is available and suitable before you plan around it.',
+        'Use this when teams use the same word for different things, or when new people cannot tell which table to trust. Pages (Beta) give a term, entity, or acronym one governed definition with an owner and related assets, and Unity Catalog semantics also holds metric views and certification. Whether definitions live in Pages or in an enterprise glossary tool is covered in the Unity Catalog with an enterprise data management program guide.',
       options: {
         caption: 'Carrying business meaning in Unity Catalog',
         rows: [
@@ -896,5 +896,6 @@ export const walkthrough: Walkthrough = {
     { slug: 'transformation-patterns', title: 'Transformation patterns' },
     { slug: 'relational-db-ingestion', title: 'Relational database extracts' },
     { slug: 'ontology', title: 'Ontology' },
+    { slug: 'unity-catalog-edm', title: 'Unity Catalog with an enterprise data management program' },
   ],
 };

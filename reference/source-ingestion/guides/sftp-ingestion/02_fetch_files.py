@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 2. Fetch new files
 # MAGIC
-# MAGIC Copies files that are not in `sftp_transfer_log` to the volume under `sftp/`, keeping the remote folder layout, and logs each transfer in `sftp_transfer_log` and each run in `sftp_transfer_runs`.
+# MAGIC Copies files that are not in `sftp_transfer_log` to the volume under `sftp/`, keeping the remote folder layout, and logs each transfer in `sftp_transfer_log` and each run in `sftp_transfer_runs`. Safe to rerun: files already in the transfer log are skipped, so a second run copies nothing, and the run log keeps one row per run and task.
 
 # COMMAND ----------
 

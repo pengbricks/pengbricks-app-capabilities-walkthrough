@@ -10,7 +10,7 @@
 # MAGIC |---|---|
 # MAGIC | `01_generate_data` | Writes the governed sample tables from the use-case spec (sample-data generator, fixed seed). |
 # MAGIC | `02_build_extracts` | Filters orders, writes `extract_orders`, an Excel workbook and a pipe-delimited file, and checks all three agree on the row count. |
-# MAGIC | `03_schedule_dashboard` | Schedules the dashboard and subscribes the notification address. Reuses the schedule and subscription if they exist. |
+# MAGIC | `03_schedule_dashboard` | Schedules the dashboard and subscribes the notification address. Safe to rerun: tables and extract files are replaced, and the schedule and subscription are reused if they exist. |
 # MAGIC
 # MAGIC ## How to run
 # MAGIC

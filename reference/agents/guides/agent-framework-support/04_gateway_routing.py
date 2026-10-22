@@ -13,7 +13,7 @@ dbutils.library.restartPython()
 # MAGIC Create two Unity Gateway model services, send the same prompt to both, then burst one past its limit.
 # MAGIC
 # MAGIC Each service has a primary model, a fallback model, rate limits, and an inference table. Reruns delete
-# MAGIC and recreate the services and drop their inference tables, so the run starts from a known state.
+# MAGIC and recreate the services and drop their inference tables, so the run starts from a known state. Safe to rerun: the services are deleted and recreated with the same names, and the comparison and burst tables are overwritten.
 
 # COMMAND ----------
 

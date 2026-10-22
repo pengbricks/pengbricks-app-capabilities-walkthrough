@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # Configuration-driven ingestion
 # MAGIC
-# MAGIC Two providers send the same kind of record in different shapes. Provider-specific logic lives in one adapter file, and everything else runs through one shared framework: reading, mapping, validation, quarantine, upsert, audit, and error handling. Adding a feed is configuration, not code.
+# MAGIC Two providers send the same kind of record in different shapes. Provider-specific logic lives in one adapter file, and everything else runs through one shared framework: reading, mapping, validation, quarantine, upsert, audit, and error handling. Adding a feed is configuration, not code. Safe to rerun: feed folders are overwritten, silver is merged by feed and key, quarantine rows are replaced per feed, and only `audit_log` grows.
 # MAGIC
 # MAGIC ## Notebooks, in run order
 # MAGIC

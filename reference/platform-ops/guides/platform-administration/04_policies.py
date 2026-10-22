@@ -12,7 +12,7 @@ dbutils.library.restartPython()
 # MAGIC
 # MAGIC Looks for a serverless budget policy by name, creates it if the API allows, then creates the cluster policy or edits it only if its definition drifted.
 # MAGIC
-# MAGIC Each row is written to `admin_actions` with a merge keyed on the run, category, action and target, so a retried or repeated task updates its own rows.
+# MAGIC Each row is written to `admin_actions` with a merge keyed on the run, category, action and target, so a retried or repeated task updates its own rows. Safe to rerun: the budget policy is reused if it exists, and the cluster policy is edited only when its definition has drifted.
 
 # COMMAND ----------
 

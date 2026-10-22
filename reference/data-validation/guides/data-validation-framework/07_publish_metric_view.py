@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # 7. Publish the metric view
 # MAGIC
-# MAGIC Creates `dv_orders_metrics`, a Unity Catalog metric view on the validated orders, with `net_revenue` and `order_count` defined once. The job runs this task only when validation did not block, so the published definition sits on data that passed its error-severity checks. The notebook then queries the metric with `MEASURE()` and checks the answer against a direct query on the table.
+# MAGIC Safe to rerun: it stops with a message if the silver table or this run's check results are missing. The metric view is replaced, the certification tag is set rather than added, and each job run adds one row to `dv_metric_view_checks`, a history table. Creates `dv_orders_metrics`, a Unity Catalog metric view on the validated orders, with `net_revenue` and `order_count` defined once. The job runs this task only when validation did not block, so the published definition sits on data that passed its error-severity checks. The notebook then queries the metric with `MEASURE()` and checks the answer against a direct query on the table.
 # MAGIC
 # MAGIC It also tries to mark the view as certified with the `system.certification_status` tag. That needs the ASSIGN permission on the governed tag, so the notebook reports the outcome instead of failing.
 
@@ -26,7 +26,7 @@ SPEC_FILE = bundle_root() / "use_cases" / f"{params['use_case']}.yml"
 
 import yaml
 import dv_lib
-
+dv_lib.require_ready(spark, ns, "publish_metric_view", run_id)
 spec = dv_lib.load_spec(SPEC_FILE)
 mv = spec["metric_view"]
 view = f"{ns}.{dv_lib.ident(mv['name'])}"

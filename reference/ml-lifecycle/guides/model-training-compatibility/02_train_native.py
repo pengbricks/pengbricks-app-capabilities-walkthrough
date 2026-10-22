@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 2. Train and register a native model
 # MAGIC
-# MAGIC Trains the pipeline on the training table with MLflow tracking and registers it in Unity Catalog as `churn_classifier`. Each run adds a model version and moves the `trained` alias to it. Run `01_export_legacy_model` first, which writes the training table.
+# MAGIC Trains the pipeline on the training table with MLflow tracking and registers it in Unity Catalog as `churn_classifier`. Each run adds a model version and moves the `trained` alias to it. Run `01_export_legacy_model` first, which writes the training table. Safe to rerun: the experiment is reused and `trained` is set, not added; each run registers a new model version (versions are history).
 
 # COMMAND ----------
 

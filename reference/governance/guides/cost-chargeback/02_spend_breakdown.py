@@ -12,6 +12,8 @@ dbutils.library.restartPython()
 # MAGIC
 # MAGIC Writes spend by product, SKU, tag, user, job, pipeline and day as tables, each replaced on every run.
 
+# MAGIC
+# MAGIC Safe to rerun: each breakdown table is created with `CREATE OR REPLACE`.
 # COMMAND ----------
 
 import sys, os

@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 1. Export the legacy model
 # MAGIC
-# MAGIC Plays the part of the old runtime. Downloads UCI Online Retail II (CC BY 4.0) if the volume does not have it yet, builds the churn training table, trains a model, pickles it into the `legacy_models` volume, and writes a sidecar JSON with the baseline AUC, the training table version and the package versions in use. Both files are overwritten on each run.
+# MAGIC Plays the part of the old runtime. Downloads UCI Online Retail II (CC BY 4.0) if the volume does not have it yet, builds the churn training table, trains a model, pickles it into the `legacy_models` volume, and writes a sidecar JSON with the baseline AUC, the training table version and the package versions in use. Both files are overwritten on each run. Safe to rerun: the training table is overwritten, the source download is skipped when the verified file is there, and the volume files are replaced.
 
 # COMMAND ----------
 

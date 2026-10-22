@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 4. Confirm the totals match
 # MAGIC
-# MAGIC Runs the published dashboard's own dataset queries and compares their totals with the views and with the totals the notebook charts plotted. Run `03_notebook_charts` first.
+# MAGIC Runs the published dashboard's own dataset queries and compares their totals with the views and with the totals the notebook charts plotted. Run `03_notebook_charts` first. Safe to rerun: the totals table is overwritten and nothing else is written.
 
 # COMMAND ----------
 

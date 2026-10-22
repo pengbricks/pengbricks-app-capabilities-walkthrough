@@ -62,3 +62,18 @@ def register(spark, catalog, schema, *, dataset, version, change_type, object_na
 def set_tags(spark, table: str, tags: dict[str, str], view: bool = False) -> None:
     pairs = ", ".join(f"'{k}' = '{v}'" for k, v in tags.items())
     spark.sql(f"ALTER {'VIEW' if view else 'TABLE'} {table} SET TAGS ({pairs})")
+
+
+def undo_v2(spark, v1_name: str, archive: str, v2_table: str) -> None:
+    """Return to the state after v1.1.0, so publishing v2.0.0 can run again.
+
+    On a first run this changes nothing. After a publish, `v1_name` is the compatibility view and the
+    physical table sits under `archive`: drop the view, rename the table back, and drop the v2 table.
+    """
+    try:
+        spark.sql(f"DROP VIEW IF EXISTS {v1_name}")
+    except Exception:  # v1_name is the physical table, so there is no view to drop
+        pass
+    if spark.catalog.tableExists(archive):
+        spark.sql(f"ALTER TABLE {archive} RENAME TO {v1_name}")
+    spark.sql(f"DROP TABLE IF EXISTS {v2_table}")

@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 2. Share, read, revoke
 # MAGIC
-# MAGIC Open sharing: the recipient is a token recipient, so the read uses only the credential file and the `delta-sharing` client, the way a partner outside Databricks would.
+# MAGIC Open sharing: the recipient is a token recipient, so the read uses only the credential file and the `delta-sharing` client, the way a partner outside Databricks would. Safe to rerun: the share and recipient from an earlier run are dropped first, the recipient is dropped at the end, and the guide's rows in `sharing_audit` are replaced.
 
 # COMMAND ----------
 

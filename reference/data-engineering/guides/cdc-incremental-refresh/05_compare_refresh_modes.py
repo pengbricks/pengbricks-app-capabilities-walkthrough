@@ -10,6 +10,8 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 5. Compare the refresh modes
 # MAGIC
+# MAGIC Safe to rerun: it checks that the full refresh and the incremental update completed, then rebuilds `cdc_orders_daily` from scratch; `cdc_refresh_metrics` is a run log.
+# MAGIC
 # MAGIC The last update is a **selective full refresh** of one dataset, `cdc_orders_daily`. It recomputes that materialized view from scratch and leaves every other dataset alone. This notebook sets the three updates side by side: initial full refresh, incremental, and selective full refresh.
 
 # COMMAND ----------
@@ -36,6 +38,8 @@ from de_common.pipelines import find_pipeline_id, run_update
 w = WorkspaceClient()
 pipeline_id = find_pipeline_id(w, "capability-guides-cdc")
 print(f"pipeline {pipeline_id}: {w.config.host.rstrip('/')}/pipelines/{pipeline_id}")
+from de_common import cdc_metrics
+cdc_metrics.require_updates(cdc_metrics.read_events(spark, pipeline_id), "full_refresh", "incremental")
 if params["run_pipeline"].lower() == "true":
     run_update(w, pipeline_id, full_refresh_selection=["cdc_orders_daily"])
 else:

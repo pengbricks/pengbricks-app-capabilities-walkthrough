@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # 2. Run the pipeline
 # MAGIC
-# MAGIC Starts a full refresh of the pipeline and shows what it produced.
+# MAGIC Starts a full refresh of the pipeline and shows what it produced. Safe to rerun: a full refresh rebuilds every table from the landed files.
 
 # COMMAND ----------
 

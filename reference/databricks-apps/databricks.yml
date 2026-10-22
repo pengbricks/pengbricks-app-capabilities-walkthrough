@@ -1,0 +1,45 @@
+bundle:
+  name: capability-guides-databricks-apps
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Unity Catalog catalog that holds the shared guide schema
+  warehouse_id:
+    description: SQL warehouse the app attaches as a resource (CAN_USE)
+  app_service_principal:
+    description: Application ID of the Databricks App service principal that triggers quick runs
+  schema:
+    description: Schema for the inventory table
+    default: capability_guides
+  app_name:
+    description: Name of the demo app. Lowercase letters, digits, hyphens, at most 26 characters, unique in the workspace
+    default: cg-apps-demo
+  release:
+    description: Release identifier recorded in resource tags
+    default: local
+
+permissions:
+  - level: CAN_MANAGE
+    user_name: ${workspace.current_user.userName}
+  - level: CAN_RUN
+    service_principal_name: ${var.app_service_principal}
+
+targets:
+  dev:
+    default: true
+    mode: development
+    presets:
+      tags:
+        release: ${var.release}
+    variables:
+      schema: dev_${workspace.current_user.short_name}_capability_guides
+  test:
+    presets:
+      tags:
+        environment: test
+        release: ${var.release}
+    variables:
+      app_name: cg-apps-demo-test

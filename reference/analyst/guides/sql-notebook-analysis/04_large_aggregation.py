@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 4. Large aggregation
 # MAGIC
-# MAGIC Generates a multi-million-row table and times aggregations over it on serverless compute. Timings go to `large_aggregation_timing`, which is a run log: it gains one run's rows per run.
+# MAGIC Generates a multi-million-row table and times aggregations over it on serverless compute. Timings go to `large_aggregation_timing`, which is a run log: it gains one run's rows per run. Safe to rerun: the generated tables are overwritten. Only the run log adds rows.
 
 # COMMAND ----------
 

@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 1. Train and register
 # MAGIC
-# MAGIC Builds the training snapshot from UCI Online Retail II (CC BY 4.0): one row per customer as of the snapshot date, labeled churned when no order follows in the next 6 months. It trains a scikit-learn pipeline, logs it with MLflow 3, and registers a new version in Unity Catalog with release tags.
+# MAGIC Builds the training snapshot from UCI Online Retail II (CC BY 4.0): one row per customer as of the snapshot date, labeled churned when no order follows in the next 6 months. It trains a scikit-learn pipeline, logs it with MLflow 3, and registers a new version in Unity Catalog with release tags. Safe to rerun: the snapshot table is overwritten and the experiment is reused; each run registers a new model version (versions are history).
 
 # COMMAND ----------
 

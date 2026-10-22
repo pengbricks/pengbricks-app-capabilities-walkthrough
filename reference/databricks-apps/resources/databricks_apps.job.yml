@@ -1,0 +1,56 @@
+# Reads the deployed app, health checks it, audits every app in the workspace for cost, looks at App Spaces
+# (Beta) read-only, and stops the app only when stop_app is "true". Every task is safe to rerun.
+resources:
+  jobs:
+    capability_guides_databricks_apps:
+      name: capability-guides-databricks-apps
+      description: Reads the demo app through the SDK, checks its health with the job identity's OAuth token, flags idle running apps, lists App Spaces, and optionally stops the app.
+      tags:
+        capability_guide_job: capability_guides_databricks_apps
+      max_concurrent_runs: 1
+      timeout_seconds: 3600
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${var.schema}
+        - name: app_name
+          default: ${var.app_name}
+        - name: idle_days
+          default: "14"
+        - name: stop_app
+          default: "false"
+      tasks:
+        - task_key: read_app
+          notebook_task:
+            notebook_path: ../guides/databricks-apps/01_read_app.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
+
+        - task_key: health_check
+          depends_on:
+            - task_key: read_app
+          notebook_task:
+            notebook_path: ../guides/databricks-apps/02_health_check.py
+
+        - task_key: cost_check
+          depends_on:
+            - task_key: read_app
+          notebook_task:
+            notebook_path: ../guides/databricks-apps/03_cost_check.py
+
+        - task_key: app_spaces
+          depends_on:
+            - task_key: read_app
+          notebook_task:
+            notebook_path: ../guides/databricks-apps/04_app_spaces.py
+
+        # Runs even when an earlier task failed, so stop_app=true always reaches the app.
+        - task_key: cleanup
+          depends_on:
+            - task_key: health_check
+            - task_key: cost_check
+            - task_key: app_spaces
+          run_if: ALL_DONE
+          notebook_task:
+            notebook_path: ../guides/databricks-apps/05_cleanup.py

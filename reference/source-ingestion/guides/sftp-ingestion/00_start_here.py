@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # SFTP file retrieval
 # MAGIC
-# MAGIC This guide stores SFTP credentials in a secret scope, copies only the files it has not copied before to a Unity Catalog volume, ingests them with Auto Loader in a Lakeflow Declarative Pipeline, and proves that a second fetch finds nothing new.
+# MAGIC This guide stores SFTP credentials in a secret scope, copies only the files it has not copied before to a Unity Catalog volume, ingests them with Auto Loader in a Lakeflow Declarative Pipeline, and proves that a second fetch finds nothing new. Safe to rerun: the secret scope is reused, only files not yet in the transfer log are copied, and Auto Loader skips files it has read, so a second run adds no rows to the data tables. Only the transfer log and run log grow.
 # MAGIC
 # MAGIC ## Notebooks, in run order
 # MAGIC

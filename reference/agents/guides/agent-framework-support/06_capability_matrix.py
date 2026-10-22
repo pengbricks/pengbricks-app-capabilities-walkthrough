@@ -11,6 +11,8 @@ dbutils.library.restartPython()
 # MAGIC # 6. Write the capability table
 # MAGIC
 # MAGIC Write the capability table: GA vs preview status, region, protocol version, and measured latency.
+# MAGIC
+# MAGIC Safe to rerun: `agent_capability_matrix` is overwritten.
 
 # COMMAND ----------
 

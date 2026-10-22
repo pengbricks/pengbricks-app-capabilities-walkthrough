@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # 2. Job runs
 # MAGIC
-# MAGIC One row per job run in the lookback window, for the whole workspace. `is_capability_guide_job` and the two tag columns let the dashboard filter to guide jobs. The table uses `CREATE OR REPLACE`, so a rerun replaces it.
+# MAGIC One row per job run in the lookback window, for the whole workspace. `is_capability_guide_job` and the two tag columns let the dashboard filter to guide jobs. Safe to rerun: the table uses `CREATE OR REPLACE`, so a rerun replaces it.
 
 # COMMAND ----------
 

@@ -13,6 +13,8 @@ dbutils.library.restartPython()
 # MAGIC Searches `system.query.history` for statements whose `query_source.genie_space_id` is this agent, from the moment task 3 started asking. It records who ran each statement (`executed_by`, `executed_as`), the compute (`compute.type`, `compute.warehouse_id`), and the client application. System tables lag the real queries by minutes, so the notebook polls for up to 20 minutes and reports what it found. If rows have not arrived, it records that and does not fail the job.
 # MAGIC
 # MAGIC It then checks `system.billing.usage` for Genie usage (`billing_origin_product = 'GENIE'`) and for the warehouse's SQL usage. Billing rows can take hours, so an empty result on the first run is normal.
+# MAGIC
+# MAGIC Safe to rerun: the step's rows in `genie_agents_results` are replaced.
 
 # COMMAND ----------
 

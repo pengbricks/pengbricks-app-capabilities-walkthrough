@@ -13,6 +13,8 @@ dbutils.library.restartPython()
 # MAGIC Fails until the run is repaired. `{{job.repair_count}}` is 0 on the original run and 1 after the first repair, so the repair job's rerun passes. This is the failure that `05_repair_failed_run` repairs.
 # MAGIC
 # MAGIC Standalone, a blank `repair_count` means repaired, so the notebook succeeds. Type `0` to see the failure.
+# MAGIC
+# MAGIC Safe to rerun: it writes nothing. It fails or passes on `repair_count`.
 
 # COMMAND ----------
 

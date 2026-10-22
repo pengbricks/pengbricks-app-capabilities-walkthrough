@@ -10,6 +10,8 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 1. Generate the seed data
 # MAGIC
+# MAGIC Safe to rerun: the seed table is overwritten with the same seeded rows.
+# MAGIC
 # MAGIC Writes deterministic sample rows for the dataset in the use-case spec. The generated columns must match the latest nonbreaking contract, so the later steps can seed from this table.
 
 # COMMAND ----------

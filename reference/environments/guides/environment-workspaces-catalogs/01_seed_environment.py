@@ -12,7 +12,7 @@ dbutils.library.restartPython()
 # MAGIC
 # MAGIC Tags the environment schema with `environment=<env>` (a governed tag policy that limits the allowed values makes the notebook print the refusal and carry on) and, in every environment except prod, loads 50 generated orders into `sample_orders`. Prod keeps no generated data: real data belongs there, and nothing else does. A rerun replaces the table, so the row count stays at 50.
 # MAGIC
-# MAGIC The last cell prints the three-level name one sales table gets in each of the three layouts.
+# MAGIC The last cell prints the three-level name one sales table gets in each of the three layouts. Safe to rerun: the tag is set, not added, and `sample_orders` is replaced.
 
 # COMMAND ----------
 

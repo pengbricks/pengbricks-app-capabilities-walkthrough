@@ -6,7 +6,7 @@ describe('guide catalog', () => {
   it('defines a unique one-pager route for every guide', () => {
     const slugs = guides.map((guide) => guide.slug);
 
-    expect(guides).toHaveLength(63);
+    expect(guides).toHaveLength(66);
     expect(new Set(slugs).size).toBe(guides.length);
     expect(guides.every((guide) => guide.evidence.length >= 3)).toBe(true);
   });

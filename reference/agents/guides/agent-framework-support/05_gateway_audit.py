@@ -13,7 +13,7 @@ dbutils.library.restartPython()
 # MAGIC Read the audit trail for the gateway calls: inference tables, the usage system table, and a cost view.
 # MAGIC
 # MAGIC Inference-table rows and system.ai_gateway.usage can lag the calls, so the task polls for a few minutes
-# MAGIC and records whatever arrived, including a zero.
+# MAGIC and records whatever arrived, including a zero. Safe to rerun: both output tables are replaced.
 
 # COMMAND ----------
 

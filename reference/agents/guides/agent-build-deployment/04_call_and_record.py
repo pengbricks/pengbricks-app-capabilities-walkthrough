@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 4. Call the agent and record the build
 # MAGIC
-# MAGIC Call the deployed agent, check its trace, and write the build record (code, dependencies, owners).
+# MAGIC Call the deployed agent, check its trace, and write the build record (code, dependencies, owners). Safe to rerun: it only calls the endpoint; `agent_build_record` is a history table and gets one row per run.
 
 # COMMAND ----------
 

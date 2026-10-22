@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # Relational database ingestion
 # MAGIC
-# MAGIC This guide builds a source database in Lakebase Postgres, exposes it through a Unity Catalog connection, lands full tables and a custom SQL result with `remote_query`, and compares each landed table with the source by row count, checksum and column types.
+# MAGIC This guide builds a source database in Lakebase Postgres, exposes it through a Unity Catalog connection, lands full tables and a custom SQL result with `remote_query`, and compares each landed table with the source by row count, checksum and column types. Safe to rerun: the source schema is rebuilt, the connection is reused, landed tables are overwritten, and only the extract log and check tables grow, by one set of rows per run.
 # MAGIC
 # MAGIC ## Notebooks, in run order
 # MAGIC

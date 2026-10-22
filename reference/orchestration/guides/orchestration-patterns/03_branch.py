@@ -2,6 +2,8 @@
 # MAGIC %md
 # MAGIC # 3. Branch
 # MAGIC
+# MAGIC Safe to rerun: each summary table is replaced with `CREATE OR REPLACE`.
+# MAGIC
 # MAGIC Aggregates the valid rows by one dimension. The job runs this notebook twice at the same time, once with `dimension = region` and once with `dimension = status`, because both tasks depend only on validate. Run by hand with `dimension` blank, it does both.
 
 # COMMAND ----------

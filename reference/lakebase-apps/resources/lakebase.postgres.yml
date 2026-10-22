@@ -1,0 +1,39 @@
+# Lakebase project for the guide (Beta resources, Databricks CLI 0.287.0 or later).
+#
+# A new project starts with a production branch, a databricks_postgres database, and a read-write
+# endpoint named primary. The project resource sets that endpoint's size and scale to zero. The
+# production branch is created by the platform, so it is not declared here: declaring it would try
+# to create a branch that already exists.
+#
+# The dev branch and its endpoint show the three resources together. The branch expires after seven
+# days and its endpoint suspends after five idle minutes, so it costs only the data you change on it.
+# Redeploy after it expires and the bundle creates it again.
+resources:
+  postgres_projects:
+    lakebase_apps:
+      project_id: ${var.lakebase_project}
+      display_name: Capability guides, app development with Lakebase
+      pg_version: 17
+      # Delete the project's data when the bundle is destroyed, so a destroy leaves nothing billing.
+      purge_on_delete: true
+      default_endpoint_settings:
+        autoscaling_limit_min_cu: 0.5
+        autoscaling_limit_max_cu: 2
+        # Scale to zero after five idle minutes. The default is 24 hours, which suits production.
+        suspend_timeout_duration: 300s
+
+  postgres_branches:
+    dev:
+      parent: ${resources.postgres_projects.lakebase_apps.id}
+      branch_id: dev
+      source_branch: ${resources.postgres_projects.lakebase_apps.id}/branches/production
+      ttl: 604800s
+
+  postgres_endpoints:
+    dev_rw:
+      parent: ${resources.postgres_branches.dev.id}
+      endpoint_id: primary
+      endpoint_type: ENDPOINT_TYPE_READ_WRITE
+      autoscaling_limit_min_cu: 0.5
+      autoscaling_limit_max_cu: 2
+      suspend_timeout_duration: 300s

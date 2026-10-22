@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # Pipeline operations
 # MAGIC
-# MAGIC The DataOps job runs a feed through settings an operations team relies on: retries, failure and duration alerts, a timeout, single-run concurrency, run history, and an audit trail. The first attempt of the ingest task fails on purpose to show the retry working. A separate rollback job restores the silver table to an earlier Delta version.
+# MAGIC The DataOps job runs a feed through settings an operations team relies on: retries, failure and duration alerts, a timeout, single-run concurrency, run history, and an audit trail. The first attempt of the ingest task fails on purpose to show the retry working. A separate rollback job restores the silver table to an earlier Delta version. Safe to rerun: landed files and run history are replaced, silver is merged by key, quarantine rows are replaced per feed, and only `audit_log` and `dataops_task_attempts` grow.
 # MAGIC
 # MAGIC ## Notebooks, in run order
 # MAGIC

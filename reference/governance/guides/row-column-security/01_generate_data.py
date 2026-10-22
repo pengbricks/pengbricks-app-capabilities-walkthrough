@@ -12,6 +12,8 @@ dbutils.library.restartPython()
 # MAGIC
 # MAGIC Generates the customers and orders tables from the spec. It drops each table first, because a table that carries a mask or row filter cannot be overwritten in place.
 
+# MAGIC
+# MAGIC Safe to rerun: each table is dropped with `IF EXISTS` and rebuilt from a fixed seed, which also clears any mask or filter left on it.
 # COMMAND ----------
 
 import sys, os

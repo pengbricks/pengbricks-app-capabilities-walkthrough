@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # 3. Detect drift
 # MAGIC
-# MAGIC Compares each scored batch with the training data, feature by feature: PSI (population stability index, with baseline quantile bins) and the mean shift in baseline standard deviations. A feature breaches when either passes its threshold from the spec. Results go to `drift_metrics`, which is overwritten, so it always holds the current batches. The notebook passes `breach` and `first_breach_batch` to the job's condition task.
+# MAGIC Compares each scored batch with the training data, feature by feature: PSI (population stability index, with baseline quantile bins) and the mean shift in baseline standard deviations. A feature breaches when either passes its threshold from the spec. Results go to `drift_metrics`, which is overwritten, so it always holds the current batches. The notebook passes `breach` and `first_breach_batch` to the job's condition task. Safe to rerun: `drift_metrics` is replaced.
 
 # COMMAND ----------
 

@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 3. Notebook charts on governed views
 # MAGIC
-# MAGIC Reads `v_revenue_by_month` and `v_revenue_by_region_segment`, draws two charts with matplotlib, saves them to a volume, and records the totals. The chart files and the totals table are overwritten on each run.
+# MAGIC Reads `v_revenue_by_month` and `v_revenue_by_region_segment`, draws two charts with matplotlib, saves them to a volume, and records the totals. Safe to rerun: the chart files and the totals table are overwritten.
 
 # COMMAND ----------
 

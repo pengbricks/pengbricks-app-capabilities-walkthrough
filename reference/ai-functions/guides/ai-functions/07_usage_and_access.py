@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 7. Check access and usage
 # MAGIC
-# MAGIC Reads who can call the AI Functions (`SHOW GRANTS ON SCHEMA system.ai`) and saves it to `aif_system_ai_grants`. Nothing is revoked: changing the grants affects every user in the metastore. Then it reads the last 30 days of AI Functions and Model Serving usage from `system.billing.usage`. Usage lands in the system table hours after a call, so this run's own calls may not show yet.
+# MAGIC Reads who can call the AI Functions (`SHOW GRANTS ON SCHEMA system.ai`) and saves it to `aif_system_ai_grants`. Nothing is revoked: changing the grants affects every user in the metastore. Then it reads the last 30 days of AI Functions and Model Serving usage from `system.billing.usage`. Usage lands in the system table hours after a call, so this run's own calls may not show yet. Safe to rerun: the grants table is overwritten, nothing is revoked, and the step's rows in `aif_results` are swapped, not added.
 
 # COMMAND ----------
 

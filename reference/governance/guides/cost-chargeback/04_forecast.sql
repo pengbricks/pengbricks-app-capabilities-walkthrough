@@ -1,4 +1,5 @@
 -- 30-day spend forecast with ai_forecast. Runs as a SQL task on the warehouse.
+-- Safe to rerun: every table is created with CREATE OR REPLACE.
 -- Parameters: :catalog, :schema.
 CREATE OR REPLACE TABLE IDENTIFIER(:catalog || '.' || :schema || '.cost_forecast_30d') AS
 SELECT CAST(ds AS DATE) AS ds,

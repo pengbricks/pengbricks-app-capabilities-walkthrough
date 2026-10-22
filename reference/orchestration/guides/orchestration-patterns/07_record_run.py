@@ -2,6 +2,8 @@
 # MAGIC %md
 # MAGIC # 7. Record the run
 # MAGIC
+# MAGIC Safe to rerun: the task rows for a `run_id` are replaced; each recorded run adds its own rows to `orch_task_log`, a run log.
+# MAGIC
 # MAGIC The final task. It records each task's state, attempts and duration for the run, replacing any rows already logged for that `run_id`. Run by hand with `run_id` blank, it records the most recent finished run of the orchestration job.
 
 # COMMAND ----------

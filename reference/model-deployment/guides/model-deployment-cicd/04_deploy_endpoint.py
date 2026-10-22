@@ -12,7 +12,7 @@ dbutils.library.restartPython()
 # MAGIC
 # MAGIC Serves the `@champion` version on a small scale-to-zero Model Serving endpoint, waits for READY, and scores one row twice (a cold and a warm request). An existing endpoint that already serves this version is left alone. When the gate did not promote, the notebook skips deployment.
 # MAGIC
-# MAGIC The endpoint is created here, not declared in the bundle, so deleting the bundle does not remove it. Delete it when you are done.
+# MAGIC The endpoint is created here, not declared in the bundle, so deleting the bundle does not remove it. Delete it when you are done. Safe to rerun: a missing endpoint is created, and an endpoint that already serves the version is left alone.
 
 # COMMAND ----------
 
@@ -74,6 +74,14 @@ def wait_ready(name: str) -> dict:
         time.sleep(30)
     raise Exception(f"Endpoint {name} not READY after {READY_TIMEOUT_S}s")
 
+
+def wait_idle(name: str) -> dict:
+    """Return the endpoint state once no config update is running; raises NotFound if missing."""
+    deadline = time.time() + READY_TIMEOUT_S
+    while endpoint_state(name)["state"].get("config_update") == "IN_PROGRESS" and time.time() < deadline:
+        time.sleep(30)
+    return endpoint_state(name)
+
 # COMMAND ----------
 
 # MAGIC %md
@@ -101,7 +109,7 @@ config = {
     "traffic_config": {"routes": [{"served_model_name": "champion", "traffic_percentage": 100}]},
 }
 try:
-    current = endpoint_state(endpoint_name)
+    current = wait_idle(endpoint_name)
     served = {s.get("entity_version") for s in current.get("config", {}).get("served_entities", [])}
     if served == {version}:
         print(f"Endpoint already serves version {version}")

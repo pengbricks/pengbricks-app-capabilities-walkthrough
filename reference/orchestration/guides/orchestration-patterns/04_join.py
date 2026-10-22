@@ -2,6 +2,8 @@
 # MAGIC %md
 # MAGIC # 4. Join
 # MAGIC
+# MAGIC Safe to rerun: it deletes the summary row for its `run_id` before it inserts it, so a rerun of the same run keeps one row. Each new job run adds its own row to `orch_run_summary`, a run log.
+# MAGIC
 # MAGIC The join point. The job runs it after both branches finish. It reads each branch's task value and writes one summary row for the run, replacing any row for the same `run_id`. Run by hand, it counts the groups straight from the branch tables.
 
 # COMMAND ----------

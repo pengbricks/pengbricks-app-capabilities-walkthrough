@@ -12,23 +12,19 @@ export const walkthrough: Walkthrough = {
     outcomes: [
       {
         title: 'Fewer extract requests',
-        body:
-          'Dashboard subscriptions send snapshots by email, Slack, or Teams. Genie Agents and Genie One answer ad hoc questions that would otherwise become custom extract requests.',
+        body: 'Dashboard subscriptions send snapshots by email, Slack, or Teams. Genie Agents and Genie One answer ad hoc questions that would otherwise become custom extract requests.',
       },
       {
         title: 'Governed data in Excel',
-        body:
-          'The Excel Add-in imports Unity Catalog tables and views and refreshes them on a schedule, with the permissions of the user still in force.',
+        body: 'The Excel Add-in imports Unity Catalog tables and views and refreshes them on a schedule, with the permissions of the user still in force.',
       },
       {
         title: 'A deliberate access choice',
-        body:
-          'Individual data permissions run each query as the viewer and enforce row and column rules per person. Shared data permissions run as the publisher and share a cache.',
+        body: 'Individual data permissions run each query as the viewer and enforce row and column rules per person. Shared data permissions run as the publisher and share a cache.',
       },
       {
         title: 'Safer partner delivery',
-        body:
-          'Files go from a volume after a check, with READ VOLUME granted to a group. Where possible, OpenSharing shares the table so no copy is made.',
+        body: 'Files go from a volume after a check, with READ VOLUME granted to a group. Where possible, OpenSharing shares the table so no copy is made.',
       },
     ],
   },
@@ -120,15 +116,18 @@ export const walkthrough: Walkthrough = {
           {
             option: 'Shared data permissions (default)',
             when: 'A broad audience on data that is not sensitive, or viewers without access to the underlying tables.',
-            tradeoffs: 'Queries run with the publisher\'s credential, which can be a service principal, and every viewer sees the same data. Scheduled updates fill a shared cache, so dashboards load faster and the warehouse runs fewer queries. Row filters and column masks do not vary by viewer.',
+            tradeoffs:
+              "Queries run with the publisher's credential, which can be a service principal, and every viewer sees the same data. Scheduled updates fill a shared cache, so dashboards load faster and the warehouse runs fewer queries. Row filters and column masks do not vary by viewer.",
           },
           {
             option: 'Individual data permissions',
             when: 'Readers have different entitlements and row filters or column masks must apply per person.',
-            tradeoffs: 'Queries run as each viewer, who needs permission on the underlying data. Without a shared cache, load times and warehouse use depend on each viewer, though viewers can opt into refresh-only schedules for a personal cache.',
+            tradeoffs:
+              'Queries run as each viewer, who needs permission on the underlying data. Without a shared cache, load times and warehouse use depend on each viewer, though viewers can opt into refresh-only schedules for a personal cache.',
           },
         ],
-        recommendation: 'Publish with shared data permissions, using a service principal credential, for broad non-sensitive audiences. Use individual data permissions when readers differ in what they may see.',
+        recommendation:
+          'Publish with shared data permissions, using a service principal credential, for broad non-sensitive audiences. Use individual data permissions when readers differ in what they may see.',
       },
       links: [
         {
@@ -149,8 +148,14 @@ export const walkthrough: Walkthrough = {
       table: {
         columns: ['Format', 'Notes'],
         rows: [
-          ['CSV or pipe-delimited text', 'Write with Spark for large files. Quote fields that contain the delimiter. Include a header row.'],
-          ['Excel workbook', 'Good for a human reader. Format the header, number columns, and add a summary sheet. Keep it to small extracts.'],
+          [
+            'CSV or pipe-delimited text',
+            'Write with Spark for large files. Quote fields that contain the delimiter. Include a header row.',
+          ],
+          [
+            'Excel workbook',
+            'Good for a human reader. Format the header, number columns, and add a summary sheet. Keep it to small extracts.',
+          ],
           ['Parquet or Delta', 'Best for another data system. It keeps types and compresses.'],
         ],
       },
@@ -181,21 +186,25 @@ export const walkthrough: Walkthrough = {
         rows: [
           {
             option: 'A file in a Unity Catalog volume',
-            when: 'The reader\'s system expects a CSV or Parquet drop and cannot connect to Databricks.',
-            tradeoffs: 'Works for any consumer, and access is a READ VOLUME grant. The file is a copy that is out of date once written, so you own the schedule, the row-count check, and format changes.',
+            when: "The reader's system expects a CSV or Parquet drop and cannot connect to Databricks.",
+            tradeoffs:
+              'Works for any consumer, and access is a READ VOLUME grant. The file is a copy that is out of date once written, so you own the schedule, the row-count check, and format changes.',
           },
           {
             option: 'OpenSharing of the table',
             when: 'Live data for an outside organization.',
-            tradeoffs: 'No copies, and the recipient reads current data. Recipients need a client that supports your table features, and you manage the share and recipients.',
+            tradeoffs:
+              'No copies, and the recipient reads current data. Recipients need a client that supports your table features, and you manage the share and recipients.',
           },
           {
             option: 'Dashboard or SQL editor download',
             when: 'A one-time copy of what is on screen.',
-            tradeoffs: 'No setup. Row limits apply, the download is manual, and nobody verifies the file against the source.',
+            tradeoffs:
+              'No setup. Row limits apply, the download is manual, and nobody verifies the file against the source.',
           },
         ],
-        recommendation: 'Use OpenSharing for outside organizations that can read it, files in a volume for systems that only take files, and downloads for one-off requests.',
+        recommendation:
+          'Use OpenSharing for outside organizations that can read it, files in a volume for systems that only take files, and downloads for one-off requests.',
       },
       links: [
         {

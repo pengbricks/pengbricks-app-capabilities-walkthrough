@@ -12,7 +12,7 @@ dbutils.library.restartPython()
 # MAGIC
 # MAGIC A BI tool or custom app queries a SQL warehouse through the Databricks SQL Connector for Python. Power BI, Tableau, and custom apps reach a warehouse over the same HTTP path and OAuth identity. This notebook does it the way a custom app would, as the notebook's own identity.
 # MAGIC
-# MAGIC To use the app pattern instead, fill the optional `client_id` and `client_secret` widgets with an OAuth M2M service principal.
+# MAGIC To use the app pattern instead, fill the optional `client_id` and `client_secret` widgets with an OAuth M2M service principal. Safe to rerun: the pattern's rows in `integration_checks` are replaced.
 
 # COMMAND ----------
 

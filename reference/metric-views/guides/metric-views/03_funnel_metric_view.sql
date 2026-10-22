@@ -5,7 +5,7 @@
 -- busy one. Step 4 of the job shows both numbers side by side.
 --
 -- Same deployment pattern as 02_orders_metric_view.sql: the job passes catalog and schema, USE sets
--- them, and CREATE OR REPLACE VIEW is safe to rerun.
+-- them. Safe to rerun: CREATE OR REPLACE VIEW replaces the definition.
 
 USE CATALOG IDENTIFIER(:catalog);
 USE SCHEMA IDENTIFIER(:schema);

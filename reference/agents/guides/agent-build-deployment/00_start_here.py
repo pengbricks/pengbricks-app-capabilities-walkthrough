@@ -33,6 +33,8 @@
 # MAGIC | `version`, `endpoint`, `model_run_id`, `ready_seconds` | Set by the job from earlier tasks. Blank takes the champion version and the spec's endpoint. |
 # MAGIC
 # MAGIC Every variable is a widget. Leave one blank and it takes the default of the deployed job's parameter with the same name. Type a value to override it for one run.
+# MAGIC
+# MAGIC Safe to rerun: this notebook only reads and links the deployed job.
 
 # COMMAND ----------
 

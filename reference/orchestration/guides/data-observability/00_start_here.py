@@ -2,6 +2,8 @@
 # MAGIC %md
 # MAGIC # Lineage and drift detection
 # MAGIC
+# MAGIC Safe to rerun: it only lists links to the deployed job and writes nothing.
+# MAGIC
 # MAGIC This guide builds a source, silver and gold table chain, reads its lineage back from Unity Catalog system tables, detects a schema change from table history, and flags a distribution shift between two batches of data.
 # MAGIC
 # MAGIC ## Notebooks, in run order

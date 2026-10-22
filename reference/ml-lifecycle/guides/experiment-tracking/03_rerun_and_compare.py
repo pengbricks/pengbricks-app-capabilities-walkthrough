@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 3. Rerun and compare
 # MAGIC
-# MAGIC Reads the tracked run's tags, trains again on the recorded Delta version (`VERSION AS OF`, not the latest), and compares the AUC with the original. It also trains on the latest data as a control. The notebook fails if the AUC differs by more than the tolerance or the code hash changed. `experiment_reproductions` is a log: each run adds one row.
+# MAGIC Reads the tracked run's tags, trains again on the recorded Delta version (`VERSION AS OF`, not the latest), and compares the AUC with the original. It also trains on the latest data as a control. The notebook fails if the AUC differs by more than the tolerance or the code hash changed. `experiment_reproductions` is a log: each run adds one row. Safe to rerun: the experiment is reused; each run adds one MLflow run and one log row.
 
 # COMMAND ----------
 

@@ -10,6 +10,8 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 1. Reset the sources
 # MAGIC
+# MAGIC Safe to rerun: the source and snapshot tables are replaced, the landing folder is cleared, and bronze is dropped, so the job restarts from the seed state.
+# MAGIC
 # MAGIC Puts all three sources back to the seed state, so the job gives the same result on every run:
 # MAGIC
 # MAGIC - `cdc_orders_source`: the operational Delta table, replaced with the seed orders.

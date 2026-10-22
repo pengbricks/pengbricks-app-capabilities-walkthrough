@@ -11,6 +11,8 @@ dbutils.library.restartPython()
 # MAGIC # 2. Run the release tests
 # MAGIC
 # MAGIC Checks the model signature, runs a prediction smoke test, and applies the AUC threshold and the comparison with the current `@champion`. Results are tags on the model version. When all pass, the version becomes `@challenger`. Any failure fails the run before an alias moves.
+# MAGIC
+# MAGIC Safe to rerun: tags and the `challenger` alias are set, not added.
 
 # COMMAND ----------
 

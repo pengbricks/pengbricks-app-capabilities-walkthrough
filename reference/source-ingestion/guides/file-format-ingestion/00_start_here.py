@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # File format ingestion
 # MAGIC
-# MAGIC This guide generates one sample file per format (CSV, pipe-delimited, Excel, nested JSON, XML) in a Unity Catalog volume, ingests them with a Lakeflow Declarative Pipeline and Auto Loader, and checks row counts, rescued data and column types for each format.
+# MAGIC This guide generates one sample file per format (CSV, pipe-delimited, Excel, nested JSON, XML) in a Unity Catalog volume, ingests them with a Lakeflow Declarative Pipeline and Auto Loader, and checks row counts, rescued data and column types for each format. Safe to rerun: the landing folder is cleared and rewritten, the pipeline does a full refresh, and only `format_ingestion_checks` grows, by one set of rows per run.
 # MAGIC
 # MAGIC ## Notebooks, in run order
 # MAGIC

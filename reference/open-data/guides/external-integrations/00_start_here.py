@@ -27,6 +27,8 @@
 # MAGIC | `lakebase_project` | Lakebase project that stands in for the external Postgres database. |
 # MAGIC
 # MAGIC Every variable is a widget. Leave one blank and it takes the default of the deployed job's parameter with the same name. Type a value to override it for one run.
+# MAGIC
+# MAGIC Safe to rerun: tables are replaced, the Postgres table is dropped and reseeded, and the connection and foreign catalog are dropped at the end.
 
 # COMMAND ----------
 

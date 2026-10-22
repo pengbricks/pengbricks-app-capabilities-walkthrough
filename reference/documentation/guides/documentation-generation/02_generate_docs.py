@@ -2,6 +2,8 @@
 # MAGIC %md
 # MAGIC # 2. Generate the documentation
 # MAGIC
+# MAGIC Safe to rerun: comments are set, page files keep fixed names and are overwritten, and `documentation_refresh_log` is the one table that gains a row per run.
+# MAGIC
 # MAGIC For each table in the spec this notebook profiles the data, reads lineage and recent usage from system tables, asks `ai_query` for descriptions, applies them as Unity Catalog comments, and writes a markdown page to the `docs` volume. The schema is shared with other bundles, so only tables named in the spec are documented.
 
 # COMMAND ----------

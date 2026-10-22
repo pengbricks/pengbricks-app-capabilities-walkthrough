@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 1. Generate the sample files
 # MAGIC
-# MAGIC Writes one file per format from the use-case spec into `/Volumes/<catalog>/<schema>/source_landing/formats`. The folder is cleared first, so a rerun replaces every file instead of adding copies.
+# MAGIC Writes one file per format from the use-case spec into `/Volumes/<catalog>/<schema>/source_landing/formats`. Safe to rerun: the folder is cleared first, so a rerun replaces every file instead of adding copies.
 
 # COMMAND ----------
 

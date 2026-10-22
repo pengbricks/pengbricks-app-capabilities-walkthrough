@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 1. Pull the REST API
 # MAGIC
-# MAGIC Pulls every page of an authenticated endpoint into Delta, with a request log. Writes `api_users` (the records, overwritten each run), `api_request_log` (one row per HTTP attempt) and `api_pull_runs` (one summary row per run). Fails if the record count does not match the total the API reports or if an id repeats across pages.
+# MAGIC Pulls every page of an authenticated endpoint into Delta, with a request log. Safe to rerun: it writes `api_users` (the records, overwritten each run), `api_request_log` (one row per HTTP attempt) and `api_pull_runs` (one summary row per run). Fails if the record count does not match the total the API reports or if an id repeats across pages.
 
 # COMMAND ----------
 
@@ -89,7 +89,7 @@ spark.createDataFrame(
     log_rows,
     "run_id string, page int, skip int, page_limit int, attempt int, http_status int, error string, "
     "records int, latency_ms int, token_refreshes int",
-).write.mode("append").saveAsTable(f"{ns}.api_request_log")
+).write.mode("overwrite").option("replaceWhere", f"run_id = '{run_id}'").saveAsTable(f"{ns}.api_request_log")
 
 summary = (
     run_id, started, datetime.now(timezone.utc), pages, len(result.log), ok_requests, result.retries,
@@ -99,7 +99,7 @@ spark.createDataFrame(
     [summary],
     "run_id string, started_at timestamp, finished_at timestamp, pages int, http_attempts int, ok_requests int, "
     "retries int, token_logins int, token_refreshes int, records int, distinct_ids int, api_total int",
-).write.mode("append").saveAsTable(f"{ns}.api_pull_runs")
+).write.mode("overwrite").option("replaceWhere", f"run_id = '{run_id}'").saveAsTable(f"{ns}.api_pull_runs")
 
 # COMMAND ----------
 

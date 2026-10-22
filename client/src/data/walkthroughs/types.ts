@@ -4,32 +4,32 @@ export type NodeKind = 'box' | 'highlight' | 'gate' | 'store' | 'surface';
 
 /** Architecture icons from the databricks-architecture design library, served from /diagram-icons/<name>.png. */
 export type DiagramIcon =
-  'checklist' |
-  'cloud-database' |
-  'cloud-network' |
-  'dashboard' |
-  'data-file' |
-  'data-model' |
-  'data-search' |
-  'data-shares' |
-  'database' |
-  'delta-sharing-mark' |
-  'event-stream' |
-  'gear-amber' |
-  'gear-data' |
-  'gear-lava' |
-  'gear-maroon' |
-  'gear-navy' |
-  'gear-slate' |
-  'gear-teal' |
-  'id-provider' |
-  'list' |
-  'media' |
-  'network' |
-  'saas' |
-  'users' |
-  'warehouse' |
-  'workflow';
+  | 'checklist'
+  | 'cloud-database'
+  | 'cloud-network'
+  | 'dashboard'
+  | 'data-file'
+  | 'data-model'
+  | 'data-search'
+  | 'data-shares'
+  | 'database'
+  | 'delta-sharing-mark'
+  | 'event-stream'
+  | 'gear-amber'
+  | 'gear-data'
+  | 'gear-lava'
+  | 'gear-maroon'
+  | 'gear-navy'
+  | 'gear-slate'
+  | 'gear-teal'
+  | 'id-provider'
+  | 'list'
+  | 'media'
+  | 'network'
+  | 'saas'
+  | 'users'
+  | 'warehouse'
+  | 'workflow';
 
 /** Platform domain, which sets the node's accent color (databricks-architecture domain palette). */
 export type DiagramDomain = 'data' | 'governance' | 'ai' | 'orchestration' | 'apps' | 'neutral';
@@ -63,6 +63,21 @@ export type FlowLane = {
   /** Rows covered by the lane, inclusive. */
   fromRow: number;
   toRow: number;
+  /** One or two sentences shown on hover or focus of the lane label: what the stage holds. */
+  detail?: string;
+};
+
+/** A dashed boundary drawn around part of the grid, such as what one governance system covers. */
+export type FlowBoundary = {
+  label: string;
+  /** Shown on hover or focus of the label or the line. */
+  detail: string;
+  /** Rows covered, inclusive. */
+  fromRow: number;
+  toRow: number;
+  /** Columns covered, inclusive. Defaults to all. */
+  fromCol?: number;
+  toCol?: number;
 };
 
 export type FlowDiagram = {
@@ -71,6 +86,7 @@ export type FlowDiagram = {
   /** Screen-reader description of what the diagram shows. */
   description: string;
   lanes?: FlowLane[];
+  boundaries?: FlowBoundary[];
   nodes: FlowNode[];
   edges: FlowEdge[];
   legend?: { kind: NodeKind | 'dashed' | 'line'; label: string }[];

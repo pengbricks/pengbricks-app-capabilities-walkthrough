@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 4. Ask after the semantic layer
 # MAGIC
-# MAGIC Updates the enhanced Genie space in place by title. It covers the metric view and adds instructions, sample questions and an example query. The notebook asks the same questions as `02_ask_before` and replaces this stage's rows in `ontology_comparison`. Run `03_add_semantics` first.
+# MAGIC Updates the enhanced Genie space in place by title. It covers the metric view and adds instructions, sample questions and an example query. Safe to rerun: the space is updated in place by title, earlier conversations are deleted, and this stage's rows in `ontology_comparison` are replaced. Run `03_add_semantics` first.
 
 # COMMAND ----------
 
@@ -52,6 +52,8 @@ register_space(spark, base, "genie_spaces", (run_id, "ontology", STAGE, space_id
 
 # COMMAND ----------
 
+for old_id in client.list_conversation_ids(space_id):
+    client.delete_conversation(space_id, old_id)  # conversations from earlier runs
 rows_out = ask_all(spark, client, space_id, spec, catalog, schema, STAGE, run_id)
 write_answers(spark, base, STAGE, rows_out)
 displayHTML(f'<a href="{url}">Open the {STAGE} space</a>')

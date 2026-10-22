@@ -169,6 +169,237 @@ export const walkthrough: Walkthrough = {
       },
     },
     {
+      id: 'reference-architecture',
+      heading: 'Reference architecture: sources to consumers',
+      prose:
+        'The same three layers sit between any set of sources and any set of consumers. Each band is a stage, each card is a typical object in it, and the dashed line marks what Unity Catalog governs. Hover or focus a stage, a card, or the line for detail.',
+      diagram: {
+        type: 'flow',
+        title: 'Sources to consumers through bronze, silver, and gold',
+        description:
+          'Five stages from top to bottom. Sources are an operational database, a SaaS application, and files and events. Each lands in one raw bronze table per source. Silver holds conformed entities and validated facts. Gold holds metric views and aggregates, and feature and serving tables. Consumers are dashboards and Genie Agents, ML models and serving, and an operational app on Lakebase. A dashed edge returns the app writes to bronze through Lakebase Change Data Feed. A dashed line around bronze, silver, and gold marks what Unity Catalog governs.',
+        lanes: [
+          {
+            label: 'Sources',
+            fromRow: 0,
+            toRow: 0,
+            detail:
+              'The systems that create data, left where they are. Lakeflow Connect, Auto Loader, and streaming bring it into bronze.',
+          },
+          {
+            label: 'Bronze',
+            fromRow: 1,
+            toRow: 1,
+            detail: 'Raw copies of each source, append-only, so you can replay and audit.',
+          },
+          {
+            label: 'Silver',
+            fromRow: 2,
+            toRow: 2,
+            detail:
+              'Conformed, validated records. Identities are resolved, quality and privacy rules are enforced, and history stays point-in-time.',
+          },
+          {
+            label: 'Gold',
+            fromRow: 3,
+            toRow: 3,
+            detail:
+              'Tables built for one decision grain, with governed measures, a stated freshness, and lineage back to silver.',
+          },
+          {
+            label: 'Consumers',
+            fromRow: 4,
+            toRow: 4,
+            detail: 'Dashboards, models, and apps that read gold through Unity Catalog with their own permissions.',
+          },
+        ],
+        boundaries: [
+          {
+            label: 'Unity Catalog',
+            fromRow: 1,
+            toRow: 3,
+            detail:
+              'Unity Catalog governs every table, view, and metric view inside the line, so grants, governed tags, row filters and column masks, lineage, and audit apply the same way at each layer. Consumers read through it with their own permissions.',
+          },
+        ],
+        nodes: [
+          {
+            id: 'ops',
+            label: 'Operational database',
+            sub: 'ERP or line-of-business',
+            col: 0,
+            row: 0,
+            kind: 'surface',
+            icon: 'database',
+            domain: 'neutral',
+            detail:
+              'A system of record such as an ERP or a line-of-business database. Lakeflow Connect captures its changes (CDC) and lands them in bronze.',
+          },
+          {
+            id: 'saas',
+            label: 'SaaS application',
+            sub: 'managed connector or API',
+            col: 1,
+            row: 0,
+            kind: 'surface',
+            icon: 'saas',
+            domain: 'neutral',
+            detail:
+              'A business application such as a CRM or a ticketing tool. A Lakeflow Connect managed connector or the application API brings its records into bronze.',
+          },
+          {
+            id: 'files',
+            label: 'Files and events',
+            sub: 'Auto Loader or streaming',
+            col: 2,
+            row: 0,
+            kind: 'surface',
+            icon: 'event-stream',
+            domain: 'neutral',
+            detail:
+              'Files in cloud storage and event streams. Auto Loader picks up new files incrementally, and Structured Streaming reads event sources such as Kafka.',
+          },
+          {
+            id: 'raw',
+            label: 'Raw table per source',
+            sub: 'append-only, as received',
+            col: 1,
+            row: 1,
+            kind: 'store',
+            icon: 'database',
+            domain: 'data',
+            detail:
+              'One append-only table for each source. Every row keeps the source payload, the source key, event time and ingestion time, a schema version, and any rescued data that did not fit the schema.',
+          },
+          {
+            id: 'entities',
+            label: 'Conformed entities',
+            sub: 'identities, SCD Type 2',
+            col: 0,
+            row: 2,
+            kind: 'store',
+            icon: 'data-model',
+            domain: 'data',
+            detail:
+              'One table per business entity, merged from all sources. Identities are resolved, source precedence settles conflicts, and SCD Type 2 keeps the history of each change.',
+          },
+          {
+            id: 'facts',
+            label: 'Validated facts',
+            sub: 'quality and privacy rules',
+            col: 2,
+            row: 2,
+            kind: 'store',
+            icon: 'checklist',
+            domain: 'data',
+            detail:
+              'Event-level records that pass expectations. Rows that fail are dropped, stop the update, or go to quarantine, and privacy rules such as column masks and row filters apply before data moves on.',
+          },
+          {
+            id: 'metrics',
+            label: 'Metric views, aggregates',
+            sub: 'one grain, shared measures',
+            col: 0,
+            row: 3,
+            kind: 'highlight',
+            icon: 'warehouse',
+            domain: 'data',
+            detail:
+              'Metric views and aggregates built at one declared grain. Measures are defined once in Unity Catalog, so every tool that queries them reports the same figure.',
+          },
+          {
+            id: 'features',
+            label: 'Feature, serving tables',
+            sub: 'keyed for lookup',
+            col: 2,
+            row: 3,
+            kind: 'highlight',
+            icon: 'data-file',
+            domain: 'data',
+            detail:
+              'Tables keyed for fast lookup by models and apps, such as features per customer. They are built from silver and refresh on a schedule or incrementally.',
+          },
+          {
+            id: 'bi',
+            label: 'AI/BI and Genie',
+            sub: 'dashboards, Genie Agents',
+            col: 0,
+            row: 4,
+            kind: 'surface',
+            icon: 'dashboard',
+            domain: 'apps',
+            detail:
+              'AI/BI dashboards and Genie Agents read the metric views through Unity Catalog, each person with their own permissions.',
+          },
+          {
+            id: 'ml',
+            label: 'ML and model serving',
+            sub: 'train and score',
+            col: 2,
+            row: 4,
+            kind: 'surface',
+            icon: 'gear-maroon',
+            domain: 'ai',
+            detail:
+              'Models train on the feature tables and then score in batch or answer requests through a serving endpoint.',
+          },
+          {
+            id: 'app',
+            label: 'App on Lakebase',
+            sub: 'serves users, syncs out',
+            col: 1,
+            row: 4,
+            kind: 'surface',
+            icon: 'cloud-database',
+            domain: 'apps',
+            detail:
+              'A transactional app on Lakebase, the managed Postgres service. It reads tables synced from gold, and its writes return to Delta through Lakebase Change Data Feed (Public Preview).',
+          },
+        ],
+        edges: [
+          { from: 'ops', to: 'raw' },
+          { from: 'saas', to: 'raw' },
+          { from: 'files', to: 'raw' },
+          { from: 'raw', to: 'entities' },
+          { from: 'raw', to: 'facts' },
+          { from: 'entities', to: 'metrics' },
+          { from: 'facts', to: 'features' },
+          { from: 'metrics', to: 'bi' },
+          { from: 'features', to: 'ml' },
+          { from: 'features', to: 'app' },
+          { from: 'app', to: 'raw', label: 'Change Data Feed', dashed: true },
+        ],
+        legend: [
+          { kind: 'surface', label: 'Source or consumer' },
+          { kind: 'store', label: 'Delta table' },
+          { kind: 'highlight', label: 'Gold table' },
+          { kind: 'dashed', label: 'App writes returning to bronze' },
+        ],
+      },
+      points: [
+        {
+          strong: 'Bronze preserves the source.',
+          text: 'Keep the source payload, the source key, event time and ingestion time, the schema version, and rescued data. Nothing is cleaned here, so every later layer can be rebuilt.',
+        },
+        {
+          strong: 'Silver decides what is true.',
+          text: 'Resolve identities, apply source precedence, enforce quality and privacy rules, and keep point-in-time history so a past report can be reproduced.',
+        },
+        {
+          strong: 'Gold serves one decision.',
+          text: 'Declare one grain per table, define each measure once, state how fresh the data is, and keep lineage back to the silver tables it reads.',
+        },
+        {
+          strong: 'App writes can return to the lakehouse.',
+          text: 'Lakebase Change Data Feed (Public Preview) records the app changes as Delta history tables. Treat that history as one more bronze source, then run it through silver and gold like the rest.',
+        },
+      ],
+      links: [
+        { label: 'Medallion architecture', url: 'https://docs.databricks.com/aws/en/lakehouse/medallion' },
+        { label: 'Lakebase Change Data Feed', url: 'https://docs.databricks.com/aws/en/oltp/projects/lakebase-cdf' },
+      ],
+    },
+    {
       id: 'layers',
       heading: 'What each layer holds',
       diagram: {

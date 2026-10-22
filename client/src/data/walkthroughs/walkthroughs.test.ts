@@ -82,15 +82,45 @@ describe.each(walkthroughs.map((walkthrough) => [walkthrough.slug, walkthrough] 
       if (!diagram) continue;
       if (diagram.type === 'flow') {
         for (const node of diagram.nodes) {
-          if (node.icon) expect(existsSync(`${ICON_DIR}${node.icon}.png`), `${section.id}: ${node.id} icon ${node.icon}`).toBe(true);
-          if (node.detail) expect(node.detail.length, `${section.id}: ${node.id} detail`).toBeLessThanOrEqual(MAX_DETAIL);
+          if (node.icon)
+            expect(existsSync(`${ICON_DIR}${node.icon}.png`), `${section.id}: ${node.id} icon ${node.icon}`).toBe(true);
+          if (node.detail)
+            expect(node.detail.length, `${section.id}: ${node.id} detail`).toBeLessThanOrEqual(MAX_DETAIL);
         }
       } else {
         for (const row of diagram.rows) {
           for (const cell of row.cells) {
-            if (cell.detail) expect(cell.detail.length, `${section.id}: ${row.label} detail`).toBeLessThanOrEqual(MAX_DETAIL);
+            if (cell.detail)
+              expect(cell.detail.length, `${section.id}: ${row.label} detail`).toBeLessThanOrEqual(MAX_DETAIL);
           }
         }
+      }
+    }
+  });
+
+  it('has valid boundaries and short lane and boundary details', () => {
+    for (const section of walkthrough.sections) {
+      const diagram = section.diagram;
+      if (diagram?.type !== 'flow') continue;
+      const rows = Math.max(...diagram.nodes.map((node) => node.row));
+      const cols = Math.max(...diagram.nodes.map((node) => node.col));
+      for (const lane of diagram.lanes ?? []) {
+        if (lane.detail)
+          expect(lane.detail.length, `${section.id}: lane ${lane.label}`).toBeLessThanOrEqual(MAX_DETAIL);
+      }
+      for (const b of diagram.boundaries ?? []) {
+        expect(b.detail.trim().length, `${section.id}: boundary ${b.label} detail`).toBeGreaterThan(0);
+        expect(b.detail.length, `${section.id}: boundary ${b.label}`).toBeLessThanOrEqual(MAX_DETAIL);
+        expect(
+          b.fromRow >= 0 && b.fromRow <= b.toRow && b.toRow <= rows,
+          `${section.id}: boundary ${b.label} rows`
+        ).toBe(true);
+        const [fc, tc] = [b.fromCol ?? 0, b.toCol ?? cols];
+        expect(fc >= 0 && fc <= tc && tc <= cols, `${section.id}: boundary ${b.label} columns`).toBe(true);
+        expect(
+          diagram.nodes.some((n) => n.row >= b.fromRow && n.row <= b.toRow && n.col >= fc && n.col <= tc),
+          `${section.id}: boundary ${b.label} is empty`
+        ).toBe(true);
       }
     }
   });

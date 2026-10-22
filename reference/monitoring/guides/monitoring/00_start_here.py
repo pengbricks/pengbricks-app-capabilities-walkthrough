@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # Platform observability
 # MAGIC
-# MAGIC This guide gives one consolidated view of job runs, failures, usage and cost, compute and capacity, audit events, and alert routing for a workspace. A serverless job copies the data from system tables and the Jobs and Alerts APIs into seven Unity Catalog tables. An AI/BI dashboard reads those tables, and a SQL alert and job failure emails show how a failure reaches a person.
+# MAGIC This guide gives one consolidated view of job runs, failures, usage and cost, compute and capacity, audit events, and alert routing for a workspace. A serverless job copies the data from system tables and the Jobs and Alerts APIs into seven Unity Catalog tables. An AI/BI dashboard reads those tables, and a SQL alert and job failure emails show how a failure reaches a person. Safe to rerun: every table uses `CREATE OR REPLACE`, so a second run replaces the snapshot.
 # MAGIC
 # MAGIC ## Notebooks, in run order
 # MAGIC

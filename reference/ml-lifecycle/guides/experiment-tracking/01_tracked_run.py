@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 1. Tracked run
 # MAGIC
-# MAGIC Writes `experiment_data` (the 2010-09-01 customer snapshot, overwritten on each run), trains on that exact Delta version, and logs the metric with the references needed to reproduce it: data table and version, release, a hash of the training code, and the package versions.
+# MAGIC Writes `experiment_data` (the 2010-09-01 customer snapshot, overwritten on each run), trains on that exact Delta version, and logs the metric with the references needed to reproduce it: data table and version, release, a hash of the training code, and the package versions. Safe to rerun: `experiment_data` is overwritten and the experiment is reused; each run adds an MLflow run, which is the history the guide compares.
 
 # COMMAND ----------
 

@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 5. Repair the failed run
 # MAGIC
-# MAGIC Finds the newest finished `capability-guides-operational-support` run whose `fragile_step` failed and has not been repaired, calls the Jobs API repair endpoint for the failed task keys, waits for the run to finish, and records the outcome on the incident in `support_incidents`. If nothing needs repair, it says so and stops, so rerunning does nothing.
+# MAGIC Finds the newest finished `capability-guides-operational-support` run whose `fragile_step` failed and has not been repaired, calls the Jobs API repair endpoint for the failed task keys, waits for the run to finish, and records the outcome on the incident in `support_incidents`. Safe to rerun: if nothing needs repair, it says so and stops, so rerunning does nothing.
 
 # COMMAND ----------
 

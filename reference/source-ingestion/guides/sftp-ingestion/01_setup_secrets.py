@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 1. Set up the secret scope
 # MAGIC
-# MAGIC Creates the secret scope and stores the SFTP credentials. Safe to run repeatedly.
+# MAGIC Creates the secret scope and stores the SFTP credentials. Safe to rerun: the scope is reused if it exists and the secrets are overwritten.
 
 # COMMAND ----------
 

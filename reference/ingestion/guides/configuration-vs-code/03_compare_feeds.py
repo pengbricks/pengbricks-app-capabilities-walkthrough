@@ -16,7 +16,7 @@ print(f"run_id = {run_id}")
 # MAGIC %md
 # MAGIC ## Compare the feeds in this run
 # MAGIC
-# MAGIC Every feed wrote one row to `audit_log`, so both feeds compare through the same table and the same columns.
+# MAGIC Every feed wrote one row to `audit_log`, so both feeds compare through the same table and the same columns. Safe to rerun: it only reads.
 
 # COMMAND ----------
 

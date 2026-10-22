@@ -10,6 +10,8 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 1. Extract
 # MAGIC
+# MAGIC Safe to rerun: the raw table is overwritten with the same seeded rows.
+# MAGIC
 # MAGIC Generates the raw orders from the use-case spec, including a few corrupted rows for the next task to reject. It passes the row count and table name to later tasks as task values. Task values are how one job task hands a result to the next. The table is overwritten, so a rerun replaces it.
 
 # COMMAND ----------

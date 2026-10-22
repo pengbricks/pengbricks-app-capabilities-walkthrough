@@ -12,7 +12,7 @@ dbutils.library.restartPython()
 # MAGIC
 # MAGIC Authentication goes through the Databricks SDK: `WorkspaceClient().config.authenticate()` returns the bearer header for the identity running the notebook. Nothing is read from a secret or a PAT.
 # MAGIC
-# MAGIC The notebook sends a first request, 50 warm requests, a concurrent burst, and four failure scenarios. It writes `scoring_latency` and `scoring_errors`, replacing any rows for the same `run_id`, so a rerun does not duplicate them. The endpoint must exist: run `02_deploy_endpoint` first.
+# MAGIC The notebook sends a first request, 50 warm requests, a concurrent burst, and four failure scenarios. It writes `scoring_latency` and `scoring_errors`, replacing any rows for the same `run_id`, so a rerun does not duplicate them. The endpoint must exist: run `02_deploy_endpoint` first. Safe to rerun: the tables keep one set of rows per `run_id`, so measurements accumulate per job run and a repeat of the same run does not duplicate them.
 
 # COMMAND ----------
 

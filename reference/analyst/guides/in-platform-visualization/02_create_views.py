@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # 2. Create the governed views
 # MAGIC
-# MAGIC Two views over completed and shipped orders. The notebook charts and the AI/BI dashboard both read them, so the numbers can be compared. `CREATE OR REPLACE` makes a rerun replace them.
+# MAGIC Two views over completed and shipped orders. The notebook charts and the AI/BI dashboard both read them, so the numbers can be compared. Safe to rerun: `CREATE OR REPLACE` replaces both views.
 
 # COMMAND ----------
 

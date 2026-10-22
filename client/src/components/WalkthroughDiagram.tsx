@@ -1,6 +1,14 @@
 import { createPortal } from 'react-dom';
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import type { DiagramDomain, FlowDiagram, FlowNode, MatrixCell, MatrixDiagram } from '../data/walkthroughs/types.ts';
+import type {
+  DiagramDomain,
+  FlowBoundary,
+  FlowDiagram,
+  FlowLane,
+  FlowNode,
+  MatrixCell,
+  MatrixDiagram,
+} from '../data/walkthroughs/types.ts';
 import { connectionsFor, placeTooltip, viewBoxToContainer, type Connection, type Rect } from './diagramTooltip.ts';
 import {
   box,
@@ -9,12 +17,13 @@ import {
   BOTTOM,
   GATE,
   gateLabelArea,
+  boundaryRect,
+  diagramWidth,
   laneRect,
   layoutFor,
   PAD,
   planText,
   ROW_H,
-  SIDE,
   textWidth,
   wrapText,
   type GatePlacement,
@@ -351,31 +360,105 @@ function FlowCard({ node, diagram }: { node: FlowNode; diagram: FlowDiagram }) {
   );
 }
 
+type Area =
+  | { kind: 'lane'; index: number; lane: FlowLane; nodeIds: Set<string> }
+  | { kind: 'boundary'; index: number; boundary: FlowBoundary; nodeIds: Set<string> };
+
+/** Resolves an active id like "lane:2" or "boundary:0" to its lane or boundary and the nodes inside it. */
+function areaFor(diagram: FlowDiagram, active: string): Area | null {
+  const [kind, raw] = active.split(':');
+  const index = Number(raw);
+  if (kind === 'lane') {
+    const lane = diagram.lanes?.[index];
+    if (!lane) return null;
+    const ids = diagram.nodes.filter((n) => n.row >= lane.fromRow && n.row <= lane.toRow).map((n) => n.id);
+    return { kind, index, lane, nodeIds: new Set(ids) };
+  }
+  if (kind === 'boundary') {
+    const boundary = diagram.boundaries?.[index];
+    if (!boundary) return null;
+    const ids = diagram.nodes
+      .filter(
+        (n) =>
+          n.row >= boundary.fromRow &&
+          n.row <= boundary.toRow &&
+          n.col >= (boundary.fromCol ?? 0) &&
+          n.col <= (boundary.toCol ?? Infinity)
+      )
+      .map((n) => n.id);
+    return { kind, index, boundary, nodeIds: new Set(ids) };
+  }
+  return null;
+}
+
 export function FlowDiagramView({ diagram, id }: { diagram: FlowDiagram; id: string }) {
   const L = layoutFor(diagram);
   const nodes = new Map(diagram.nodes.map((node) => [node.id, node]));
-  const cols = Math.max(...diagram.nodes.map((node) => node.col)) + 1;
   const rows = Math.max(...diagram.nodes.map((node) => node.row)) + 1;
-  const width = L.colX(cols - 1) + COL_W + SIDE;
+  const width = diagramWidth(diagram, L);
   const height = L.rowY(rows - 1) + ROW_H + BOTTOM;
   const marker = `${id}-arrow`;
   const markerDash = `${id}-arrow-dash`;
   const plan = planText(diagram, L, width);
   const { active, bind, close, tipId } = useActive();
-  const links = active ? connectionsFor(diagram, active) : null;
-  const activeNode = active ? nodes.get(active) : undefined;
-  const tip: Tip | null = activeNode
-    ? (() => {
-        const b = box(activeNode, L);
-        return {
-          id: activeNode.id,
-          anchor: { left: b.left, top: b.top, width: b.right - b.left, height: b.bottom - b.top },
-          card: <FlowCard node={activeNode} diagram={diagram} />,
-        };
-      })()
-    : null;
-  const edgeState = (index: number) => (links ? (links.edgeIndexes.has(index) ? 'is-on' : 'is-dim') : '');
-  const nodeState = (nodeId: string) => (links ? (links.nodeIds.has(nodeId) ? 'is-on' : 'is-dim') : '');
+  const area = active ? areaFor(diagram, active) : null;
+  const links = active && !area ? connectionsFor(diagram, active) : null;
+  const activeNode = active && !area ? nodes.get(active) : undefined;
+  let tip: Tip | null = null;
+  if (activeNode) {
+    const b = box(activeNode, L);
+    tip = {
+      id: activeNode.id,
+      anchor: { left: b.left, top: b.top, width: b.right - b.left, height: b.bottom - b.top },
+      card: <FlowCard node={activeNode} diagram={diagram} />,
+    };
+  } else if (area) {
+    // Anchor on the whole band or boundary, so the card opens beside it and leaves its cards visible.
+    const anchor = area.kind === 'lane' ? laneRect(area.lane, L, width) : boundaryRect(area.boundary, L, width);
+    const items = diagram.nodes.filter((node) => area.nodeIds.has(node.id));
+    tip = {
+      id: active as string,
+      anchor: {
+        left: anchor.left,
+        top: anchor.top,
+        width: anchor.right - anchor.left,
+        height: anchor.bottom - anchor.top,
+      },
+      card: (
+        <>
+          <p className="d-tip-eyebrow">
+            <span className={`d-tip-dot${area.kind === 'boundary' ? ' d-tip-dot-boundary' : ''}`} />
+            {area.kind === 'lane' ? 'Stage' : 'Boundary'}
+          </p>
+          <p className="d-tip-title">{area.kind === 'lane' ? area.lane.label : area.boundary.label}</p>
+          <p className="d-tip-body">{area.kind === 'lane' ? area.lane.detail : area.boundary.detail}</p>
+          {items.length > 0 && (
+            <div className="d-tip-group">
+              <p className="d-tip-eyebrow">{area.kind === 'lane' ? 'Contains' : 'Covers'}</p>
+              <ul>
+                {items.map((node) => (
+                  <li key={node.id}>
+                    <span className="d-tip-node">{node.label}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </>
+      ),
+    };
+  }
+  const edgeState = (index: number) => {
+    if (area) {
+      const edge = diagram.edges[index];
+      return area.nodeIds.has(edge.from) && area.nodeIds.has(edge.to) ? 'is-on' : 'is-dim';
+    }
+    return links ? (links.edgeIndexes.has(index) ? 'is-on' : 'is-dim') : '';
+  };
+  const nodeState = (nodeId: string) => {
+    const ids = area?.nodeIds ?? links?.nodeIds;
+    return ids ? (ids.has(nodeId) ? 'is-on' : 'is-dim') : '';
+  };
   const minWidth = Math.min(width, 980);
 
   return (
@@ -384,7 +467,7 @@ export function FlowDiagramView({ diagram, id }: { diagram: FlowDiagram; id: str
         <svg
           ref={svgRef}
           viewBox={`0 0 ${width} ${height}`}
-          className={`d-svg${links ? ' has-active' : ''}`}
+          className={`d-svg${links || area ? ' has-active' : ''}`}
           style={{ minWidth }}
           role="group"
           aria-labelledby={`${id}-title ${id}-desc`}
@@ -431,6 +514,24 @@ export function FlowDiagramView({ diagram, id }: { diagram: FlowDiagram; id: str
               />
             );
           })}
+          {diagram.boundaries?.map((boundary, i) => {
+            const r = boundaryRect(boundary, L, width);
+            return (
+              <g
+                key={boundary.label}
+                className={`d-boundary${area?.kind === 'boundary' && area.index === i ? ' is-on' : ''}`}
+              >
+                <rect
+                  className="d-boundary-line"
+                  x={r.left}
+                  y={r.top}
+                  width={r.right - r.left}
+                  height={r.bottom - r.top}
+                  rx={14}
+                />
+              </g>
+            );
+          })}
           {diagram.edges.map((edge, index) => {
             const { d } = plan.routes[index];
             return (
@@ -454,14 +555,82 @@ export function FlowDiagramView({ diagram, id }: { diagram: FlowDiagram; id: str
             />
           ))}
           {/* Labels go last, with a halo, so no line runs through their text. */}
-          {diagram.lanes?.map((lane, i) => (
-            <g key={`${lane.label}-label`}>
-              <text className="t-label t-halo-lane" x={plan.laneX[i]} y={L.rowY(lane.fromRow) - 20}>
-                {lane.label.toUpperCase()}
-              </text>
-              <rect className="d-rule" x={plan.laneX[i]} y={L.rowY(lane.fromRow) - 13} width={28} height={3} rx={1.5} />
-            </g>
-          ))}
+          {diagram.lanes?.map((lane, i) => {
+            const eyebrow = (
+              <>
+                <text className="t-label t-halo-lane" x={plan.laneX[i]} y={L.rowY(lane.fromRow) - 20}>
+                  {lane.label.toUpperCase()}
+                </text>
+                <rect
+                  className="d-rule"
+                  x={plan.laneX[i]}
+                  y={L.rowY(lane.fromRow) - 13}
+                  width={28}
+                  height={3}
+                  rx={1.5}
+                />
+              </>
+            );
+            if (!lane.detail) return <g key={`${lane.label}-label`}>{eyebrow}</g>;
+            const hit = plan.laneBoxes[i];
+            return (
+              <g
+                key={`${lane.label}-label`}
+                className="d-node d-area"
+                role="group"
+                aria-label={`${lane.label} stage`}
+                {...bind(`lane:${i}`)}
+              >
+                <Ring x={hit.left - 2} y={hit.top} w={hit.right - hit.left + 4} h={hit.bottom - hit.top} r={4} />
+                <rect
+                  className="d-hit"
+                  x={hit.left - 6}
+                  y={hit.top - 2}
+                  width={hit.right - hit.left + 12}
+                  height={hit.bottom - hit.top + 4}
+                />
+                {eyebrow}
+              </g>
+            );
+          })}
+          {diagram.boundaries?.map((boundary, i) => {
+            const label = plan.boundaryBoxes[i];
+            return (
+              <g
+                key={`${boundary.label}-label`}
+                className="d-node d-area"
+                role="group"
+                aria-label={`${boundary.label} boundary`}
+                {...bind(`boundary:${i}`)}
+              >
+                <Ring
+                  x={label.left - 2}
+                  y={label.top}
+                  w={label.right - label.left + 4}
+                  h={label.bottom - label.top}
+                  r={4}
+                />
+                <rect
+                  className="d-hit"
+                  x={label.left - 6}
+                  y={label.top - 2}
+                  width={label.right - label.left + 12}
+                  height={label.bottom - label.top + 4}
+                />
+                <rect
+                  className="d-label-bg"
+                  x={label.left - 4}
+                  y={label.top - 1}
+                  width={label.right - label.left + 8}
+                  height={label.bottom - label.top + 2}
+                  rx={3}
+                />
+                <text className="t-label t-boundary" x={plan.boundaryX[i]} y={label.top + 13}>
+                  {boundary.label.toUpperCase()}
+                </text>
+              </g>
+            );
+          })}
           {diagram.edges.map((edge, index) => {
             const placed = plan.edgeLabels[index];
             if (!edge.label || !placed) return null;

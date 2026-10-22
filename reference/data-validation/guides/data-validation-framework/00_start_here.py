@@ -2,6 +2,8 @@
 # MAGIC %md
 # MAGIC # Data validation framework
 # MAGIC
+# MAGIC Safe to rerun: it only lists links to the deployed job and pipeline and writes nothing.
+# MAGIC
 # MAGIC This guide copies a source database into Databricks, enforces rules in a pipeline with a quarantine table, and runs every other check from one spec into one results table. It then reads lineage to show what a failed check affects and publishes a metric view for one metric.
 # MAGIC
 # MAGIC The source is a stand-in: a schema in Lakebase Postgres, read through a Unity Catalog connection and `remote_query`. It plays the part of an ERP or order database such as SQL Server. The validation logic lives only in Databricks.

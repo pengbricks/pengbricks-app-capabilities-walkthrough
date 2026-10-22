@@ -10,6 +10,8 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 1. Prepare the target and the source batch
 # MAGIC
+# MAGIC Safe to rerun: both tables are overwritten with the same generated rows.
+# MAGIC
 # MAGIC Creates `accounts_target` from the initial snapshot, and `accounts_source_batch` with the inserts, updates and deletes to apply. Both are overwritten, so every run starts from the same state.
 
 # COMMAND ----------

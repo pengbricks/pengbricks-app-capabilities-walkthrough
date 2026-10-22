@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # 2. SQL exploration
 # MAGIC
-# MAGIC Three analyses over the governed `analyst_orders`, `analyst_customers` and `analyst_products` tables. Each is saved as a table so the run leaves artifacts you can open. `CREATE OR REPLACE` makes a rerun replace each one.
+# MAGIC Three analyses over the governed `analyst_orders`, `analyst_customers` and `analyst_products` tables. Each is saved as a table so the run leaves artifacts you can open. Safe to rerun: `CREATE OR REPLACE` replaces each table.
 
 # COMMAND ----------
 

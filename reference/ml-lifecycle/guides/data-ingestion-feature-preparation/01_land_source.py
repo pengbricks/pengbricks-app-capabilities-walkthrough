@@ -11,6 +11,8 @@ dbutils.library.restartPython()
 # MAGIC # 1. Land the source data
 # MAGIC
 # MAGIC Downloads UCI Online Retail II (CC BY 4.0) into a Unity Catalog volume, checks its pinned SHA-256, and writes every invoice line to the transactions table as-is, blank customer IDs included. Then it builds the source table: one row per customer who ordered before the snapshot date, with the churn label. Both tables are overwritten, so a rerun replaces the data.
+# MAGIC
+# MAGIC Safe to rerun: the download is skipped when the verified file is in the volume, and both tables are overwritten.
 
 # COMMAND ----------
 

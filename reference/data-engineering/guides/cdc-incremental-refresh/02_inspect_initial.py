@@ -10,6 +10,8 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 2. Inspect the initial load
 # MAGIC
+# MAGIC Safe to rerun: the event log is only read; `cdc_refresh_metrics` is a run log, so it is the one table that gains rows.
+# MAGIC
 # MAGIC The first update is a **full refresh**: every table is cleared and rebuilt from whatever its source still holds. This notebook reads the pipeline event log to show what each dataset wrote and where each streaming flow started reading, and records it in `cdc_refresh_metrics`.
 
 # COMMAND ----------

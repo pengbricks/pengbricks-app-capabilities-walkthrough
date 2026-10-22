@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # 4. Usage and cost
 # MAGIC
-# MAGIC Daily usage and list-price cost by SKU and product for this workspace. The table uses `CREATE OR REPLACE`, so a rerun replaces it.
+# MAGIC Daily usage and list-price cost by SKU and product for this workspace. Safe to rerun: the table uses `CREATE OR REPLACE`, so a rerun replaces it.
 
 # COMMAND ----------
 

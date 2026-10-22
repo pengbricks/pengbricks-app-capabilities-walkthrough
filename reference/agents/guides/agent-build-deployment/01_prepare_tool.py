@@ -11,6 +11,8 @@ dbutils.library.restartPython()
 # MAGIC # 1. Prepare the tool
 # MAGIC
 # MAGIC Creates the sample orders table, the email mask, and the Unity Catalog function that the agents call as a tool. The agent calls this function; Unity Catalog grants decide what it can touch. Reruns overwrite the table and replace the function and mask, so the row count stays the same.
+# MAGIC
+# MAGIC Safe to rerun: the table is overwritten and the function and mask are replaced.
 
 # COMMAND ----------
 

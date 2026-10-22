@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # 6. Audit events
 # MAGIC
-# MAGIC Audit events by day, service, action and user for this workspace. The table uses `CREATE OR REPLACE`, so a rerun replaces it.
+# MAGIC Audit events by day, service, action and user for this workspace. Safe to rerun: the table uses `CREATE OR REPLACE`, so a rerun replaces it.
 
 # COMMAND ----------
 

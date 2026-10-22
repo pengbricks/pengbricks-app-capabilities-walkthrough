@@ -12,7 +12,7 @@ dbutils.library.restartPython()
 # MAGIC
 # MAGIC Before any data moves, three things must hold. The Unity Catalog connection exists and names the host. The source tables have the change capture their SCD type needs: CDC on `customers` (history), Change Tracking on `orders` and `products`, and never both on one table. And the gateway is running, because it reads the change log continuously and the ingestion pipeline only applies what it staged.
 # MAGIC
-# MAGIC The job reads the source with the application login from the secret scope, not with the connector's `lakeflow_ingest` login, whose password lives only in the connection.
+# MAGIC The job reads the source with the application login from the secret scope, not with the connector's `lakeflow_ingest` login, whose password lives only in the connection. Safe to rerun: it reads the source, starts the gateway only if it is idle, and replaces its rows in `lfc_results`.
 
 # COMMAND ----------
 

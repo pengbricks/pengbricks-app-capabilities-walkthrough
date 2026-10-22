@@ -51,7 +51,7 @@ sequenceDiagram
 
 ## Artifacts produced
 
-- Tables: `ux_session_log` (6 rows per run), `genie_spaces`
+- Tables: `ux_session_log` (6 rows, replaced on each run), `genie_spaces`
 - Genie Agent created through the API by the last notebook (a bundle `genie_spaces` resource can declare it instead); ID and URL in `genie_spaces`
 
 ## Reference run

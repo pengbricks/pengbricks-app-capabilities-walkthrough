@@ -3,6 +3,8 @@
 # MAGIC # 5. Compare the answers
 # MAGIC
 # MAGIC Pivots the before and after answers into one row per question (`ontology_comparison_summary`, replaced on each run) and prints how many answers match the expected result at each stage.
+# MAGIC
+# MAGIC Safe to rerun: the summary table is replaced.
 
 # COMMAND ----------
 

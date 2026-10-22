@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # REST API ingestion
 # MAGIC
-# MAGIC This guide pulls a paginated, token-authenticated REST API into Delta. The client logs in, pages through the records, refreshes the token before it expires, retries on 429 and 5xx, and writes one request-log row per HTTP attempt.
+# MAGIC This guide pulls a paginated, token-authenticated REST API into Delta. The client logs in, pages through the records, refreshes the token before it expires, retries on 429 and 5xx, and writes one request-log row per HTTP attempt. Safe to rerun: `api_users` is overwritten, and the request log and run summary keep one set of rows per run.
 # MAGIC
 # MAGIC ## Notebooks, in run order
 # MAGIC

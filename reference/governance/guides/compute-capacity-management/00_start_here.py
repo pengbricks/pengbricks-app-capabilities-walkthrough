@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # Compute and capacity management
 # MAGIC
-# MAGIC This guide reads warehouse settings, creates a temporary 2X-Small test warehouse, loads it with concurrent statements so it queues, reads the queueing back from system tables, and deletes the test warehouse.
+# MAGIC This guide reads warehouse settings, creates a temporary 2X-Small test warehouse, loads it with concurrent statements so it queues, reads the queueing back from system tables, and deletes the test warehouse. A last read-only task audits the type of every warehouse.
 # MAGIC
 # MAGIC ## Notebooks, in run order
 # MAGIC
@@ -13,10 +13,11 @@
 # MAGIC | `03_generate_load` | Submits concurrent heavy statements and waits for them. |
 # MAGIC | `04_analyze_load` | Reads wait times and warehouse events from system tables. |
 # MAGIC | `05_delete_load_warehouse` | Deletes the test warehouse. |
+# MAGIC | `06_warehouse_type_audit` | Lists every warehouse with its type, flags those that are not serverless or stop late, and writes `governance_warehouse_types`. Read only. |
 # MAGIC
 # MAGIC ## How to run
 # MAGIC
-# MAGIC Run the job `capability-guides-compute-capacity` (or **Quick run** in the app). To run by hand, open the notebooks in order and use Run all in each, and always finish with `05` so no test warehouse is left behind. `04` can take several minutes because `system.query.history` lags.
+# MAGIC Run the job `capability-guides-compute-capacity` (or **Quick run** in the app). To run by hand, open the notebooks in order and use Run all in each, always finish with `05` so no test warehouse is left behind, and run `06` any time (it only reads). `04` can take several minutes because `system.query.history` lags.
 # MAGIC
 # MAGIC ## Variables
 # MAGIC
@@ -30,6 +31,8 @@
 # MAGIC
 # MAGIC Every variable is a widget. Leave one blank and it takes the default of the deployed job's parameter with the same name. Type a value to override it for one run.
 
+# MAGIC
+# MAGIC Safe to rerun: it only reads the deployed job and links to it.
 # COMMAND ----------
 
 import sys, os

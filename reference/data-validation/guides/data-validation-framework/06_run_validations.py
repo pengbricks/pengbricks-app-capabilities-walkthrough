@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # 6. Run the validations
 # MAGIC
-# MAGIC Reads the `checks` list from the use-case spec and runs every check the same way: build one SQL statement for the check type, measure one number, compare it with the threshold, and record the result. Reconciliation checks ask the source for aggregates through `remote_query` (or read the snapshot from the previous task) and compare them with the same aggregates on the Databricks copy.
+# MAGIC Safe to rerun: it stops with a message, before any change, if the landed tables, the silver table or this run's source snapshot are missing. The results for a `run_id` are replaced, and each job run adds its own rows to `dv_check_results`, a history table. Reads the `checks` list from the use-case spec and runs every check the same way: build one SQL statement for the check type, measure one number, compare it with the threshold, and record the result. Reconciliation checks ask the source for aggregates through `remote_query` (or read the snapshot from the previous task) and compare them with the same aggregates on the Databricks copy.
 # MAGIC
 # MAGIC One row per check goes to `dv_check_results`. A view, `dv_latest_failures`, shows the failures of the latest run, which is what the SQL alert reads. The notebook then fails the task when a check at or above the `block_on` level did not pass, which stops `publish_metric_view`.
 
@@ -34,7 +34,7 @@ problems = dv_lib.validate_spec(spec)
 if problems:
     raise ValueError("The checks list has problems:\n" + "\n".join(problems))
 print(f"{len(spec['checks'])} checks in the spec")
-
+dv_lib.require_ready(spark, ns, "run_validations", run_id, spec)
 # COMMAND ----------
 
 # MAGIC %md

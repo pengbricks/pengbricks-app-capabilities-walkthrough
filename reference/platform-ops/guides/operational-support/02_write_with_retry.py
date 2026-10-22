@@ -12,7 +12,7 @@ dbutils.library.restartPython()
 # MAGIC
 # MAGIC Fails on its first execution and succeeds on the retry, which the job's retry policy (`max_retries`, `min_retry_interval_millis`, `timeout_seconds`) triggers. The write is a `MERGE` keyed by item id, so reruns and retries never duplicate rows. The 25 work items stay 25 rows.
 # MAGIC
-# MAGIC Standalone, a blank `execution_count` means a retry attempt, so the notebook succeeds. Type `1` to see the first-attempt failure.
+# MAGIC Standalone, a blank `execution_count` means a retry attempt, so the notebook succeeds. Type `1` to see the first-attempt failure. Safe to rerun: the MERGE is keyed by item id, so the table keeps 25 rows.
 
 # COMMAND ----------
 

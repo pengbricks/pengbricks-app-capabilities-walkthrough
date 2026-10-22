@@ -21,7 +21,7 @@ from capability_framework.use_case import feed_names, load_use_case
 # MAGIC %md
 # MAGIC ## Read the use-case spec
 # MAGIC
-# MAGIC The spec lists the feeds, their file formats, and the shape of the sample data. Everything below is driven by it.
+# MAGIC The spec lists the feeds, their file formats, and the shape of the sample data. Everything below is driven by it. Safe to rerun: tables are created if missing and each feed's folder is overwritten.
 
 # COMMAND ----------
 

@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # 3. Extract with remote_query
 # MAGIC
-# MAGIC Lands the source with Lakehouse Federation: full table extracts and a custom SQL result. Both go through `remote_query` on the Unity Catalog connection, so the SQL runs inside Postgres: a plain SELECT for the full extracts, and for the custom query the join, aggregate, window function and database function all execute at the source. Each table is overwritten, so a rerun replaces it.
+# MAGIC Lands the source with Lakehouse Federation: full table extracts and a custom SQL result. Both go through `remote_query` on the Unity Catalog connection, so the SQL runs inside Postgres: a plain SELECT for the full extracts, and for the custom query the join, aggregate, window function and database function all execute at the source. Safe to rerun: each table is overwritten, so a rerun replaces it, and `relational_extract_log` keeps one set of rows per run.
 
 # COMMAND ----------
 
@@ -70,4 +70,4 @@ record("rel_customer_revenue", "remote_query (custom SQL)", spark.table(f"{ns}.r
 
 spark.createDataFrame(
     log, "run_id string, loaded_at timestamp, target_table string, method string, row_count bigint"
-).write.mode("append").saveAsTable(f"{ns}.relational_extract_log")
+).write.mode("overwrite").option("replaceWhere", f"run_id = '{params['run_id']}'").saveAsTable(f"{ns}.relational_extract_log")

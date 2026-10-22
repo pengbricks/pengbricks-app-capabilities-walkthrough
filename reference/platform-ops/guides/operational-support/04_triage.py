@@ -11,6 +11,8 @@ dbutils.library.restartPython()
 # MAGIC # 4. Triage failed runs
 # MAGIC
 # MAGIC Finds failed tasks of jobs tagged `capability_guide_job` through the Jobs API, cross-checks `system.lakeflow.job_run_timeline` for runs the API pass did not return, classifies each error with the spec's patterns, and routes each one through the `on_call` table. The job runs it with `run_if: ALL_DONE`, so it runs even when `fragile_step` fails. Incidents are merged by `incident_id`, so triage reruns do not duplicate them.
+# MAGIC
+# MAGIC Safe to rerun: incidents are merged by `incident_id`, so a second pass adds no rows.
 
 # COMMAND ----------
 

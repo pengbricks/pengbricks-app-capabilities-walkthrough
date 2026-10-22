@@ -12,7 +12,7 @@ dbutils.library.restartPython()
 # MAGIC
 # MAGIC The job's previous task ran the ingestion pipeline with `full_refresh_selection: [lfc_orders]`. That re-snapshots `dbo.orders` and replaces the bronze table; `lfc_customers` and `lfc_products` keep going incrementally. This notebook checks the result: `lfc_orders` matches the source row count, and `lfc_customers` still has every closed version.
 # MAGIC
-# MAGIC Never full-refresh a history table on a whim. A full refresh of an SCD type 2 table replaces it, and history restarts from that point.
+# MAGIC Never full-refresh a history table on a whim. A full refresh of an SCD type 2 table replaces it, and history restarts from that point. Safe to rerun: it only reads the source and bronze, and replaces its rows in `lfc_results`.
 
 # COMMAND ----------
 

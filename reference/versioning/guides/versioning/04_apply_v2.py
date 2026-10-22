@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 4. Publish v2.0.0 (breaking)
 # MAGIC
-# MAGIC The breaking shape ships as a new table. The old name `customers_v1` becomes a view with the v1.1.0 shape, so existing consumers keep working until the sunset date. Run `03_apply_v1` first.
+# MAGIC Safe to rerun: a rerun first turns the compatibility view back into the v1.1.0 table and drops `customers_v2`, then publishes again. The breaking shape ships as a new table. The old name `customers_v1` becomes a view with the v1.1.0 shape, so existing consumers keep working until the sunset date. Run `03_apply_v1` first.
 
 # COMMAND ----------
 
@@ -32,7 +32,7 @@ CONTRACTS_DIR = ROOT / "contracts"
 # COMMAND ----------
 
 from compatibility import assert_compatible, compat_view_select, create_table_sql, migrate_select
-from versioning_common import contracts_for, delta_version, fq, load_spec, register, set_tags
+from versioning_common import contracts_for, delta_version, fq, load_spec, register, set_tags, undo_v2
 
 catalog, schema, release = params["catalog"], params["schema"], params["release"]
 spec = load_spec(SPEC_FILE)
@@ -45,7 +45,7 @@ assert_compatible(v11, v2)
 
 name = lambda suffix: fq(catalog, schema, f"{dataset}_{suffix}")  # noqa: E731
 v1_name, archive, v2_table = name("v1"), name("v1_archive"), name("v2")
-
+undo_v2(spark, v1_name, archive, v2_table)  # a rerun starts from the v1.1.0 table
 # COMMAND ----------
 
 # MAGIC %md

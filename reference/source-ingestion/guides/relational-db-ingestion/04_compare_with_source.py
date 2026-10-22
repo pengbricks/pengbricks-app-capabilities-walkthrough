@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 4. Compare with the source
 # MAGIC
-# MAGIC Compares each landed table with the same query run at the source: row count, checksum and column types. The checksum is the sum of the first 8 hex digits of `md5` over a canonical row string, computed in Postgres SQL on one side and Spark SQL on the other.
+# MAGIC Compares each landed table with the same query run at the source: row count, checksum and column types. The checksum is the sum of the first 8 hex digits of `md5` over a canonical row string, computed in Postgres SQL on one side and Spark SQL on the other. Safe to rerun: it reads both sides and replaces the rows for its own `run_id`.
 
 # COMMAND ----------
 
@@ -75,6 +75,6 @@ spark.createDataFrame(
     results,
     "run_id string, checked_at timestamp, table_name string, source_rows bigint, landed_rows bigint, "
     "source_checksum bigint, landed_checksum bigint, types_match boolean, passed boolean",
-).write.mode("append").saveAsTable(f"{ns}.relational_extract_checks")
+).write.mode("overwrite").option("replaceWhere", f"run_id = '{params['run_id']}'").saveAsTable(f"{ns}.relational_extract_checks")
 if not all(r[-1] for r in results):
     raise SystemExit("Landed tables do not match the source")

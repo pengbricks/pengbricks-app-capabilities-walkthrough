@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # 3. Detect schema drift
 # MAGIC
-# MAGIC Changes the silver table's schema, then detects the change two ways: by comparing `information_schema` snapshots from before and after, and by reading `DESCRIBE HISTORY`. It replaces any rows already recorded for the same `run_id`. Run `01_build_chain` first, which also resets the silver table, so every run starts from the same schema.
+# MAGIC Safe to rerun: it resets the silver table from the source if the drift is already applied, and replaces the rows for its `run_id`. Each job run adds its own rows to the `obs_schema_*` tables, which are run logs. Changes the silver table's schema, then detects the change two ways: by comparing `information_schema` snapshots from before and after, and by reading `DESCRIBE HISTORY`. It replaces any rows already recorded for the same `run_id`. A rerun resets the silver table from the source first, so every run starts from the same schema. Run `01_build_chain` first.
 
 # COMMAND ----------
 
@@ -49,8 +49,8 @@ def latest_version(spark, full_name: str) -> int:
 # COMMAND ----------
 
 before = snapshot(spark, catalog, schema, TABLE)
-if add["name"] in before:
-    raise RuntimeError(f"{TABLE} already has {add['name']}. Run 01_build_chain to reset the chain, then run this notebook again.")
+if add["name"] in before:  # a rerun: reset silver from the source first, as 01_build_chain does
+    g.rebuild_silver(spark, full, prefix); before = snapshot(spark, catalog, schema, TABLE)
 version_before = latest_version(spark, full)
 
 spark.sql(f"ALTER TABLE {full} ADD COLUMNS ({add['name']} {add['type']})")

@@ -13,6 +13,8 @@ dbutils.library.restartPython()
 # MAGIC Delete the agent's Model Serving endpoint and the gateway model services with their inference tables.
 # MAGIC
 # MAGIC Keeps the registered model versions, the sample data, and every record table.
+# MAGIC
+# MAGIC Safe to rerun: a missing endpoint or service is skipped, so a second run changes nothing.
 
 # COMMAND ----------
 

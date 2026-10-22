@@ -11,6 +11,8 @@ dbutils.library.restartPython()
 # MAGIC # 1. Generate the sample data
 # MAGIC
 # MAGIC Drops and regenerates each sample table from the use-case spec with the sample-data generator (`src/sample_data.py`) and a fixed seed, so every run produces the same rows. This also removes the comments and tags from the previous run, which gives the baseline questions a clean start.
+# MAGIC
+# MAGIC Safe to rerun: the tables are dropped and regenerated with the same seed.
 
 # COMMAND ----------
 

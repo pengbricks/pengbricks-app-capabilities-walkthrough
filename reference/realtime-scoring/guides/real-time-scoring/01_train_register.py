@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 1. Train and register the model
 # MAGIC
-# MAGIC Trains on UCI Default of Credit Card Clients (CC BY 4.0): whether a card holder defaults on next month's payment. The file is downloaded once into a volume and checked against a pinned SHA-256, so reruns train on identical data. The table is overwritten, and the registered model gets a new version each run with the `champion` alias moved to it.
+# MAGIC Trains on UCI Default of Credit Card Clients (CC BY 4.0): whether a card holder defaults on next month's payment. The file is downloaded once into a volume and checked against a pinned SHA-256, so reruns train on identical data. The table is overwritten, and the registered model gets a new version each run with the `champion` alias moved to it. Safe to rerun: the experiment is reused and `champion` is set, not added; each run registers a new model version (versions are history).
 
 # COMMAND ----------
 

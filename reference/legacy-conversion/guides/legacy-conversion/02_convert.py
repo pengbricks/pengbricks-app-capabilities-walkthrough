@@ -11,6 +11,8 @@ dbutils.library.restartPython()
 # MAGIC # 2. Convert
 # MAGIC
 # MAGIC Transpiles each step from T-SQL to Databricks SQL with sqlglot and records it as clean, warning or manual. A step that fails to transpile is recorded for hand remediation instead of raising. Needs the table from `01_assess`.
+# MAGIC
+# MAGIC Safe to rerun: `assessment_conversion` is overwritten.
 
 # COMMAND ----------
 

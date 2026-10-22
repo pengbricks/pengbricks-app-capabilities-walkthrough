@@ -31,7 +31,7 @@ print(f"pipeline_id = {pipeline_id}, run_pipeline = {run_pipeline}")
 # MAGIC %md
 # MAGIC ## Start an update and wait for it
 # MAGIC
-# MAGIC Standalone, this notebook runs the pipeline. In the job, the `streaming_pipeline` task has already run the update, so `run_pipeline` is `false` and this step is skipped.
+# MAGIC Standalone, this notebook runs the pipeline. In the job, the `streaming_pipeline` task has already run the update, so `run_pipeline` is `false` and this step is skipped. Safe to rerun: an update with no new files adds no rows, and the other cells only read.
 
 # COMMAND ----------
 

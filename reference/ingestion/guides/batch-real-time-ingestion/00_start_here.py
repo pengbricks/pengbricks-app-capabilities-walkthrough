@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # Batch and real-time ingestion
 # MAGIC
-# MAGIC One job runs both paths. The batch path is the configuration-driven framework writing `transactions_silver`. The real-time path is a serverless Lakeflow Declarative Pipeline: Auto Loader picks up new event files, expectations validate them, and a materialized view tracks latency and throughput per minute.
+# MAGIC One job runs both paths. The batch path is the configuration-driven framework writing `transactions_silver`. The real-time path is a serverless Lakeflow Declarative Pipeline: Auto Loader picks up new event files, expectations validate them, and a materialized view tracks latency and throughput per minute. Safe to rerun: each streaming batch has a fixed file name and id range and is skipped when already landed, silver is merged by key, and `ingestion_run_metrics` keeps one row per job run.
 # MAGIC
 # MAGIC ## Notebooks, in run order
 # MAGIC

@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # Multi-source pipeline
 # MAGIC
-# MAGIC This guide combines a database extract, landed CSV files and API pages into one conformed customers table in a single Lakeflow Declarative Pipeline. Each source maps to the same columns and carries a `source_system` tag.
+# MAGIC This guide combines a database extract, landed CSV files and API pages into one conformed customers table in a single Lakeflow Declarative Pipeline. Each source maps to the same columns and carries a `source_system` tag. Safe to rerun: the landing folder is cleared, the extract table is overwritten, and the pipeline does a full refresh, so counts stay the same.
 # MAGIC
 # MAGIC ## Notebooks, in run order
 # MAGIC

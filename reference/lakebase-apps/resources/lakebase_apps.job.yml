@@ -1,0 +1,73 @@
+# App development with Lakebase: connect with an OAuth token, sync a Delta table in, send app writes
+# back with Change Data Feed, branch for dev, add pgvector, register the database, and clean up.
+# Every task is safe to rerun. Cleanup keeps everything unless the cleanup parameter is "delete".
+resources:
+  jobs:
+    capability_guides_lakebase_apps:
+      name: capability-guides-lakebase-apps
+      description: Connects to a Lakebase project with a minted OAuth token, syncs a Delta table into Postgres, captures app writes in Delta with Change Data Feed, branches and deletes a dev branch, runs a pgvector query, registers the database in Unity Catalog, and optionally cleans up.
+      tags:
+        capability_guide_job: capability_guides_lakebase_apps
+      max_concurrent_runs: 1
+      timeout_seconds: 5400
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${var.schema}
+        - name: lakebase_project
+          default: ${var.lakebase_project}
+        - name: warehouse_id
+          default: ${var.warehouse_id}
+        - name: app_schema
+          default: ${var.app_schema}
+        - name: dev_branch
+          default: ${var.dev_branch}
+        - name: lakebase_catalog
+          default: ${var.lakebase_catalog}
+        # "keep" leaves the demo in place. "delete" removes everything the notebooks created.
+        - name: cleanup
+          default: keep
+      tasks:
+        - task_key: connect_and_write
+          notebook_task:
+            notebook_path: ../guides/lakebase-apps/01_connect_and_write.py
+
+        - task_key: sync_delta_table
+          depends_on:
+            - task_key: connect_and_write
+          notebook_task:
+            notebook_path: ../guides/lakebase-apps/02_sync_delta_table.py
+
+        - task_key: write_back
+          depends_on:
+            - task_key: connect_and_write
+          notebook_task:
+            notebook_path: ../guides/lakebase-apps/03_write_back.py
+
+        - task_key: dev_branch
+          depends_on:
+            - task_key: write_back
+            - task_key: sync_delta_table
+          notebook_task:
+            notebook_path: ../guides/lakebase-apps/04_dev_branch.py
+
+        - task_key: pgvector
+          depends_on:
+            - task_key: dev_branch
+          notebook_task:
+            notebook_path: ../guides/lakebase-apps/05_pgvector.py
+
+        - task_key: register_in_unity_catalog
+          depends_on:
+            - task_key: pgvector
+          notebook_task:
+            notebook_path: ../guides/lakebase-apps/06_register_in_unity_catalog.py
+
+        # Runs even when an earlier task failed, so a delete request is never skipped.
+        - task_key: cleanup
+          depends_on:
+            - task_key: register_in_unity_catalog
+          run_if: ALL_DONE
+          notebook_task:
+            notebook_path: ../guides/lakebase-apps/07_cleanup.py

@@ -12,7 +12,7 @@ dbutils.library.restartPython()
 # MAGIC
 # MAGIC Creates or refreshes the Unity Catalog connection that exposes Lakebase Postgres, plus a foreign catalog if allowed.
 # MAGIC
-# MAGIC The connection stores a Lakebase OAuth token as its password. Tokens last about an hour, so every run replaces the token. A production setup uses a Lakeflow Connect managed connector or a long-lived credential from a secret store instead.
+# MAGIC The connection stores a Lakebase OAuth token as its password. Tokens last about an hour, so every run replaces the token. A production setup uses a Lakeflow Connect managed connector or a long-lived credential from a secret store instead. Safe to rerun: the connection is updated if it exists, and the foreign catalog is created only if missing.
 
 # COMMAND ----------
 

@@ -3,7 +3,7 @@ resources:
   jobs:
     capability_guides_compute_capacity:
       name: capability-guides-compute-capacity
-      description: Reads warehouse settings, loads a temporary 2X-Small test warehouse, reads the queueing from system tables, and deletes the test warehouse.
+      description: Reads warehouse settings, loads a temporary 2X-Small test warehouse, reads the queueing from system tables, deletes the test warehouse, and audits the type of every warehouse.
       tags:
         capability_guide_job: capability_guides_compute_capacity
         capability_guide_use_case: ${var.use_case}
@@ -53,3 +53,9 @@ resources:
           run_if: ALL_DONE
           notebook_task:
             notebook_path: ../guides/compute-capacity-management/05_delete_load_warehouse.py
+
+        - task_key: warehouse_type_audit
+          depends_on:
+            - task_key: read_settings
+          notebook_task:
+            notebook_path: ../guides/compute-capacity-management/06_warehouse_type_audit.py

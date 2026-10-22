@@ -12,6 +12,8 @@ dbutils.library.restartPython()
 # MAGIC
 # MAGIC Records the 7-day list-price spend against the budget threshold in `budget_status`. The SQL alert in the bundle uses the same query.
 
+# MAGIC
+# MAGIC Safe to rerun: `budget_status` is replaced, so it holds one row for the latest check.
 # COMMAND ----------
 
 import sys, os

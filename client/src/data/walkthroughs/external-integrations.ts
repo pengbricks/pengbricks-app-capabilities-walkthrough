@@ -292,21 +292,7 @@ export const walkthrough: Walkthrough = {
       id: 'lakebase',
       heading: 'Lakebase for transactional apps',
       prose:
-        'Analytical engines are the wrong back end for an app that reads and writes single rows with low latency. Lakebase is managed Postgres on the platform, with Unity Catalog integration, for that workload.',
-      points: [
-        {
-          strong: 'Use Lakebase as the operational database.',
-          text: 'Connect Databricks Apps or any Postgres client for OLTP. It scales automatically and branches instantly for development.',
-        },
-        {
-          strong: 'Serve lakehouse data with synced tables.',
-          text: 'Sync Unity Catalog tables into Lakebase so an app can read curated data at low latency without querying the warehouse on each request.',
-        },
-        {
-          strong: 'Bring Postgres changes back.',
-          text: 'Store Postgres changes as Delta tables for downstream pipelines and audit.',
-        },
-      ],
+        'An app that reads and writes single rows with low latency needs a transactional database, and analytical engines serve it poorly. Lakebase is managed Postgres on the platform for that workload. Synced tables copy Unity Catalog data into it for lookups. The App development with Lakebase guide covers connections, sync modes, and branches.',
       links: [
         {
           label: 'Lakebase Postgres',
@@ -366,5 +352,6 @@ export const walkthrough: Walkthrough = {
     { slug: 'iceberg-support', title: 'Apache Iceberg interoperability' },
     { slug: 'relational-db-ingestion', title: 'Relational database extracts' },
     { slug: 'local-tool-connectivity', title: 'Local tool connectivity' },
+    { slug: 'lakebase-apps', title: 'App development with Lakebase' },
   ],
 };

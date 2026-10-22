@@ -141,3 +141,30 @@ def dataset_table(spark, summary: dict[str, Any]):
     ]
     ddl = "dataset string, rows_read bigint, rows_written bigint, rows_deleted bigint, duration_s double, maintenance_type string, source_offsets string"
     return spark.createDataFrame(rows, ddl)
+
+
+def completed_modes(events: list[dict[str, Any]]) -> list[str]:
+    """Refresh mode of every completed update, oldest first."""
+    modes = []
+    for update_id in update_ids(events):
+        create = next(e for e in events if e["update_id"] == update_id and e["event_type"] == "create_update")
+        details = create["details"].get("create_update", {})
+        modes.append(cdc.update_refresh_mode(bool(details.get("full_refresh")), details.get("full_refresh_selection")))
+    return modes
+
+
+def incremental_done(events: list[dict[str, Any]]) -> bool:
+    """True when an incremental update has completed since the last full refresh."""
+    modes = completed_modes(events)
+    if "full_refresh" not in modes:
+        return False
+    return "incremental" in modes[len(modes) - modes[::-1].index("full_refresh"):]
+
+
+def require_updates(events: list[dict[str, Any]], *needed: str) -> None:
+    """Stop with a plain message, before anything changes, when an earlier update has not completed."""
+    modes = completed_modes(events)
+    if "incremental" in needed and not incremental_done(events):
+        raise RuntimeError("No incremental update has completed since the last full refresh. Run 03_apply_changes and the incremental update first, or rerun the job. Nothing was changed.")
+    if "full_refresh" in needed and "full_refresh" not in modes:
+        raise RuntimeError("No completed full refresh in the pipeline event log. Run 01_reset_sources and the initial update first, or rerun the job. Nothing was changed.")

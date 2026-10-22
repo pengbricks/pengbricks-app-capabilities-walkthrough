@@ -24,6 +24,8 @@
 # MAGIC | `use_case` | Spec under `use_cases/` that drives the generated data. |
 # MAGIC
 # MAGIC Every variable is a widget. Leave one blank and it takes the default of the deployed job's parameter with the same name. Type a value to override it for one run.
+# MAGIC
+# MAGIC Safe to rerun: tables are replaced, so the job and each notebook can run again.
 
 # COMMAND ----------
 

@@ -30,7 +30,7 @@ from capability_framework.runner import run_feed
 # MAGIC %md
 # MAGIC ## Fail the first attempt on purpose
 # MAGIC
-# MAGIC The job sets `max_retries: 2`. A marker file keyed on the job run id makes only the first attempt fail, so the run page shows attempt 0 failed and attempt 1 succeeded.
+# MAGIC The job sets `max_retries: 2`. A marker file keyed on the job run id makes only the first attempt fail, so the run page shows attempt 0 failed and attempt 1 succeeded. Safe to rerun: silver is merged by key and the feed's quarantine rows are replaced; `audit_log` adds one row per attempt, which is how the retry shows up.
 
 # COMMAND ----------
 

@@ -10,7 +10,7 @@ dbutils.library.restartPython()
 # MAGIC %md
 # MAGIC # 1. Prepare the data
 # MAGIC
-# MAGIC Creates the sample tables from the use-case spec if they do not exist, then comments and tags them and creates the `sales_metrics` metric view. The agent reads the metric view, so business definitions such as revenue live in Unity Catalog and not in the agent's instructions. Existing tables are kept, comments are set in place, and the metric view is replaced.
+# MAGIC Creates the sample tables from the use-case spec if they do not exist, then comments and tags them and creates the `sales_metrics` metric view. The agent reads the metric view, so business definitions such as revenue live in Unity Catalog and not in the agent's instructions. Safe to rerun: existing tables are kept, comments are set in place, and the metric view is replaced.
 
 # COMMAND ----------
 

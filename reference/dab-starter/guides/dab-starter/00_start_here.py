@@ -2,6 +2,8 @@
 # MAGIC %md
 # MAGIC # Running a Declarative Automation Bundle
 # MAGIC
+# MAGIC Safe to rerun: it only lists links to the deployed job and pipeline and writes nothing.
+# MAGIC
 # MAGIC You are looking at files a bundle deployed to this workspace. The bundle holds one serverless Lakeflow Declarative Pipeline and one job that runs it. The pipeline generates 100,000 synthetic orders with `dbldatagen` (bronze), drops the ones that break a rule (silver), and totals revenue per day and category (gold).
 # MAGIC
 # MAGIC ## Where each piece is
