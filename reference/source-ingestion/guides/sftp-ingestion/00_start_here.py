@@ -32,6 +32,21 @@
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ## Required setup
+# MAGIC
+# MAGIC Run these once, before the job. `<principal>` is the person or service principal behind `databricks bundle run`.
+# MAGIC
+# MAGIC 1. **An SFTP server the job can reach.** The default is the public test server `test.rebex.net` on port 22, with the published `demo` login. Serverless and classic compute need outbound access to the host and port. If the workspace restricts serverless egress, add the host to the allowed destinations of its network policy (set in the account console; see [network policies](https://docs.databricks.com/aws/en/security/network/serverless-network-security/network-policies)). When the server is unreachable, `fetch_files` copies from a folder in the volume instead and records mode `volume_fallback`, so the job still passes but does not prove an SFTP read.
+# MAGIC 2. **Your own server.** Set `sftp.host`, `sftp.port`, `sftp.username`, `sftp.password`, and `sftp.remote_roots` in `use_cases/general.yml`, then redeploy. `01_setup_secrets` writes those values to the scope on every run, so editing the secret by hand does not last.
+# MAGIC 3. **Secret scope.** `01_setup_secrets` creates the scope `capability-guides` and writes the keys `sftp-username` and `sftp-password`. The job identity must be allowed to create secret scopes, and it gets MANAGE on the scope it creates. If an admin restricts scope creation, create it first and give the job identity WRITE on it:
+# MAGIC    ```bash
+# MAGIC    databricks secrets create-scope capability-guides
+# MAGIC    databricks secrets put-acl capability-guides <principal> WRITE
+# MAGIC    ```
+
+# COMMAND ----------
+
 import sys, os
 sys.path.insert(0, os.path.abspath("../../src"))
 from guide_params import bundle_root, load_params, JOB_TAG

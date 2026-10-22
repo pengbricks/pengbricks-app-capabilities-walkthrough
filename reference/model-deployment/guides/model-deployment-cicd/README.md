@@ -6,6 +6,29 @@ Best practice: release models through Unity Catalog aliases, test gates, approva
 
 One serverless job takes a churn model from training to a live endpoint. It trains a small scikit-learn model with MLflow 3 on real invoice lines from UCI Online Retail II, registers it in Unity Catalog, runs automated tests, promotes it only when someone has approved it, deploys it to Model Serving, and appends a row to a release history table. A GitHub Actions workflow runs the same job in `dev` and `test`, and the GitHub `test` environment approval supplies the approver.
 
+## Required setup
+
+Run these once, before the job. `<principal>` is the person or service principal behind `databricks bundle run`.
+
+1. **Foundation bundle.** Deploy `reference/foundation` first. It creates the shared schema this guide writes to.
+2. **Schema privileges.** The job creates tables, registers the churn model in Unity Catalog, and writes to the source volume:
+   ```sql
+   GRANT USE CATALOG ON CATALOG <catalog> TO `<principal>`;
+   GRANT USE SCHEMA, CREATE TABLE, CREATE MODEL, SELECT, MODIFY, READ VOLUME, WRITE VOLUME ON SCHEMA <catalog>.<schema> TO `<principal>`;
+   ```
+3. **Model Serving.** `04_deploy_endpoint` creates or updates a Model Serving endpoint. Serverless Model Serving must be available in the workspace region, and `<principal>` must be allowed to create endpoints. Check afterwards with:
+   ```bash
+   databricks serving-endpoints list
+   ```
+4. **Outbound internet access.** The first notebook downloads the UCI Online Retail II zip (CC BY 4.0) into the source volume, and `%pip` installs packages from PyPI. The compute needs outbound HTTPS to `archive.ics.uci.edu` and to PyPI (or an internal PyPI mirror). On serverless compute, allow both in the workspace network policy. The download runs once and later runs reuse the zip. The task stops before it changes anything if the host is unreachable. Without internet, copy the zip into the source volume yourself (the `source_volume` job parameter names it):
+   ```bash
+   databricks fs cp ./online+retail+ii.zip dbfs:/Volumes/<catalog>/<schema>/<source-volume>/online_retail_ii.zip
+   ```
+5. **Approver.** The approval gate moves `@champion` only when it finds an approver. Without one the job stops at the gate, the endpoint is not deployed, and `@champion` stays as it was. Pass a name when you run the job:
+   ```bash
+   databricks bundle run capability_guides_model_release --target dev --params approved_by=<name>
+   ```
+
 ## What this shows
 
 | Success criterion | Artifact |

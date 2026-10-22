@@ -89,4 +89,6 @@ def main() -> None:
 
 # COMMAND ----------
 
+_w = WorkspaceClient()
+ac.require_managed_mcp(ac.mcp_url(_w.config.host, args.catalog, args.schema), _w.config.authenticate())
 main()

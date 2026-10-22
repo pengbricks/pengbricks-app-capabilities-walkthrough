@@ -39,9 +39,9 @@ from databricks.sdk import WorkspaceClient
 import apps_lib as lib
 
 w = WorkspaceClient()
-app = w.apps.get(name=app_name).as_dict()
+app = lib.require_app(w, app_name)
 if not lib.is_billing(app):
-    raise RuntimeError(f"App {app_name!r} is {lib.app_state(app)} (compute {lib.compute_state(app)}), so it cannot answer. Start it: databricks bundle run databricks_apps_demo")
+    raise RuntimeError(f"App {app_name!r} is {lib.app_state(app)} (compute {lib.compute_state(app)}), so it cannot answer. Run: databricks apps start {app_name}, then databricks bundle run databricks_apps_demo --target dev --var ... (or databricks apps deploy {app_name} --source-code-path <workspace path of the app folder>). Nothing was changed.")
 base = app["url"].rstrip("/")
 headers = w.config.authenticate()  # the Authorization header for the identity running this notebook
 

@@ -4,7 +4,7 @@ export const faqs: Faq[] = [
   {
     question: 'Which network and security controls do I need to decide before the first workload?',
     answer:
-      'Serverless egress control, Private Link, IP access lists, customer-managed keys, and the compliance security profile. Each one touches how workspaces, storage, and clients connect, so they cost less to design in than to retrofit. Plan the compliance security profile when you create the workspace.',
+      'Serverless egress control, private connectivity, IP access lists, customer-managed keys, and the compliance security profile. Each one touches how workspaces, storage, and clients connect, so they cost less to design in than to retrofit. Plan the compliance security profile when you create the workspace.',
     links: [{ label: 'Networking overview', url: 'https://docs.databricks.com/aws/en/security/network/' }],
   },
   {

@@ -4,6 +4,20 @@
 
 This guide creates a managed Iceberg table in Unity Catalog, writes to it, adds a column, reads an earlier version with time travel, and then reads the same table from outside Spark with PyIceberg through the Unity Catalog Iceberg REST catalog. The external read authenticates with the OAuth token of the job identity (an outside client should use a service principal with OAuth M2M) and uses vended credentials, so the client never holds storage keys. Every step writes a row to an `iceberg_checks` table.
 
+## Required setup
+
+Run these once, before the job. `<principal>` is the person or service principal behind `databricks bundle run`.
+
+1. **External data access on the metastore.** A metastore admin turns it on. Without it the Iceberg REST catalog refuses PyIceberg and `02_read_through_irc` stops with a message that says so:
+   ```bash
+   databricks metastores update <metastore-id> --external-access-enabled
+   ```
+   Get `<metastore-id>` from `databricks metastores current`.
+2. **EXTERNAL USE SCHEMA.** `01_managed_iceberg_table` grants it on the guide schema to the job identity. The catalog owner or a metastore admin can grant it first, which also covers a different reader:
+   ```sql
+   GRANT EXTERNAL USE SCHEMA ON SCHEMA <catalog>.<schema> TO `<principal>`;
+   ```
+
 ## Reference run
 
 Results from one run in the reference workspace.

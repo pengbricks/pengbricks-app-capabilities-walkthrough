@@ -6,6 +6,26 @@ Best practice: grant callers CAN QUERY and authenticate them with OAuth, size th
 
 One job trains a credit default model on UCI Default of Credit Card Clients (30,000 Taiwanese card holders, April to September 2005, CC BY 4.0), registers it in Unity Catalog, deploys it to a Model Serving endpoint, and scores it over HTTPS with an OAuth token from the Databricks SDK. It times every request and records how the endpoint answers bad requests. A second job deletes the endpoint, so nothing keeps running after the demo.
 
+## Required setup
+
+Run these once, before the job. `<principal>` is the person or service principal behind `databricks bundle run`.
+
+1. **Foundation bundle.** Deploy `reference/foundation` first. It creates the shared schema this guide writes to.
+2. **Schema privileges.** The job creates tables, registers the credit default model in Unity Catalog, and writes to the source volume:
+   ```sql
+   GRANT USE CATALOG ON CATALOG <catalog> TO `<principal>`;
+   GRANT USE SCHEMA, CREATE TABLE, CREATE MODEL, SELECT, MODIFY, READ VOLUME, WRITE VOLUME ON SCHEMA <catalog>.<schema> TO `<principal>`;
+   ```
+3. **Model Serving.** `02_deploy_endpoint` creates the endpoint. Serverless Model Serving must be available in the workspace region, and `<principal>` must be allowed to create endpoints. The endpoint keeps running until you delete it. Delete it with the teardown job:
+   ```bash
+   databricks bundle run capability_guides_realtime_scoring_teardown --target dev
+   ```
+4. **Scoring callers.** The scoring task calls the endpoint with the OAuth token of `<principal>`. Anyone else who scores it needs CAN QUERY on the endpoint (endpoint **Permissions** in the Serving UI).
+5. **Outbound internet access.** `01_train_register` downloads the UCI Default of Credit Card Clients zip (CC BY 4.0) into the source volume, and `%pip` installs packages from PyPI. The compute needs outbound HTTPS to `archive.ics.uci.edu` and to PyPI (or an internal PyPI mirror). On serverless compute, allow both in the workspace network policy. The download runs once and later runs reuse the zip. The task stops before it changes anything if the host is unreachable. Without internet, copy the zip into the source volume yourself (the `source_volume` job parameter names it):
+   ```bash
+   databricks fs cp ./default+of+credit+card+clients.zip dbfs:/Volumes/<catalog>/<schema>/<source-volume>/credit_card_default.zip
+   ```
+
 ## What this shows
 
 | Question | Artifact |

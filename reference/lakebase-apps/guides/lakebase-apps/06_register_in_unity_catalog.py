@@ -31,7 +31,7 @@ import lakebase_lib as lb
 params = load_params(dbutils, "capability_guides_lakebase_apps", ['lakebase_project', 'warehouse_id', 'lakebase_catalog', 'app_schema'],
                      defaults={'lakebase_catalog': 'lakebase_apps_demo', 'app_schema': 'lakebase_apps'})
 w = WorkspaceClient()
-project, warehouse_id = params["lakebase_project"], params["warehouse_id"]
+project, warehouse_id = lb.require_project(w, params["lakebase_project"]), lb.require_serverless_warehouse(w, params["warehouse_id"])
 catalog_id, app_schema = lb.ident(params["lakebase_catalog"]), lb.ident(params["app_schema"])
 branch = lb.branch_name(project, lb.BRANCH)
 

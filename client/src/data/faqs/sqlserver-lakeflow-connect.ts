@@ -30,7 +30,7 @@ export const faqs: Faq[] = [
   {
     question: 'Can it read from a replica, and does SQL Server need to be on the internet?',
     answer:
-      'No to both. Connect to the primary, or to the listener on an Always On Availability Group. Only the gateway connects, from the workspace network, over VNet or VPC peering, ExpressRoute, Direct Connect, VPN, a private endpoint, or a firewall rule on a public endpoint.',
+      'No to both. Connect to the primary, or to the listener on an Always On Availability Group. Only the gateway connects, from the workspace network, over virtual network peering, a dedicated link such as ExpressRoute on Azure or Direct Connect on AWS, VPN, a private endpoint, or a firewall rule on a public endpoint.',
     links: [
       {
         label: 'SQL Server connector FAQ',

@@ -50,6 +50,13 @@
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ## Required setup
+# MAGIC
+# MAGIC 1. **Outbound HTTPS.** `05_external_call` sends a GET request to `https://api.github.com/zen` (the `http_probe_url` in `use_cases/general.yml`). The compute that runs the job must reach that host. If your network blocks it, change `http_probe_url` to a host you can reach. The task retries twice, then fails.
+
+# COMMAND ----------
+
 import sys, os
 sys.path.insert(0, os.path.abspath("../../src"))
 from guide_params import bundle_root, load_params, JOB_TAG

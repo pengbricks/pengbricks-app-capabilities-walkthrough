@@ -4,6 +4,35 @@
 
 The job creates a Genie Agent over the `sales_metrics` metric view, asks it four questions through the Conversation API, reads the conversations back, and finds the SQL it ran in `system.query.history`. Each step writes its findings to `genie_agents_results`, so the guide's claims about compute, identity, and stored data have a run behind them.
 
+## Required setup
+
+Run these once, before the job. `<principal>` is the person or service principal behind `databricks bundle run`.
+
+1. **Foundation bundle.** Deploy `reference/foundation` first. It creates the shared schema this guide writes to.
+2. **SQL warehouse.** Genie runs its queries on the warehouse in the `warehouse_id` variable. It must be a Pro or serverless warehouse, and `<principal>` needs CAN USE on it. Create one if you have none:
+   ```bash
+   databricks warehouses create --name genie-agents --cluster-size 2X-Small --warehouse-type PRO --enable-serverless-compute
+   ```
+3. **Genie space creation.** `02_create_agent` creates a Genie Agent through the REST API. `<principal>` needs access to Databricks SQL and the right to create spaces, and Databricks Assistant must be enabled for the workspace. The agent runs queries with the credentials of the identity that saved it, so that identity needs the privileges below.
+4. **Schema privileges.** The job creates the sample tables and the `sales_metrics` metric view:
+   ```sql
+   GRANT USE CATALOG ON CATALOG <catalog> TO `<principal>`;
+   GRANT USE SCHEMA, CREATE TABLE, SELECT ON SCHEMA <catalog>.<schema> TO `<principal>`;
+   ```
+5. **Query history and billing (task 5).** `05_find_queries` reads `system.query.history` and `system.billing.usage`. A metastore admin enables the schemas if they are off, then grants read access:
+   ```bash
+   databricks system-schemas enable <metastore-id> query     # get the ID from: databricks metastores current
+   databricks system-schemas enable <metastore-id> billing
+   ```
+   ```sql
+   GRANT USE CATALOG ON CATALOG system TO `<principal>`;
+   GRANT USE SCHEMA ON SCHEMA system.query TO `<principal>`;
+   GRANT SELECT ON TABLE system.query.history TO `<principal>`;
+   GRANT USE SCHEMA ON SCHEMA system.billing TO `<principal>`;
+   GRANT SELECT ON TABLE system.billing.usage TO `<principal>`;
+   ```
+   The task stops before it changes anything if `system.query.history` is unreadable. A missing billing grant is recorded as `query failed` in the billing rows. Billing rows can take hours to appear.
+
 ## What this shows
 
 | Capability | Artifact |

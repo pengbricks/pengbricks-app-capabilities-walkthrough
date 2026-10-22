@@ -1121,9 +1121,10 @@
       "startLine": 30,
       "endLine": 46,
       "language": "py",
-      "code": "\n# COMMAND ----------\n\n# MAGIC %md\n# MAGIC ## Poll for the closing event\n\n# COMMAND ----------\n\nquery = audit_event_query(started_epoch, cfg[\"share_name\"], cfg[\"recipient_name\"])\ndeadline = time.time() + int(cfg[\"audit_wait_seconds\"])\nwhile True:\n    events = spark.sql(query)\n    actions = {r[\"action_name\"] for r in events.select(\"action_name\").distinct().collect()}\n    if final_action in actions or time.time() > deadline:\n        break\n    print(f\"{events.count()} events so far, waiting for {final_action}\")\n    time.sleep(30)",
+      "code": "\n# COMMAND ----------\n\n# MAGIC %md\n# MAGIC ## Poll for the closing event\n\n# COMMAND ----------\n\nquery = require_audit_table(spark, audit_event_query(started_epoch, cfg[\"share_name\"], cfg[\"recipient_name\"]))\ndeadline = time.time() + int(cfg[\"audit_wait_seconds\"])\nwhile True:\n    events = spark.sql(query)\n    actions = {r[\"action_name\"] for r in events.select(\"action_name\").distinct().collect()}\n    if final_action in actions or time.time() > deadline:\n        break\n    print(f\"{events.count()} events so far, waiting for {final_action}\")\n    time.sleep(30)",
       "functions": {
-        "audit_event_query": "The audit query for one run, starting a minute before it began."
+        "audit_event_query": "The audit query for one run, starting a minute before it began.",
+        "require_audit_table": "Return the query after checking system.access.audit is readable. Stops before anything changes."
       }
     },
     {
@@ -1178,8 +1179,8 @@
     {
       "path": "reference/data-validation/src/dv_lib.py",
       "symbol": "aggregate_sql",
-      "startLine": 209,
-      "endLine": 215,
+      "startLine": 230,
+      "endLine": 236,
       "language": "py",
       "code": "def aggregate_sql(dialect: str, table: str, metrics: list[str], columns: list[Column], grain: str | None = None) -> str:\n    \"\"\"One row per slice (or one row, 'all'), with one column per metric. The source side runs through remote_query.\"\"\"\n    cast_text = \"text\" if dialect == \"postgres\" else \"STRING\"\n    slice_sql = f\"CAST({ident(grain)} AS {cast_text})\" if grain else \"'all'\"\n    select = \", \".join(f\"{_metric_sql(m, columns, dialect)} AS {metric_alias(m)}\" for m in metrics)\n    group = \" GROUP BY 1\" if grain else \"\"\n    return f\"SELECT {slice_sql} AS slice, {select} FROM {table}{group}\"",
       "functions": {
@@ -1212,8 +1213,8 @@
     {
       "path": "reference/data-validation/src/dv_lib.py",
       "symbol": "checksum_expr",
-      "startLine": 176,
-      "endLine": 182,
+      "startLine": 197,
+      "endLine": 203,
       "language": "py",
       "code": "def checksum_expr(columns: list[Column], dialect: str) -> str:\n    \"\"\"Sum of the first 8 hex digits of md5 over a canonical row string. Equal on both sides when the rows are equal.\"\"\"\n    if dialect == \"postgres\":\n        row = \" || '|' || \".join(f\"coalesce({_pg_expr(c)}, '')\" for c in columns)\n        return f\"coalesce(sum(('x' || substr(md5({row}), 1, 8))::bit(32)::bigint), 0)\"\n    row = \", '|', \".join(f\"coalesce({_spark_expr(c)}, '')\" for c in columns)\n    return f\"coalesce(sum(CAST(conv(substr(md5(concat({row})), 1, 8), 16, 10) AS BIGINT)), 0)\"",
       "functions": {
@@ -1223,8 +1224,8 @@
     {
       "path": "reference/data-validation/src/dv_lib.py",
       "symbol": "diff_slices",
-      "startLine": 228,
-      "endLine": 241,
+      "startLine": 249,
+      "endLine": 262,
       "language": "py",
       "code": "def diff_slices(\n    source: dict[str, dict[str, Decimal]], target: dict[str, dict[str, Decimal]], tolerance: Decimal = Decimal(0)\n) -> list[dict[str, Any]]:\n    \"\"\"Slices whose metrics differ by more than the tolerance, or that exist on one side only.\"\"\"\n    mismatches = []\n    for key in sorted(set(source) | set(target)):\n        left, right = source.get(key), target.get(key)\n        if left is None or right is None:\n            mismatches.append({\"slice\": key, \"missing\": \"source\" if left is None else \"target\"})\n            continue\n        bad = {m: (left[m], right[m]) for m in left if abs(left[m] - right[m]) > tolerance}\n        if bad:\n            mismatches.append({\"slice\": key, \"metrics\": bad})\n    return mismatches",
       "functions": {
@@ -1261,8 +1262,8 @@
     {
       "path": "reference/data-validation/src/dv_lib.py",
       "symbol": "run_check",
-      "startLine": 384,
-      "endLine": 403,
+      "startLine": 405,
+      "endLine": 424,
       "language": "py",
       "code": "def run_check(check: dict[str, Any], ctx: Context) -> Result:\n    \"\"\"Run one check from the spec. A check that cannot run is recorded as status `error`, not skipped.\"\"\"\n    kind = check[\"type\"]\n    op = check.get(\"op\", DEFAULT_OPERATOR[kind])\n    threshold = float(check[\"threshold\"])\n    base = dict(\n        check_name=check[\"name\"], check_type=kind, dataset=check[\"dataset\"], severity=check[\"severity\"],\n        operator=OPERATOR_TEXT[op], expected=threshold,\n    )\n    try:\n        if kind == \"reconciliation\":\n            observed, details = _reconcile(check, ctx)\n        else:\n            row = ctx.spark.sql(single_value_sql(check, ctx.ns)).first()\n            observed = None if row[\"observed\"] is None else float(row[\"observed\"])\n            details = \"no values to measure\" if observed is None else f\"observed {observed:g}, expected {OPERATOR_TEXT[op]} {threshold:g}\"\n    except Exception as exc:  # recorded, so one broken check does not hide the others\n        return Result(observed=None, status=\"error\", details=f\"{type(exc).__name__}: {str(exc).splitlines()[0][:300]}\", **base)\n    status = \"pass\" if passes(observed, op, threshold) else \"fail\"\n    return Result(observed=observed, status=status, details=details, **base)",
       "functions": {
@@ -1273,8 +1274,8 @@
     {
       "path": "reference/data-validation/src/dv_lib.py",
       "symbol": "single_value_sql",
-      "startLine": 325,
-      "endLine": 351,
+      "startLine": 346,
+      "endLine": 372,
       "language": "py",
       "code": "def single_value_sql(check: dict[str, Any], ns: str) -> str:\n    \"\"\"SQL that returns one `observed` value, for every type except reconciliation.\"\"\"\n    kind = check[\"type\"]\n    table = f\"{ns}.{ident(check['dataset'])}\"\n    if kind == \"row_count\":\n        return f\"SELECT count(*) AS observed FROM {table}\"\n    if kind == \"unique\":\n        cols = \", \".join(ident(c) for c in check[\"columns\"])\n        return f\"SELECT count(*) AS observed FROM (SELECT {cols} FROM {table} GROUP BY {cols} HAVING count(*) > 1)\"\n    if kind == \"null_rate\":\n        column = ident(check[\"column\"])\n        return f\"SELECT coalesce(avg(CASE WHEN {column} IS NULL THEN 1.0 ELSE 0.0 END), 0) AS observed FROM {table}\"\n    if kind == \"referential\":\n        column, ref_column = ident(check[\"column\"]), ident(check[\"ref_column\"])\n        ref = f\"{ns}.{ident(check['ref_dataset'])}\"\n        return (\n            f\"SELECT count(*) AS observed FROM {table} d LEFT ANTI JOIN {ref} r \"\n            f\"ON d.{column} = r.{ref_column} WHERE d.{column} IS NOT NULL\"\n        )\n    if kind == \"freshness\":\n        column = ident(check[\"column\"])\n        return (\n            f\"SELECT (unix_timestamp(current_timestamp()) - unix_timestamp(max({column}))) / 3600.0 AS observed FROM {table}\"\n        )\n    if kind == \"custom_sql\":\n        return check[\"sql\"].replace(\"{ns}\", ns)\n    raise ValueError(f\"no single-value SQL for {kind}\")",
       "functions": {
@@ -1294,8 +1295,8 @@
     {
       "path": "reference/data-validation/src/dv_lib.py",
       "symbol": "blocking",
-      "startLine": 281,
-      "endLine": 288,
+      "startLine": 302,
+      "endLine": 309,
       "language": "py",
       "code": "def blocking(results: list[Result], block_on: str) -> list[Result]:\n    \"\"\"Results that should stop the next task. block_on: error (default), warn (any failure), or none.\"\"\"\n    if block_on == \"none\":\n        return []\n    if block_on not in SEVERITIES:\n        raise ValueError(f\"block_on must be error, warn, or none, not {block_on!r}\")\n    levels = (\"error\",) if block_on == \"error\" else SEVERITIES\n    return [r for r in results if r.status != \"pass\" and r.severity in levels]",
       "functions": {
@@ -2776,8 +2777,8 @@
     {
       "path": "reference/metric-views/guides/metric-views/04_verify_measures.py",
       "symbol": null,
-      "startLine": 160,
-      "endLine": 168,
+      "startLine": 161,
+      "endLine": 169,
       "language": "py",
       "code": "# 1. Average of daily conversion rates vs conversion rate of all sessions.\nview_rate = run(f\"SELECT MEASURE(conversion_rate) AS v FROM {V['funnel']}\")[0][\"v\"]\navg_daily = run(f\"\"\"\n    SELECT AVG(rate) AS v FROM (\n      SELECT session_date, COUNT(*) FILTER (WHERE converted) / COUNT(*) AS rate FROM {T['sessions']} GROUP BY session_date)\"\"\")[0][\"v\"]\nrows.append({\"check\": \"pitfall: average of daily conversion rates\", \"grain\": \"total\", \"view\": view_rate, \"hand\": avg_daily,\n             \"matched\": 0, \"checked\": 1, \"passed\": not m.close(view_rate, avg_daily, rel=1e-3),\n             \"detail\": \"passed means the two differ, as the guide says they should: the average gives a quiet day the same weight as a busy one\"})\n",
       "functions": {
@@ -2805,8 +2806,8 @@
     {
       "path": "reference/metric-views/guides/metric-views/05_lineage_and_governance.py",
       "symbol": null,
-      "startLine": 66,
-      "endLine": 79,
+      "startLine": 67,
+      "endLine": 80,
       "language": "py",
       "code": "\nfor key, view in V.items():\n    name = m.VIEWS[key]\n    try:\n        spark.sql(f\"ALTER VIEW {view} SET TAGS ('system.certification_status' = 'certified')\")\n        tags = spark.sql(f\"\"\"SELECT tag_name, tag_value FROM `{catalog}`.information_schema.table_tags\n                             WHERE schema_name = '{schema}' AND table_name = '{name}'\"\"\").collect()\n        found = {t.tag_name: t.tag_value for t in tags}\n        rows.append({\"check\": f\"{name}: certification tag\", \"grain\": \"unity catalog\", \"view\": None, \"hand\": None,\n                     \"passed\": found.get(\"system.certification_status\") == \"certified\", \"detail\": f\"tags read back: {found}\"})\n    except Exception as exc:  # noqa: BLE001\n        rows.append({\"check\": f\"{name}: certification tag\", \"grain\": \"unity catalog\", \"view\": None, \"hand\": None, \"passed\": False,\n                     \"detail\": f\"could not set the tag: {type(exc).__name__}: {str(exc).splitlines()[0][:160]}\"})\n",
       "functions": {}
@@ -2814,8 +2815,8 @@
     {
       "path": "reference/metric-views/guides/metric-views/05_lineage_and_governance.py",
       "symbol": null,
-      "startLine": 92,
-      "endLine": 96,
+      "startLine": 93,
+      "endLine": 97,
       "language": "py",
       "code": "def upstream_names(view_fq):\n    full = view_fq.replace(\"`\", \"\")\n    resp = w.api_client.do(\"GET\", \"/api/2.0/lineage-tracking/table-lineage\", query={\"table_name\": full, \"include_entity_lineage\": True})\n    return {u[\"tableInfo\"][\"name\"] for u in resp.get(\"upstreams\", []) if \"tableInfo\" in u}, resp\n",
       "functions": {}
@@ -2832,8 +2833,8 @@
     {
       "path": "reference/metric-views/guides/metric-views/04_verify_measures.py",
       "symbol": null,
-      "startLine": 27,
-      "endLine": 37,
+      "startLine": 28,
+      "endLine": 38,
       "language": "py",
       "code": "def check(measure_list, keys, view_sql, hand_sql, grain, view_name):\n    \"\"\"Run both queries, compare each measure, and add a result row per measure.\"\"\"\n    view_rows, hand_rows = run(view_sql), run(hand_sql)\n    for measure in measure_list:\n        r = m.compare_groups(view_rows, hand_rows, keys, measure)\n        rows.append({\"check\": f\"{view_name}.{measure}\", \"grain\": grain, \"view\": r[\"view\"], \"hand\": r[\"hand\"],\n                     \"matched\": r[\"matched\"], \"checked\": r[\"checked\"], \"passed\": r[\"passed\"],\n                     \"detail\": f\"{r['matched']} of {r['checked']} groups match\" + (f\"; largest group: {', '.join(str(x)[:10] for x in r['top'])}\" if keys else \"\")})\n\n# COMMAND ----------\n",
       "functions": {
@@ -4033,7 +4034,7 @@
       "startLine": 1,
       "endLine": 40,
       "language": "r",
-      "code": "# Databricks notebook source\n# MAGIC %md\n# MAGIC # R notebook: sparklyr summary\n# MAGIC Serverless notebooks and jobs run Python and SQL. They do not run R, so the sql-notebook-analysis job does not include this notebook. It is not a job task.\n# MAGIC Attach it to a classic cluster on a Databricks Runtime with R (sparklyr is the supported R interface), then Run All.\n# MAGIC Type the `catalog` and `schema` the job used into the two widgets at the top, then Run all. The values are listed in `00_start_here`.\n\n# COMMAND ----------\nlibrary(sparklyr)\nlibrary(dplyr)\n\nsc <- spark_connect(method = \"databricks\")\ndbutils.widgets.text(\"catalog\", \"\")\ndbutils.widgets.text(\"schema\", \"\")\ncatalog <- dbutils.widgets.get(\"catalog\")\nschema <- dbutils.widgets.get(\"schema\")\n\n# COMMAND ----------\n# Aggregate in Spark, then collect the small result into a local R data frame.\norders <- tbl(sc, in_catalog(catalog, schema, \"analyst_orders\"))\ncustomers <- tbl(sc, in_catalog(catalog, schema, \"analyst_customers\"))\n\nby_region <- orders %>%\n  filter(status %in% c(\"completed\", \"shipped\")) %>%\n  inner_join(customers, by = \"customer_id\") %>%\n  group_by(region, segment) %>%\n  summarise(orders = n(), revenue = sum(quantity * unit_price, na.rm = TRUE)) %>%\n  collect()\n\nprint(by_region)\n\n# COMMAND ----------\n# Native R statistics on the collected data.\nprint(summary(by_region$revenue))\nprint(quantile(by_region$revenue, c(0.25, 0.5, 0.75)))\nfit <- lm(revenue ~ orders, data = by_region)\nprint(summary(fit)$r.squared)\n\n# COMMAND ----------\n# Write the result back to Unity Catalog as a Delta table.",
+      "code": "# Databricks notebook source\n# MAGIC %md\n# MAGIC # R notebook: sparklyr summary\n# MAGIC Serverless notebooks and jobs run Python and SQL. They do not run R, so the sql-notebook-analysis job does not include this notebook. It is not a job task.\n# MAGIC Attach it to a classic cluster on a Databricks Runtime with R (sparklyr is the supported R interface), then Run All.\n# MAGIC Type the `catalog` and `schema` the job used into the two widgets at the top, then Run all. The values are listed in `00_start_here`.\n# MAGIC\n# MAGIC Required setup: a classic all-purpose cluster on a Runtime with R, in standard or dedicated access mode. On serverless the notebook cannot start, because serverless allows only SQL and Python. The `databricks clusters create` command is in `00_start_here`. Run `01_generate_data` first.\n\n# COMMAND ----------\nlibrary(sparklyr)\nlibrary(dplyr)\n\nsc <- spark_connect(method = \"databricks\")\ndbutils.widgets.text(\"catalog\", \"\")\ndbutils.widgets.text(\"schema\", \"\")\ncatalog <- dbutils.widgets.get(\"catalog\")\nschema <- dbutils.widgets.get(\"schema\")\n\n# Precondition: the widgets must be filled and the tables must exist.\nif (catalog == \"\" || schema == \"\") {\n  stop(\"The catalog and schema widgets are blank. Type the values the job used (see 00_start_here). Nothing was changed.\")\n}\nneeded <- c(\"analyst_orders\", \"analyst_customers\")\npresent <- sapply(needed, function(t) sparklyr::sdf_sql(sc, paste0(\"SHOW TABLES IN `\", catalog, \"`.`\", schema, \"` LIKE '\", t, \"'\")) %>% sdf_nrow() > 0)\nif (!all(present)) {\n  stop(paste0(\"Missing table(s) in \", catalog, \".\", schema, \": \", paste(needed[!present], collapse = \", \"),\n              \". Run: 01_generate_data (or the job capability-guides-sql-notebooks). Nothing was changed.\"))\n}\n\n# COMMAND ----------\n# Aggregate in Spark, then collect the small result into a local R data frame.\norders <- tbl(sc, in_catalog(catalog, schema, \"analyst_orders\"))\ncustomers <- tbl(sc, in_catalog(catalog, schema, \"analyst_customers\"))\n\nby_region <- orders %>%\n  filter(status %in% c(\"completed\", \"shipped\")) %>%\n  inner_join(customers, by = \"customer_id\") %>%\n  group_by(region, segment) %>%\n  summarise(orders = n(), revenue = sum(quantity * unit_price, na.rm = TRUE)) %>%",
       "functions": {}
     }
   ],
@@ -4068,8 +4069,8 @@
     {
       "path": "reference/lakeflow-connect/src/lfc_lib.py",
       "symbol": "make_changes",
-      "startLine": 121,
-      "endLine": 142,
+      "startLine": 147,
+      "endLine": 168,
       "language": "py",
       "code": "def make_changes(connection: Any, plan_changes: int = 3, inserts: int = 10, ships: int = 5, deletes: int = 2) -> list[dict[str, Any]]:\n    \"\"\"Insert, update, and delete on the source. Returns what bronze should show afterwards.\"\"\"\n    expected = []\n    for row in query(connection, PICK_CUSTOMERS_SQL, [plan_changes]):\n        new = next_plan(row[\"plan_name\"])\n        query(connection, UPDATE_PLAN_SQL, [new, row[\"customer_id\"]])\n        expected.append(expectation(\"update_history\", \"customers\", row[\"customer_id\"], \"plan_name\", new))\n    customers = [row[\"customer_id\"] for row in query(connection, PICK_CUSTOMERS_SQL, [inserts])]\n    for i, customer_id in enumerate(customers):\n        product_id, quantity = i % 12 + 1, i % 3 + 1\n        inserted = query(connection, INSERT_ORDER_SQL, [customer_id, quantity, quantity, product_id])\n        expected.append(expectation(\"insert\", \"orders\", inserted[0][\"order_id\"], \"status\", \"NEW\"))\n    for row in query(connection, PICK_SHIP_SQL, [ships]):\n        query(connection, SHIP_SQL, [row[\"order_id\"]])\n        expected.append(expectation(\"update\", \"orders\", row[\"order_id\"], \"status\", \"SHIPPED\"))\n    for row in query(connection, PICK_DELETE_SQL, [deletes]):\n        query(connection, DELETE_SQL, [row[\"order_id\"]])\n        expected.append(expectation(\"delete\", \"orders\", row[\"order_id\"]))\n    for row in query(connection, PICK_CANCEL_SQL, [deletes]):\n        query(connection, CANCEL_SQL, [row[\"order_id\"]])\n        expected.append(expectation(\"update\", \"orders\", row[\"order_id\"], \"status\", \"CANCELLED\"))\n    return expected",
       "functions": {
@@ -4079,8 +4080,8 @@
     {
       "path": "reference/lakeflow-connect/src/lfc_lib.py",
       "symbol": "landing_sql",
-      "startLine": 160,
-      "endLine": 174,
+      "startLine": 186,
+      "endLine": 200,
       "language": "py",
       "code": "def landing_sql(catalog: str, schema: str, expected: dict[str, Any]) -> str:\n    \"\"\"One query per expectation; it returns 1 when bronze shows the change.\"\"\"\n    table = fq(catalog, schema, TABLES[expected[\"source_table\"]])\n    key = \"customer_id\" if expected[\"source_table\"] == \"customers\" else \"order_id\"\n    k, col, val = expected[\"key\"], expected[\"column\"], expected[\"value\"]\n    if expected[\"kind\"] == \"delete\":\n        return f\"SELECT CAST(count(*) = 0 AS INT) FROM {table} WHERE {key} = {k}\"\n    if expected[\"kind\"] == \"update_history\":\n        # The current version has the new value, and an earlier, closed version exists.\n        return (\n            f\"SELECT CAST(count_if(__END_AT IS NULL AND CAST({col} AS STRING) = '{val}') = 1 \"\n            f\"AND count_if(__END_AT IS NOT NULL) >= 1 AS INT) FROM {table} WHERE {key} = {k}\"\n        )\n    current = \" AND __END_AT IS NULL\" if expected[\"source_table\"] == \"customers\" else \"\"\n    return f\"SELECT CAST(count_if(CAST({col} AS STRING) = '{val}') = 1 AS INT) FROM {table} WHERE {key} = {k}{current}\"",
       "functions": {
@@ -4090,8 +4091,8 @@
     {
       "path": "reference/lakeflow-connect/src/lfc_lib.py",
       "symbol": "ingest_until",
-      "startLine": 218,
-      "endLine": 233,
+      "startLine": 244,
+      "endLine": 259,
       "language": "py",
       "code": "def ingest_until(w: Any, pipeline_id: str, check, max_wait_s: int, pause_s: int = 60) -> dict[str, Any]:\n    \"\"\"Rerun the ingestion pipeline until check() returns True or max_wait_s passes.\n\n    The gateway stages changes shortly after they commit, so the first update can miss the newest ones.\n    \"\"\"\n    started, updates = time.time(), []\n    while True:\n        update_id, state = run_update(w, pipeline_id)\n        updates.append({\"update_id\": update_id, \"state\": state})\n        if state != \"COMPLETED\":\n            raise RuntimeError(f\"Ingestion update {update_id} ended {state}\")\n        if check():\n            return {\"ok\": True, \"updates\": updates, \"seconds\": round(time.time() - started)}\n        if time.time() - started + pause_s > max_wait_s:\n            return {\"ok\": False, \"updates\": updates, \"seconds\": round(time.time() - started)}\n        time.sleep(pause_s)",
       "functions": {

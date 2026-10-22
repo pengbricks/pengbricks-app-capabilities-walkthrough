@@ -4,6 +4,24 @@
 
 One job runs SQL exploration on a SQL warehouse, a Python notebook that round-trips a result through pandas, and a timed aggregation over 6 million generated rows. An R notebook ships with the bundle but is not a task, because serverless compute does not run R.
 
+## Required setup
+
+Only `05_r_sparklyr_summary` has setup. Notebooks 01 to 04 run on serverless compute and a SQL warehouse as the job configures them.
+
+- **A classic all-purpose cluster with R.** Serverless notebooks and jobs allow only SQL and Python, so the R notebook cannot run there, and it cannot detect serverless because R never starts. Use a Databricks Runtime that includes R, in standard or dedicated access mode (sparklyr needs one of the two). Create one with the CLI, using your cloud's node type:
+  ```bash
+  databricks clusters spark-versions            # pick a current LTS runtime key
+  databricks clusters list-node-types           # pick a node type your cloud offers
+  databricks clusters create <spark-version> \
+    --cluster-name sparklyr-demo --node-type-id <node-type> --num-workers 1 \
+    --data-security-mode DATA_SECURITY_MODE_DEDICATED --single-user-name <your-user> \
+    --autotermination-minutes 30
+  ```
+  In the UI: Compute, Create compute, pick a Databricks Runtime, set access mode to Dedicated (or Standard), choose a node type, then Create. Attach `05_r_sparklyr_summary` to it from the notebook's compute picker.
+- **Run `01_generate_data` first** (or the job `capability-guides-sql-notebooks`). The R notebook reads `analyst_orders` and `analyst_customers`.
+- **Fill the two widgets.** R notebooks do not take job parameters. Type the `catalog` and `schema` the job used into the widgets at the top; if they are blank the notebook stops and tells you.
+- **Privileges** for the user running the cluster: `USE CATALOG` and `USE SCHEMA` on the schema, `SELECT` on both tables, and `CREATE TABLE` on the schema, because the notebook writes `r_revenue_by_region`. For example: `GRANT USE CATALOG ON CATALOG <catalog> TO <principal>; GRANT USE SCHEMA, SELECT, CREATE TABLE ON SCHEMA <catalog>.<schema> TO <principal>;`
+
 ## What this shows
 
 | Guide goal | Artifact |

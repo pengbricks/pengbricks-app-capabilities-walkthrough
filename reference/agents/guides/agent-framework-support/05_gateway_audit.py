@@ -101,4 +101,5 @@ def main() -> None:
 
 # COMMAND ----------
 
+ac.require_system_table(spark, "ai_gateway", "usage")
 main()

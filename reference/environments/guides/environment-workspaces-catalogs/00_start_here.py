@@ -30,6 +30,25 @@
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ## Required setup
+# MAGIC
+# MAGIC Run this once, before the job. `<principal>` is the person or service principal behind `databricks bundle run`.
+# MAGIC
+# MAGIC 1. **Read access to the catalog's bindings.** `02_audit_layout` reads the catalog's isolation mode, workspace bindings, and grants. The bindings API allows a metastore admin or the owner of the catalog. Without access the audit records bindings and grants as `info` and still finishes. To get the full findings, make the identity the catalog owner:
+# MAGIC    ```bash
+# MAGIC    databricks catalogs update <catalog> --owner <principal>
+# MAGIC    ```
+# MAGIC 2. **The four-workspace layout is not run by the bundle.** `databricks bundle run capability_guides_environments` needs nothing from `setup/`. The files in `setup/` build the catalog-per-environment layout and are commands you run yourself, as a metastore admin, after substituting the placeholders. Run them in this order:
+# MAGIC    1. Section 1 of `setup/02_credentials_and_bindings.sh`: one storage credential per environment (the script shows the AWS form; Azure and GCP use a managed identity or a Google service account in the same JSON slot).
+# MAGIC    2. `setup/01_catalogs.sql`: external locations, catalogs, and domain schemas. Run it on a SQL warehouse.
+# MAGIC    3. Sections 2 to 5 of `setup/02_credentials_and_bindings.sh`: isolate each catalog and bind it to its workspace.
+# MAGIC    4. `setup/03_grants.sql`: grants to groups, and ownership to the environment's service principal.
+# MAGIC
+# MAGIC    The script reads `PROFILE`, `ACCOUNT_ID`, `DEV_WS`, `TEST_WS`, `STAGE_WS`, and `PROD_WS` from the environment. To deploy your own bundle against that layout, start from `setup/databricks.four-workspaces.yml.example` and fill in the hosts, catalogs, and service principals.
+
+# COMMAND ----------
+
 import sys, os
 sys.path.insert(0, os.path.abspath("../../src"))
 from guide_params import bundle_root, load_params, JOB_TAG

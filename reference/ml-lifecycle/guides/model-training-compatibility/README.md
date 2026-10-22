@@ -18,6 +18,21 @@ Chen, D. (2012). Online Retail II [Dataset]. UCI Machine Learning Repository. ht
 
 There is no published churn AUC for this dataset, so the baseline is the one the job records. The legacy pickle's holdout AUC is 0.716529, and the registered pyfunc reproduces 0.716529 (difference 0, tolerance 0.001).
 
+## Required setup
+
+Run these once, before the job. `<principal>` is the person or service principal behind `databricks bundle run`.
+
+1. **Foundation bundle.** Deploy `reference/foundation` first. It creates the shared schema this guide writes to.
+2. **Schema privileges.** The job creates tables, registers `churn_classifier` and `churn_classifier_imported` in Unity Catalog, and writes to the source and legacy-model volumes:
+   ```sql
+   GRANT USE CATALOG ON CATALOG <catalog> TO `<principal>`;
+   GRANT USE SCHEMA, CREATE TABLE, CREATE MODEL, SELECT, MODIFY, READ VOLUME, WRITE VOLUME ON SCHEMA <catalog>.<schema> TO `<principal>`;
+   ```
+3. **Outbound internet access.** The first notebook downloads the UCI Online Retail II zip (CC BY 4.0) into the source volume, and `%pip` installs packages from PyPI. The compute needs outbound HTTPS to `archive.ics.uci.edu` and to PyPI (or an internal PyPI mirror). On serverless compute, allow both in the workspace network policy. The download runs once and later runs reuse the zip in the volume. The task stops before it changes anything if the host is unreachable. Without internet, copy the zip into the source volume yourself (the `source_volume` job parameter names it):
+   ```bash
+   databricks fs cp ./online+retail+ii.zip dbfs:/Volumes/<catalog>/<schema>/<source-volume>/online_retail_ii.zip
+   ```
+
 ## What this shows
 
 | Need | Artifact |

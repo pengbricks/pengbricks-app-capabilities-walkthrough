@@ -4,6 +4,18 @@
 
 Read from SFTP with the Lakeflow Connect SFTP connector: a Unity Catalog connection with a PEM private key, plus Auto Loader. Open the network path for classic or serverless egress addresses. A copy-to-volume job is the fallback when the connector does not fit. This reference implements the fallback copy loop against a public test server.
 
+## Required setup
+
+Run these once, before the job. `<principal>` is the person or service principal behind `databricks bundle run`.
+
+1. **An SFTP server the job can reach.** The default is the public test server `test.rebex.net` on port 22, with the published `demo` login. Serverless and classic compute need outbound access to the host and port. If the workspace restricts serverless egress, add the host to the allowed destinations of its network policy (set in the account console; see [network policies](https://docs.databricks.com/aws/en/security/network/serverless-network-security/network-policies)). When the server is unreachable, `fetch_files` copies from a folder in the volume instead and records mode `volume_fallback`, so the job still passes but does not prove an SFTP read.
+2. **Your own server.** Set `sftp.host`, `sftp.port`, `sftp.username`, `sftp.password`, and `sftp.remote_roots` in `use_cases/general.yml`, then redeploy. `01_setup_secrets` writes those values to the scope on every run, so editing the secret by hand does not last.
+3. **Secret scope.** `01_setup_secrets` creates the scope `capability-guides` and writes the keys `sftp-username` and `sftp-password`. The job identity must be allowed to create secret scopes, and it gets MANAGE on the scope it creates. If an admin restricts scope creation, create it first and give the job identity WRITE on it:
+   ```bash
+   databricks secrets create-scope capability-guides
+   databricks secrets put-acl capability-guides <principal> WRITE
+   ```
+
 ## What this shows
 
 | Capability | Artifact |

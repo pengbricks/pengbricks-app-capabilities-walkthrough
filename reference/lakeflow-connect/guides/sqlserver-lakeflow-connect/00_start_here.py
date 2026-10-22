@@ -32,12 +32,49 @@
 # MAGIC
 # MAGIC Every step writes what it measured to `lfc_results`, replacing its own rows. Bronze history tables grow with each run; that is the point.
 # MAGIC
-# MAGIC ## Before the first run
+# MAGIC ## Required setup
 # MAGIC
-# MAGIC 1. **DBA:** install the Databricks utility objects script in the source database, then run `source/01_setup_source.sql` (tables, sample rows, logins, CDC and Change Tracking, grants). On SQL Server, SQL Server Agent must be running for CDC.
-# MAGIC 2. **Network:** the gateway's classic compute must reach the SQL Server port (1433 by default) over TLS.
-# MAGIC 3. **Databricks admin:** create the Unity Catalog connection with the `lakeflow_ingest` login, and a secret scope with `sqlserver_app_user` and `sqlserver_app_password` for the `lakeflow_demo_app` login.
-# MAGIC 4. **Data engineer:** `databricks bundle deploy` with `sqlserver_connection_name`, then run the job.
+# MAGIC Do these once, in this order, before the first run. Item 6 is the deploy. `<principal>` is the identity that deploys and runs the job.
+# MAGIC
+# MAGIC 1. **A reachable SQL Server.** Use a primary or an Availability Group listener, not a read replica. Port 1433 must be open to the gateway's classic compute and to the job's serverless notebooks, which also connect to run `01`, `02`, `04`, and `05`. For a private server, allow serverless compute through your network connectivity configuration (Account console, **Security**, **Network connectivity configurations**). Test the path:
+# MAGIC    ```bash
+# MAGIC    nc -vz <server-fqdn> 1433
+# MAGIC    ```
+# MAGIC 2. **Source-side change capture (a DBA).** Create the database, install the Databricks utility objects script (`utility_script.sql`) in it, and on SQL Server (not Azure SQL) start SQL Server Agent, because CDC capture jobs run there. Then run the setup script, which creates the tables, the `lakeflow_ingest` and `lakeflow_demo_app` logins, CDC on `customers`, Change Tracking on `orders` and `products`, and the grants:
+# MAGIC    ```bash
+# MAGIC    sqlcmd -S <server> -d LakeflowDemo -U <setup_user> -P <password> -N -i source/01_setup_source.sql \
+# MAGIC      -v IngestPassword="<ingest-password>" AppPassword="<app-password>"
+# MAGIC    ```
+# MAGIC 3. **The Unity Catalog connection** named by the bundle variable `sqlserver_connection_name`. Creating it needs `CREATE CONNECTION` on the metastore, and the gateway needs `USE CONNECTION`:
+# MAGIC    ```sql
+# MAGIC    GRANT CREATE CONNECTION ON METASTORE TO `<principal>`;
+# MAGIC    GRANT USE CONNECTION ON CONNECTION <uc-connection> TO `<principal>`;
+# MAGIC    ```
+# MAGIC    ```bash
+# MAGIC    databricks connections create --json '{"name": "<uc-connection>", "connection_type": "SQLSERVER",
+# MAGIC      "options": {"host": "<server-fqdn>", "port": "1433", "user": "lakeflow_ingest", "password": "<ingest-password>",
+# MAGIC                  "trustServerCertificate": "false"}}'
+# MAGIC    ```
+# MAGIC 4. **A secret scope** with the `lakeflow_demo_app` login the job uses to change rows (bundle variable `source_secret_scope`, default `lakeflow_connect_demo`). Each `put-secret` prompts for the value:
+# MAGIC    ```bash
+# MAGIC    databricks secrets create-scope lakeflow_connect_demo
+# MAGIC    databricks secrets put-secret lakeflow_connect_demo sqlserver_app_user
+# MAGIC    databricks secrets put-secret lakeflow_connect_demo sqlserver_app_password
+# MAGIC    ```
+# MAGIC 5. **Classic compute for the gateway.** The gateway cannot run on serverless. The workspace must allow classic compute for pipelines, and the driver needs at least 8 cores (pin a node type or a cluster policy in `resources/sqlserver.pipelines.yml` if your workspace enforces one). In a serverless-only workspace the bundle validates, but the gateway never starts.
+# MAGIC 6. **Deploy, then start the gateway.** The gateway is a continuous pipeline. Start it a few minutes before the job and leave it running:
+# MAGIC    ```bash
+# MAGIC    databricks bundle deploy --target dev --var catalog=<catalog> --var warehouse_id=<warehouse-id> \
+# MAGIC      --var app_service_principal=<app-sp-application-id> --var sqlserver_connection_name=<uc-connection>
+# MAGIC    databricks bundle run lfc_gateway --target dev --no-wait
+# MAGIC    ```
+# MAGIC 7. **Lineage read access, for `06_lineage_and_genie`.** A metastore admin grants:
+# MAGIC    ```sql
+# MAGIC    GRANT USE CATALOG ON CATALOG system TO `<principal>`;
+# MAGIC    GRANT USE SCHEMA ON SCHEMA system.access TO `<principal>`;
+# MAGIC    GRANT SELECT ON TABLE system.access.table_lineage TO `<principal>`;
+# MAGIC    ```
+# MAGIC
 # MAGIC
 # MAGIC ## Variables
 # MAGIC

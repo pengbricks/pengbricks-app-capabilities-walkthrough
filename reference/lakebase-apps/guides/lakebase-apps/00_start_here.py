@@ -38,6 +38,39 @@
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ## Required setup
+# MAGIC
+# MAGIC Do these before the first run. `<principal>` is the identity that runs the job. In a development target that is you.
+# MAGIC
+# MAGIC 1. **Databricks CLI 0.287.0 or later.** The `postgres_*` bundle resources need it. Check with `databricks --version`.
+# MAGIC 2. **Deploy the bundle.** It creates the Lakebase project and its `dev` branch, and all seven notebooks need the project. Confirm it exists:
+# MAGIC    ```bash
+# MAGIC    databricks bundle deploy --target dev --var catalog=<catalog> --var warehouse_id=<warehouse-id> --var app_service_principal=<app-sp-application-id>
+# MAGIC    databricks postgres get-project projects/capability-guides-lakebase-apps
+# MAGIC    ```
+# MAGIC 3. **Run as the identity that deployed.** The project creator gets the Postgres role that the notebooks connect with. If the job runs as a different identity, give that identity a role on the production branch, then grant it schema access with SQL:
+# MAGIC    ```bash
+# MAGIC    databricks postgres create-role projects/capability-guides-lakebase-apps/branches/production --role-id <sp-client-id> \
+# MAGIC      --json '{"spec": {"identity_type": "SERVICE_PRINCIPAL", "postgres_role": "<sp-client-id>", "auth_method": "LAKEBASE_OAUTH_V1"}}'
+# MAGIC    ```
+# MAGIC 4. **Lakebase Change Data Feed (Public Preview), for `03_write_back`.** A workspace admin turns it on: open the workspace **Previews** page and enable Lakebase Change Data Feed. The destination catalog needs a managed storage location, not default storage, and `<principal>` needs CAN MANAGE on the Lakebase project (its creator has it) plus these grants on the destination:
+# MAGIC    ```sql
+# MAGIC    GRANT USE CATALOG ON CATALOG <catalog> TO `<principal>`;
+# MAGIC    GRANT USE SCHEMA, CREATE TABLE ON SCHEMA <catalog>.<schema> TO `<principal>`;
+# MAGIC    ```
+# MAGIC    Without the preview, notebook 03 explains and ends, and the job continues.
+# MAGIC 5. **Unity Catalog registration (Beta), for `06_register_in_unity_catalog`.** `<principal>` needs `CREATE CATALOG`, and `warehouse_id` must name a serverless SQL warehouse (a pro or classic warehouse returns `UC_LAKEBASE_CATALOG_ACCESS_DENIED`):
+# MAGIC    ```sql
+# MAGIC    GRANT CREATE CATALOG ON METASTORE TO `<principal>`;
+# MAGIC    ```
+# MAGIC    ```bash
+# MAGIC    databricks warehouses create --name lakebase-apps --cluster-size 2X-Small --warehouse-type PRO --enable-serverless-compute --auto-stop-mins 10
+# MAGIC    ```
+# MAGIC    Without `CREATE CATALOG`, notebook 06 prints the Catalog Explorer steps and ends.
+
+# COMMAND ----------
+
 import sys, os
 sys.path.insert(0, os.path.abspath("../../src"))
 from guide_params import load_params, JOB_TAG

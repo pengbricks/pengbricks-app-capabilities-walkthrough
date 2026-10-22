@@ -35,10 +35,10 @@ label = model_spec["label"]
 
 # COMMAND ----------
 
-import public_data
+import public_data, scoring_helpers
 
 training = model_spec["training"]
-path = public_data.fetch(training["dataset"], f"/Volumes/{catalog}/{schema}/{params['source_volume']}")
+path = scoring_helpers.fetch_public(training["dataset"], f"/Volumes/{catalog}/{schema}/{params['source_volume']}")
 columns = {"ID": "id", **{f["source"]: f["name"] for f in features}, training["label_source"]: label}
 frame = public_data.read_credit_default(path, columns).astype({f["name"]: "float64" for f in features})
 

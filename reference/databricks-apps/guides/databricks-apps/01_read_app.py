@@ -35,7 +35,7 @@ w = WorkspaceClient()
 try:
     app = w.apps.get(name=app_name).as_dict()
 except NotFound:
-    raise RuntimeError(f"App {app_name!r} does not exist. Deploy the bundle first: databricks bundle deploy, then bundle run databricks_apps_demo.")
+    raise RuntimeError(f"App {app_name!r} does not exist. Run: databricks bundle deploy --target dev --var ..., then databricks bundle run databricks_apps_demo --target dev --var ... Nothing was changed.")
 
 # COMMAND ----------
 

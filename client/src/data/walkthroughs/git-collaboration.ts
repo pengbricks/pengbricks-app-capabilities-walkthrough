@@ -202,7 +202,7 @@ export const walkthrough: Walkthrough = {
         },
         {
           strong: 'Private Git servers: the Git server proxy.',
-          text: 'A Git server that is private, on-premises, or behind a firewall needs the Git server proxy, which routes Git commands through a compute resource in your workspace. Serverless Private Git, in Public Preview, does the same through serverless compute and PrivateLink and runs only when a Git request arrives. Cloud-hosted providers on the public internet need neither.',
+          text: 'A Git server that is private, on-premises, or behind a firewall needs the Git server proxy, which routes Git commands through a compute resource in your workspace. Serverless Private Git, in Public Preview, does the same through serverless compute and private connectivity and runs only when a Git request arrives. Cloud-hosted providers on the public internet need neither.',
         },
         {
           strong: 'Admin controls.',

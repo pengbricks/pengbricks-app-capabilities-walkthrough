@@ -27,7 +27,7 @@ base = f"{catalog}.{schema}"
 
 import json
 from databricks.sdk import WorkspaceClient
-from agent_results import GUIDE, history_sql, read_step, result_row, summarize_history, wait_for_rows, write_step
+from agent_results import GUIDE, history_sql, require_system_table, read_step, result_row, summarize_history, wait_for_rows, write_step
 
 w = WorkspaceClient()
 space_id = spark.sql(f"SELECT space_id FROM {base}.genie_spaces WHERE guide = '{GUIDE}' AND role = 'agent'").first()["space_id"]
@@ -35,6 +35,7 @@ ask_rows = read_step(spark, base, "ask")
 since = next(row["value"] for row in ask_rows if row["item"] == "window_start")
 with_sql = sum(1 for row in ask_rows if row["detail"].startswith("{") and json.loads(row["detail"]).get("has_sql"))
 print(f"agent {space_id}, searching from {since}, expecting at least {with_sql} statements")
+require_system_table(spark, "query", "history")
 
 # COMMAND ----------
 

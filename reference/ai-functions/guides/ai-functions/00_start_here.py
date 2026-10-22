@@ -42,6 +42,18 @@
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ## Required setup
+# MAGIC
+# MAGIC - **A SQL warehouse for `06_forecast`.** Serverless notebook compute rejects `ai_forecast` as a disabled preview, so the notebook must run on a Pro or serverless SQL warehouse. Create one if you have none: `databricks warehouses create --name ai-functions --cluster-size 2X-Small --max-num-clusters 1 --warehouse-type PRO --enable-serverless-compute --auto-stop-mins 10`, then attach `06_forecast` to it (the compute picker at the top of the notebook).
+# MAGIC - **Parameter values for `06_forecast`.** It is a SQL notebook, so its widgets do not fill from the job. Type these into the parameter boxes above the first cell:
+# MAGIC   - `catalog`: the catalog you passed as `--var catalog` when you deployed.
+# MAGIC   - `schema`: the job's `schema` parameter (`dev_<you>_capability_guides` on the `dev` target, `capability_guides` when the target sets no prefix). Read it from the job's Parameters tab if unsure.
+# MAGIC   - `run_id`: any text, for example `manual`. It labels the rows `06_forecast` writes to `aif_results`.
+# MAGIC - **Run `01_land_samples` first.** It creates `aif_daily_orders`, which `06_forecast` reads.
+
+# COMMAND ----------
+
 import sys, os
 sys.path.insert(0, os.path.abspath("../../src"))
 from guide_params import bundle_root, load_params, JOB_TAG

@@ -6,6 +6,13 @@ A Declarative Automation Bundle (formerly Databricks Asset Bundles) describes jo
 
 The guide page offers the bundle as a zip. You unzip it, push it to your own Git repo, then validate, deploy, and run it with the Databricks CLI, and deploy it again to a second target. The folder `reference/dab-starter/` is the download, minus `resources/app_access.yml` (see Limitations).
 
+## Required setup
+
+- **Deploy the bundle:** `databricks bundle deploy --var catalog=<catalog>`. The catalog must already exist and you need `CREATE SCHEMA` on it.
+- **Run the pipeline once before `01_check_gold`.** Deploying creates the pipeline definition but no tables, so a standalone run of `01_check_gold` fails with `TABLE_OR_VIEW_NOT_FOUND` on `orders_bronze`. Run either of these:
+  - `databricks bundle run orders --var catalog=<catalog>` (the pipeline alone)
+  - `databricks bundle run capability_guides_dab_starter --var catalog=<catalog>` (the job: pipeline, then the check)
+
 ## What this shows
 
 | Step | Command | Result in the reference run |

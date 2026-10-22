@@ -37,7 +37,7 @@ import lakebase_lib as lb
 params = load_params(dbutils, "capability_guides_lakebase_apps", ['catalog', 'schema', 'lakebase_project', 'app_schema'], defaults={'app_schema': 'lakebase_apps'})
 w = WorkspaceClient()
 catalog, schema = params["catalog"], lb.ident(params["schema"])
-project, app_schema = params["lakebase_project"], lb.ident(params["app_schema"])
+project, app_schema = lb.require_project(w, params["lakebase_project"]), lb.ident(params["app_schema"])
 branch = lb.branch_name(project, lb.BRANCH)
 user = w.current_user.me().user_name
 history = f"{catalog}.{schema}.lb_orders_history"

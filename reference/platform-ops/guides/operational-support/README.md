@@ -4,6 +4,34 @@
 
 The `capability-guides-operational-support` job fails one task on purpose, then triages every failed capability guide run, classifies each error, and routes it to an owner from an `on_call` table. A second job, `capability-guides-support-repair`, repairs the failed run through the Jobs API repair endpoint and records the outcome. Everything lands in `support_incidents`.
 
+## Required setup
+
+Run these once, before the jobs. `<principal>` is the person or service principal behind `databricks bundle run`.
+
+1. **A failed run to repair.** `capability-guides-support-repair` repairs the newest failed run of `capability-guides-operational-support`. Run the support job first. It fails at `fragile_step` on purpose, so `bundle run` reports an error. Then run the repair job:
+   ```bash
+   databricks bundle run capability_guides_operational_support --target dev
+   databricks bundle run capability_guides_support_repair --target dev
+   ```
+   With no failed run, `05_repair_failed_run` exits with "Nothing to repair".
+2. **Rights to repair.** Repairing a run needs CAN MANAGE RUN, CAN MANAGE, or ownership on the support job. The bundle gives the deploying user CAN MANAGE. To let another identity repair, grant it:
+   ```bash
+   databricks permissions update jobs <job-id> --json '{"access_control_list": [{"user_name": "<principal>", "permission_level": "CAN_MANAGE_RUN"}]}'
+   ```
+   Find `<job-id>` with `databricks jobs list`. For a service principal, use `service_principal_name` with its application ID.
+3. **Triage reads tagged jobs.** `04_triage` lists jobs tagged `capability_guide_job`, which needs permission to view them. Jobs deployed by other users show only if the identity has CAN VIEW on them.
+4. **System tables (optional).** The triage cross-check reads `system.lakeflow.jobs` and `system.lakeflow.job_run_timeline` for failed runs the Jobs API pass missed. Without access it prints "cross-check unavailable" and continues. To turn it on, a metastore admin runs:
+   ```bash
+   databricks system-schemas enable <metastore-id> lakeflow
+   ```
+   Get `<metastore-id>` from `databricks metastores current`.
+   ```sql
+   GRANT USE CATALOG ON CATALOG system TO `<principal>`;
+   GRANT USE SCHEMA ON SCHEMA system.lakeflow TO `<principal>`;
+   GRANT SELECT ON TABLE system.lakeflow.jobs TO `<principal>`;
+   GRANT SELECT ON TABLE system.lakeflow.job_run_timeline TO `<principal>`;
+   ```
+
 ## What this shows
 
 | Success criterion | Artifact |

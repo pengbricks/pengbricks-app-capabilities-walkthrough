@@ -20,7 +20,7 @@ export const walkthrough: Walkthrough = {
       },
       {
         title: 'Data stays portable',
-        body: 'Tables are Delta or Iceberg files in your ADLS, S3, or GCS account. Stopping or replacing compute deletes nothing, so changing an engine does not require a data migration.',
+        body: 'Tables are Delta or Iceberg files in your cloud object storage. Stopping or replacing compute deletes nothing, so changing an engine does not require a data migration.',
       },
       {
         title: 'Less table upkeep',
@@ -31,7 +31,7 @@ export const walkthrough: Walkthrough = {
   shortVersion: [
     {
       title: 'Data lives in object storage.',
-      body: 'Tables are Delta or Iceberg: Parquet data files plus table metadata (a transaction log for Delta, metadata files for Iceberg), stored in ADLS, S3, or GCS. Nothing about the table is locked inside a running cluster.',
+      body: 'Tables are Delta or Iceberg: Parquet data files plus table metadata (a transaction log for Delta, metadata files for Iceberg), stored in cloud object storage. Nothing about the table is locked inside a running cluster.',
     },
     {
       title: 'Compute is separate and disposable.',
@@ -128,14 +128,14 @@ export const walkthrough: Walkthrough = {
           {
             id: 'tables',
             label: 'Delta and Iceberg',
-            sub: 'Parquet in ADLS, S3, GCS',
+            sub: 'Parquet in object storage',
             col: 1,
             row: 2,
             kind: 'store',
             icon: 'database',
             domain: 'data',
             detail:
-              'Delta and Iceberg tables stored as Parquet in ADLS, S3, or GCS. Both compute types read and write them.',
+              'Delta and Iceberg tables stored as Parquet in cloud object storage. Both compute types read and write them.',
           },
         ],
         edges: [
@@ -264,11 +264,11 @@ export const walkthrough: Walkthrough = {
             option: 'Serverless compute',
             when: 'New SQL warehouses, jobs, notebooks, and pipelines, and any workload with spiky or unpredictable demand.',
             tradeoffs:
-              'Starts in seconds, scales on its own, and Databricks handles upgrades, so there is little to maintain. Idle time is not billed. The docs list limits: R and Spark RDD APIs are not supported, Maven coordinates are not supported, and external data sources must go through Unity Catalog. Reaching private sources uses a network connectivity configuration instead of your own VPC settings.',
+              'Starts in seconds, scales on its own, and Databricks handles upgrades, so there is little to maintain. Idle time is not billed. The docs list limits: R and Spark RDD APIs are not supported, Maven coordinates are not supported, and external data sources must go through Unity Catalog. Reaching private sources uses a network connectivity configuration instead of your own virtual network settings.',
           },
           {
             option: 'Classic compute',
-            when: 'A workload needs R, RDD APIs, Maven libraries, a specific instance type or GPU, or a network path that your own VPC controls.',
+            when: 'A workload needs R, RDD APIs, Maven libraries, a specific instance type or GPU, or a network path that your own virtual network controls.',
             tradeoffs:
               'Full control over runtime, libraries, and instance types. You size the cluster, set auto-termination, and keep cluster policies, and startup takes longer than serverless. Cost attribution relies on cluster tags, so set them from day one.',
           },

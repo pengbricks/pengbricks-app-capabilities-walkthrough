@@ -6,6 +6,41 @@ This guide gives one consolidated view of job runs, failures, usage and cost, co
 
 Jobs tagged `capability_guide_job` are flagged, so the dashboard can show only capability guide jobs or the whole workspace. A second tag, `capability_guide_use_case`, lets you filter by use case.
 
+## Required setup
+
+Run these once, before the job. `<principal>` is the person or service principal that runs `databricks bundle run`.
+
+1. **System tables.** The job reads `system.lakeflow.jobs`, `system.lakeflow.job_run_timeline`, `system.billing.usage`, `system.billing.list_prices`, `system.compute.warehouse_events`, and `system.access.audit`. A metastore admin or account admin enables each schema that is off, then grants read access:
+   ```bash
+   databricks metastores current   # shows the metastore ID
+   databricks system-schemas enable <metastore-id> lakeflow
+   databricks system-schemas enable <metastore-id> billing
+   databricks system-schemas enable <metastore-id> compute
+   databricks system-schemas enable <metastore-id> access
+   ```
+   ```sql
+   GRANT USE CATALOG ON CATALOG system TO `<principal>`;
+   GRANT USE SCHEMA ON SCHEMA system.lakeflow TO `<principal>`;
+   GRANT SELECT ON TABLE system.lakeflow.jobs TO `<principal>`;
+   GRANT SELECT ON TABLE system.lakeflow.job_run_timeline TO `<principal>`;
+   GRANT USE SCHEMA ON SCHEMA system.billing TO `<principal>`;
+   GRANT SELECT ON TABLE system.billing.usage TO `<principal>`;
+   GRANT SELECT ON TABLE system.billing.list_prices TO `<principal>`;
+   GRANT USE SCHEMA ON SCHEMA system.compute TO `<principal>`;
+   GRANT SELECT ON TABLE system.compute.warehouse_events TO `<principal>`;
+   GRANT USE SCHEMA ON SCHEMA system.access TO `<principal>`;
+   GRANT SELECT ON TABLE system.access.audit TO `<principal>`;
+   ```
+   Without them `01_setup_context_and_alert_routing` stops before it changes anything.
+2. **An address for failure emails and the SQL alert.** The bundle variable `alert_email` has no default. Set it at deploy time:
+   ```bash
+   databricks bundle deploy --target dev --var alert_email=<you@example.com>
+   ```
+3. **Run the job once before you open the dashboard or expect the alert to fire.** Both read the `ops_*` tables that the job creates:
+   ```bash
+   databricks bundle run capability_guides_monitoring_snapshot --target dev
+   ```
+
 ## What this shows
 
 | Success criterion | Artifact |

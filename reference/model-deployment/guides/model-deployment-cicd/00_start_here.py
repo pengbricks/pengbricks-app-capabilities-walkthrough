@@ -41,6 +41,32 @@
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ## Required setup
+# MAGIC
+# MAGIC Run these once, before the job. `<principal>` is the person or service principal behind `databricks bundle run`.
+# MAGIC
+# MAGIC 1. **Foundation bundle.** Deploy `reference/foundation` first. It creates the shared schema this guide writes to.
+# MAGIC 2. **Schema privileges.** The job creates tables, registers the churn model in Unity Catalog, and writes to the source volume:
+# MAGIC    ```sql
+# MAGIC    GRANT USE CATALOG ON CATALOG <catalog> TO `<principal>`;
+# MAGIC    GRANT USE SCHEMA, CREATE TABLE, CREATE MODEL, SELECT, MODIFY, READ VOLUME, WRITE VOLUME ON SCHEMA <catalog>.<schema> TO `<principal>`;
+# MAGIC    ```
+# MAGIC 3. **Model Serving.** `04_deploy_endpoint` creates or updates a Model Serving endpoint. Serverless Model Serving must be available in the workspace region, and `<principal>` must be allowed to create endpoints. Check afterwards with:
+# MAGIC    ```bash
+# MAGIC    databricks serving-endpoints list
+# MAGIC    ```
+# MAGIC 4. **Outbound internet access.** The first notebook downloads the UCI Online Retail II zip (CC BY 4.0) into the source volume, and `%pip` installs packages from PyPI. The compute needs outbound HTTPS to `archive.ics.uci.edu` and to PyPI (or an internal PyPI mirror). On serverless compute, allow both in the workspace network policy. The download runs once and later runs reuse the zip. The task stops before it changes anything if the host is unreachable. Without internet, copy the zip into the source volume yourself (the `source_volume` job parameter names it):
+# MAGIC    ```bash
+# MAGIC    databricks fs cp ./online+retail+ii.zip dbfs:/Volumes/<catalog>/<schema>/<source-volume>/online_retail_ii.zip
+# MAGIC    ```
+# MAGIC 5. **Approver.** The approval gate moves `@champion` only when it finds an approver. Without one the job stops at the gate, the endpoint is not deployed, and `@champion` stays as it was. Pass a name when you run the job:
+# MAGIC    ```bash
+# MAGIC    databricks bundle run capability_guides_model_release --target dev --params approved_by=<name>
+# MAGIC    ```
+
+# COMMAND ----------
+
 import sys, os
 sys.path.insert(0, os.path.abspath("../../src"))
 from guide_params import bundle_root, load_params, JOB_TAG

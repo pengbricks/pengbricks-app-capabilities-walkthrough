@@ -38,6 +38,31 @@
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ## Required setup
+# MAGIC
+# MAGIC Run these once, before the job. `<principal>` is the person or service principal behind `databricks bundle run`.
+# MAGIC
+# MAGIC 1. **Foundation bundle.** Deploy `reference/foundation` first. It creates the shared schema this guide writes to.
+# MAGIC 2. **Schema privileges.** The job creates tables and a function, and registers the `support_assistant` model in Unity Catalog:
+# MAGIC    ```sql
+# MAGIC    GRANT USE CATALOG ON CATALOG <catalog> TO `<principal>`;
+# MAGIC    GRANT USE SCHEMA, CREATE TABLE, CREATE FUNCTION, CREATE MODEL ON SCHEMA <catalog>.<schema> TO `<principal>`;
+# MAGIC    ```
+# MAGIC 3. **Foundation Model chat endpoint.** The agent calls `databricks-claude-haiku-5-5` (`llm_endpoint` in `use_cases/general.yml`). Check that it exists in the workspace, and set `llm_endpoint` to an endpoint from the list if it does not:
+# MAGIC    ```bash
+# MAGIC    databricks serving-endpoints get databricks-claude-haiku-5-5
+# MAGIC    databricks serving-endpoints list
+# MAGIC    ```
+# MAGIC    `02_log_and_register` stops before it changes anything when the endpoint is missing.
+# MAGIC 4. **Model Serving.** `03_deploy_endpoint` creates the endpoint `capability-guides-support-assistant`. Model Serving must be available in the workspace region, and `<principal>` must be allowed to create endpoints. The endpoint scales to zero, so it costs nothing at rest.
+# MAGIC 5. **SQL warehouse.** The agent's tool runs on the warehouse in the `warehouse_id` variable. The deployed endpoint reads the warehouse as a declared resource, so `<principal>` needs CAN USE on it:
+# MAGIC    ```bash
+# MAGIC    databricks warehouses list
+# MAGIC    ```
+
+# COMMAND ----------
+
 import sys, os
 sys.path.insert(0, os.path.abspath("../../src"))
 from guide_params import bundle_root, load_params, JOB_TAG

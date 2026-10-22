@@ -6,6 +6,28 @@ One job builds a small tool-calling support assistant, registers a version in Un
 
 Model Serving is no longer the recommended place for new agents. The October 12, 2026 release notes move agents deployed to Model Serving to the Legacy list and point new work to the Agent Bricks CLI on Agent Runtime. This guide uses Model Serving because it is the pattern the guide asked for, and it still works.
 
+## Required setup
+
+Run these once, before the job. `<principal>` is the person or service principal behind `databricks bundle run`.
+
+1. **Foundation bundle.** Deploy `reference/foundation` first. It creates the shared schema this guide writes to.
+2. **Schema privileges.** The job creates tables and a function, and registers the `support_assistant` model in Unity Catalog:
+   ```sql
+   GRANT USE CATALOG ON CATALOG <catalog> TO `<principal>`;
+   GRANT USE SCHEMA, CREATE TABLE, CREATE FUNCTION, CREATE MODEL ON SCHEMA <catalog>.<schema> TO `<principal>`;
+   ```
+3. **Foundation Model chat endpoint.** The agent calls `databricks-claude-haiku-5-5` (`llm_endpoint` in `use_cases/general.yml`). Check that it exists in the workspace, and set `llm_endpoint` to an endpoint from the list if it does not:
+   ```bash
+   databricks serving-endpoints get databricks-claude-haiku-5-5
+   databricks serving-endpoints list
+   ```
+   `02_log_and_register` stops before it changes anything when the endpoint is missing.
+4. **Model Serving.** `03_deploy_endpoint` creates the endpoint `capability-guides-support-assistant`. Model Serving must be available in the workspace region, and `<principal>` must be allowed to create endpoints. The endpoint scales to zero, so it costs nothing at rest.
+5. **SQL warehouse.** The agent's tool runs on the warehouse in the `warehouse_id` variable. The deployed endpoint reads the warehouse as a declared resource, so `<principal>` needs CAN USE on it:
+   ```bash
+   databricks warehouses list
+   ```
+
 ## What this shows
 
 | Question | Artifact |

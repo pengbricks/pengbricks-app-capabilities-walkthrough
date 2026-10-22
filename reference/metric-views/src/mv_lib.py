@@ -102,6 +102,21 @@ def fq(catalog: str, schema: str, name: str) -> str:
     return f"`{catalog}`.`{schema}`.`{name}`"
 
 
+def require_views(spark, catalog: str, schema: str) -> None:
+    """Stop with a plain message, before anything changes, when the sample tables or metric views are missing."""
+    exists = lambda name: spark.catalog.tableExists(f"`{catalog}`.`{schema}`.`{name}`")  # noqa: E731
+    problems = [f"{name} is missing (run 01_generate_data)" for name in (TABLES["customers"], TABLES["products"], TABLES["orders"], TABLES["sessions"]) if not exists(name)]
+    missing = [(key, name) for key, name in VIEWS.items() if not exists(name)]
+    files = {"orders": "02_orders_metric_view.sql", "funnel": "03_funnel_metric_view.sql"}
+    problems += [f"{name} is missing (run {files[key]})" for key, name in missing]
+    if problems:
+        raise RuntimeError(
+            "An earlier step has not run: " + "; ".join(problems)
+            + f". Run 02_orders_metric_view.sql, then 03_funnel_metric_view.sql, on a SQL warehouse with catalog={catalog} and schema={schema} in the parameter boxes"
+            + " (or: databricks bundle run capability_guides_metric_views --target dev). Nothing was changed."
+        )
+
+
 def sql_string(value: str) -> str:
     return "'" + value.replace("\\", "\\\\").replace("'", "\\'") + "'"
 

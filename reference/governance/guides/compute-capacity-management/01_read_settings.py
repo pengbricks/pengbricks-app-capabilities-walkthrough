@@ -96,4 +96,6 @@ def read_settings(args, spark) -> None:
 
 # COMMAND ----------
 
+from common import require_system_tables
+require_system_tables(spark, "query.history", "compute.warehouse_events")  # the views and the dashboard read them
 read_settings(args, spark)

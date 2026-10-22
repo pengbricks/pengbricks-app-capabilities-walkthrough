@@ -182,3 +182,46 @@ def routing_for(prefix_catalog: str, schema: str, name: str) -> str:
 
 def to_bool(value: Any) -> bool:
     return str(value).strip().lower() in {"1", "true", "yes", "y"}
+
+
+def require_managed_mcp(url: str, headers: dict[str, str]) -> None:
+    """Stop with a plain message, before anything changes, when the schema's managed MCP server does not answer."""
+    import requests
+
+    try:
+        mcp_rpc(
+            url, headers, "initialize",
+            {"protocolVersion": MCP_PROTOCOL_VERSION, "capabilities": {}, "clientInfo": {"name": "capability-guide", "version": "1"}},
+        )
+    except requests.HTTPError as exc:
+        code = exc.response.status_code if exc.response is not None else "unknown"
+        raise RuntimeError(
+            f"The managed MCP server at {url} returned HTTP {code}. It is a Public Preview feature. Run: a workspace admin turns on "
+            "Managed MCP Servers on the workspace Previews page, then runs 01_prepare_tool so the function exists. Nothing was changed."
+        ) from None
+
+
+def require_system_table(spark: Any, schema: str, table: str) -> None:
+    """Stop with a plain message, before anything changes, when the identity cannot read system.<schema>.<table>."""
+    try:
+        spark.sql(f"SELECT 1 FROM system.{schema}.{table} LIMIT 1").collect()
+    except Exception as exc:  # the engine raises different classes for a missing schema and a missing grant
+        raise RuntimeError(
+            f"Cannot read system.{schema}.{table} ({type(exc).__name__}). Run: databricks system-schemas enable <metastore-id> {schema} "
+            f"(get the ID from: databricks metastores current), then GRANT USE CATALOG ON CATALOG system, USE SCHEMA ON SCHEMA system.{schema}, "
+            f"and SELECT ON TABLE system.{schema}.{table} TO `<principal>`. Nothing was changed."
+        ) from None
+
+
+def require_endpoint(workspace: Any, name: str) -> str:
+    """Return the name after checking that a serving endpoint exists. Stops before anything changes."""
+    from databricks.sdk.errors import NotFound
+
+    try:
+        workspace.serving_endpoints.get(name)
+    except NotFound:
+        raise RuntimeError(
+            f"Serving endpoint {name} does not exist in this workspace. Run: databricks serving-endpoints list "
+            "(pick a chat endpoint that exists, then set llm_endpoint in the use-case spec). Nothing was changed."
+        ) from None
+    return name

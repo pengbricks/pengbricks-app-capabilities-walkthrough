@@ -31,7 +31,9 @@ import dv_lib
 
 spec = dv_lib.load_spec(SPEC_FILE)
 cfg = {**spec["source"], **({"lakebase_project": params["lakebase_project"]} if params["lakebase_project"] else {})}
-settings = dv_lib.connection_settings(WorkspaceClient(), cfg)
+w = WorkspaceClient()
+dv_lib.require_lakebase_project(w, cfg["lakebase_project"])  # stops here, with the create command, if the project is missing
+settings = dv_lib.connection_settings(w, cfg)
 today = datetime.now(timezone.utc).date()
 
 # COMMAND ----------

@@ -33,6 +33,29 @@
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ## Required setup
+# MAGIC
+# MAGIC Run these once, before the job. `<principal>` is the person or service principal behind `databricks bundle run`.
+# MAGIC
+# MAGIC 1. **Foundation bundle.** Deploy `reference/foundation` first. It creates the shared schema this guide writes to.
+# MAGIC 2. **Schema privileges.** The job creates tables, registers the credit default model in Unity Catalog, and writes to the source volume:
+# MAGIC    ```sql
+# MAGIC    GRANT USE CATALOG ON CATALOG <catalog> TO `<principal>`;
+# MAGIC    GRANT USE SCHEMA, CREATE TABLE, CREATE MODEL, SELECT, MODIFY, READ VOLUME, WRITE VOLUME ON SCHEMA <catalog>.<schema> TO `<principal>`;
+# MAGIC    ```
+# MAGIC 3. **Model Serving.** `02_deploy_endpoint` creates the endpoint. Serverless Model Serving must be available in the workspace region, and `<principal>` must be allowed to create endpoints. The endpoint keeps running until you delete it. Delete it with the teardown job:
+# MAGIC    ```bash
+# MAGIC    databricks bundle run capability_guides_realtime_scoring_teardown --target dev
+# MAGIC    ```
+# MAGIC 4. **Scoring callers.** The scoring task calls the endpoint with the OAuth token of `<principal>`. Anyone else who scores it needs CAN QUERY on the endpoint (endpoint **Permissions** in the Serving UI).
+# MAGIC 5. **Outbound internet access.** `01_train_register` downloads the UCI Default of Credit Card Clients zip (CC BY 4.0) into the source volume, and `%pip` installs packages from PyPI. The compute needs outbound HTTPS to `archive.ics.uci.edu` and to PyPI (or an internal PyPI mirror). On serverless compute, allow both in the workspace network policy. The download runs once and later runs reuse the zip. The task stops before it changes anything if the host is unreachable. Without internet, copy the zip into the source volume yourself (the `source_volume` job parameter names it):
+# MAGIC    ```bash
+# MAGIC    databricks fs cp ./default+of+credit+card+clients.zip dbfs:/Volumes/<catalog>/<schema>/<source-volume>/credit_card_default.zip
+# MAGIC    ```
+
+# COMMAND ----------
+
 import sys, os
 sys.path.insert(0, os.path.abspath("../../src"))
 from guide_params import bundle_root, load_params, JOB_TAG

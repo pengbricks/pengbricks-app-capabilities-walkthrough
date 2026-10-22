@@ -20,7 +20,7 @@ export const walkthrough: Walkthrough = {
       },
       {
         title: 'Network and encryption set up front',
-        body: 'Private Link, IP access lists, serverless egress control, and customer-managed keys are cheaper to design in at the start than to retrofit after workloads depend on open paths.',
+        body: 'Private connectivity, IP access lists, serverless egress control, and customer-managed keys are cheaper to design in at the start than to retrofit after workloads depend on open paths.',
       },
       {
         title: 'Repeatable, reviewable setup',
@@ -43,7 +43,7 @@ export const walkthrough: Walkthrough = {
     },
     {
       title: 'Decide the network posture before the first workload.',
-      body: 'Serverless egress control, Private Link, IP access lists, customer-managed keys, and the compliance security profile are cheaper to start with than to retrofit.',
+      body: 'Serverless egress control, private connectivity, IP access lists, customer-managed keys, and the compliance security profile are cheaper to start with than to retrofit.',
     },
     {
       title: 'Serverless first; policies for classic.',
@@ -244,8 +244,8 @@ export const walkthrough: Walkthrough = {
             'Network policies decide which internet destinations serverless compute can reach. Start with restricted access and add the DNS names your workloads need, including external model providers and MCP servers.',
           ],
           [
-            'Private Link',
-            'Private connectivity from your network to the workspace (front end) and from compute to the control plane and storage (back end). Add private connectivity from serverless compute to your storage as needed.',
+            'Private connectivity',
+            'Private network paths from your network to the workspace (front end) and from compute to the control plane and storage (back end). Add private connectivity from serverless compute to your storage as needed.',
           ],
           [
             'IP access lists',

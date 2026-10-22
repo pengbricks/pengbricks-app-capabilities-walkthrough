@@ -31,6 +31,40 @@
 
 # MAGIC
 # MAGIC Safe to rerun: it only reads the deployed job and links to it.
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Required setup
+# MAGIC
+# MAGIC Run these once, before the job. `<principal>` is the person or service principal that runs `databricks bundle run`.
+# MAGIC
+# MAGIC 1. **System tables for spend.** `01_build_views` reads `system.billing.usage` and `system.billing.list_prices`, and `06_optimization` reads `system.query.history`. A metastore admin or account admin enables the schemas if they are off, then grants read access:
+# MAGIC    ```bash
+# MAGIC    databricks metastores current   # shows the metastore ID
+# MAGIC    databricks system-schemas enable <metastore-id> billing
+# MAGIC    databricks system-schemas enable <metastore-id> query
+# MAGIC    ```
+# MAGIC    ```sql
+# MAGIC    GRANT USE CATALOG ON CATALOG system TO `<principal>`;
+# MAGIC    GRANT USE SCHEMA ON SCHEMA system.billing TO `<principal>`;
+# MAGIC    GRANT SELECT ON TABLE system.billing.usage TO `<principal>`;
+# MAGIC    GRANT SELECT ON TABLE system.billing.list_prices TO `<principal>`;
+# MAGIC    GRANT USE SCHEMA ON SCHEMA system.query TO `<principal>`;
+# MAGIC    GRANT SELECT ON TABLE system.query.history TO `<principal>`;
+# MAGIC    ```
+# MAGIC    Without them `01_build_views` stops before it changes anything.
+# MAGIC 2. **Billing records for this workspace.** `01_build_views` asserts that the workspace has usage rows from the last 90 days. Usage reaches `system.billing.usage` a few hours after the compute runs, so a new workspace has none yet. Run the job again later.
+# MAGIC 3. **An address for the budget alert.** The bundle variable `notification_email` has no default. Set it at deploy time:
+# MAGIC    ```bash
+# MAGIC    databricks bundle deploy --target dev --var notification_email=<you@example.com>
+# MAGIC    ```
+# MAGIC    The alert reads `cost_usage_enriched`, which the job creates, so run the job once before you expect the alert to evaluate:
+# MAGIC    ```bash
+# MAGIC    databricks bundle run capability_guides_cost --target dev
+# MAGIC    ```
+# MAGIC 4. **A serverless SQL warehouse for the forecast.** `04_forecast.sql` calls `ai_forecast` on the SQL warehouse in `warehouse_id`, so use a serverless warehouse.
+
 # COMMAND ----------
 
 import sys, os

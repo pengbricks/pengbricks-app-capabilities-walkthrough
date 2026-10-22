@@ -34,6 +34,35 @@
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ## Required setup
+# MAGIC
+# MAGIC Run these once, before the job. `<principal>` is the person or service principal behind `databricks bundle run`. A metastore admin runs items 1 to 3.
+# MAGIC
+# MAGIC 1. **Share and recipient privileges.** `02_share_and_read` creates a share and a recipient. Without these grants it records `BLOCKED` and stops:
+# MAGIC    ```sql
+# MAGIC    GRANT CREATE SHARE, CREATE RECIPIENT ON METASTORE TO `<principal>`;
+# MAGIC    ```
+# MAGIC 2. **Sharing outside your organization.** A token recipient is an external recipient, so the metastore must allow external Delta Sharing:
+# MAGIC    ```bash
+# MAGIC    databricks metastores update <metastore-id> --delta-sharing-scope INTERNAL_AND_EXTERNAL \
+# MAGIC      --delta-sharing-recipient-token-lifetime-in-seconds <seconds> --delta-sharing-organization-name <org-name>
+# MAGIC    ```
+# MAGIC    The account console asks for a recipient token lifetime and an organization name when you turn this on, so the command passes both.
+# MAGIC    Get `<metastore-id>` from `databricks metastores current`.
+# MAGIC 3. **Audit trail.** `03_collect_audit` reads `system.access.audit`. Enable the schema if it is off, then grant read access:
+# MAGIC    ```bash
+# MAGIC    databricks system-schemas enable <metastore-id> access
+# MAGIC    ```
+# MAGIC    ```sql
+# MAGIC    GRANT USE CATALOG ON CATALOG system TO `<principal>`;
+# MAGIC    GRANT USE SCHEMA ON SCHEMA system.access TO `<principal>`;
+# MAGIC    GRANT SELECT ON TABLE system.access.audit TO `<principal>`;
+# MAGIC    ```
+# MAGIC    Without them the task stops with "system.access.audit is not readable".
+
+# COMMAND ----------
+
 import sys, os
 sys.path.insert(0, os.path.abspath("../../src"))
 from guide_params import bundle_root, load_params, JOB_TAG

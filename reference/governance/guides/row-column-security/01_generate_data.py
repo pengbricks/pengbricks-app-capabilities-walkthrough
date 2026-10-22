@@ -59,4 +59,7 @@ def generate_data(args, spark) -> None:
 
 # COMMAND ----------
 
+admin = load_spec(args.use_case_file)["policy"]["admin_group"]
+if not spark.sql(f"SELECT is_member('{admin}')").first()[0]:
+    raise RuntimeError(f"The job identity is not in the {admin} group, so 03_test_policies cannot read unmasked rows. Run: databricks groups list --filter 'displayName eq {admin}' for the group ID, then databricks groups patch <group-id> --json @add_member.json (see Required setup). Nothing was changed.")
 generate_data(args, spark)

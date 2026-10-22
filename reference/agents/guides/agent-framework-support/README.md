@@ -4,6 +4,33 @@
 
 One job runs four checks on a Databricks workspace in us-west-2. A Python client calls a Unity Catalog function as an MCP tool with an OAuth token. A supervisor agent hands the result to a second agent. The same prompt goes through two Unity Gateway model services that carry rate limits, a fallback model, and inference tables. A capability table then records each feature's status, protocol, and measured latency, including the ones the workspace did not have.
 
+## Required setup
+
+Run these once, before the job. `<principal>` is the person or service principal behind `databricks bundle run`.
+
+1. **Foundation bundle.** Deploy `reference/foundation` first. It creates the shared schema this guide writes to.
+2. **Managed MCP server (Public Preview).** `02_mcp_tool_call` and `03_agent_handoff` call the managed MCP server for Unity Catalog functions. A workspace admin turns on **Managed MCP Servers** on the workspace **Previews** page. Without it the task stops with an HTTP error before it records anything.
+3. **Unity Gateway model services.** `04_gateway_routing` creates two model services in `<catalog>.<schema>`. Creating a model service needs `CREATE SERVICE` on the schema. `CREATE TABLE` covers the inference table and `CREATE FUNCTION` covers `order_status`. The identity also needs `EXECUTE` on each model a service references (check the docs for your workspace for the default on `system.ai`):
+   ```sql
+   GRANT USE CATALOG ON CATALOG <catalog> TO `<principal>`;
+   GRANT USE SCHEMA, CREATE SERVICE, CREATE TABLE, CREATE FUNCTION ON SCHEMA <catalog>.<schema> TO `<principal>`;
+   ```
+   The primary and fallback models are the pay-per-token endpoints `system.ai.claude-haiku-5-5`, `system.ai.gpt-5-4-mini` and `system.ai.gpt-5-4-nano`. They must be available in the workspace region. List what is there with `databricks serving-endpoints list`.
+4. **Usage system table.** `05_gateway_audit` reads `system.ai_gateway.usage`. A metastore admin enables the schema if it is off, then grants read access:
+   ```bash
+   databricks system-schemas enable <metastore-id> ai_gateway   # get the ID from: databricks metastores current
+   ```
+   ```sql
+   GRANT USE CATALOG ON CATALOG system TO `<principal>`;
+   GRANT USE SCHEMA ON SCHEMA system.ai_gateway TO `<principal>`;
+   GRANT SELECT ON TABLE system.ai_gateway.usage TO `<principal>`;
+   ```
+   Rows can arrive late (about 30 minutes after the calls in the recorded run), so the first run can record zero. The task stops before it changes anything if the table is unreadable.
+5. **Tool access for other callers.** The job identity owns the `order_status` function, so it can call it. Anyone else who calls the tool through MCP needs:
+   ```sql
+   GRANT EXECUTE ON FUNCTION <catalog>.<schema>.order_status TO `<principal>`;
+   ```
+
 ## What this shows
 
 | Question | Artifact |

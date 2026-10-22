@@ -4,6 +4,24 @@
 
 The `capability-guides-observability` job builds a three-table chain (`obs_source_orders` to `obs_silver_orders` to `obs_gold_daily_revenue`) with SQL, then reads that chain back from `system.access.table_lineage` and `system.access.column_lineage`. It changes the silver table's schema and detects the change from `information_schema` snapshots and `DESCRIBE HISTORY`. It loads a later batch with a shifted distribution and flags it with a Unity Catalog data profiling monitor plus PSI and mean-shift checks computed in the job. Every result lands in a table.
 
+## Required setup
+
+Run these once, before the job. `<principal>` is the person or service principal that runs `databricks bundle run`.
+
+1. **Lineage system tables.** `02_read_lineage` reads `system.access.table_lineage` and `system.access.column_lineage`. A metastore admin or account admin enables the schema if it is off, then grants read access:
+   ```bash
+   databricks metastores current   # shows the metastore ID
+   databricks system-schemas enable <metastore-id> access
+   ```
+   ```sql
+   GRANT USE CATALOG ON CATALOG system TO `<principal>`;
+   GRANT USE SCHEMA ON SCHEMA system.access TO `<principal>`;
+   GRANT SELECT ON TABLE system.access.table_lineage TO `<principal>`;
+   GRANT SELECT ON TABLE system.access.column_lineage TO `<principal>`;
+   ```
+   Without them `01_build_chain` stops before it changes anything. Lineage appears a few minutes after the writes, so `02_read_lineage` polls for up to 25 minutes.
+2. **Data profiling monitor (optional).** `04_detect_data_drift` creates a monitor on `obs_orders_batches`. If the identity cannot create one, the step records the failure and the PSI and mean-shift checks still run.
+
 ## What this shows
 
 | Capability | Artifact |

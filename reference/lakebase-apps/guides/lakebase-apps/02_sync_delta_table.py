@@ -38,7 +38,7 @@ import lakebase_lib as lb
 params = load_params(dbutils, "capability_guides_lakebase_apps", ['catalog', 'schema', 'lakebase_project'])
 w = WorkspaceClient()
 catalog, schema = params["catalog"], lb.ident(params["schema"])
-project = params["lakebase_project"]
+project = lb.require_project(w, params["lakebase_project"])
 branch = lb.branch_name(project, lb.BRANCH)
 source = f"{catalog}.{schema}.lakebase_products"
 synced = f"{catalog}.{schema}.lakebase_products_synced"

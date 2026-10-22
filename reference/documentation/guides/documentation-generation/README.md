@@ -6,6 +6,35 @@ Success criterion: generate and refresh documentation containing schema, lineage
 
 This guide deploys one serverless job. The job builds a bronze, silver, and gold table chain from a spec file, then writes a markdown page for each table the spec lists and applies AI-drafted descriptions back to Unity Catalog as table and column comments. Each run overwrites the pages and adds a row to a log table, so a refresh is one job run.
 
+## Required setup
+
+Run these once, before the job. `<principal>` is the person or service principal behind `databricks bundle run`.
+
+1. **Foundation bundle.** Deploy `reference/foundation` first. It creates the shared schema this guide writes to.
+2. **Schema privileges.** The job creates tables and a volume, tags the tables, and writes comments on them:
+   ```sql
+   GRANT USE CATALOG ON CATALOG <catalog> TO `<principal>`;
+   GRANT USE SCHEMA, CREATE TABLE, CREATE VOLUME, SELECT, MODIFY, APPLY TAG ON SCHEMA <catalog>.<schema> TO `<principal>`;
+   ```
+3. **Chat endpoint for `ai_query`.** `02_generate_docs` drafts descriptions with `ai_query` on the endpoint named by the `model_endpoint` variable. Check that it exists and that `<principal>` can query it. If it is missing, the run records AI failures and writes pages without drafted descriptions:
+   ```bash
+   databricks serving-endpoints get <model-endpoint>
+   databricks serving-endpoints list
+   ```
+4. **Lineage and query history.** The pages list upstream tables, readers and recent queries from `system.access.table_lineage` and `system.query.history`. A metastore admin enables the schemas if they are off, then grants read access:
+   ```bash
+   databricks system-schemas enable <metastore-id> access   # get the ID from: databricks metastores current
+   databricks system-schemas enable <metastore-id> query
+   ```
+   ```sql
+   GRANT USE CATALOG ON CATALOG system TO `<principal>`;
+   GRANT USE SCHEMA ON SCHEMA system.access TO `<principal>`;
+   GRANT SELECT ON TABLE system.access.table_lineage TO `<principal>`;
+   GRANT USE SCHEMA ON SCHEMA system.query TO `<principal>`;
+   GRANT SELECT ON TABLE system.query.history TO `<principal>`;
+   ```
+   Without them the pages say that no readers or queries were found. Lineage appears a few minutes after a query, so the first run can be empty.
+
 ## What this shows
 
 | Criterion | Artifact |

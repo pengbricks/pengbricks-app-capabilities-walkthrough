@@ -34,6 +34,16 @@
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ## Required setup
+# MAGIC
+# MAGIC - **Deploy the bundle:** `databricks bundle deploy --var catalog=<catalog>`. The catalog must already exist and you need `CREATE SCHEMA` on it.
+# MAGIC - **Run the pipeline once before `01_check_gold`.** Deploying creates the pipeline definition but no tables, so a standalone run of `01_check_gold` fails with `TABLE_OR_VIEW_NOT_FOUND` on `orders_bronze`. Run either of these:
+# MAGIC   - `databricks bundle run orders --var catalog=<catalog>` (the pipeline alone)
+# MAGIC   - `databricks bundle run capability_guides_dab_starter --var catalog=<catalog>` (the job: pipeline, then the check)
+
+# COMMAND ----------
+
 import sys, os
 sys.path.insert(0, os.path.abspath("../../src"))
 from guide_params import load_params, JOB_TAG

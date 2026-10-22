@@ -6,6 +6,23 @@ The Databricks IDE extension ties one local project to one workspace: a CLI prof
 
 The guide page offers the project as a zip. You unzip it, open the folder in VS Code, sign in, and follow the numbered demo steps in its `README.md`. The folder `reference/vscode-starter/` is the download, minus `resources/app_access.yml` and this file (see Limitations).
 
+## Required setup
+
+The bundle creates its own schema but not the catalog, so a catalog must exist before the first deploy.
+
+1. **Catalog.** The `dev` target writes to `dev_sales` and `prod` to `prod_sales`. Use a catalog you already have, or create the catalog once (this needs `CREATE CATALOG` on the metastore, so an admin may have to run it). On some metastores you also pass `--storage-root <url>`:
+   ```bash
+   databricks catalogs create dev_sales
+   ```
+   ```sql
+   GRANT USE CATALOG, CREATE SCHEMA ON CATALOG dev_sales TO `<principal>`;
+   ```
+   `<principal>` is the person or group that runs `databricks bundle deploy`. To skip creating a catalog, deploy the `demo` target to one you already have:
+   ```bash
+   databricks bundle deploy -t demo --var catalog=<catalog>
+   ```
+2. **Serverless compute and uv.** The job and Databricks Connect run on serverless compute, so the workspace must have it enabled. The bundle build runs `uv build`, so install [uv](https://docs.astral.sh/uv/) on your machine.
+
 ## What this shows
 
 | Step | How | Result in the reference run |

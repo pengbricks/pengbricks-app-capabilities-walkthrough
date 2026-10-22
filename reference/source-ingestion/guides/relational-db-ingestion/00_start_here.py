@@ -31,6 +31,25 @@
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ## Required setup
+# MAGIC
+# MAGIC Run these once, before the job. `<principal>` is the person or service principal behind `databricks bundle run`. A metastore admin runs item 2.
+# MAGIC
+# MAGIC 1. **A Postgres database to extract from.** `01_create_source` loads sample tables into the `production` branch of the Lakebase project named by the `lakebase_project` variable (default `capability-guides`). Create the project if it does not exist. A new project comes with the `production` branch, the `databricks_postgres` database, and the `primary` endpoint:
+# MAGIC    ```bash
+# MAGIC    databricks postgres create-project capability-guides
+# MAGIC    ```
+# MAGIC    To use another project, deploy with `--var lakebase_project=<project-id>`. To extract from a database outside Databricks, change the `relational` block in `use_cases/general.yml` and make the host reachable from serverless compute. `01_create_source` then does not apply.
+# MAGIC 2. **Connection and catalog privileges.** `02_setup_federation` creates a Unity Catalog connection, and a foreign catalog when allowed:
+# MAGIC    ```sql
+# MAGIC    GRANT CREATE CONNECTION ON METASTORE TO `<principal>`;
+# MAGIC    GRANT CREATE CATALOG ON METASTORE TO `<principal>`;
+# MAGIC    ```
+# MAGIC    Without `CREATE CATALOG` the foreign catalog is skipped and the extract reads through `remote_query`. Without `CREATE CONNECTION` the task fails at the connection.
+
+# COMMAND ----------
+
 import sys, os
 sys.path.insert(0, os.path.abspath("../../src"))
 from guide_params import bundle_root, load_params, JOB_TAG

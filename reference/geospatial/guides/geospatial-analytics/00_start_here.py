@@ -39,6 +39,27 @@
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ## Required setup
+# MAGIC
+# MAGIC Run these once, before the job. `<principal>` is the person or service principal behind `databricks bundle run`.
+# MAGIC
+# MAGIC 1. **Foundation bundle.** Deploy `reference/foundation` first. It creates the shared schema this guide writes to.
+# MAGIC 2. **Schema privileges.** The job creates the `geo_files` volume (the bundle also declares it), tables, and a row-filter function:
+# MAGIC    ```sql
+# MAGIC    GRANT USE CATALOG ON CATALOG <catalog> TO `<principal>`;
+# MAGIC    GRANT USE SCHEMA, CREATE TABLE, CREATE VOLUME, CREATE FUNCTION, SELECT, MODIFY ON SCHEMA <catalog>.<schema> TO `<principal>`;
+# MAGIC    ```
+# MAGIC 3. **Compute for the spatial functions.** The `ST_` and `H3_` functions on native `GEOMETRY` need serverless compute, a Pro or serverless SQL warehouse, or Databricks Runtime 17.1 or above. The job runs on serverless. For a manual run, attach serverless notebook compute. Neither the spatial functions nor `GEOMETRY` need a preview switched on.
+# MAGIC 4. **AI Functions.** `05_inspection_documents` calls `ai_parse_document` and `ai_extract`, which are generally available. They run on serverless or Pro and serverless warehouse compute in a region that supports AI Functions. No preview is needed.
+# MAGIC 5. **Package downloads.** Each notebook installs `fpdf2`, `pillow` and `pyyaml` with `%pip`, and `02_load_geometries` also installs `pyogrio` (GDAL). The compute needs outbound access to PyPI, or an internal PyPI mirror configured for the workspace.
+# MAGIC 6. **Dashboard.** The AI/BI dashboard reads tables the job writes, on the `warehouse_id` warehouse. Run the job once before you open it:
+# MAGIC    ```bash
+# MAGIC    databricks bundle run capability_guides_geospatial --target dev
+# MAGIC    ```
+
+# COMMAND ----------
+
 import sys, os
 sys.path.insert(0, os.path.abspath("../../src"))
 from guide_params import bundle_root, load_params, JOB_TAG

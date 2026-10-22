@@ -72,5 +72,5 @@ else:
 
 # COMMAND ----------
 
-app = w.apps.get(name=app_name).as_dict()
+app = lib.require_app(w, app_name)
 print(f"{app_name}: space = {app.get('space') or 'none (governed per app)'}")

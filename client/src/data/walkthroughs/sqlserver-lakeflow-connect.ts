@@ -69,7 +69,7 @@ export const walkthrough: Walkthrough = {
         rows: [
           [
             'Does SQL Server have to be on the internet?',
-            'No. Only the gateway connects, from the workspace network. VNet or VPC peering, ExpressRoute, Direct Connect, VPN, a private endpoint, or a firewall rule on a public endpoint all work.',
+            'No. Only the gateway connects, from the workspace network. virtual network peering, a dedicated link such as ExpressRoute on Azure or Direct Connect on AWS, VPN, a private endpoint, or a firewall rule on a public endpoint all work.',
           ],
           [
             'Which SQL Server versions and platforms?',
@@ -829,7 +829,7 @@ GRANT SELECT ON schema::cdc TO lakeflow_ingest;`,
       points: [
         {
           strong: 'The gateway opens the connection.',
-          text: "It runs on classic compute in the workspace's network: VNet peering, ExpressRoute or VPN to on-premises, a private endpoint, or a firewall rule on a public endpoint.",
+          text: "It runs on classic compute in the workspace's network: virtual network peering, a dedicated link or VPN to on-premises, a private endpoint, or a firewall rule on a public endpoint.",
         },
         {
           strong: 'Allow TCP to the SQL Server port',

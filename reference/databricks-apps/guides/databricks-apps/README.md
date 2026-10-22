@@ -6,6 +6,34 @@ The bundle deploys one small FastAPI app at the Medium compute size, then a job 
 
 **Cost.** The app bills about 0.5 DBU per hour while it is running (Medium), roughly 365 DBU a month if you leave it on. A stopped app does not bill. The job's last task, `cleanup`, stops it when `stop_app` is `true`.
 
+## Required setup
+
+Do these before `health_check`. The first two also matter for `read_app` and `app_spaces`, which need the app to exist.
+
+1. **Deploy the bundle.** This creates the app, and the app creates its own service principal:
+   ```bash
+   databricks bundle deploy --target dev --var catalog=<catalog> --var warehouse_id=<warehouse-id> --var app_service_principal=<app-sp-application-id>
+   ```
+2. **Start and deploy the app.** A new app is stopped, and `health_check` stops with an error until it runs. Start it, then deploy the source with either command:
+   ```bash
+   databricks apps start <app-name>
+   databricks bundle run databricks_apps_demo --target dev --var catalog=<catalog> --var warehouse_id=<warehouse-id> --var app_service_principal=<app-sp-application-id>
+   # or, from the uploaded bundle files:
+   databricks apps deploy <app-name> --source-code-path /Workspace/Users/<you>/.bundle/capability-guides-databricks-apps/dev/files/app
+   ```
+   `<app-name>` is the `app_name` variable (default `cg-apps-demo`).
+3. **Grant the app service principal read access.** `/whoami/app` counts the tables in the shared schema, and it sees only what the app service principal may read. Find its application ID with `databricks apps get <app-name>` (`service_principal_client_id`), then run:
+   ```sql
+   GRANT USE CATALOG ON CATALOG <catalog> TO `<app-sp-application-id>`;
+   GRANT USE SCHEMA, SELECT ON SCHEMA <catalog>.<schema> TO `<app-sp-application-id>`;
+   ```
+   The warehouse `CAN_USE` grant comes from the bundle. Users who open `/whoami/user` need the same grants on their own identity.
+4. **App Spaces (Beta), for `app_spaces` only.** A workspace admin turns on **Governed agentic app-building** on the workspace **Previews** page. Without it the notebook prints the UI steps and creates nothing.
+5. **Stop the app when you finish.** It bills about 0.5 DBU an hour while running (Medium):
+   ```bash
+   databricks apps stop <app-name>
+   ```
+
 ## What this shows
 
 | Guide artifact | Where it is |

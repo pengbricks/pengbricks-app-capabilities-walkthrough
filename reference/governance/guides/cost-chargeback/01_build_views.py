@@ -72,4 +72,6 @@ def build_views(args, spark) -> None:
 
 # COMMAND ----------
 
+from common import require_system_tables
+require_system_tables(spark, "billing.usage", "billing.list_prices", "query.history")  # 06_optimization reads query.history
 build_views(args, spark)

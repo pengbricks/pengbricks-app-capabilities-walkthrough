@@ -17,7 +17,7 @@ dbutils.library.restartPython()
 import sys, os, time
 sys.path.insert(0, os.path.abspath("../../src"))
 from guide_params import bundle_root, load_params
-from open_data.sharing import audit_event_query
+from open_data.sharing import audit_event_query, require_audit_table
 from open_data.spec import load_spec
 
 params = load_params(
@@ -35,7 +35,7 @@ cfg = load_spec(bundle_root() / "use_cases" / f"{params['use_case']}.yml")["shar
 
 # COMMAND ----------
 
-query = audit_event_query(started_epoch, cfg["share_name"], cfg["recipient_name"])
+query = require_audit_table(spark, audit_event_query(started_epoch, cfg["share_name"], cfg["recipient_name"]))
 deadline = time.time() + int(cfg["audit_wait_seconds"])
 while True:
     events = spark.sql(query)

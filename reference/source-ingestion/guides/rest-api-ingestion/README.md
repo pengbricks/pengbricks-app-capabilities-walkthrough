@@ -4,6 +4,12 @@
 
 Use a managed Lakeflow Connect connector when one exists. Otherwise build a custom connector, wrap the API in a Python data source, or land raw responses for Auto Loader. Keep credentials in Unity Catalog connections or secret scopes, pull incrementally with a stored cursor, upsert with MERGE, and retry only the errors a retry can fix. This reference implements the land-raw path with a hand-written client.
 
+## Required setup
+
+Run this once, before the job.
+
+1. **Outbound internet to the API host.** The task calls `https://dummyjson.com` (`rest_api.base_url` in `use_cases/general.yml`) over HTTPS on port 443. If the workspace restricts serverless egress, add `dummyjson.com` to the allowed destinations of its network policy (set in the account console; see [network policies](https://docs.databricks.com/aws/en/security/network/serverless-network-security/network-policies)). To pull from your own API, change `rest_api.base_url`, `username`, `password`, and `endpoint` in the same file.
+
 ## What this shows
 
 | Capability | Artifact |

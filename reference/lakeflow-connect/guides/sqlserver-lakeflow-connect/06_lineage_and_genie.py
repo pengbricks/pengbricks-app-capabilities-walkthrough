@@ -26,6 +26,15 @@ import lfc_lib as l
 from databricks.sdk import WorkspaceClient
 w = WorkspaceClient()
 silver = [f"{catalog}.{schema}.{t}" for t in l.SILVER.values()]
+absent = [t for t in silver if not spark.catalog.tableExists(t)]
+if absent:
+    raise RuntimeError(f"{', '.join(absent)} missing. Run: databricks bundle run capability_guides_lakeflow_connect --target dev --only silver (after the ingest task has run). Nothing was changed.")
+try:
+    spark.sql("SELECT 1 FROM system.access.table_lineage LIMIT 1").collect()
+except Exception as error:
+    raise RuntimeError(f"The job identity cannot read system.access.table_lineage ({type(error).__name__}). Run as a metastore admin: "
+                       "GRANT USE CATALOG ON CATALOG system TO `<principal>`; GRANT USE SCHEMA ON SCHEMA system.access TO `<principal>`; "
+                       "GRANT SELECT ON TABLE system.access.table_lineage TO `<principal>`. Nothing was changed.") from None
 
 # COMMAND ----------
 

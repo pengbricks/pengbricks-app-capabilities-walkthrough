@@ -35,6 +35,44 @@
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ## Required setup
+# MAGIC
+# MAGIC Run these once, before the job. `<principal>` is the person or service principal that runs `databricks bundle run`.
+# MAGIC
+# MAGIC 1. **System tables.** The job reads `system.lakeflow.jobs`, `system.lakeflow.job_run_timeline`, `system.billing.usage`, `system.billing.list_prices`, `system.compute.warehouse_events`, and `system.access.audit`. A metastore admin or account admin enables each schema that is off, then grants read access:
+# MAGIC    ```bash
+# MAGIC    databricks metastores current   # shows the metastore ID
+# MAGIC    databricks system-schemas enable <metastore-id> lakeflow
+# MAGIC    databricks system-schemas enable <metastore-id> billing
+# MAGIC    databricks system-schemas enable <metastore-id> compute
+# MAGIC    databricks system-schemas enable <metastore-id> access
+# MAGIC    ```
+# MAGIC    ```sql
+# MAGIC    GRANT USE CATALOG ON CATALOG system TO `<principal>`;
+# MAGIC    GRANT USE SCHEMA ON SCHEMA system.lakeflow TO `<principal>`;
+# MAGIC    GRANT SELECT ON TABLE system.lakeflow.jobs TO `<principal>`;
+# MAGIC    GRANT SELECT ON TABLE system.lakeflow.job_run_timeline TO `<principal>`;
+# MAGIC    GRANT USE SCHEMA ON SCHEMA system.billing TO `<principal>`;
+# MAGIC    GRANT SELECT ON TABLE system.billing.usage TO `<principal>`;
+# MAGIC    GRANT SELECT ON TABLE system.billing.list_prices TO `<principal>`;
+# MAGIC    GRANT USE SCHEMA ON SCHEMA system.compute TO `<principal>`;
+# MAGIC    GRANT SELECT ON TABLE system.compute.warehouse_events TO `<principal>`;
+# MAGIC    GRANT USE SCHEMA ON SCHEMA system.access TO `<principal>`;
+# MAGIC    GRANT SELECT ON TABLE system.access.audit TO `<principal>`;
+# MAGIC    ```
+# MAGIC    Without them `01_setup_context_and_alert_routing` stops before it changes anything.
+# MAGIC 2. **An address for failure emails and the SQL alert.** The bundle variable `alert_email` has no default. Set it at deploy time:
+# MAGIC    ```bash
+# MAGIC    databricks bundle deploy --target dev --var alert_email=<you@example.com>
+# MAGIC    ```
+# MAGIC 3. **Run the job once before you open the dashboard or expect the alert to fire.** Both read the `ops_*` tables that the job creates:
+# MAGIC    ```bash
+# MAGIC    databricks bundle run capability_guides_monitoring_snapshot --target dev
+# MAGIC    ```
+
+# COMMAND ----------
+
 import sys, os
 sys.path.insert(0, os.path.abspath("../../src"))
 from guide_params import bundle_root, load_params, JOB_TAG

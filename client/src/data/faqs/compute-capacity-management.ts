@@ -87,7 +87,7 @@ export const faqs: Faq[] = [
     kind: 'decision',
     question: 'Serverless or pro: which should I pick when network or compliance rules apply?',
     answer:
-      'Pick pro when the warehouse must sit inside your own network, for example to reach databases in your VPC or on premises for federation or a hybrid design. The docs name custom-defined networking as a reason to choose pro. Serverless can still reach private resources through network connectivity configurations (NCCs) and private endpoints, so check that page before ruling it out.',
+      'Pick pro when the warehouse must sit inside your own network, for example to reach databases in your virtual network or on premises for federation or a hybrid design. The docs name custom-defined networking as a reason to choose pro. Serverless can still reach private resources through network connectivity configurations (NCCs) and private endpoints, so check that page before ruling it out.',
     links: [TYPES, NETWORK, SETUP],
   },
   {
@@ -111,14 +111,14 @@ export const faqs: Faq[] = [
     kind: 'tradeoff',
     question: 'What does a pro warehouse lack compared with serverless?',
     answer:
-      'Pro lacks Intelligent Workload Management, so it reacts more slowly to swings in query demand and cannot autoscale as fast. It takes about 4 minutes to start, against 2 to 6 seconds on serverless, and it autoscales after 2 to 6 minutes of estimated load. In return, the compute sits in your AWS account, which lets it use your own networking.',
+      'Pro lacks Intelligent Workload Management, so it reacts more slowly to swings in query demand and cannot autoscale as fast. It takes about 4 minutes to start, against 2 to 6 seconds on serverless, and it autoscales after 2 to 6 minutes of estimated load. In return, the compute sits in your cloud account, which lets it use your own networking.',
     links: [TYPES, SIZING],
   },
   {
     kind: 'tradeoff',
     question: 'What control do I give up for managed infrastructure on serverless?',
     answer:
-      'Databricks manages capacity, patching and upgrades, so you give up some infrastructure control. Cluster policies, including spot instance policies, are not supported on serverless warehouses. Serverless warehouses do not use customer-managed keys for EBS storage encryption, and they cannot run in a workspace that uses a legacy external Hive metastore or S3 access policies. The CPU architecture is not selectable and can change between restarts, which can break Unity Catalog Python UDFs that use platform-specific wheels.',
+      'Databricks manages capacity, patching and upgrades, so you give up some infrastructure control. Cluster policies, including spot instance policies, are not supported on serverless warehouses. Serverless warehouses do not use customer-managed keys for instance disk encryption, and they cannot run in a workspace that uses a legacy external Hive metastore or, on AWS, S3 access policies. The CPU architecture is not selectable and can change between restarts, which can break Unity Catalog Python UDFs that use platform-specific wheels.',
     links: [SETUP, TYPES],
   },
   {

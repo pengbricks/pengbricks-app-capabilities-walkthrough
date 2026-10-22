@@ -206,7 +206,7 @@ FROM STREAM read_files(
         },
         {
           strong: 'Allow-list classic compute.',
-          text: 'Give classic compute a stable public address through a NAT gateway or equivalent, and add that address to the server’s allow list. The server must also be reachable from the VPC your workspace uses.',
+          text: 'Give classic compute a stable public address through a NAT gateway or equivalent, and add that address to the server’s allow list. The server must also be reachable from the virtual network your workspace uses.',
         },
         {
           strong: 'Allow-list serverless compute.',
@@ -222,9 +222,9 @@ FROM STREAM read_files(
         rows: [
           {
             option: 'Classic compute behind a NAT gateway',
-            when: 'The workload already runs on classic compute in your VPC.',
+            when: 'The workload already runs on classic compute in your virtual network.',
             tradeoffs:
-              'One stable public address that you own, and the server allow-list is narrow. You run the network path and the classic compute, and the server must also be reachable from that VPC.',
+              'One stable public address that you own, and the server allow-list is narrow. You run the network path and the classic compute, and the server must also be reachable from that virtual network.',
           },
           {
             option: 'Serverless with a network connectivity configuration (stable IPs)',

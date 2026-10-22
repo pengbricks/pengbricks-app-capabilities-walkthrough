@@ -4,6 +4,22 @@
 
 A scripted user works through a Genie Agent over the `sales_metrics` metric view: find out what data exists, ask a question, refine it in the same conversation, ask a vague question, and rate the answers. The job drives the Genie Conversation API and logs each task in `ux_session_log` with its outcome, any issue, and the training need.
 
+## Required setup
+
+Run these once, before the job. `<principal>` is the person or service principal behind `databricks bundle run`.
+
+1. **Foundation bundle.** Deploy `reference/foundation` first. It creates the shared schema this guide writes to.
+2. **SQL warehouse.** Genie runs its queries on the warehouse in the `warehouse_id` variable. It must be a Pro or serverless warehouse, and `<principal>` needs CAN USE on it. Create one if you have none:
+   ```bash
+   databricks warehouses create --name genie-guides --cluster-size 2X-Small --warehouse-type PRO --enable-serverless-compute
+   ```
+3. **Genie space creation.** The job creates Genie spaces through the REST API. `<principal>` needs access to Databricks SQL and the right to create spaces, and Databricks Assistant must be enabled for the workspace.
+4. **Schema privileges.** The job creates the sample tables, comments, tags and the `sales_metrics` metric view:
+   ```sql
+   GRANT USE CATALOG ON CATALOG <catalog> TO `<principal>`;
+   GRANT USE SCHEMA, CREATE TABLE, SELECT, APPLY TAG ON SCHEMA <catalog>.<schema> TO `<principal>`;
+   ```
+
 ## What this shows
 
 | Task | What the job does |

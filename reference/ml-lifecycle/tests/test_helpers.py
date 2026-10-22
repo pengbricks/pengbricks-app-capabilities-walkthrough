@@ -74,3 +74,15 @@ def test_model_features_come_from_the_snapshot_or_model_derived_columns():
     spec["model"]["features"] = [*spec["model"]["features"], "usage_score"]
     with pytest.raises(ValueError, match="not available"):
         c.validate_spec(spec)
+
+
+def test_fetch_public_names_the_blocked_host(monkeypatch, tmp_path):
+    import urllib.error
+    import urllib.request
+
+    def blocked(*_a, **_k):
+        raise urllib.error.URLError("no route")
+
+    monkeypatch.setattr(urllib.request, "urlopen", blocked)
+    with pytest.raises(RuntimeError, match="archive.ics.uci.edu"):
+        c.fetch_public("online_retail_ii", str(tmp_path))

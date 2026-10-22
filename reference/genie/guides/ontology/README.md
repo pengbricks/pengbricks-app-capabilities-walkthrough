@@ -4,6 +4,22 @@
 
 The sample sales tables store codes (`seg_cd`, `rgn_cd`, `ord_st`). The job asks a Genie Agent five business questions over the raw tables, adds table and column comments, tags, and a Unity Catalog metric view with synonyms, then asks a second space the same five questions. It records the SQL Genie wrote each time and whether the rows match an expected query.
 
+## Required setup
+
+Run these once, before the job. `<principal>` is the person or service principal behind `databricks bundle run`.
+
+1. **Foundation bundle.** Deploy `reference/foundation` first. It creates the shared schema this guide writes to.
+2. **SQL warehouse.** Genie runs its queries on the warehouse in the `warehouse_id` variable. It must be a Pro or serverless warehouse, and `<principal>` needs CAN USE on it. Create one if you have none:
+   ```bash
+   databricks warehouses create --name genie-guides --cluster-size 2X-Small --warehouse-type PRO --enable-serverless-compute
+   ```
+3. **Genie space creation.** The job creates Genie spaces through the REST API. `<principal>` needs access to Databricks SQL and the right to create spaces, and Databricks Assistant must be enabled for the workspace.
+4. **Schema privileges.** The job creates the sample tables, comments, tags and the `sales_metrics` metric view:
+   ```sql
+   GRANT USE CATALOG ON CATALOG <catalog> TO `<principal>`;
+   GRANT USE SCHEMA, CREATE TABLE, SELECT, APPLY TAG ON SCHEMA <catalog>.<schema> TO `<principal>`;
+   ```
+
 ## What this shows
 
 | Capability | Artifact |

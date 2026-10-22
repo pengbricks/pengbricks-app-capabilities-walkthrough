@@ -23,6 +23,7 @@ params = load_params(dbutils, "capability_guides_observability", ['catalog', 'sc
 prefix = f"{params['catalog']}.{params['schema']}"
 
 import guide_lib as g
+g.require_system_tables(spark, "access.table_lineage", "access.column_lineage")  # 02_read_lineage polls them for up to 25 minutes
 spec = g.load_spec(str(bundle_root() / "use_cases" / f"{params['use_case']}.yml"))
 baseline = spec["observability"]["batches"][0]
 

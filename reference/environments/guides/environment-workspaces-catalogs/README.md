@@ -6,6 +6,22 @@ Four environments need four sets of boundaries: where code runs (workspaces), wh
 
 The bundle deploys `dev`, `test`, `stage`, and `prod` targets into the one workspace in your profile, and each target gets its own schema in one catalog. That is layout (c), the weakest layout and the only one a single workspace can show. The job reads the catalog's isolation mode, workspace bindings, owner, and grants through the SDK and reports what a layout check finds. The four-workspace, four-catalog setup is in `setup/` as SQL and CLI commands. This repo does not run them.
 
+## Required setup
+
+Run this once, before the job. `<principal>` is the person or service principal behind `databricks bundle run`.
+
+1. **Read access to the catalog's bindings.** `02_audit_layout` reads the catalog's isolation mode, workspace bindings, and grants. The bindings API allows a metastore admin or the owner of the catalog. Without access the audit records bindings and grants as `info` and still finishes. To get the full findings, make the identity the catalog owner:
+   ```bash
+   databricks catalogs update <catalog> --owner <principal>
+   ```
+2. **The four-workspace layout is not run by the bundle.** `databricks bundle run capability_guides_environments` needs nothing from `setup/`. The files in `setup/` build the catalog-per-environment layout and are commands you run yourself, as a metastore admin, after substituting the placeholders. Run them in this order:
+   1. Section 1 of `setup/02_credentials_and_bindings.sh`: one storage credential per environment (the script shows the AWS form; Azure and GCP use a managed identity or a Google service account in the same JSON slot).
+   2. `setup/01_catalogs.sql`: external locations, catalogs, and domain schemas. Run it on a SQL warehouse.
+   3. Sections 2 to 5 of `setup/02_credentials_and_bindings.sh`: isolate each catalog and bind it to its workspace.
+   4. `setup/03_grants.sql`: grants to groups, and ownership to the environment's service principal.
+
+   The script reads `PROFILE`, `ACCOUNT_ID`, `DEV_WS`, `TEST_WS`, `STAGE_WS`, and `PROD_WS` from the environment. To deploy your own bundle against that layout, start from `setup/databricks.four-workspaces.yml.example` and fill in the hosts, catalogs, and service principals.
+
 ## What this shows
 
 | Step | Where | Result in the reference run |
@@ -42,7 +58,7 @@ Run from the `prod` target with all four deployed: `environments` passed, `grant
 - **Production mode with `name_prefix` also prefixes the schema.** The `[prod] ` preset gives `prod_envdemo`, so the schema variable stays `envdemo` in every target. Setting it to `prod_envdemo` as well produced `prod_prod_envdemo`.
 - **A governed tag policy can refuse your environment names.** The reference metastore has a governed tag `environment` whose allowed values are `dev`, `staging`, `prod`, and `demo`. Tagging a schema `test` or `stage` was refused. The seed notebook prints the refusal and carries on, and the audit reports the missing tag as a warn. Pick environment names that match the policy, or ask the tag owner to add yours.
 - **Whoever deploys owns what the bundle creates.** The prod schema belongs to the person who ran `bundle deploy -t prod`. In a real prod, CI deploys as a service principal, so that principal owns the schema. The audit warns when it does not.
-- **Reading bindings takes a privilege.** The bindings documentation says viewing them needs `READ METADATA` on the catalog, and editing them needs `MANAGE` or ownership. This run's identity could read them. The audit records a refusal as info rather than failing; that path is covered by a unit test, not by the run.
+- **Reading bindings takes a privilege.** The bindings API needs a metastore admin or the owner of the catalog. This run's identity could read them. The audit records a refusal as info rather than failing; that path is covered by a unit test, not by the run.
 
 ## Architecture
 

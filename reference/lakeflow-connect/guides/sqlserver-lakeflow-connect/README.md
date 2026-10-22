@@ -4,6 +4,49 @@
 
 Lakeflow Connect ingests SQL Server tables into Unity Catalog through two managed pipelines: a gateway on classic compute that reads CDC or Change Tracking, and a serverless ingestion pipeline that applies changes to bronze. An integrated CDC pipeline removes the gateway where your workspace has it. Run the pipelines as a service principal, monitor them, and keep the gateway running within the source retention window. This reference bundle deploys the standard architecture.
 
+## Required setup
+
+Do these once, in this order, before the first run. Item 6 is the deploy. `<principal>` is the identity that deploys and runs the job.
+
+1. **A reachable SQL Server.** Use a primary or an Availability Group listener, not a read replica. Port 1433 must be open to the gateway's classic compute and to the job's serverless notebooks, which also connect to run `01`, `02`, `04`, and `05`. For a private server, allow serverless compute through your network connectivity configuration (Account console, **Security**, **Network connectivity configurations**). Test the path:
+   ```bash
+   nc -vz <server-fqdn> 1433
+   ```
+2. **Source-side change capture (a DBA).** Create the database, install the Databricks utility objects script (`utility_script.sql`) in it, and on SQL Server (not Azure SQL) start SQL Server Agent, because CDC capture jobs run there. Then run the setup script, which creates the tables, the `lakeflow_ingest` and `lakeflow_demo_app` logins, CDC on `customers`, Change Tracking on `orders` and `products`, and the grants:
+   ```bash
+   sqlcmd -S <server> -d LakeflowDemo -U <setup_user> -P <password> -N -i source/01_setup_source.sql \
+     -v IngestPassword="<ingest-password>" AppPassword="<app-password>"
+   ```
+3. **The Unity Catalog connection** named by the bundle variable `sqlserver_connection_name`. Creating it needs `CREATE CONNECTION` on the metastore, and the gateway needs `USE CONNECTION`:
+   ```sql
+   GRANT CREATE CONNECTION ON METASTORE TO `<principal>`;
+   GRANT USE CONNECTION ON CONNECTION <uc-connection> TO `<principal>`;
+   ```
+   ```bash
+   databricks connections create --json '{"name": "<uc-connection>", "connection_type": "SQLSERVER",
+     "options": {"host": "<server-fqdn>", "port": "1433", "user": "lakeflow_ingest", "password": "<ingest-password>",
+                 "trustServerCertificate": "false"}}'
+   ```
+4. **A secret scope** with the `lakeflow_demo_app` login the job uses to change rows (bundle variable `source_secret_scope`, default `lakeflow_connect_demo`). Each `put-secret` prompts for the value:
+   ```bash
+   databricks secrets create-scope lakeflow_connect_demo
+   databricks secrets put-secret lakeflow_connect_demo sqlserver_app_user
+   databricks secrets put-secret lakeflow_connect_demo sqlserver_app_password
+   ```
+5. **Classic compute for the gateway.** The gateway cannot run on serverless. The workspace must allow classic compute for pipelines, and the driver needs at least 8 cores (pin a node type or a cluster policy in `resources/sqlserver.pipelines.yml` if your workspace enforces one). In a serverless-only workspace the bundle validates, but the gateway never starts.
+6. **Deploy, then start the gateway.** The gateway is a continuous pipeline. Start it a few minutes before the job and leave it running:
+   ```bash
+   databricks bundle deploy --target dev --var catalog=<catalog> --var warehouse_id=<warehouse-id> \
+     --var app_service_principal=<app-sp-application-id> --var sqlserver_connection_name=<uc-connection>
+   databricks bundle run lfc_gateway --target dev --no-wait
+   ```
+7. **Lineage read access, for `06_lineage_and_genie`.** A metastore admin grants:
+   ```sql
+   GRANT USE CATALOG ON CATALOG system TO `<principal>`;
+   GRANT USE SCHEMA ON SCHEMA system.access TO `<principal>`;
+   GRANT SELECT ON TABLE system.access.table_lineage TO `<principal>`;
+   ```
+
 ## What this shows
 
 | Step | What happens | Checked by |
@@ -65,17 +108,7 @@ databricks bundle run lfc_gateway --target dev --profile <profile> --no-wait   #
 databricks bundle run capability_guides_lakeflow_connect --target dev --profile <profile>
 ```
 
-Create the connection and the secret scope first:
-
-```bash
-databricks connections create --profile <profile> --json '{
-  "name": "<uc-connection>", "connection_type": "SQLSERVER",
-  "options": {"host": "<server-fqdn>", "port": "1433", "user": "lakeflow_ingest", "password": "<password>",
-              "trustServerCertificate": "false"}}'
-databricks secrets create-scope lakeflow_connect_demo --profile <profile>
-databricks secrets put-secret lakeflow_connect_demo sqlserver_app_user --profile <profile>
-databricks secrets put-secret lakeflow_connect_demo sqlserver_app_password --profile <profile>
-```
+Do the Required setup first: the connection, the secret scope, and the source script.
 
 ## Demo steps
 

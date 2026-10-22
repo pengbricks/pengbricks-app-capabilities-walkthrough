@@ -4,6 +4,30 @@
 
 The job reads the settings of the shared SQL warehouse without changing them, then creates a temporary 2X-Small serverless test warehouse with one cluster and a 5-minute auto-stop. It sends 40 heavy statements at once, reads the queueing back from `system.query.history`, and deletes the test warehouse. A small AI/BI dashboard reads the same system tables.
 
+## Required setup
+
+Run these once, before the job. `<principal>` is the person or service principal that runs `databricks bundle run`.
+
+1. **System tables for the load analysis and the dashboard.** The job and the dashboard read `system.query.history` and `system.compute.warehouse_events`. A metastore admin or account admin enables the schemas if they are off, then grants read access:
+   ```bash
+   databricks metastores current   # shows the metastore ID
+   databricks system-schemas enable <metastore-id> query
+   databricks system-schemas enable <metastore-id> compute
+   ```
+   ```sql
+   GRANT USE CATALOG ON CATALOG system TO `<principal>`;
+   GRANT USE SCHEMA ON SCHEMA system.query TO `<principal>`;
+   GRANT SELECT ON TABLE system.query.history TO `<principal>`;
+   GRANT USE SCHEMA ON SCHEMA system.compute TO `<principal>`;
+   GRANT SELECT ON TABLE system.compute.warehouse_events TO `<principal>`;
+   ```
+   Without them `01_read_settings` stops before it changes anything.
+2. **Rights to create a SQL warehouse.** `02_create_load_warehouse` creates a 2X-Small serverless warehouse named `capability-guides-capacity-test`, and `05_delete_load_warehouse` deletes it. `<principal>` must be a workspace admin or hold the **Allow unrestricted cluster creation** entitlement, and the workspace must allow serverless SQL warehouses. To check, create and delete a throwaway warehouse:
+   ```bash
+   databricks warehouses create --name capacity-setup-check --cluster-size 2X-Small --min-num-clusters 1 --max-num-clusters 1 --auto-stop-mins 5 --enable-serverless-compute --warehouse-type PRO
+   databricks warehouses delete <warehouse-id>
+   ```
+
 ## What this shows
 
 | Guide artifact | Where it is |

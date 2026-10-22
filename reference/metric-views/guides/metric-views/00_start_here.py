@@ -37,6 +37,17 @@
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ## Required setup
+# MAGIC
+# MAGIC - **Run `01_generate_data` first.** It writes the four sample tables the views read.
+# MAGIC - **Create the two metric views on a SQL warehouse.** `02_orders_metric_view.sql` and `03_funnel_metric_view.sql` are plain SQL files that the job runs as SQL tasks. Opened as notebooks they never run on their own, so `mv_orders_metrics` and `mv_funnel_metrics` do not exist, and `04` and `05` would fail with `TABLE_OR_VIEW_NOT_FOUND`. Run 02, then 03, either way:
+# MAGIC   - In the SQL editor or a notebook: attach a SQL warehouse, type your catalog and schema into the `catalog` and `schema` parameter boxes, and run each file in order.
+# MAGIC   - Or run the whole job: `databricks bundle run capability_guides_metric_views --target dev --var catalog=<catalog> --var warehouse_id=<warehouse-id> --var app_service_principal=<app-service-principal-application-id>`.
+# MAGIC - **Privileges** for the running user: `USE CATALOG` and `USE SCHEMA` on the schema, `SELECT` on the four tables, and `CREATE TABLE` on the schema (that covers creating a metric view). `GRANT USE CATALOG ON CATALOG <catalog> TO <principal>; GRANT USE SCHEMA, SELECT, CREATE TABLE ON SCHEMA <catalog>.<schema> TO <principal>;`
+
+# COMMAND ----------
+
 import sys, os
 sys.path.insert(0, os.path.abspath("../../src"))
 from guide_params import load_params

@@ -87,3 +87,27 @@ def error_cases(features: list[dict[str, Any]]) -> list[dict[str, Any]]:
             }
         )
     return cases
+
+
+def fetch_public(name: str, directory: str):
+    """public_data.fetch, after checking that the download host answers. Stops before anything changes."""
+    import os
+    import urllib.error
+    import urllib.parse
+    import urllib.request
+
+    import public_data
+
+    source = public_data.SOURCES[name]
+    if not os.path.exists(os.path.join(directory, f"{name}.zip")):
+        host = urllib.parse.urlparse(source["url"]).netloc
+        try:
+            urllib.request.urlopen(urllib.request.Request(source["url"], method="HEAD"), timeout=30).close()
+        except urllib.error.HTTPError:
+            pass  # the host answered, so egress works
+        except OSError as exc:
+            raise RuntimeError(
+                f"Cannot reach {host} to download {name} ({type(exc).__name__}). Run: allow outbound HTTPS to {host} for this workspace "
+                "(serverless egress policy or firewall), or copy the zip from " + source["url"] + f" into {directory}. Nothing was changed."
+            ) from None
+    return public_data.fetch(name, directory)

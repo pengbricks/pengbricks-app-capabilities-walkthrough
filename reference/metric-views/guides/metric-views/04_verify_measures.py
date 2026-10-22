@@ -19,6 +19,7 @@ catalog, schema = params["catalog"], params["schema"]
 import mv_lib as m
 T = {key: m.fq(catalog, schema, name) for key, name in m.TABLES.items()}
 V = {key: m.fq(catalog, schema, name) for key, name in m.VIEWS.items()}
+m.require_views(spark, catalog, schema)  # stops with the run order if a view is missing
 rows = []
 
 def run(sql):

@@ -224,3 +224,17 @@ UI_STEPS = [
     "Grant CAN CREATE APP to the people who will build. The space name cannot be changed later.",
     "Builders open the Build tab on the Apps home page, pick the space, and enter a prompt. Genie App Builder only builds inside a space.",
 ]
+
+
+def require_app(workspace: Any, app_name: str) -> dict:
+    """Return the app as a dict, or stop with a plain message when it has not been deployed. Nothing is changed."""
+    from databricks.sdk.errors import NotFound
+
+    try:
+        return workspace.apps.get(name=app_name).as_dict()
+    except NotFound:
+        raise RuntimeError(
+            f"App {app_name!r} does not exist. Run: databricks bundle deploy --target dev --var ... "
+            "then databricks bundle run databricks_apps_demo --target dev --var ... Nothing was changed."
+        ) from None
+

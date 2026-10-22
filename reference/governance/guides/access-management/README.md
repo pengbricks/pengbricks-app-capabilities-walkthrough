@@ -4,6 +4,31 @@
 
 The job ensures a workspace group, builds a dev-like and a prod-like schema from the same spec, grants each schema to the group with different privileges, checks the result in `information_schema`, queries `system.access.audit` for the grant changes, and lists the workspace's service principals with their roles and credential metadata. Nothing is granted to an individual user.
 
+## Required setup
+
+Run these once, before the job. `<principal>` is the person or service principal that runs `databricks bundle run`.
+
+1. **System tables for the audit step.** `05_audit_grant_changes.sql` reads `system.access.audit`. A metastore admin or account admin enables the schema if it is off, then grants read access:
+   ```bash
+   databricks metastores current   # shows the metastore ID
+   databricks system-schemas enable <metastore-id> access
+   ```
+   ```sql
+   GRANT USE CATALOG ON CATALOG system TO `<principal>`;
+   GRANT USE SCHEMA ON SCHEMA system.access TO `<principal>`;
+   GRANT SELECT ON TABLE system.access.audit TO `<principal>`;
+   ```
+   Without them `01_ensure_group` stops before it changes anything.
+2. **Rights to create the group.** `01_ensure_group` creates the workspace group in `reader_group` through the SDK, so `<principal>` must be a workspace admin. An admin can create the group first instead:
+   ```bash
+   databricks groups create --display-name capability-guides-readers
+   ```
+3. **An account-level group to grant to (optional).** Unity Catalog only accepts account-level groups as grantees. Without one the job falls back to `account users`. An account admin creates the group, or syncs it from the identity provider, and you pass its name:
+   ```bash
+   databricks account groups create --display-name <account-group>
+   databricks bundle run capability_guides_access --target dev --params reader_group=<account-group>
+   ```
+
 ## What this shows
 
 | Guide artifact | Where it is |

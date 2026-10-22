@@ -10,6 +10,14 @@ All data is generated in `src/mv_lib.py` with fixed seeds. Nothing is real.
 
 Bundles have no native metric view resource (checked with `databricks bundle schema` on CLI 1.17.0 and in the bundle resources docs), so the job creates the views with SQL tasks on the warehouse.
 
+## Required setup
+
+- **Run `01_generate_data` first.** It writes the four sample tables the views read.
+- **Create the two metric views on a SQL warehouse.** `02_orders_metric_view.sql` and `03_funnel_metric_view.sql` are plain SQL files that the job runs as SQL tasks. Opened as notebooks they never run on their own, so `mv_orders_metrics` and `mv_funnel_metrics` do not exist, and `04` and `05` would fail with `TABLE_OR_VIEW_NOT_FOUND`. Run 02, then 03, either way:
+  - In the SQL editor or a notebook: attach a SQL warehouse, type your catalog and schema into the `catalog` and `schema` parameter boxes, and run each file in order.
+  - Or run the whole job: `databricks bundle run capability_guides_metric_views --target dev --var catalog=<catalog> --var warehouse_id=<warehouse-id> --var app_service_principal=<app-service-principal-application-id>`.
+- **Privileges** for the running user: `USE CATALOG` and `USE SCHEMA` on the schema, `SELECT` on the four tables, and `CREATE TABLE` on the schema (that covers creating a metric view). `GRANT USE CATALOG ON CATALOG <catalog> TO <principal>; GRANT USE SCHEMA, SELECT, CREATE TABLE ON SCHEMA <catalog>.<schema> TO <principal>;`
+
 ## Run it
 
 - **By hand:** open the `guides/metric-views` folder and read `00_start_here`. Run all in `01_generate_data`, then open each `.sql` file, attach a SQL warehouse, fill in the `catalog` and `schema` parameter boxes, and run it. Then Run all in `04_verify_measures` and `05_lineage_and_governance`.

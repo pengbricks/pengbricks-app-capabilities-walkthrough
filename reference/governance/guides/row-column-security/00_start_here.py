@@ -30,6 +30,29 @@
 
 # MAGIC
 # MAGIC Safe to rerun: it only reads the deployed job and links to it.
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Required setup
+# MAGIC
+# MAGIC Run this once, before the job. `<principal>` is the person or service principal that runs `databricks bundle run`.
+# MAGIC
+# MAGIC 1. **Job identity in the `admins` group.** `03_test_policies` asserts that the job identity sees every row and the real values. The policies let only members of `admins` through, so `<principal>` must be a workspace admin. Make it one in workspace settings, or add it to the group:
+# MAGIC    ```bash
+# MAGIC    databricks groups list --filter 'displayName eq admins'     # note the group ID
+# MAGIC    databricks users list --filter 'userName eq "<email>"'      # note the user ID (service principals: databricks service-principals list --filter 'applicationId eq "<application-id>"')
+# MAGIC    ```
+# MAGIC    Save this as `add_member.json`:
+# MAGIC    ```json
+# MAGIC    {"schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+# MAGIC     "Operations": [{"op": "add", "value": {"members": [{"value": "<principal-id>"}]}}]}
+# MAGIC    ```
+# MAGIC    ```bash
+# MAGIC    databricks groups patch <admins-group-id> --json @add_member.json
+# MAGIC    ```
+# MAGIC    Without it `01_generate_data` stops before it changes anything.
+
 # COMMAND ----------
 
 import sys, os
