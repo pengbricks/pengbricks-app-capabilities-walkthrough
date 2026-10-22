@@ -52,7 +52,9 @@ def create_policies(args, spark, mode: str) -> str:
         try:
             spark.sql(edm.drop_policy_sql(name, table))  # replace, never add a second policy
         except Exception as exc:  # noqa: BLE001
-            print(f"no policy {name} to drop ({type(exc).__name__})")
+            if not edm.policy_missing(exc):
+                raise
+            print(f"no policy {name} to drop")
     if mode == "governed":
         # A mask or row filter from an earlier plain-mode run would stack with the policy: remove it.
         for statement in (f"ALTER TABLE {table} ALTER COLUMN `national_id` DROP MASK", f"ALTER TABLE {table} DROP ROW FILTER"):

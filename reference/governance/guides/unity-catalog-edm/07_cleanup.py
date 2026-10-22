@@ -61,7 +61,11 @@ def cleanup(args, spark) -> None:
 
     if has_table:
         for policy in (edm.MASK_POLICY, edm.REGION_POLICY):
-            spark.sql(edm.drop_policy_sql(policy, table))
+            try:
+                spark.sql(edm.drop_policy_sql(policy, table))
+            except Exception as exc:  # noqa: BLE001
+                if not edm.policy_missing(exc):
+                    raise
         # The plain-mode fallback attached a mask and a row filter; drop them if they are there.
         for statement in (f"ALTER TABLE {table} ALTER COLUMN `national_id` DROP MASK", f"ALTER TABLE {table} DROP ROW FILTER"):
             try:

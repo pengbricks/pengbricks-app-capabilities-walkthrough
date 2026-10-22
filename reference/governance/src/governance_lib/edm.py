@@ -100,7 +100,13 @@ def row_filter_policy_sql(name: str, table: str, function: str, principal: str, 
 
 
 def drop_policy_sql(name: str, table: str) -> str:
-    return f"DROP POLICY IF EXISTS {quote(name)} ON TABLE {table}"
+    # DROP POLICY has no IF EXISTS; callers treat POLICY_NOT_FOUND as already dropped.
+    return f"DROP POLICY {quote(name)} ON TABLE {table}"
+
+
+def policy_missing(exc: Exception) -> bool:
+    """True when a DROP POLICY failed only because the policy is not there."""
+    return "POLICY_NOT_FOUND" in str(exc)
 
 
 def scanner_grants(scanner: str, catalog: str, schema: str, tables: Iterable[str] = SAMPLE_TABLES) -> list[str]:
