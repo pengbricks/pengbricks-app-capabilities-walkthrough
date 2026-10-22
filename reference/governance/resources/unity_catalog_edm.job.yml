@@ -16,7 +16,7 @@ resources:
         - name: scanner_principal
           default: edm-scanner
         - name: tag_mode
-          default: governed
+          default: ${var.edm_tag_mode}
         - name: cleanup
           default: keep
       tasks:
