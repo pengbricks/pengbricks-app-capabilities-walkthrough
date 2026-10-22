@@ -5,7 +5,7 @@ export const walkthrough: Walkthrough = {
   area: 'Governance/Monitoring',
   title: 'Genie ZeroOps: AI operations for data and AI workloads',
   intro:
-    'Genie ZeroOps is an AI operations agent that Databricks announced on June 16, 2026. It watches jobs, pipelines, tables, and ML workloads, finds the root cause of a failure with Unity Catalog lineage, tests a fix in a sandbox, and asks a person before anything reaches production. As of October 22, 2026 the public sources describe it as a private preview, so plan around what Databricks has said in public and confirm the rest with your account team. The sections below show where ZeroOps would sit next to the alerting, CI, and on-call practice you already run.',
+    'Genie ZeroOps is an AI operations agent that Databricks announced on June 16, 2026. It watches jobs, pipelines, tables, and ML workloads, finds the root cause of a failure with Unity Catalog lineage, tests a fix in a sandbox, and asks a person before anything reaches production. As of October 22, 2026 the public sources describe it as a private preview, so plan around what Databricks has said in public and confirm the rest with your account team. The sections below show where ZeroOps would sit next to the alerting, CI, and on-call practice you already run, and a Run it section lets you break a job on purpose in a workspace where it is enabled.',
   businessValue: {
     summary:
       'ZeroOps aims to cut the time from a failed run to a reviewed fix. Platform and data engineering leads can plan a preview without weakening on-call or change control.',
@@ -48,6 +48,10 @@ export const walkthrough: Walkthrough = {
     {
       title: 'Keep alerts, data quality monitoring, and runbooks.',
       body: 'ZeroOps adds investigation and fix proposals. It does not replace a job notification that pages someone at 2 a.m., a SQL alert on a business metric, or a runbook.',
+    },
+    {
+      title: 'Try it with a job that breaks on purpose.',
+      body: 'In a workspace where ZeroOps is enabled, run the reference job with a mistyped column name and watch the inbox. This shows how the preview behaves. It does not fill the public gaps listed below.',
     },
     {
       title: 'Write down what is unknown.',
@@ -476,6 +480,164 @@ export const walkthrough: Walkthrough = {
         ],
         recommendation:
           'Keep job alerts, data quality monitoring, and system-table dashboards as the baseline. Add ZeroOps where your incident review shows that diagnosis, not detection, takes the time.',
+      },
+    },
+    {
+      id: 'run-it',
+      heading: 'Run it: break a job and watch ZeroOps diagnose it',
+      prose:
+        'This demo shows how the preview behaves in a workspace where ZeroOps is enabled. The public sources above still do not cover it. The reference job builds a small orders table, then computes daily revenue. You break it with a mistyped column name and watch the inbox. It writes two tables to the shared guide schema and creates nothing at account level.',
+      steps: [
+        {
+          title: 'Check the required setup.',
+          body: 'Ask your account team to enable ZeroOps in the workspace. Deploy and run the bundle as yourself, because ZeroOps monitors jobs you own. Deploy the foundation bundle first for the shared schema.',
+        },
+        {
+          title: 'Deploy the bundle.',
+          body: 'Use the platform-ops bundle. Nothing in it is scheduled.',
+          code: `cd reference/platform-ops
+databricks bundle deploy --target dev --var catalog=<catalog> --var app_service_principal=<app-service-principal-application-id> --var notification_email=<email>`,
+        },
+        {
+          title: 'Run the job healthy.',
+          body: 'Both tasks succeed, and the run log prints MODE: HEALTHY.',
+          code: 'databricks bundle run capability_guides_zeroops_demo --target dev',
+        },
+        {
+          title: 'Add the job to ZeroOps.',
+          body: 'Outside full-screen mode, click Configure and add the job. Or open Genie Code chat and send the prompt below. The Configure button does not show in full-screen mode.',
+          code: 'Monitor the job capability_guides_zeroops_demo',
+        },
+        {
+          title: 'Break it.',
+          body: 'Run with the parameter that mistypes the column. The daily_revenue task fails with an unresolved-column error, and the run log prints MODE: DELIBERATE BREAK.',
+          code: 'databricks bundle run capability_guides_zeroops_demo --target dev --params amount_column=amout',
+        },
+        {
+          title: 'Wait 1 to 2 minutes, then open the inbox.',
+          body: 'ZeroOps has no separate URL. Click the ZeroOps banner at the top of Jobs & Pipelines in the left nav. Or open full-screen Genie Code at https://<your-workspace-host>/editor/folders/workspace?mode=chat&o=<workspace-id>, or open Genie Code chat anywhere and click the full-screen button. The inbox stays empty until a monitored job fails.',
+        },
+        {
+          title: 'Review the insight, then approve or reject the fix.',
+          body: 'Check the root cause (the column amout does not exist in zo_orders), the lineage trace from zo_daily_revenue back to zo_orders, and the proposed fix. Approve it or reject it. The correct fix is amount_column=amount.',
+        },
+        {
+          title: 'Reset.',
+          body: 'Run with the defaults. The healthy run rebuilds both tables with CREATE OR REPLACE, so row counts stay the same.',
+          code: 'databricks bundle run capability_guides_zeroops_demo --target dev',
+        },
+      ],
+      diagram: {
+        type: 'flow',
+        title: 'From a broken run to a healthy rerun',
+        description:
+          'The demo job fails on a mistyped column. The failure reaches the ZeroOps inbox, which shows a proposed fix. A person approves it, and the next run of the job is healthy.',
+        nodes: [
+          {
+            id: 'job',
+            label: 'Demo job',
+            sub: 'two tasks, no schedule',
+            col: 0,
+            row: 0,
+            icon: 'workflow',
+            domain: 'orchestration',
+            detail:
+              'capability_guides_zeroops_demo has two tasks and no schedule. You own it, and you added it to ZeroOps with Configure or a chat prompt.',
+          },
+          {
+            id: 'failure',
+            label: 'Failure',
+            sub: 'amount_column=amout',
+            col: 1,
+            row: 0,
+            icon: 'list',
+            domain: 'data',
+            detail:
+              'The daily_revenue task runs a query on a column that does not exist and fails with an unresolved-column error.',
+          },
+          {
+            id: 'inbox',
+            label: 'ZeroOps inbox',
+            sub: 'root cause, lineage',
+            col: 2,
+            row: 0,
+            kind: 'highlight',
+            icon: 'gear-lava',
+            domain: 'ai',
+            detail:
+              'About 1 to 2 minutes after the failure, the insight appears in the inbox in full-screen Genie Code, with the root cause and a lineage trace.',
+          },
+          {
+            id: 'fix',
+            label: 'Proposed fix',
+            sub: 'use amount',
+            col: 2,
+            row: 1,
+            icon: 'checklist',
+            domain: 'ai',
+            detail:
+              'ZeroOps proposes a change for you to review. Read the root cause and the lineage trace before you act on it.',
+          },
+          {
+            id: 'approval',
+            label: 'Approval',
+            sub: 'you approve or reject',
+            col: 1,
+            row: 1,
+            kind: 'gate',
+            domain: 'governance',
+            detail: 'A person decides. Rejecting is a valid outcome, and nothing applies without your approval.',
+          },
+          {
+            id: 'rerun',
+            label: 'Healthy rerun',
+            sub: 'defaults restored',
+            col: 0,
+            row: 1,
+            kind: 'surface',
+            icon: 'database',
+            domain: 'data',
+            detail:
+              'A run with the default amount_column rebuilds zo_orders and zo_daily_revenue with CREATE OR REPLACE, so the demo resets cleanly.',
+          },
+        ],
+        edges: [
+          { from: 'job', to: 'failure', label: 'run with typo' },
+          { from: 'failure', to: 'inbox', label: 'insight' },
+          { from: 'inbox', to: 'fix' },
+          { from: 'fix', to: 'approval', label: 'review' },
+          { from: 'approval', to: 'rerun', label: 'approved' },
+        ],
+        legend: [
+          { kind: 'highlight', label: 'The agent' },
+          { kind: 'gate', label: 'Human approval' },
+        ],
+        caption: 'The break is a column typo, so the failure is plain and repeatable.',
+      },
+      options: {
+        caption: 'What to use as the trigger',
+        rows: [
+          {
+            option: 'Job failure',
+            when: 'You want a demo that works the same way each time, such as a mistyped column name.',
+            tradeoffs:
+              'Dependable in the preview, and the insight appears about 1 to 2 minutes after the failure. It shows the failure path, not silent-data detection.',
+          },
+          {
+            option: 'Schema drift',
+            when: 'You want to show a change upstream that breaks a downstream table.',
+            tradeoffs:
+              'Less dependable in the preview. Setup is longer, and the insight may not appear when you expect it.',
+          },
+          {
+            option: 'Data spike',
+            when: 'You want to show a silent data problem that never fails a run.',
+            tradeoffs:
+              'Less dependable in the preview. It needs a baseline of normal data first, so it costs more time to set up.',
+          },
+        ],
+        recommendation:
+          'Use a job failure. It is the most dependable trigger in the preview. Add schema drift or a data spike only after the failure path works in your workspace.',
       },
     },
     {

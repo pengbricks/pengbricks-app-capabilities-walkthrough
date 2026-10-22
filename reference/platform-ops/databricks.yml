@@ -17,6 +17,9 @@ variables:
   use_case:
     description: Use-case spec under use_cases/ that drives admin settings, error classes, and the on-call map
     default: general
+  zeroops_amount_column:
+    description: Column that the Genie ZeroOps demo job sums into daily revenue. Leave it as amount for a healthy run. A mistyped name such as amout makes the job fail on purpose
+    default: amount
   release:
     description: Release identifier recorded in resource tags
     default: local

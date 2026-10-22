@@ -9824,6 +9824,85 @@
         }
       ],
       "recordedRuns": []
+    },
+    "genie-zeroops": {
+      "bundle": "reference/platform-ops",
+      "onePager": "reference/platform-ops/guides/genie-zeroops/README.md",
+      "code": [
+        {
+          "label": "Column validation and SQL builders",
+          "path": "reference/platform-ops/src/zeroops_lib.py"
+        },
+        {
+          "label": "Notebooks, one per job task",
+          "path": "reference/platform-ops/guides/genie-zeroops"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_zeroops_demo",
+          "label": "ZeroOps demo job"
+        }
+      ],
+      "recordedRuns": [],
+      "docs": [
+        {
+          "label": "Introducing Genie ZeroOps (Databricks blog)",
+          "url": "https://www.databricks.com/blog/introducing-genie-zeroops"
+        },
+        {
+          "label": "Override job parameters at run time",
+          "url": "https://docs.databricks.com/aws/en/jobs/parameters"
+        },
+        {
+          "label": "Databricks Asset Bundles",
+          "url": "https://docs.databricks.com/aws/en/dev-tools/bundles/"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Validate the column name",
+          "path": "reference/platform-ops/src/zeroops_lib.py",
+          "notes": [
+            "Only plain identifiers pass, so the break stays a column typo and never becomes SQL injection."
+          ],
+          "symbol": "validate_column",
+          "section": "run-it"
+        },
+        {
+          "label": "Build the revenue SQL",
+          "path": "reference/platform-ops/src/zeroops_lib.py",
+          "notes": [
+            "amout passes validation and fails in Spark as an unresolved column."
+          ],
+          "symbol": "daily_revenue_sql",
+          "section": "run-it"
+        },
+        {
+          "label": "Say which mode ran",
+          "path": "reference/platform-ops/guides/genie-zeroops/02_daily_revenue.py",
+          "notes": [
+            "The log prints HEALTHY or DELIBERATE BREAK before the query runs."
+          ],
+          "lines": [
+            36,
+            43
+          ],
+          "section": "run-it"
+        },
+        {
+          "label": "Job and the amount_column parameter",
+          "path": "reference/platform-ops/resources/zeroops_demo.job.yml",
+          "notes": [
+            "Default comes from the zeroops_amount_column bundle variable. No schedule."
+          ],
+          "lines": [
+            3,
+            27
+          ],
+          "section": "run-it"
+        }
+      ]
     }
   }
 }

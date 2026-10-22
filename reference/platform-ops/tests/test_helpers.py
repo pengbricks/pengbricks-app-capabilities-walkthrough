@@ -116,3 +116,38 @@ def test_pick_repair_target_skips_running_and_repaired_runs():
 
 def test_incident_id_is_stable():
     assert incident_id(7, "fragile_step", "jobs_api") == "7:fragile_step:jobs_api"
+
+
+# --- Genie ZeroOps demo helpers ---
+from zeroops_lib import daily_revenue_sql, orders_sql, run_mode, validate_column  # noqa: E402
+
+
+def test_zeroops_accepts_real_column_and_typo():
+    assert validate_column("amount") == "amount"
+    assert validate_column("amout") == "amout"
+
+
+@pytest.mark.parametrize("bad", ["", "amount; DROP TABLE x", "a b", "amount--", "1amount", "`amount`", "a" * 64, "am'ount"])
+def test_zeroops_rejects_non_identifiers(bad):
+    with pytest.raises(ValueError):
+        validate_column(bad)
+
+
+def test_zeroops_mode_labels():
+    assert run_mode("amount") == "healthy"
+    assert run_mode("amout") == "deliberate break"
+
+
+def test_zeroops_daily_revenue_sql_uses_column():
+    sql = daily_revenue_sql("c.s.zo_orders", "c.s.zo_daily_revenue", "amout")
+    assert sql.startswith("CREATE OR REPLACE TABLE c.s.zo_daily_revenue")
+    assert "SUM(amout)" in sql and "FROM c.s.zo_orders" in sql
+    with pytest.raises(ValueError):
+        daily_revenue_sql("a", "b", "amount) FROM x; --")
+
+
+def test_zeroops_orders_sql_is_seeded_and_bounded():
+    assert orders_sql("t", 500, 7) == orders_sql("t", 500, 7)
+    assert "range(500)" in orders_sql("t", 500, 7)
+    with pytest.raises(ValueError):
+        orders_sql("t", 0, 7)
