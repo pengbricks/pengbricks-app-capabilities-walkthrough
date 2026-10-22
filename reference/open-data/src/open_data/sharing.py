@@ -60,6 +60,14 @@ def served_from_source(table_location: str, urls: list[str]) -> bool:
     return all(root and root in urlparse(url).path for url in urls)
 
 
+def needs_history_readd(status: Any) -> bool:
+    """True when a shared table does not have history sharing enabled, so `ALTER SHARE ... ADD TABLE ... WITH HISTORY` must run.
+
+    `status` is the SDK's history_data_sharing_status (an enum or its string); None means the table is not in the share.
+    """
+    return not str(status).endswith("ENABLED")
+
+
 def strip_query(url: str) -> str:
     """Drop the pre-signed query string so no signature lands in a table."""
     parsed = urlparse(url)

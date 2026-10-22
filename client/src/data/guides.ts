@@ -597,8 +597,23 @@ export const guides: readonly Guide[] = [
     ],
   },
   {
+    slug: 'migrate-off-databricks',
+    title: 'Migrating off Databricks',
+    category: 'General Guides',
+    difficulty: 3,
+    summary:
+      'Plan an exit: what stays readable in open formats, how other engines and platforms read the data, what code carries over, and what has to be rebuilt.',
+    acceptanceCriteria:
+      'An inventory lists every table with its format and readability outside Databricks, the access path each target engine uses (Iceberg REST, OpenSharing, or files), the workloads that carry over as open code and those that need rebuilding, and the egress cost of moving the data.',
+    evidence: [
+      'An exit inventory of tables, formats, and external readability',
+      'A table read from an outside engine through the Iceberg REST catalog or OpenSharing',
+      'A list of workloads by portability: runs as is, needs changes, or rebuild',
+    ],
+  },
+  {
     slug: 'data-sharing',
-    title: 'Governed data sharing',
+    title: 'OpenSharing: Databricks-to-Databricks and to other platforms',
     category: 'Governance/Monitoring',
     difficulty: 3,
     summary:

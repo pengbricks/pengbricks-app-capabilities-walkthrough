@@ -5,7 +5,7 @@ export const walkthrough: Walkthrough = {
   area: 'Governance/Monitoring',
   title: 'Governed data sharing',
   intro:
-    'OpenSharing (formerly Delta Sharing; the open protocol keeps the name Delta Sharing) lets you share live data and AI assets from Unity Catalog without copying them. The provider creates a share and a recipient, grants one to the other, and revokes when the relationship ends. This page covers which recipient type to pick, the privileges involved, how to share a subset safely, which assets you can share, how to harden credentials for recipients outside Databricks, what crossing a region or cloud costs, and how to audit it. It also names the cases where Clean Rooms or Marketplace fit better.',
+    'OpenSharing (renamed from Delta Sharing in June 2026) lets you share live data and AI assets from Unity Catalog without copying them. The provider creates a share and a recipient, grants one to the other, and revokes when the relationship ends. This page covers which recipient type to pick, the privileges involved, how to share a subset safely, which assets you can share, how to harden credentials for recipients outside Databricks, what crossing a region or cloud costs, and how to audit it. It also covers sharing table history, how recipients stream and read changes, and when to federate or copy instead of share. It names the cases where Clean Rooms or Marketplace fit better.',
   businessValue: {
     summary:
       'Data owners can give partners, customers, and other business units live access to governed data without copying it. This guide is for CDOs and data platform leads who must share outside the company and still control and audit it.',
@@ -46,11 +46,148 @@ export const walkthrough: Walkthrough = {
       body: 'Tables, views, schemas, volumes, materialized views, streaming tables, and metric views are shareable, with the limits listed below.',
     },
     {
+      title: 'Share history when recipients need time travel, streaming, or faster reads.',
+      body: 'WITH HISTORY is the default on Databricks Runtime 16.2 and above. Share WITHOUT HISTORY when past versions must stay private, and for partitioned tables, which do not get the speed-up.',
+    },
+    {
+      title: 'Share, federate, or copy.',
+      body: 'Share to give others live access to your Unity Catalog data. Federate to query data that lives in another system without moving it. Copy only when the target needs its own writable or isolated data.',
+    },
+    {
+      title: 'Stream or read changes from a share only with history.',
+      body: 'Streaming and change data feed need shared history and, for the feed, CDF on the table. Use batch reads when a daily snapshot is enough.',
+    },
+    {
       title: 'Cross-region and cross-cloud sharing costs egress.',
       body: 'Sharing in the same region is free of egress charges. Across regions or clouds the cloud provider bills transfer, so plan for it.',
     },
   ],
   sections: [
+    {
+      id: 'overview',
+      heading: 'How a share reaches recipients',
+      prose:
+        'The provider puts tables, views, and other assets in a share and grants the share to recipients. Whether history goes with a table changes what recipients can do and how they read the files. Federation is a different path. It brings other systems into your catalogs and does not send your data out.',
+      diagram: {
+        type: 'flow',
+        title: 'Provider, share, recipients, and federation',
+        description:
+          'The provider owns Unity Catalog tables and adds them to a share, with or without history. A Databricks-to-Databricks recipient mounts the share as a catalog. An open recipient reads through a client with a credential. Separately, Lakehouse Federation connects external databases and catalogs to Unity Catalog as foreign catalogs that the provider queries in place.',
+        nodes: [
+          {
+            id: 'tables',
+            label: 'Provider tables',
+            sub: 'Unity Catalog',
+            col: 0,
+            row: 1,
+            kind: 'store',
+            icon: 'database',
+            domain: 'governance',
+            detail:
+              'Governed Delta tables, views, volumes, and other assets in the provider metastore. They stay in place; nothing is copied.',
+          },
+          {
+            id: 'share',
+            label: 'Share',
+            sub: 'assets for recipients',
+            col: 1,
+            row: 1,
+            kind: 'highlight',
+            icon: 'data-shares',
+            domain: 'governance',
+            detail:
+              'The set of assets you expose. A recipient reads a share only after you grant SELECT on it, and REVOKE ends new reads.',
+          },
+          {
+            id: 'nohist',
+            label: 'Without history',
+            sub: 'current data only',
+            col: 2,
+            row: 0,
+            icon: 'data-file',
+            domain: 'data',
+            detail:
+              'Recipients read the current version. Past versions stay private. Default only on runtimes before 16.2.',
+          },
+          {
+            id: 'hist',
+            label: 'With history',
+            sub: 'time travel, streaming',
+            col: 2,
+            row: 2,
+            icon: 'event-stream',
+            domain: 'data',
+            detail:
+              'Recipients can time travel, stream, and query the change data feed when CDF is on. Databricks-to-Databricks reads use cloud tokens scoped to the table root.',
+          },
+          {
+            id: 'd2d',
+            label: 'Databricks recipient',
+            sub: 'no token',
+            col: 3,
+            row: 0,
+            kind: 'surface',
+            icon: 'delta-sharing-mark',
+            domain: 'apps',
+            detail:
+              'Has a Unity Catalog workspace. It mounts the share as a catalog and adds its own grants, row filters, and masks.',
+          },
+          {
+            id: 'open',
+            label: 'Open recipient',
+            sub: 'client and credential',
+            col: 3,
+            row: 2,
+            kind: 'surface',
+            icon: 'users',
+            domain: 'apps',
+            detail:
+              'Reads through pandas, Spark, Power BI, Tableau, or an Iceberg client, with OIDC federation or a bearer token.',
+          },
+          {
+            id: 'fed',
+            label: 'Federation',
+            sub: 'foreign catalogs',
+            col: 1,
+            row: 3,
+            icon: 'network',
+            domain: 'governance',
+            detail:
+              'Lakehouse Federation exposes external databases and catalogs in Unity Catalog. It is a separate path from sharing and it reads into Databricks.',
+          },
+          {
+            id: 'ext',
+            label: 'External systems',
+            sub: 'databases, Hive, Glue',
+            col: 0,
+            row: 3,
+            kind: 'store',
+            icon: 'cloud-database',
+            domain: 'data',
+            detail:
+              'Systems such as PostgreSQL, SQL Server, Snowflake, a Hive metastore, or AWS Glue, queried where they are.',
+          },
+        ],
+        edges: [
+          { from: 'tables', to: 'share', label: 'add' },
+          { from: 'share', to: 'nohist', label: 'WITHOUT HISTORY' },
+          { from: 'share', to: 'hist', label: 'WITH HISTORY' },
+          { from: 'nohist', to: 'd2d' },
+          { from: 'hist', to: 'd2d' },
+          { from: 'nohist', to: 'open' },
+          { from: 'hist', to: 'open' },
+          { from: 'ext', to: 'fed', label: 'queried in place', dashed: true },
+          { from: 'fed', to: 'tables', label: 'foreign catalog', dashed: true },
+        ],
+        legend: [
+          { kind: 'surface', label: 'Recipients' },
+          { kind: 'highlight', label: 'What you control' },
+          { kind: 'store', label: 'Data' },
+          { kind: 'dashed', label: 'Federation path' },
+        ],
+      },
+      links: [{ label: 'What is OpenSharing?', url: 'https://docs.databricks.com/aws/en/delta-sharing/' }],
+    },
     {
       id: 'recipients',
       heading: 'Pick the recipient type',
@@ -112,6 +249,25 @@ export const walkthrough: Walkthrough = {
           { state: 'optional', label: 'Use when needed' },
           { state: 'none', label: 'Not provided' },
         ],
+      },
+      options: {
+        caption: 'Which recipient type to create',
+        rows: [
+          {
+            option: 'Databricks-to-Databricks',
+            when: 'The consumer has a Unity Catalog workspace.',
+            tradeoffs:
+              'No token to issue or rotate, and the recipient governs the data with its own grants, row filters, and masks. History sharing adds cloud-token reads for faster access. The recipient needs a Unity Catalog metastore, and you cannot reach people on other platforms.',
+          },
+          {
+            option: 'Open recipient',
+            when: 'The consumer is on another platform or tool: pandas, Spark, Power BI, Tableau, or an Iceberg client.',
+            tradeoffs:
+              'Reaches any client. You manage a credential, so you add lifetime limits and an IP access list, and you cannot control what the client does with the rows. Streaming tables and materialized views give open recipients the current snapshot only.',
+          },
+        ],
+        recommendation:
+          'Default to Databricks-to-Databricks whenever the consumer has Unity Catalog. Use an open recipient for everyone else.',
       },
       links: [
         { label: 'What is OpenSharing?', url: 'https://docs.databricks.com/aws/en/delta-sharing/' },
@@ -224,6 +380,181 @@ GRANT SELECT ON SHARE partner_orders TO RECIPIENT partner_acme;`,
       ],
     },
     {
+      id: 'history',
+      heading: 'Share table history',
+      prose:
+        'A shared table can carry its Delta history with it. The history decides whether recipients can time travel, stream, or read the change feed, and for Databricks-to-Databricks recipients it changes how they read the files.',
+      steps: [
+        {
+          title: 'Add the table WITH HISTORY',
+          body: 'Use ALTER SHARE with the WITH HISTORY clause, or select the History option in Catalog Explorer when you add the table. It needs Databricks Runtime 12.2 LTS or above.',
+          code: `ALTER SHARE partner_orders
+ADD TABLE sales.core.orders WITH HISTORY;`,
+        },
+        {
+          title: 'Know the default',
+          body: 'The docs say WITH HISTORY is the default when you share a table from Databricks Runtime 16.2 or above, and always the default for schemas. Earlier runtimes default to WITHOUT HISTORY.',
+        },
+        {
+          title: 'Change it on a table already in the share',
+          body: 'The docs show ALTER SHARE with ADD TABLE and WITH HISTORY to enable history on a table already in the share, and they describe turning it off the same way. If you set an alias or partitions, repeat them in the statement. Check the result in the history_sharing column of SHOW ALL IN SHARE, or the history_data_sharing_status field in the API.',
+          code: `ALTER SHARE partner_orders
+ADD TABLE sales.core.orders WITH HISTORY;
+SHOW ALL IN SHARE partner_orders;`,
+        },
+      ],
+      points: [
+        {
+          strong: 'What recipients get.',
+          text: 'Time travel queries, streaming reads with Spark Structured Streaming, transactions, and change data feed queries with table_changes() when CDF is already enabled on the table.',
+        },
+        {
+          strong: 'Why reads are faster.',
+          text: 'The docs say sharing history improves performance by using temporary security credentials from your cloud storage, scoped down to the root directory of the provider table, with performance comparable to direct access to the source table. This applies to Databricks-to-Databricks shares.',
+        },
+        {
+          strong: 'Limits.',
+          text: 'Partitioned tables do not get the speed-up. A share that crosses into or out of AWS GovCloud or GovCloud DoD uses pre-signed URLs instead of cloud tokens. For streaming tables, WITH HISTORY has no effect and recipients read through serverless compute.',
+        },
+        {
+          strong: 'Release stage.',
+          text: 'History sharing for faster Databricks-to-Databricks reads entered Public Preview in December 2024. The June 2025 release notes list it as GA and enabled by default.',
+        },
+        {
+          strong: 'Cost and exposure.',
+          text: 'Past versions become readable to the recipient, including rows later updated or deleted. Share WITHOUT HISTORY when old data must stay private, such as corrected personal data. The history files also stay in your storage until you vacuum them, which is a storage cost you pay (practical guidance, not stated in the docs).',
+        },
+      ],
+      options: {
+        caption: 'With or without history',
+        rows: [
+          {
+            option: 'WITH HISTORY',
+            when: 'Recipients need time travel, streaming, or the change feed, or they are Databricks recipients reading large unpartitioned tables.',
+            tradeoffs:
+              'Faster Databricks-to-Databricks reads through cloud tokens, plus time travel, streaming, and CDF. The recipient sees past versions, and you keep the history files in storage.',
+          },
+          {
+            option: 'WITHOUT HISTORY',
+            when: 'Past versions are sensitive, or recipients only need the current snapshot.',
+            tradeoffs:
+              'Past data stays private and storage is smaller. Recipients lose time travel, streaming, and the change feed, and Databricks-to-Databricks reads lose the cloud-token speed-up.',
+          },
+        ],
+        recommendation:
+          'Keep WITH HISTORY, which is the default on current runtimes, unless past versions must stay hidden. Check partitioned tables separately, because they get no performance benefit.',
+      },
+      links: [
+        {
+          label: 'Share history (create a share)',
+          url: 'https://docs.databricks.com/aws/en/delta-sharing/create-share',
+        },
+        {
+          label: 'History sharing performance (Databricks-to-Databricks)',
+          url: 'https://docs.databricks.com/aws/en/delta-sharing/share-data-databricks',
+        },
+      ],
+    },
+    {
+      id: 'reads',
+      heading: 'How recipients read a share',
+      prose:
+        'A Databricks recipient queries the shared catalog like any Unity Catalog table. An open recipient picks a client. What works depends on the history you shared and on the table features.',
+      table: {
+        caption: 'Open clients the documentation lists',
+        columns: ['Client', 'How it reads and what to watch'],
+        rows: [
+          [
+            'pandas',
+            'delta_sharing.load_as_pandas(). Version 1.1.0 or later reads tables with column mapping as a snapshot; CDF on those tables is not supported.',
+          ],
+          [
+            'Apache Spark',
+            'delta_sharing.load_as_spark(). Streaming and CDF on tables with deletion vectors or column mapping need Databricks Runtime 14.2 or above, delta-sharing-spark 3.1 or later, and responseFormat=delta.',
+          ],
+          [
+            'Power BI',
+            'The OpenSharing connector in Get Data, with the endpoint URL and token. The data must fit in the memory of the machine.',
+          ],
+          [
+            'Tableau',
+            'The connector from Tableau Exchange, with the credential file. Tableau is deprecating that connector, so check it before you rely on it. Deletion vectors and column mapping are not supported, and the data must fit in memory.',
+          ],
+          [
+            'Iceberg clients',
+            'Snowflake, Trino, Flink, and Spark connect through a REST catalog with the endpoint, bearer token, and share name. Listing is limited to the first 100 shared views in a namespace.',
+          ],
+        ],
+      },
+      points: [
+        {
+          strong: 'Streaming.',
+          text: 'Databricks recipients can run Structured Streaming on a shared table when history is shared and they use Databricks Runtime 12.2 LTS or above. The docs list ignoreDeletes, ignoreChanges, startingVersion, startingTimestamp, maxFilesPerTrigger, maxBytesPerTrigger, and readChangeFeed.',
+        },
+        {
+          strong: 'Change data feed.',
+          text: 'If CDF is enabled on the table, recipients can query it by version or timestamp. Set responseFormat=delta for streaming CDF.',
+        },
+        {
+          strong: 'Snapshots only.',
+          text: 'Streaming tables and materialized views give open recipients the current snapshot. Streaming reads are not supported on materialized views for open recipients.',
+        },
+        {
+          strong: 'Transactions.',
+          text: 'A recipient can run a transaction on a shared table only if the provider shared it WITH HISTORY. The Transactions page requires Databricks Runtime 18.1 or above for shared assets and does not support time travel inside a transaction.',
+        },
+      ],
+      examples: [
+        {
+          label: 'Time travel, change feed, and streaming from a shared catalog',
+          language: 'sql',
+          code: `-- Needs history shared with the table
+SELECT * FROM partner_catalog.shared.orders VERSION AS OF 3;
+
+-- Needs CDF enabled on the table
+SELECT * FROM table_changes('partner_catalog.shared.orders', 3, 5);`,
+          notes: [
+            'In Python, spark.readStream.format("deltaSharing").table("partner_catalog.shared.orders") streams the shared table.',
+          ],
+        },
+      ],
+      options: {
+        caption: 'Streaming, change feed, or batch reads',
+        rows: [
+          {
+            option: 'Batch snapshot',
+            when: 'The recipient needs current data on a schedule, or reads from an open client such as Power BI or pandas.',
+            tradeoffs:
+              'Works without history and with every client. Each read scans the table again, so freshness is the schedule and cost grows with table size.',
+          },
+          {
+            option: 'Change data feed',
+            when: 'The recipient only needs inserts, updates, and deletes since its last read.',
+            tradeoffs:
+              'Reads far less data on large tables. It needs history and CDF on the table, the provider stores the change records, and some table features need Runtime 14.2 or above.',
+          },
+          {
+            option: 'Streaming read',
+            when: 'The recipient needs near-real-time updates in a Spark pipeline.',
+            tradeoffs:
+              'Lowest latency and incremental processing. It needs shared history, a running recipient stream, and a restart plan when the provider deletes or updates rows.',
+          },
+        ],
+        recommendation:
+          'Start with batch snapshots. Move to the change feed when snapshots get large, and to streaming only when the recipient needs low latency.',
+      },
+      links: [
+        {
+          label: 'Read shared data (Databricks)',
+          url: 'https://docs.databricks.com/aws/en/delta-sharing/read-data-databricks',
+        },
+        {
+          label: 'Read shared data (open clients)',
+          url: 'https://docs.databricks.com/aws/en/delta-sharing/read-data-open',
+        },
+      ],
+    },
+    {
       id: 'hardening',
       heading: 'Harden open recipients',
       prose:
@@ -323,6 +654,73 @@ GRANT SELECT ON SHARE partner_orders TO RECIPIENT partner_acme;`,
           label: 'Publish data in Marketplace',
           url: 'https://docs.databricks.com/aws/en/marketplace/get-started-provider',
         },
+      ],
+    },
+    {
+      id: 'federation',
+      heading: 'Share, federate, or copy',
+      prose:
+        'Sharing sends your Unity Catalog data to others. Federation does the reverse. It lets you query data that lives in another system without moving it. The two answer different questions, so pick by the direction the data needs to travel.',
+      table: {
+        caption: 'The two kinds of Lakehouse Federation',
+        columns: ['Kind', 'What it does'],
+        rows: [
+          [
+            'Query federation',
+            'Pushes Unity Catalog queries to the foreign database over JDBC, so the query runs on Databricks and the remote system. Documented sources include MySQL, PostgreSQL, Teradata, Oracle, Amazon Redshift, Salesforce Data 360, Snowflake, SQL Server, Azure Synapse, BigQuery, and Databricks. The docs suggest it for ad hoc reporting, BI, and proof-of-concept access to operational databases.',
+          ],
+          [
+            'Catalog federation',
+            'Reads files directly in object storage on Databricks compute only, which the docs call more cost-effective and performance-optimized than query federation. Documented sources include the Databricks legacy Hive metastore, external Hive metastores, AWS Glue, Snowflake, Salesforce Data 360, Palantir Foundry, and Workday Data Connect.',
+          ],
+        ],
+      },
+      points: [
+        {
+          strong: 'Hive metastore and Glue.',
+          text: 'Federation creates a foreign catalog that mirrors the metastore tables under Unity Catalog governance. Iceberg tables in federated external Hive metastores and Glue, and shallow clones, are in Public Preview. Sharing foreign tables is separate. Foreign Iceberg tables can be shared (generally available September 11, 2026), and foreign Delta tables were in Public Preview as of August 27, 2026.',
+        },
+        {
+          strong: 'Consuming data from other platforms.',
+          text: 'To read data another provider shares over the open protocol, import the provider in Catalog Explorer. The shared tables then behave like any Unity Catalog table, with no credential file path in your code. That is a recipient-side path, not federation.',
+        },
+        {
+          strong: 'High volume or low latency.',
+          text: 'When the source supports both Lakehouse Federation and Lakeflow Connect, Databricks recommends Lakeflow Connect if performance on higher data volumes and lower latency are priorities.',
+        },
+      ],
+      options: {
+        caption: 'Share, federate, or copy',
+        rows: [
+          {
+            option: 'Share',
+            when: 'Others need live read access to data you govern in Unity Catalog.',
+            tradeoffs:
+              'Fresh data with no copy, and audit through system tables. The recipient reads your storage, so cross-region reads can cost egress, and the recipient controls its own queries.',
+          },
+          {
+            option: 'Federate',
+            when: 'You need to query data that lives in another database or catalog, without moving it, for reports or a proof of concept.',
+            tradeoffs:
+              'Fresh data and no pipeline. Query federation sends work to the source system, so it adds load there and is slower on large scans. Catalog federation reads files on Databricks compute and costs less. Unity Catalog governs access, but the source system keeps its own data.',
+          },
+          {
+            option: 'Copy (ingest)',
+            when: 'You need high volume, low latency, a writable copy, or independence from the source or the recipient.',
+            tradeoffs:
+              'Best performance, because the data is local Delta. You pay for storage and a pipeline, the copy lags the source, and a copy shared outward is a second dataset to govern.',
+          },
+        ],
+        recommendation:
+          'Default to sharing for outbound access to Unity Catalog data and federation for inbound access to external systems. Copy only when volume, latency, or isolation demands it.',
+      },
+      links: [
+        { label: 'Lakehouse Federation', url: 'https://docs.databricks.com/aws/en/query-federation/' },
+        {
+          label: 'Hive metastore and Glue federation',
+          url: 'https://docs.databricks.com/aws/en/data-governance/unity-catalog/hms-federation/',
+        },
+        { label: 'Read open-shared data', url: 'https://docs.databricks.com/aws/en/delta-sharing/read-data-open' },
       ],
     },
     {

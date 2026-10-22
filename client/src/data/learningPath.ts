@@ -90,6 +90,7 @@ export const learningPath: readonly LearningStage[] = [
       'lakebase-apps',
       'geospatial-analytics',
       'legacy-conversion',
+      'migrate-off-databricks',
     ],
   },
   {

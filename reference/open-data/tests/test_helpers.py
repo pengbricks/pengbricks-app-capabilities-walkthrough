@@ -218,3 +218,12 @@ def test_pair_scans_gives_up_on_an_ambiguous_day():
     from open_data.formats import pair_scans
 
     assert pair_scans([{"read_rows": 7}], {"d1": 7}, ["json", "csv", "parquet"]) == {}
+
+
+def test_needs_history_readd():
+    from open_data.sharing import needs_history_readd
+
+    assert needs_history_readd(None)
+    assert needs_history_readd("DISABLED")
+    assert not needs_history_readd("ENABLED")
+    assert not needs_history_readd(type("S", (), {"__str__": lambda self: "SharedDataObjectHistoryDataSharingStatus.ENABLED"})())

@@ -11,7 +11,7 @@
 # MAGIC | Notebook | What it does |
 # MAGIC |---|---|
 # MAGIC | `01_prepare_data` | Builds the governed sample tables and the row-limiting view `orders_west_v`. Drops the previous share first, because a shared view cannot be replaced. |
-# MAGIC | `02_share_and_read` | Creates the share and a token recipient, grants, reads through Delta Sharing, checks the files sit in the source storage, revokes, confirms the read fails, drops the recipient. Writes `sharing_audit`. |
+# MAGIC | `02_share_and_read` | Creates the share and a token recipient, grants, reads through Delta Sharing, checks the files sit in the source storage, revokes, confirms the read fails, drops the recipient, then shares the table `WITH HISTORY` and records the table versions a history-enabled recipient can query. Writes `sharing_audit`. |
 # MAGIC | `03_collect_audit` | Polls `system.access.audit` for the share and recipient and writes `sharing_audit_events`. |
 # MAGIC
 # MAGIC ## How to run
