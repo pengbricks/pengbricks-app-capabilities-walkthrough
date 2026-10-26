@@ -62,8 +62,9 @@ export function box(node: FlowNode, L: Layout): Box {
   const x = L.colX(node.col);
   const y = L.rowY(node.row);
   if (node.kind === 'gate') {
+    // Centered on the row like a card, so straight edges through the gate stay on one line.
     const cx = x + COL_W / 2;
-    const cy = y + GATE;
+    const cy = y + ROW_H / 2;
     return { left: cx - GATE, right: cx + GATE, top: cy - GATE, bottom: cy + GATE, cx, cy };
   }
   return { left: x, right: x + COL_W, top: y, bottom: y + ROW_H, cx: x + COL_W / 2, cy: y + ROW_H / 2 };
@@ -160,7 +161,15 @@ export function route(a: FlowNode, b: FlowNode, L: Layout, occupied: Set<string>
   };
 }
 
-export type GatePlacement = 'above' | 'below' | 'right' | 'left';
+export type GatePlacement =
+  | 'above'
+  | 'below'
+  | 'right'
+  | 'left'
+  | 'above-right'
+  | 'below-right'
+  | 'above-left'
+  | 'below-left';
 
 // Where a gate's label (and sub) would sit for each placement, as a box plus the text anchor point.
 export function gateLabelArea(
@@ -177,7 +186,12 @@ export function gateLabelArea(
   if (at === 'below') return { area: mk(b.cx - w / 2, b.bottom + 4), x: b.cx, y: b.bottom + 16, anchor: 'middle' };
   if (at === 'right')
     return { area: mk(b.right + 6, b.cy - h / 2), x: b.right + 6, y: b.cy - h / 2 + 12, anchor: 'start' };
-  return { area: mk(b.left - 6 - w, b.cy - h / 2), x: b.left - 6, y: b.cy - h / 2 + 12, anchor: 'end' };
+  if (at === 'left')
+    return { area: mk(b.left - 6 - w, b.cy - h / 2), x: b.left - 6, y: b.cy - h / 2 + 12, anchor: 'end' };
+  // Corners: beside the diamond's slanted side, clear of edges that enter at its four points.
+  const top = at.startsWith('above') ? b.cy - 6 - h : b.cy + 6;
+  if (at.endsWith('right')) return { area: mk(b.cx + 14, top), x: b.cx + 14, y: top + 12, anchor: 'start' };
+  return { area: mk(b.cx - 14 - w, top), x: b.cx - 14, y: top + 12, anchor: 'end' };
 }
 
 const segCrosses = (d: string, area: Box) => {
@@ -208,10 +222,24 @@ const segCrosses = (d: string, area: Box) => {
   return false;
 };
 
-// Picks the first side of a gate where no edge runs through its label.
-export function placeGateLabel(gate: FlowNode, L: Layout, paths: string[]): GatePlacement {
-  const order: GatePlacement[] = ['above', 'below', 'right', 'left'];
-  return order.find((at) => !paths.some((d) => segCrosses(d, gateLabelArea(gate, L, at).area))) ?? 'above';
+// Picks the first spot by a gate where no edge runs through its label and the label sits on no
+// obstacle (another node or a lane border).
+export function placeGateLabel(gate: FlowNode, L: Layout, paths: string[], obstacles: Box[] = []): GatePlacement {
+  const order: GatePlacement[] = [
+    'above',
+    'below',
+    'right',
+    'left',
+    'above-right',
+    'below-right',
+    'above-left',
+    'below-left',
+  ];
+  const clear = (at: GatePlacement) => {
+    const { area } = gateLabelArea(gate, L, at);
+    return !paths.some((d) => segCrosses(d, area)) && !obstacles.some((o) => boxesOverlap(o, area));
+  };
+  return order.find(clear) ?? 'above';
 }
 
 // ---- Text geometry, shared by the renderer and the overlap tests ----
@@ -322,7 +350,8 @@ export function planText(diagram: FlowDiagram, L: Layout, width: number): TextPl
   const paths = routes.map((r) => r.d);
   const gateAreas = new Map<string, { placement: GatePlacement; area: Box }>();
   for (const gate of diagram.nodes.filter((node) => node.kind === 'gate')) {
-    const placement = placeGateLabel(gate, L, paths);
+    const others = diagram.nodes.filter((node) => node.id !== gate.id).map((node) => inflate(box(node, L), 2));
+    const placement = placeGateLabel(gate, L, paths, [...others, ...taken.map((t) => inflate(t, 2))]);
     const { area } = gateLabelArea(gate, L, placement);
     gateAreas.set(gate.id, { placement, area });
     taken.push(area);
