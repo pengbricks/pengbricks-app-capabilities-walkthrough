@@ -1,6 +1,16 @@
 {
   "repository": "https://github.com/pengbricks/pengbricks-app-capabilities-walkthrough",
   "branch": "main",
+  "workspaceFallback": {
+    "host": "https://adb-3438839487639471.11.azuredatabricks.net",
+    "label": "SLED_fe_demo",
+    "bundleRoot": "/Workspace/Users/rob.peng@databricks.com/.bundle",
+    "target": "dev",
+    "bundleOverrides": {
+      "dab-starter": "dab-starter"
+    },
+    "unavailableGuides": ["environment-workspaces-catalogs", "sqlserver-lakeflow-connect", "vscode-databricks"]
+  },
   "guides": {
     "configuration-vs-code": {
       "bundle": "reference/ingestion",

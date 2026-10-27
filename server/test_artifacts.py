@@ -149,8 +149,21 @@ def test_recorded_folder_is_offered_without_workspace(monkeypatch) -> None:
     body = client.get("/api/capability-guides/artifacts/ai-functions").json()
 
     assert body["live"] is False
-    assert body["recordedFolder"]["url"].startswith("https://fevm-rpeng-demobricks.cloud.databricks.com/browse/folders/")
-    assert "/editor/notebooks/" in body["recordedFolder"]["startHereUrl"]
+    assert body["recordedFolder"]["workspace"] == "SLED_fe_demo"
+    assert body["recordedFolder"]["url"].startswith("https://adb-3438839487639471.11.azuredatabricks.net/#workspace/")
+    assert body["recordedFolder"]["startHereUrl"].endswith(
+        "/.bundle/capability-guides-ai-functions/dev/files/guides/ai-functions/00_start_here"
+    )
+    assert not body["recordedRuns"]
+
+
+def test_static_fallbacks_never_link_to_fevm() -> None:
+    for slug, entry in artifacts.load_index()["guides"].items():
+        links = [run["url"] for run in artifacts.static_recorded_runs(entry)]
+        folder = artifacts.static_recorded_folder(slug, entry)
+        if folder:
+            links.extend([folder["url"], folder["startHereUrl"]])
+        assert all("fevm-rpeng-demobricks" not in link for link in links)
 
 
 def test_live_runs_are_found_by_tag(monkeypatch) -> None:
