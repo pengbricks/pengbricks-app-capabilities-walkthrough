@@ -184,6 +184,32 @@ def repo_url(path: str) -> str:
     return f"{index['repository']}/blob/{index['branch']}/{path}"
 
 
+def static_recorded_runs(entry: dict[str, Any]) -> list[dict[str, Any]]:
+    config = load_index().get("workspaceFallback")
+    runs = entry.get("recordedRuns", [])
+    if not config:
+        return runs
+    host = config["host"].rstrip("/")
+    return [run for run in runs if run.get("url", "").startswith(f"{host}/")]
+
+
+def static_recorded_folder(slug: str, entry: dict[str, Any]) -> dict[str, str] | None:
+    config = load_index().get("workspaceFallback")
+    if not config:
+        return entry.get("recordedFolder")
+    if not entry["jobs"] or slug in config.get("unavailableGuides", []):
+        return None
+    bundle_name = config.get("bundleOverrides", {}).get(slug) or f"capability-guides-{Path(entry['bundle']).name}"
+    root = config["bundleRoot"].rstrip("/")
+    guide_path = f"{root}/{bundle_name}/{config['target']}/files/guides/{slug}"
+    host = config["host"].rstrip("/")
+    return {
+        "url": f"{host}/#workspace{guide_path}",
+        "startHereUrl": f"{host}/#workspace{guide_path}/00_start_here",
+        "workspace": config["label"],
+    }
+
+
 def run_summary(host: str, job_id: int, run) -> dict[str, Any]:
     state = run.state
     return {
@@ -281,9 +307,9 @@ def get_artifacts(slug: str) -> dict[str, Any]:
             for item in entry.get("walkthroughs", [])
         ],
         "highlights": highlights(slug, entry),
-        "recordedRuns": entry.get("recordedRuns", []),
-        # The notebook folder in the reference workspace, for workspaces where the guide is not deployed.
-        "recordedFolder": entry.get("recordedFolder"),
+        "recordedRuns": static_recorded_runs(entry),
+        # The notebook folder in the preferred workspace, for deployments that cannot discover jobs live.
+        "recordedFolder": static_recorded_folder(slug, entry),
         "jobs": [],
         "live": False,
         "tracking": "lakebase" if store.enabled else "jobs-api",
