@@ -1,6 +1,6 @@
 # Databricks Capability Atlas
 
-A public, light-theme Databricks application that organizes 63 capability guides across foundations, ingestion, data engineering, analyst workflows, CI/CD and version control, governance and monitoring, AI, and ML. React and AppKit UI power the frontend; FastAPI serves the production frontend and future backend APIs.
+A public, light-theme Databricks application that organizes 73 capability guides across foundations, ingestion, data engineering, analyst workflows, CI/CD and version control, governance and monitoring, AI, and ML. React and AppKit UI power the frontend; FastAPI serves the production frontend and future backend APIs.
 
 Every guide uses the same evidence contract:
 

@@ -28,6 +28,7 @@ export const learningPath: readonly LearningStage[] = [
       'no-code-data-prep',
       'metric-views',
       'in-platform-visualization',
+      'aibi-visualizations',
       'local-tool-connectivity',
       'self-service-extracts',
     ],

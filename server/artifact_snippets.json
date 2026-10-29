@@ -490,6 +490,68 @@
       }
     }
   ],
+  "aibi-visualizations": [
+    {
+      "path": "reference/analyst/src/dashboards/aibi_visualizations.lvdash.json",
+      "symbol": null,
+      "startLine": 16,
+      "endLine": 33,
+      "language": "json",
+      "code": "   \"columns\": [\n    {\n     \"displayName\": \"Revenue\",\n     \"description\": \"Sum of order value\",\n     \"expression\": \"SUM(`order_value`)\"\n    },\n    {\n     \"displayName\": \"Running revenue\",\n     \"description\": \"Cumulative revenue across the chart's months; follows the chart's grouping and filters\",\n     \"expression\": \"SUM(`order_value`) AGGREGATE OVER (ORDER BY `order_month` CUMULATIVE)\"\n    },\n    {\n     \"displayName\": \"Trailing 3 month revenue\",\n     \"description\": \"Revenue of the month and the two before it\",\n     \"expression\": \"SUM(`order_value`) AGGREGATE OVER (ORDER BY `order_month` TRAILING 3 MONTH)\"\n    }\n   ]\n  },",
+      "functions": {}
+    },
+    {
+      "path": "reference/analyst/guides/aibi-visualizations/02_viz_metric_view.sql",
+      "symbol": null,
+      "startLine": 66,
+      "endLine": 87,
+      "language": "sql",
+      "code": "  - name: revenue_running_total\n    expr: SUM(source.quantity * source.unit_price)\n    window:\n      - order: order_month\n        range: cumulative\n        semiadditive: last\n    display_name: Revenue Running Total\n    comment: Revenue from the first month up to and including the month in each row.\n    synonyms: ['cumulative revenue', 'year to date revenue', 'cumsum']\n    format:\n      type: currency\n      currency_code: USD\n  - name: revenue_trailing_3m\n    expr: SUM(source.quantity * source.unit_price)\n    window:\n      - order: order_month\n        range: trailing 3 month inclusive\n        semiadditive: last\n    display_name: Revenue Trailing 3 Months\n    comment: Revenue of the month in each row plus the two before it.\n    format:\n      type: currency",
+      "functions": {}
+    },
+    {
+      "path": "reference/analyst/guides/aibi-visualizations/03_confirm_running_totals.py",
+      "symbol": null,
+      "startLine": 71,
+      "endLine": 92,
+      "language": "py",
+      "code": "sql_rows = rows(f\"SELECT order_month, revenue, running_revenue FROM ({datasets['ds_monthly_sql']}) t ORDER BY order_month\")\nmv_rows = rows(\n    f\"SELECT order_month, MEASURE(revenue), MEASURE(revenue_running_total), MEASURE(revenue_trailing_3m) \"\n    f\"FROM {metric_view} GROUP BY ALL ORDER BY order_month\"\n)\nif [r[0] for r in sql_rows] != [r[0] for r in mv_rows]:\n    raise Exception(\"The SQL dataset and the metric view return different months\")\n\nmonths = [r[0] for r in sql_rows]\nexpected_running = running_totals(r[1] for r in sql_rows)\nexpected_trailing = trailing_sums((r[1] for r in sql_rows), 3)\n\nchecks = []\nfor i, month in enumerate(months):\n    checks.append((month, \"sql_window_running_total\", str(sql_rows[i][2]), str(expected_running[i])))\n    checks.append((month, \"metric_view_running_total\", str(mv_rows[i][2]), str(expected_running[i])))\n    checks.append((month, \"metric_view_trailing_3m\", str(mv_rows[i][3]), str(expected_trailing[i])))\n\nresult = [(m, method, actual, expected, totals_match(actual, expected), params[\"run_id\"]) for m, method, actual, expected in checks]\nspark.createDataFrame(\n    result, \"order_month STRING, method STRING, actual STRING, expected STRING, matches BOOLEAN, run_id STRING\"\n).write.mode(\"overwrite\").option(\"overwriteSchema\", \"true\").saveAsTable(f\"{fq}.aibi_viz_running_total_check\")",
+      "functions": {
+        "running_totals": "Cumulative sum of values in the order given: the running total a chart plots.",
+        "totals_match": "Compare two money totals to within half a cent.",
+        "trailing_sums": "Sum of each value and the periods - 1 before it; the first rows sum what exists so far."
+      }
+    },
+    {
+      "path": "reference/analyst/src/analyst_common/helpers.py",
+      "symbol": "trailing_sums",
+      "startLine": 72,
+      "endLine": 77,
+      "language": "py",
+      "code": "def trailing_sums(values: Iterable[object], periods: int) -> list[Decimal]:\n    \"\"\"Sum of each value and the periods - 1 before it; the first rows sum what exists so far.\"\"\"\n    if periods < 1:\n        raise ValueError(\"periods must be at least 1\")\n    items = [Decimal(str(value)) for value in values]\n    return [sum(items[max(0, i - periods + 1) : i + 1], Decimal(\"0\")) for i in range(len(items))]",
+      "functions": {
+        "trailing_sums": "Sum of each value and the periods - 1 before it; the first rows sum what exists so far."
+      }
+    },
+    {
+      "path": "reference/analyst/resources/aibi_visualizations.dashboard.yml",
+      "symbol": null,
+      "startLine": 1,
+      "endLine": 8,
+      "language": "yml",
+      "code": "resources:\n  dashboards:\n    aibi_visualizations_dashboard:\n      display_name: Capability guides AI-BI visualizations\n      file_path: ../src/dashboards/aibi_visualizations.lvdash.json\n      warehouse_id: ${var.warehouse_id}\n      dataset_catalog: ${var.catalog}\n      dataset_schema: ${var.schema}",
+      "functions": {}
+    },
+    {
+      "path": "reference/analyst/resources/aibi_visualizations.job.yml",
+      "symbol": null,
+      "startLine": 25,
+      "endLine": 48,
+      "language": "yml",
+      "code": "      tasks:\n        - task_key: generate_data\n          notebook_task:\n            notebook_path: ../guides/aibi-visualizations/01_generate_data.py\n\n        # SQL task: the metric view YAML lives in the .sql file, so Git review covers the definition.\n        - task_key: deploy_metric_view\n          depends_on:\n            - task_key: generate_data\n          sql_task:\n            warehouse_id: ${var.warehouse_id}\n            file:\n              path: ../guides/aibi-visualizations/02_viz_metric_view.sql\n            parameters:\n              catalog: ${var.catalog}\n              schema: ${var.schema}\n\n        - task_key: confirm_running_totals\n          depends_on:\n            - task_key: deploy_metric_view\n          notebook_task:\n            notebook_path: ../guides/aibi-visualizations/03_confirm_running_totals.py\n            base_parameters:\n              run_id: \"{{job.run_id}}\"",
+      "functions": {}
+    }
+  ],
   "batch-real-time-ingestion": [
     {
       "path": "reference/ingestion/guides/batch-real-time-ingestion/pipeline/events_bronze.sql",

@@ -908,6 +908,10 @@ GROUP BY ALL;`,
   ],
   related: [
     { slug: 'in-platform-visualization', title: 'Charts and dashboards in the platform' },
+    {
+      slug: 'aibi-visualizations',
+      title: 'AI/BI dashboard visualizations: chart types, running totals, metric views, and custom charts',
+    },
     { slug: 'ontology', title: 'Business terms and synonyms' },
     { slug: 'genie-agents', title: 'Genie Agents' },
   ],

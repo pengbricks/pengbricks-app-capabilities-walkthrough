@@ -1,0 +1,2450 @@
+{
+ "datasets": [
+  {
+   "name": "ds_orders",
+   "displayName": "Orders (SQL dataset with custom calculations)",
+   "queryLines": [
+    "SELECT o.order_id,\n",
+    "       CAST(DATE_TRUNC('MONTH', o.order_ts) AS DATE) AS order_month,\n",
+    "       c.region,\n",
+    "       c.segment,\n",
+    "       o.quantity,\n",
+    "       CAST(o.quantity * o.unit_price AS DECIMAL(18, 2)) AS order_value\n",
+    "FROM analyst_orders o JOIN analyst_customers c USING (customer_id)\n",
+    "WHERE o.status IN ('completed', 'shipped')\n"
+   ],
+   "columns": [
+    {
+     "displayName": "Revenue",
+     "description": "Sum of order value",
+     "expression": "SUM(`order_value`)"
+    },
+    {
+     "displayName": "Running revenue",
+     "description": "Cumulative revenue across the chart's months; follows the chart's grouping and filters",
+     "expression": "SUM(`order_value`) AGGREGATE OVER (ORDER BY `order_month` CUMULATIVE)"
+    },
+    {
+     "displayName": "Trailing 3 month revenue",
+     "description": "Revenue of the month and the two before it",
+     "expression": "SUM(`order_value`) AGGREGATE OVER (ORDER BY `order_month` TRAILING 3 MONTH)"
+    }
+   ]
+  },
+  {
+   "name": "ds_monthly_sql",
+   "displayName": "Monthly revenue with a SQL window running total",
+   "queryLines": [
+    "SELECT order_month,\n",
+    "       revenue,\n",
+    "       orders,\n",
+    "       SUM(revenue) OVER (ORDER BY order_month ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_revenue\n",
+    "FROM (\n",
+    "  SELECT CAST(DATE_TRUNC('MONTH', order_ts) AS DATE) AS order_month,\n",
+    "         CAST(SUM(quantity * unit_price) AS DECIMAL(18, 2)) AS revenue,\n",
+    "         COUNT(*) AS orders\n",
+    "  FROM analyst_orders\n",
+    "  WHERE status IN ('completed', 'shipped')\n",
+    "  GROUP BY 1\n",
+    ")\n",
+    "ORDER BY order_month\n"
+   ]
+  },
+  {
+   "name": "ds_metric_view",
+   "displayName": "Metric view: analyst_viz_metrics",
+   "asset_name": "analyst_viz_metrics"
+  },
+  {
+   "name": "ds_region_segment",
+   "displayName": "Revenue by region and segment",
+   "queryLines": [
+    "SELECT c.region,\n",
+    "       c.segment,\n",
+    "       COUNT(*) AS orders,\n",
+    "       CAST(SUM(o.quantity * o.unit_price) AS DECIMAL(18, 2)) AS revenue\n",
+    "FROM analyst_orders o JOIN analyst_customers c USING (customer_id)\n",
+    "WHERE o.status IN ('completed', 'shipped')\n",
+    "GROUP BY c.region, c.segment\n"
+   ]
+  },
+  {
+   "name": "ds_region_target",
+   "displayName": "Revenue by region against target",
+   "queryLines": [
+    "SELECT region,\n",
+    "       revenue,\n",
+    "       CAST(SUM(revenue) OVER () / COUNT(*) OVER () AS DECIMAL(18, 2)) AS target,\n",
+    "       CAST(MAX(revenue) OVER () * 1.1 AS DECIMAL(18, 2)) AS range_max\n",
+    "FROM (\n",
+    "  SELECT c.region, CAST(SUM(o.quantity * o.unit_price) AS DECIMAL(18, 2)) AS revenue\n",
+    "  FROM analyst_orders o JOIN analyst_customers c USING (customer_id)\n",
+    "  WHERE o.status IN ('completed', 'shipped')\n",
+    "  GROUP BY c.region\n",
+    ")\n",
+    "ORDER BY revenue DESC\n"
+   ]
+  },
+  {
+   "name": "ds_fulfilment",
+   "displayName": "Order fulfilment stages",
+   "queryLines": [
+    "SELECT stage, stage_order, orders FROM (\n",
+    "  SELECT '1 Placed' AS stage, 1 AS stage_order, COUNT(*) AS orders FROM analyst_orders\n",
+    "  UNION ALL\n",
+    "  SELECT '2 Not cancelled', 2, COUNT_IF(status <> 'cancelled') FROM analyst_orders\n",
+    "  UNION ALL\n",
+    "  SELECT '3 Not returned', 3, COUNT_IF(status IN ('completed', 'shipped')) FROM analyst_orders\n",
+    "  UNION ALL\n",
+    "  SELECT '4 Completed', 4, COUNT_IF(status = 'completed') FROM analyst_orders\n",
+    ")\n",
+    "ORDER BY stage_order\n"
+   ]
+  }
+ ],
+ "pages": [
+  {
+   "name": "gallery",
+   "displayName": "Chart types",
+   "pageType": "PAGE_TYPE_CANVAS",
+   "layoutVersion": "GRID_V1",
+   "layout": [
+    {
+     "widget": {
+      "name": "gallery_title",
+      "multilineTextboxSpec": {
+       "lines": [
+        "## Built-in visualization types\n",
+        "Every tile on this page is a built-in AI/BI visualization over the same orders. Click a bar or slice to cross-filter the other tiles on the same dataset."
+       ]
+      }
+     },
+     "position": {
+      "x": 0,
+      "y": 0,
+      "width": 12,
+      "height": 2
+     }
+    },
+    {
+     "widget": {
+      "name": "counter_revenue",
+      "queries": [
+       {
+        "name": "main_query",
+        "query": {
+         "datasetName": "ds_orders",
+         "fields": [
+          {
+           "name": "measure(Revenue)",
+           "expression": "MEASURE(`Revenue`)"
+          },
+          {
+           "name": "order_month",
+           "expression": "`order_month`"
+          }
+         ],
+         "disaggregated": false
+        }
+       }
+      ],
+      "spec": {
+       "version": 2,
+       "widgetType": "counter",
+       "encodings": {
+        "value": {
+         "fieldName": "measure(Revenue)",
+         "displayName": "Revenue",
+         "format": {
+          "type": "number-currency",
+          "currencyCode": "USD",
+          "abbreviation": "compact",
+          "decimalPlaces": {
+           "type": "max",
+           "places": 1
+          }
+         }
+        },
+        "period": {
+         "fieldName": "order_month"
+        }
+       },
+       "frame": {
+        "showTitle": true,
+        "title": "Counter",
+        "showDescription": true,
+        "description": "Latest month's revenue, with a sparkline by month"
+       }
+      }
+     },
+     "position": {
+      "x": 0,
+      "y": 2,
+      "width": 4,
+      "height": 3
+     }
+    },
+    {
+     "widget": {
+      "name": "counter_orders",
+      "queries": [
+       {
+        "name": "main_query",
+        "query": {
+         "datasetName": "ds_orders",
+         "fields": [
+          {
+           "name": "count(order_id)",
+           "expression": "COUNT(`order_id`)"
+          }
+         ],
+         "disaggregated": false
+        }
+       }
+      ],
+      "spec": {
+       "version": 2,
+       "widgetType": "counter",
+       "encodings": {
+        "value": {
+         "fieldName": "count(order_id)",
+         "displayName": "Orders",
+         "format": {
+          "type": "number",
+          "abbreviation": "compact",
+          "decimalPlaces": {
+           "type": "max",
+           "places": 1
+          }
+         }
+        }
+       },
+       "frame": {
+        "showTitle": true,
+        "title": "Counter",
+        "showDescription": true,
+        "description": "Orders"
+       }
+      }
+     },
+     "position": {
+      "x": 4,
+      "y": 2,
+      "width": 4,
+      "height": 3
+     }
+    },
+    {
+     "widget": {
+      "name": "counter_aov",
+      "queries": [
+       {
+        "name": "main_query",
+        "query": {
+         "datasetName": "ds_metric_view",
+         "fields": [
+          {
+           "name": "measure(avg_order_value)",
+           "expression": "MEASURE(`avg_order_value`)"
+          }
+         ],
+         "disaggregated": false
+        }
+       }
+      ],
+      "spec": {
+       "version": 2,
+       "widgetType": "counter",
+       "encodings": {
+        "value": {
+         "fieldName": "measure(avg_order_value)",
+         "displayName": "Average order value",
+         "format": {
+          "type": "number-currency",
+          "currencyCode": "USD",
+          "abbreviation": "compact",
+          "decimalPlaces": {
+           "type": "max",
+           "places": 2
+          }
+         }
+        }
+       },
+       "frame": {
+        "showTitle": true,
+        "title": "Counter on a metric view",
+        "showDescription": true,
+        "description": "Average order value, a ratio measure"
+       }
+      }
+     },
+     "position": {
+      "x": 8,
+      "y": 2,
+      "width": 4,
+      "height": 3
+     }
+    },
+    {
+     "widget": {
+      "name": "bar_region_segment",
+      "queries": [
+       {
+        "name": "main_query",
+        "query": {
+         "datasetName": "ds_orders",
+         "fields": [
+          {
+           "name": "region",
+           "expression": "`region`"
+          },
+          {
+           "name": "segment",
+           "expression": "`segment`"
+          },
+          {
+           "name": "measure(Revenue)",
+           "expression": "MEASURE(`Revenue`)"
+          }
+         ],
+         "disaggregated": false
+        }
+       }
+      ],
+      "spec": {
+       "version": 3,
+       "widgetType": "bar",
+       "encodings": {
+        "x": {
+         "fieldName": "region",
+         "scale": {
+          "type": "categorical"
+         },
+         "displayName": "Region"
+        },
+        "y": {
+         "fieldName": "measure(Revenue)",
+         "scale": {
+          "type": "quantitative"
+         },
+         "displayName": "Revenue",
+         "format": {
+          "type": "number-currency",
+          "currencyCode": "USD",
+          "abbreviation": "compact",
+          "decimalPlaces": {
+           "type": "max",
+           "places": 1
+          }
+         }
+        },
+        "color": {
+         "fieldName": "segment",
+         "scale": {
+          "type": "categorical"
+         },
+         "displayName": "Segment"
+        }
+       },
+       "frame": {
+        "showTitle": true,
+        "title": "Bar (stacked)",
+        "showDescription": true,
+        "description": "Revenue by region and segment"
+       }
+      }
+     },
+     "position": {
+      "x": 0,
+      "y": 5,
+      "width": 6,
+      "height": 6
+     }
+    },
+    {
+     "widget": {
+      "name": "line_monthly",
+      "queries": [
+       {
+        "name": "main_query",
+        "query": {
+         "datasetName": "ds_orders",
+         "fields": [
+          {
+           "name": "order_month",
+           "expression": "`order_month`"
+          },
+          {
+           "name": "measure(Revenue)",
+           "expression": "MEASURE(`Revenue`)"
+          }
+         ],
+         "disaggregated": false
+        }
+       }
+      ],
+      "spec": {
+       "version": 3,
+       "widgetType": "line",
+       "encodings": {
+        "x": {
+         "fieldName": "order_month",
+         "scale": {
+          "type": "temporal"
+         },
+         "displayName": "Month"
+        },
+        "y": {
+         "fieldName": "measure(Revenue)",
+         "scale": {
+          "type": "quantitative"
+         },
+         "displayName": "Revenue",
+         "format": {
+          "type": "number-currency",
+          "currencyCode": "USD",
+          "abbreviation": "compact",
+          "decimalPlaces": {
+           "type": "max",
+           "places": 1
+          }
+         }
+        }
+       },
+       "frame": {
+        "showTitle": true,
+        "title": "Line",
+        "showDescription": true,
+        "description": "Revenue by month"
+       }
+      }
+     },
+     "position": {
+      "x": 6,
+      "y": 5,
+      "width": 6,
+      "height": 6
+     }
+    },
+    {
+     "widget": {
+      "name": "area_segment",
+      "queries": [
+       {
+        "name": "main_query",
+        "query": {
+         "datasetName": "ds_orders",
+         "fields": [
+          {
+           "name": "order_month",
+           "expression": "`order_month`"
+          },
+          {
+           "name": "segment",
+           "expression": "`segment`"
+          },
+          {
+           "name": "measure(Revenue)",
+           "expression": "MEASURE(`Revenue`)"
+          }
+         ],
+         "disaggregated": false
+        }
+       }
+      ],
+      "spec": {
+       "version": 3,
+       "widgetType": "area",
+       "encodings": {
+        "x": {
+         "fieldName": "order_month",
+         "scale": {
+          "type": "temporal"
+         },
+         "displayName": "Month"
+        },
+        "y": {
+         "fieldName": "measure(Revenue)",
+         "scale": {
+          "type": "quantitative"
+         },
+         "displayName": "Revenue",
+         "format": {
+          "type": "number-currency",
+          "currencyCode": "USD",
+          "abbreviation": "compact",
+          "decimalPlaces": {
+           "type": "max",
+           "places": 1
+          }
+         }
+        },
+        "color": {
+         "fieldName": "segment",
+         "scale": {
+          "type": "categorical"
+         },
+         "displayName": "Segment"
+        }
+       },
+       "frame": {
+        "showTitle": true,
+        "title": "Area (stacked)",
+        "showDescription": true,
+        "description": "Revenue by month and segment"
+       }
+      }
+     },
+     "position": {
+      "x": 0,
+      "y": 11,
+      "width": 6,
+      "height": 6
+     }
+    },
+    {
+     "widget": {
+      "name": "combo_revenue_orders",
+      "queries": [
+       {
+        "name": "main_query",
+        "query": {
+         "datasetName": "ds_monthly_sql",
+         "fields": [
+          {
+           "name": "order_month",
+           "expression": "`order_month`"
+          },
+          {
+           "name": "sum(revenue)",
+           "expression": "SUM(`revenue`)"
+          },
+          {
+           "name": "sum(running_revenue)",
+           "expression": "SUM(`running_revenue`)"
+          }
+         ],
+         "disaggregated": false
+        }
+       }
+      ],
+      "spec": {
+       "version": 1,
+       "widgetType": "combo",
+       "encodings": {
+        "x": {
+         "fieldName": "order_month",
+         "scale": {
+          "type": "temporal"
+         },
+         "displayName": "Month"
+        },
+        "y": {
+         "scale": {
+          "type": "quantitative"
+         },
+         "primary": {
+          "fields": [
+           {
+            "fieldName": "sum(revenue)",
+            "displayName": "Revenue"
+           }
+          ]
+         },
+         "secondary": {
+          "fields": [
+           {
+            "fieldName": "sum(running_revenue)",
+            "displayName": "Running revenue"
+           }
+          ]
+         }
+        },
+        "label": {
+         "show": false
+        }
+       },
+       "frame": {
+        "showTitle": true,
+        "title": "Combo (bar and line)",
+        "showDescription": true,
+        "description": "Monthly revenue bars with the running total as a line"
+       }
+      }
+     },
+     "position": {
+      "x": 6,
+      "y": 11,
+      "width": 6,
+      "height": 6
+     }
+    },
+    {
+     "widget": {
+      "name": "pie_segment",
+      "queries": [
+       {
+        "name": "main_query",
+        "query": {
+         "datasetName": "ds_orders",
+         "fields": [
+          {
+           "name": "segment",
+           "expression": "`segment`"
+          },
+          {
+           "name": "measure(Revenue)",
+           "expression": "MEASURE(`Revenue`)"
+          }
+         ],
+         "disaggregated": false
+        }
+       }
+      ],
+      "spec": {
+       "version": 3,
+       "widgetType": "pie",
+       "encodings": {
+        "angle": {
+         "fieldName": "measure(Revenue)",
+         "scale": {
+          "type": "quantitative"
+         },
+         "displayName": "Revenue"
+        },
+        "color": {
+         "fieldName": "segment",
+         "scale": {
+          "type": "categorical"
+         },
+         "displayName": "Segment"
+        },
+        "label": {
+         "show": true
+        }
+       },
+       "frame": {
+        "showTitle": true,
+        "title": "Pie",
+        "showDescription": true,
+        "description": "Share of revenue by segment"
+       }
+      }
+     },
+     "position": {
+      "x": 0,
+      "y": 17,
+      "width": 4,
+      "height": 6
+     }
+    },
+    {
+     "widget": {
+      "name": "heatmap_region_segment",
+      "queries": [
+       {
+        "name": "main_query",
+        "query": {
+         "datasetName": "ds_region_segment",
+         "fields": [
+          {
+           "name": "region",
+           "expression": "`region`"
+          },
+          {
+           "name": "segment",
+           "expression": "`segment`"
+          },
+          {
+           "name": "sum(revenue)",
+           "expression": "SUM(`revenue`)"
+          }
+         ],
+         "disaggregated": false
+        }
+       }
+      ],
+      "spec": {
+       "version": 3,
+       "widgetType": "heatmap",
+       "encodings": {
+        "x": {
+         "fieldName": "region",
+         "scale": {
+          "type": "categorical"
+         },
+         "axis": {
+          "hideTitle": true
+         }
+        },
+        "y": {
+         "fieldName": "segment",
+         "scale": {
+          "type": "categorical"
+         },
+         "axis": {
+          "hideTitle": true
+         }
+        },
+        "color": {
+         "fieldName": "sum(revenue)",
+         "displayName": "Revenue",
+         "scale": {
+          "type": "quantitative",
+          "colorRamp": {
+           "mode": "scheme",
+           "scheme": "blues"
+          }
+         }
+        }
+       },
+       "frame": {
+        "showTitle": true,
+        "title": "Heatmap",
+        "showDescription": true,
+        "description": "Revenue by region and segment"
+       }
+      }
+     },
+     "position": {
+      "x": 4,
+      "y": 17,
+      "width": 4,
+      "height": 6
+     }
+    },
+    {
+     "widget": {
+      "name": "scatter_orders_revenue",
+      "queries": [
+       {
+        "name": "main_query",
+        "query": {
+         "datasetName": "ds_region_segment",
+         "fields": [
+          {
+           "name": "orders",
+           "expression": "`orders`"
+          },
+          {
+           "name": "revenue",
+           "expression": "`revenue`"
+          },
+          {
+           "name": "region",
+           "expression": "`region`"
+          }
+         ],
+         "disaggregated": true
+        }
+       }
+      ],
+      "spec": {
+       "version": 3,
+       "widgetType": "scatter",
+       "encodings": {
+        "x": {
+         "fieldName": "orders",
+         "scale": {
+          "type": "quantitative"
+         },
+         "displayName": "Orders"
+        },
+        "y": {
+         "fieldName": "revenue",
+         "scale": {
+          "type": "quantitative"
+         },
+         "displayName": "Revenue",
+         "format": {
+          "type": "number-currency",
+          "currencyCode": "USD",
+          "abbreviation": "compact",
+          "decimalPlaces": {
+           "type": "max",
+           "places": 1
+          }
+         }
+        },
+        "color": {
+         "fieldName": "region",
+         "scale": {
+          "type": "categorical"
+         },
+         "displayName": "Region"
+        }
+       },
+       "frame": {
+        "showTitle": true,
+        "title": "Scatter",
+        "showDescription": true,
+        "description": "Orders against revenue, one point per region and segment"
+       }
+      }
+     },
+     "position": {
+      "x": 8,
+      "y": 17,
+      "width": 4,
+      "height": 6
+     }
+    },
+    {
+     "widget": {
+      "name": "histogram_order_value",
+      "queries": [
+       {
+        "name": "main_query",
+        "query": {
+         "datasetName": "ds_orders",
+         "fields": [
+          {
+           "name": "bin(order_value, binWidth=250)",
+           "expression": "BIN_FLOOR(`order_value`, 250)"
+          },
+          {
+           "name": "count(*)",
+           "expression": "COUNT(`*`)"
+          }
+         ],
+         "disaggregated": false
+        }
+       }
+      ],
+      "spec": {
+       "version": 3,
+       "widgetType": "histogram",
+       "encodings": {
+        "x": {
+         "fieldName": "bin(order_value, binWidth=250)",
+         "scale": {
+          "type": "quantitative"
+         },
+         "displayName": "Order value"
+        },
+        "y": {
+         "fieldName": "count(*)",
+         "scale": {
+          "type": "quantitative"
+         },
+         "displayName": "Orders"
+        }
+       },
+       "frame": {
+        "showTitle": true,
+        "title": "Histogram",
+        "showDescription": true,
+        "description": "Orders by order value, 250 dollar bins"
+       }
+      }
+     },
+     "position": {
+      "x": 0,
+      "y": 23,
+      "width": 6,
+      "height": 6
+     }
+    },
+    {
+     "widget": {
+      "name": "box_order_value",
+      "queries": [
+       {
+        "name": "main_query",
+        "query": {
+         "datasetName": "ds_orders",
+         "fields": [
+          {
+           "name": "segment",
+           "expression": "`segment`"
+          },
+          {
+           "name": "min(order_value)",
+           "expression": "MIN(`order_value`)"
+          },
+          {
+           "name": "q1(order_value)",
+           "expression": "PERCENTILE(`order_value`, 0.25)"
+          },
+          {
+           "name": "median(order_value)",
+           "expression": "MEDIAN(`order_value`)"
+          },
+          {
+           "name": "q3(order_value)",
+           "expression": "PERCENTILE(`order_value`, 0.75)"
+          },
+          {
+           "name": "max(order_value)",
+           "expression": "MAX(`order_value`)"
+          }
+         ],
+         "disaggregated": false
+        }
+       }
+      ],
+      "spec": {
+       "version": 3,
+       "widgetType": "box",
+       "encodings": {
+        "x": {
+         "fieldName": "segment",
+         "displayName": "Segment",
+         "scale": {
+          "type": "categorical"
+         }
+        },
+        "y": {
+         "whiskerStart": {
+          "fieldName": "min(order_value)"
+         },
+         "boxStart": {
+          "fieldName": "q1(order_value)"
+         },
+         "boxMid": {
+          "fieldName": "median(order_value)"
+         },
+         "boxEnd": {
+          "fieldName": "q3(order_value)"
+         },
+         "whiskerEnd": {
+          "fieldName": "max(order_value)"
+         },
+         "scale": {
+          "type": "quantitative"
+         }
+        }
+       },
+       "frame": {
+        "showTitle": true,
+        "title": "Box",
+        "showDescription": true,
+        "description": "Order value spread by segment: quartiles, median, min and max"
+       }
+      }
+     },
+     "position": {
+      "x": 6,
+      "y": 23,
+      "width": 6,
+      "height": 6
+     }
+    },
+    {
+     "widget": {
+      "name": "funnel_fulfilment",
+      "queries": [
+       {
+        "name": "main_query",
+        "query": {
+         "datasetName": "ds_fulfilment",
+         "fields": [
+          {
+           "name": "stage",
+           "expression": "`stage`"
+          },
+          {
+           "name": "sum(orders)",
+           "expression": "SUM(`orders`)"
+          }
+         ],
+         "disaggregated": false
+        }
+       }
+      ],
+      "spec": {
+       "version": 3,
+       "widgetType": "funnel",
+       "encodings": {
+        "x": {
+         "fieldName": "sum(orders)",
+         "scale": {
+          "type": "quantitative"
+         },
+         "displayName": "Orders"
+        },
+        "y": {
+         "fieldName": "stage",
+         "displayName": "Stage",
+         "scale": {
+          "type": "categorical"
+         }
+        },
+        "color": {
+         "fieldName": "sum(orders)",
+         "scale": {
+          "type": "quantitative"
+         }
+        }
+       },
+       "frame": {
+        "showTitle": true,
+        "title": "Funnel",
+        "showDescription": true,
+        "description": "Orders that reach each fulfilment stage"
+       }
+      }
+     },
+     "position": {
+      "x": 0,
+      "y": 29,
+      "width": 6,
+      "height": 6
+     }
+    },
+    {
+     "widget": {
+      "name": "sankey_region_segment",
+      "queries": [
+       {
+        "name": "main_query",
+        "query": {
+         "datasetName": "ds_region_segment",
+         "fields": [
+          {
+           "name": "region",
+           "expression": "`region`"
+          },
+          {
+           "name": "segment",
+           "expression": "`segment`"
+          },
+          {
+           "name": "sum(orders)",
+           "expression": "SUM(`orders`)"
+          }
+         ],
+         "disaggregated": false
+        }
+       }
+      ],
+      "spec": {
+       "version": 1,
+       "widgetType": "sankey",
+       "encodings": {
+        "value": {
+         "fieldName": "sum(orders)",
+         "displayName": "Orders"
+        },
+        "stages": [
+         {
+          "fieldName": "region",
+          "displayName": "Region"
+         },
+         {
+          "fieldName": "segment",
+          "displayName": "Segment"
+         }
+        ]
+       },
+       "frame": {
+        "showTitle": true,
+        "title": "Sankey",
+        "showDescription": true,
+        "description": "Orders flowing from region to segment"
+       }
+      }
+     },
+     "position": {
+      "x": 6,
+      "y": 29,
+      "width": 6,
+      "height": 6
+     }
+    },
+    {
+     "widget": {
+      "name": "pivot_region_segment",
+      "queries": [
+       {
+        "name": "main_query",
+        "query": {
+         "datasetName": "ds_region_segment",
+         "fields": [
+          {
+           "name": "region",
+           "expression": "`region`"
+          },
+          {
+           "name": "segment",
+           "expression": "`segment`"
+          },
+          {
+           "name": "sum(revenue)",
+           "expression": "SUM(`revenue`)"
+          }
+         ],
+         "disaggregated": false
+        }
+       }
+      ],
+      "spec": {
+       "version": 3,
+       "widgetType": "pivot",
+       "encodings": {
+        "rows": [
+         {
+          "fieldName": "region",
+          "displayName": "Region",
+          "total": {
+           "show": true
+          }
+         }
+        ],
+        "columns": [
+         {
+          "fieldName": "segment",
+          "displayName": "Segment",
+          "total": {
+           "show": true
+          }
+         }
+        ],
+        "cell": {
+         "type": "multi-cell",
+         "fields": [
+          {
+           "fieldName": "sum(revenue)",
+           "displayName": "Revenue",
+           "cellType": "color-scale",
+           "format": {
+            "type": "number-currency",
+            "currencyCode": "USD",
+            "abbreviation": "compact",
+            "decimalPlaces": {
+             "type": "max",
+             "places": 1
+            }
+           }
+          }
+         ]
+        }
+       },
+       "frame": {
+        "showTitle": true,
+        "title": "Pivot",
+        "showDescription": true,
+        "description": "Revenue by region and segment, with totals"
+       }
+      }
+     },
+     "position": {
+      "x": 0,
+      "y": 35,
+      "width": 6,
+      "height": 6
+     }
+    },
+    {
+     "widget": {
+      "name": "table_monthly",
+      "queries": [
+       {
+        "name": "main_query",
+        "query": {
+         "datasetName": "ds_monthly_sql",
+         "fields": [
+          {
+           "name": "order_month",
+           "expression": "`order_month`"
+          },
+          {
+           "name": "revenue",
+           "expression": "`revenue`"
+          },
+          {
+           "name": "orders",
+           "expression": "`orders`"
+          },
+          {
+           "name": "running_revenue",
+           "expression": "`running_revenue`"
+          }
+         ],
+         "disaggregated": true
+        }
+       }
+      ],
+      "spec": {
+       "version": 2,
+       "widgetType": "table",
+       "encodings": {
+        "columns": [
+         {
+          "fieldName": "order_month",
+          "displayName": "Month"
+         },
+         {
+          "fieldName": "revenue",
+          "displayName": "Revenue",
+          "format": {
+           "type": "number-currency",
+           "currencyCode": "USD",
+           "abbreviation": "compact",
+           "decimalPlaces": {
+            "type": "max",
+            "places": 1
+           }
+          }
+         },
+         {
+          "fieldName": "orders",
+          "displayName": "Orders"
+         },
+         {
+          "fieldName": "running_revenue",
+          "displayName": "Running revenue",
+          "format": {
+           "type": "number-currency",
+           "currencyCode": "USD",
+           "abbreviation": "compact",
+           "decimalPlaces": {
+            "type": "max",
+            "places": 1
+           }
+          }
+         }
+        ]
+       },
+       "frame": {
+        "showTitle": true,
+        "title": "Table",
+        "showDescription": true,
+        "description": "Monthly revenue with its running total"
+       }
+      }
+     },
+     "position": {
+      "x": 6,
+      "y": 35,
+      "width": 6,
+      "height": 6
+     }
+    }
+   ]
+  },
+  {
+   "name": "running_totals",
+   "displayName": "Running totals",
+   "pageType": "PAGE_TYPE_CANVAS",
+   "layoutVersion": "GRID_V1",
+   "layout": [
+    {
+     "widget": {
+      "name": "running_title",
+      "multilineTextboxSpec": {
+       "lines": [
+        "## Running totals (cumulative sum), four ways\n",
+        "All four lines end at the same total when no filter is set. Pick a region in the filter: the custom calculation and the metric view follow it, and the SQL window dataset does not, because its window ran before the filter."
+       ]
+      }
+     },
+     "position": {
+      "x": 0,
+      "y": 0,
+      "width": 12,
+      "height": 2
+     }
+    },
+    {
+     "widget": {
+      "name": "filter_region",
+      "queries": [
+       {
+        "name": "orders_region",
+        "query": {
+         "datasetName": "ds_orders",
+         "fields": [
+          {
+           "name": "region",
+           "expression": "`region`"
+          }
+         ],
+         "disaggregated": false
+        }
+       },
+       {
+        "name": "mv_region",
+        "query": {
+         "datasetName": "ds_metric_view",
+         "fields": [
+          {
+           "name": "region",
+           "expression": "`region`"
+          }
+         ],
+         "disaggregated": false
+        }
+       }
+      ],
+      "spec": {
+       "version": 2,
+       "widgetType": "filter-multi-select",
+       "encodings": {
+        "fields": [
+         {
+          "fieldName": "region",
+          "displayName": "Region",
+          "queryName": "orders_region"
+         },
+         {
+          "fieldName": "region",
+          "displayName": "Region",
+          "queryName": "mv_region"
+         }
+        ]
+       },
+       "frame": {
+        "showTitle": true,
+        "title": "Region"
+       }
+      }
+     },
+     "position": {
+      "x": 0,
+      "y": 2,
+      "width": 12,
+      "height": 2
+     }
+    },
+    {
+     "widget": {
+      "name": "running_custom_calc",
+      "queries": [
+       {
+        "name": "main_query",
+        "query": {
+         "datasetName": "ds_orders",
+         "fields": [
+          {
+           "name": "order_month",
+           "expression": "`order_month`"
+          },
+          {
+           "name": "measure(Running revenue)",
+           "expression": "MEASURE(`Running revenue`)"
+          },
+          {
+           "name": "measure(Revenue)",
+           "expression": "MEASURE(`Revenue`)"
+          }
+         ],
+         "disaggregated": false
+        }
+       }
+      ],
+      "spec": {
+       "version": 3,
+       "widgetType": "line",
+       "encodings": {
+        "x": {
+         "fieldName": "order_month",
+         "scale": {
+          "type": "temporal"
+         },
+         "displayName": "Month"
+        },
+        "y": {
+         "scale": {
+          "type": "quantitative"
+         },
+         "fields": [
+          {
+           "fieldName": "measure(Running revenue)",
+           "displayName": "Running revenue"
+          },
+          {
+           "fieldName": "measure(Revenue)",
+           "displayName": "Monthly revenue"
+          }
+         ],
+         "format": {
+          "type": "number-currency",
+          "currencyCode": "USD",
+          "abbreviation": "compact",
+          "decimalPlaces": {
+           "type": "max",
+           "places": 1
+          }
+         }
+        }
+       },
+       "frame": {
+        "showTitle": true,
+        "title": "1. Custom calculation: AGGREGATE OVER ... CUMULATIVE",
+        "showDescription": true,
+        "description": "Defined on the dashboard dataset; follows filters and the chart's grouping"
+       }
+      }
+     },
+     "position": {
+      "x": 0,
+      "y": 4,
+      "width": 6,
+      "height": 6
+     }
+    },
+    {
+     "widget": {
+      "name": "running_metric_view",
+      "queries": [
+       {
+        "name": "main_query",
+        "query": {
+         "datasetName": "ds_metric_view",
+         "fields": [
+          {
+           "name": "order_month",
+           "expression": "`order_month`"
+          },
+          {
+           "name": "measure(revenue_running_total)",
+           "expression": "MEASURE(`revenue_running_total`)"
+          },
+          {
+           "name": "measure(revenue)",
+           "expression": "MEASURE(`revenue`)"
+          }
+         ],
+         "disaggregated": false
+        }
+       }
+      ],
+      "spec": {
+       "version": 3,
+       "widgetType": "line",
+       "encodings": {
+        "x": {
+         "fieldName": "order_month",
+         "scale": {
+          "type": "temporal"
+         },
+         "displayName": "Month"
+        },
+        "y": {
+         "scale": {
+          "type": "quantitative"
+         },
+         "fields": [
+          {
+           "fieldName": "measure(revenue_running_total)",
+           "displayName": "Running revenue"
+          },
+          {
+           "fieldName": "measure(revenue)",
+           "displayName": "Monthly revenue"
+          }
+         ],
+         "format": {
+          "type": "number-currency",
+          "currencyCode": "USD",
+          "abbreviation": "compact",
+          "decimalPlaces": {
+           "type": "max",
+           "places": 1
+          }
+         }
+        }
+       },
+       "frame": {
+        "showTitle": true,
+        "title": "2. Metric view window measure: range cumulative",
+        "showDescription": true,
+        "description": "Defined once in Unity Catalog; the same number in Genie, SQL and BI tools"
+       }
+      }
+     },
+     "position": {
+      "x": 6,
+      "y": 4,
+      "width": 6,
+      "height": 6
+     }
+    },
+    {
+     "widget": {
+      "name": "running_sql_window",
+      "queries": [
+       {
+        "name": "main_query",
+        "query": {
+         "datasetName": "ds_monthly_sql",
+         "fields": [
+          {
+           "name": "order_month",
+           "expression": "`order_month`"
+          },
+          {
+           "name": "sum(running_revenue)",
+           "expression": "SUM(`running_revenue`)"
+          },
+          {
+           "name": "sum(revenue)",
+           "expression": "SUM(`revenue`)"
+          }
+         ],
+         "disaggregated": false
+        }
+       }
+      ],
+      "spec": {
+       "version": 3,
+       "widgetType": "line",
+       "encodings": {
+        "x": {
+         "fieldName": "order_month",
+         "scale": {
+          "type": "temporal"
+         },
+         "displayName": "Month"
+        },
+        "y": {
+         "scale": {
+          "type": "quantitative"
+         },
+         "fields": [
+          {
+           "fieldName": "sum(running_revenue)",
+           "displayName": "Running revenue"
+          },
+          {
+           "fieldName": "sum(revenue)",
+           "displayName": "Monthly revenue"
+          }
+         ],
+         "format": {
+          "type": "number-currency",
+          "currencyCode": "USD",
+          "abbreviation": "compact",
+          "decimalPlaces": {
+           "type": "max",
+           "places": 1
+          }
+         }
+        }
+       },
+       "frame": {
+        "showTitle": true,
+        "title": "3. SQL window function in the dataset",
+        "showDescription": true,
+        "description": "SUM(revenue) OVER (ORDER BY order_month); fixed at the dataset's grain"
+       }
+      }
+     },
+     "position": {
+      "x": 0,
+      "y": 10,
+      "width": 6,
+      "height": 6
+     }
+    },
+    {
+     "widget": {
+      "name": "running_waterfall",
+      "queries": [
+       {
+        "name": "main_query",
+        "query": {
+         "datasetName": "ds_orders",
+         "fields": [
+          {
+           "name": "order_month",
+           "expression": "`order_month`"
+          },
+          {
+           "name": "measure(Revenue)",
+           "expression": "MEASURE(`Revenue`)"
+          }
+         ],
+         "disaggregated": false
+        }
+       }
+      ],
+      "spec": {
+       "version": 3,
+       "widgetType": "waterfall",
+       "encodings": {
+        "x": {
+         "fieldName": "order_month",
+         "scale": {
+          "type": "temporal"
+         },
+         "displayName": "Month"
+        },
+        "y": {
+         "fieldName": "measure(Revenue)",
+         "scale": {
+          "type": "quantitative"
+         },
+         "displayName": "Revenue",
+         "format": {
+          "type": "number-currency",
+          "currencyCode": "USD",
+          "abbreviation": "compact",
+          "decimalPlaces": {
+           "type": "max",
+           "places": 1
+          }
+         }
+        }
+       },
+       "frame": {
+        "showTitle": true,
+        "title": "4. Waterfall chart",
+        "showDescription": true,
+        "description": "Each month's bar starts where the last one ended, so the top is the running total"
+       }
+      }
+     },
+     "position": {
+      "x": 6,
+      "y": 10,
+      "width": 6,
+      "height": 6
+     }
+    },
+    {
+     "widget": {
+      "name": "trailing_custom_calc",
+      "queries": [
+       {
+        "name": "main_query",
+        "query": {
+         "datasetName": "ds_orders",
+         "fields": [
+          {
+           "name": "order_month",
+           "expression": "`order_month`"
+          },
+          {
+           "name": "measure(Trailing 3 month revenue)",
+           "expression": "MEASURE(`Trailing 3 month revenue`)"
+          }
+         ],
+         "disaggregated": false
+        }
+       }
+      ],
+      "spec": {
+       "version": 3,
+       "widgetType": "bar",
+       "encodings": {
+        "x": {
+         "fieldName": "order_month",
+         "scale": {
+          "type": "temporal"
+         },
+         "displayName": "Month"
+        },
+        "y": {
+         "fieldName": "measure(Trailing 3 month revenue)",
+         "scale": {
+          "type": "quantitative"
+         },
+         "displayName": "Trailing 3 months",
+         "format": {
+          "type": "number-currency",
+          "currencyCode": "USD",
+          "abbreviation": "compact",
+          "decimalPlaces": {
+           "type": "max",
+           "places": 1
+          }
+         }
+        }
+       },
+       "frame": {
+        "showTitle": true,
+        "title": "Rolling window: AGGREGATE OVER ... TRAILING 3 MONTH",
+        "showDescription": true,
+        "description": "The month plus the two before it"
+       }
+      }
+     },
+     "position": {
+      "x": 0,
+      "y": 16,
+      "width": 6,
+      "height": 6
+     }
+    },
+    {
+     "widget": {
+      "name": "trailing_metric_view",
+      "queries": [
+       {
+        "name": "main_query",
+        "query": {
+         "datasetName": "ds_metric_view",
+         "fields": [
+          {
+           "name": "order_month",
+           "expression": "`order_month`"
+          },
+          {
+           "name": "measure(revenue_trailing_3m)",
+           "expression": "MEASURE(`revenue_trailing_3m`)"
+          }
+         ],
+         "disaggregated": false
+        }
+       }
+      ],
+      "spec": {
+       "version": 3,
+       "widgetType": "bar",
+       "encodings": {
+        "x": {
+         "fieldName": "order_month",
+         "scale": {
+          "type": "temporal"
+         },
+         "displayName": "Month"
+        },
+        "y": {
+         "fieldName": "measure(revenue_trailing_3m)",
+         "scale": {
+          "type": "quantitative"
+         },
+         "displayName": "Trailing 3 months",
+         "format": {
+          "type": "number-currency",
+          "currencyCode": "USD",
+          "abbreviation": "compact",
+          "decimalPlaces": {
+           "type": "max",
+           "places": 1
+          }
+         }
+        }
+       },
+       "frame": {
+        "showTitle": true,
+        "title": "Rolling window: metric view, trailing 3 month inclusive",
+        "showDescription": true,
+        "description": "Same numbers as the tile on the left"
+       }
+      }
+     },
+     "position": {
+      "x": 6,
+      "y": 16,
+      "width": 6,
+      "height": 6
+     }
+    }
+   ]
+  },
+  {
+   "name": "metric_view",
+   "displayName": "Metric view",
+   "pageType": "PAGE_TYPE_CANVAS",
+   "layoutVersion": "GRID_V1",
+   "layout": [
+    {
+     "widget": {
+      "name": "mv_title",
+      "multilineTextboxSpec": {
+       "lines": [
+        "## Charts on a metric view\n",
+        "This page reads `analyst_viz_metrics` directly as a dataset. Widgets ask for measures with MEASURE(), and the metric view computes them at whatever grouping the chart uses."
+       ]
+      }
+     },
+     "position": {
+      "x": 0,
+      "y": 0,
+      "width": 12,
+      "height": 2
+     }
+    },
+    {
+     "widget": {
+      "name": "mv_revenue",
+      "queries": [
+       {
+        "name": "main_query",
+        "query": {
+         "datasetName": "ds_metric_view",
+         "fields": [
+          {
+           "name": "measure(revenue)",
+           "expression": "MEASURE(`revenue`)"
+          },
+          {
+           "name": "order_month",
+           "expression": "`order_month`"
+          }
+         ],
+         "disaggregated": false
+        }
+       }
+      ],
+      "spec": {
+       "version": 2,
+       "widgetType": "counter",
+       "encodings": {
+        "value": {
+         "fieldName": "measure(revenue)",
+         "displayName": "Revenue",
+         "format": {
+          "type": "number-currency",
+          "currencyCode": "USD",
+          "abbreviation": "compact",
+          "decimalPlaces": {
+           "type": "max",
+           "places": 1
+          }
+         }
+        },
+        "period": {
+         "fieldName": "order_month"
+        }
+       },
+       "frame": {
+        "showTitle": true,
+        "title": "Revenue",
+        "showDescription": true,
+        "description": "Latest month, with a sparkline"
+       }
+      }
+     },
+     "position": {
+      "x": 0,
+      "y": 2,
+      "width": 4,
+      "height": 3
+     }
+    },
+    {
+     "widget": {
+      "name": "mv_orders",
+      "queries": [
+       {
+        "name": "main_query",
+        "query": {
+         "datasetName": "ds_metric_view",
+         "fields": [
+          {
+           "name": "measure(orders)",
+           "expression": "MEASURE(`orders`)"
+          }
+         ],
+         "disaggregated": false
+        }
+       }
+      ],
+      "spec": {
+       "version": 2,
+       "widgetType": "counter",
+       "encodings": {
+        "value": {
+         "fieldName": "measure(orders)",
+         "displayName": "Orders",
+         "format": {
+          "type": "number",
+          "abbreviation": "compact",
+          "decimalPlaces": {
+           "type": "max",
+           "places": 1
+          }
+         }
+        }
+       },
+       "frame": {
+        "showTitle": true,
+        "title": "Orders"
+       }
+      }
+     },
+     "position": {
+      "x": 4,
+      "y": 2,
+      "width": 4,
+      "height": 3
+     }
+    },
+    {
+     "widget": {
+      "name": "mv_aov",
+      "queries": [
+       {
+        "name": "main_query",
+        "query": {
+         "datasetName": "ds_metric_view",
+         "fields": [
+          {
+           "name": "measure(avg_order_value)",
+           "expression": "MEASURE(`avg_order_value`)"
+          }
+         ],
+         "disaggregated": false
+        }
+       }
+      ],
+      "spec": {
+       "version": 2,
+       "widgetType": "counter",
+       "encodings": {
+        "value": {
+         "fieldName": "measure(avg_order_value)",
+         "displayName": "Average order value",
+         "format": {
+          "type": "number-currency",
+          "currencyCode": "USD",
+          "abbreviation": "compact",
+          "decimalPlaces": {
+           "type": "max",
+           "places": 2
+          }
+         }
+        }
+       },
+       "frame": {
+        "showTitle": true,
+        "title": "Average order value",
+        "showDescription": true,
+        "description": "A ratio: correct at every grouping"
+       }
+      }
+     },
+     "position": {
+      "x": 8,
+      "y": 2,
+      "width": 4,
+      "height": 3
+     }
+    },
+    {
+     "widget": {
+      "name": "mv_mom",
+      "queries": [
+       {
+        "name": "main_query",
+        "query": {
+         "datasetName": "ds_metric_view",
+         "fields": [
+          {
+           "name": "order_month",
+           "expression": "`order_month`"
+          },
+          {
+           "name": "measure(revenue_mom_growth)",
+           "expression": "MEASURE(`revenue_mom_growth`)"
+          }
+         ],
+         "disaggregated": false
+        }
+       }
+      ],
+      "spec": {
+       "version": 3,
+       "widgetType": "bar",
+       "encodings": {
+        "x": {
+         "fieldName": "order_month",
+         "scale": {
+          "type": "temporal"
+         },
+         "displayName": "Month"
+        },
+        "y": {
+         "fieldName": "measure(revenue_mom_growth)",
+         "scale": {
+          "type": "quantitative"
+         },
+         "displayName": "Month-over-month growth",
+         "format": {
+          "type": "number-percent",
+          "decimalPlaces": {
+           "type": "max",
+           "places": 1
+          }
+         }
+        }
+       },
+       "frame": {
+        "showTitle": true,
+        "title": "Month-over-month growth",
+        "showDescription": true,
+        "description": "A window measure with offset -1 month"
+       }
+      }
+     },
+     "position": {
+      "x": 0,
+      "y": 5,
+      "width": 6,
+      "height": 6
+     }
+    },
+    {
+     "widget": {
+      "name": "mv_aov_region",
+      "queries": [
+       {
+        "name": "main_query",
+        "query": {
+         "datasetName": "ds_metric_view",
+         "fields": [
+          {
+           "name": "region",
+           "expression": "`region`"
+          },
+          {
+           "name": "measure(avg_order_value)",
+           "expression": "MEASURE(`avg_order_value`)"
+          }
+         ],
+         "disaggregated": false
+        }
+       }
+      ],
+      "spec": {
+       "version": 3,
+       "widgetType": "bar",
+       "encodings": {
+        "x": {
+         "fieldName": "region",
+         "scale": {
+          "type": "categorical"
+         },
+         "displayName": "Region"
+        },
+        "y": {
+         "fieldName": "measure(avg_order_value)",
+         "scale": {
+          "type": "quantitative"
+         },
+         "displayName": "Average order value"
+        }
+       },
+       "frame": {
+        "showTitle": true,
+        "title": "Average order value by region",
+        "showDescription": true,
+        "description": "The ratio is recomputed per region, not averaged from months"
+       }
+      }
+     },
+     "position": {
+      "x": 6,
+      "y": 5,
+      "width": 6,
+      "height": 6
+     }
+    },
+    {
+     "widget": {
+      "name": "mv_pivot",
+      "queries": [
+       {
+        "name": "main_query",
+        "query": {
+         "datasetName": "ds_metric_view",
+         "fields": [
+          {
+           "name": "region",
+           "expression": "`region`"
+          },
+          {
+           "name": "segment",
+           "expression": "`segment`"
+          },
+          {
+           "name": "measure(revenue)",
+           "expression": "MEASURE(`revenue`)"
+          }
+         ],
+         "disaggregated": false
+        }
+       }
+      ],
+      "spec": {
+       "version": 3,
+       "widgetType": "pivot",
+       "encodings": {
+        "rows": [
+         {
+          "fieldName": "segment",
+          "displayName": "Segment",
+          "total": {
+           "show": true
+          }
+         }
+        ],
+        "columns": [
+         {
+          "fieldName": "region",
+          "displayName": "Region",
+          "total": {
+           "show": true
+          }
+         }
+        ],
+        "cell": {
+         "type": "multi-cell",
+         "fields": [
+          {
+           "fieldName": "measure(revenue)",
+           "displayName": "Revenue",
+           "cellType": "text",
+           "format": {
+            "type": "number-currency",
+            "currencyCode": "USD",
+            "abbreviation": "compact",
+            "decimalPlaces": {
+             "type": "max",
+             "places": 1
+            }
+           }
+          }
+         ]
+        }
+       },
+       "frame": {
+        "showTitle": true,
+        "title": "Pivot on the metric view",
+        "showDescription": true,
+        "description": "Totals come from the metric view, not from summing cells"
+       }
+      }
+     },
+     "position": {
+      "x": 0,
+      "y": 11,
+      "width": 12,
+      "height": 5
+     }
+    }
+   ]
+  },
+  {
+   "name": "custom",
+   "displayName": "Custom visualizations",
+   "pageType": "PAGE_TYPE_CANVAS",
+   "layoutVersion": "GRID_V1",
+   "layout": [
+    {
+     "widget": {
+      "name": "custom_title",
+      "multilineTextboxSpec": {
+       "lines": [
+        "## Custom visualizations (Vega-Lite, Public Preview)\n",
+        "Use a custom visualization only when no built-in type fits. Each tile below is a Vega-Lite JSON spec that reads the dataset as `databricks_query`."
+       ]
+      }
+     },
+     "position": {
+      "x": 0,
+      "y": 0,
+      "width": 12,
+      "height": 2
+     }
+    },
+    {
+     "widget": {
+      "name": "custom_running_total",
+      "queries": [
+       {
+        "name": "main_query",
+        "query": {
+         "datasetName": "ds_monthly_sql",
+         "fields": [
+          {
+           "name": "order_month",
+           "expression": "`order_month`"
+          },
+          {
+           "name": "revenue",
+           "expression": "`revenue`"
+          }
+         ],
+         "disaggregated": true
+        }
+       }
+      ],
+      "spec": {
+       "version": 1,
+       "widgetType": "custom-vega-viz",
+       "jsonSpec": {
+        "type": "vega-lite",
+        "spec": "{\"$schema\": \"https://vega.github.io/schema/vega-lite/v5.json\", \"data\": {\"name\": \"databricks_query\"}, \"width\": \"container\", \"height\": \"container\", \"config\": {\"autosize\": {\"type\": \"fit\", \"contains\": \"padding\"}}, \"transform\": [{\"sort\": [{\"field\": \"order_month\"}], \"window\": [{\"op\": \"sum\", \"field\": \"revenue\", \"as\": \"running_revenue\"}], \"frame\": [null, 0]}], \"encoding\": {\"x\": {\"field\": \"order_month\", \"type\": \"ordinal\", \"timeUnit\": \"utcyearmonth\", \"title\": \"Month\", \"axis\": {\"format\": \"%b %Y\", \"labelAngle\": 0}}}, \"layer\": [{\"mark\": {\"type\": \"bar\", \"opacity\": 0.5, \"color\": {\"expr\": \"dashboardTheme.visualizationColors[1]\"}}, \"encoding\": {\"y\": {\"field\": \"revenue\", \"type\": \"quantitative\", \"title\": \"Monthly revenue\", \"axis\": {\"format\": \"$.2s\"}}, \"tooltip\": [{\"field\": \"order_month\", \"type\": \"ordinal\", \"timeUnit\": \"utcyearmonth\", \"title\": \"Month\", \"format\": \"%b %Y\"}, {\"field\": \"revenue\", \"type\": \"quantitative\", \"format\": \"$,.0f\", \"title\": \"Revenue\"}]}}, {\"mark\": {\"type\": \"line\", \"point\": true, \"strokeWidth\": 3, \"color\": {\"expr\": \"dashboardTheme.visualizationColors[0]\"}}, \"encoding\": {\"y\": {\"field\": \"running_revenue\", \"type\": \"quantitative\", \"title\": \"Running revenue\", \"axis\": {\"format\": \"$.2s\", \"orient\": \"right\"}}, \"tooltip\": [{\"field\": \"order_month\", \"type\": \"ordinal\", \"timeUnit\": \"utcyearmonth\", \"title\": \"Month\", \"format\": \"%b %Y\"}, {\"field\": \"running_revenue\", \"type\": \"quantitative\", \"format\": \"$,.0f\", \"title\": \"Running revenue\"}]}}], \"resolve\": {\"scale\": {\"y\": \"independent\"}}}"
+       },
+       "encodings": {
+        "fields": [
+         {
+          "fieldName": "order_month"
+         },
+         {
+          "fieldName": "revenue"
+         }
+        ]
+       },
+       "data": {
+        "queryName": "main_query"
+       },
+       "frame": {
+        "showTitle": true,
+        "title": "Running total computed in Vega-Lite",
+        "showDescription": true,
+        "description": "A window transform sums monthly revenue; bars and line have their own axes"
+       }
+      }
+     },
+     "position": {
+      "x": 0,
+      "y": 2,
+      "width": 12,
+      "height": 7
+     }
+    },
+    {
+     "widget": {
+      "name": "custom_bullet",
+      "queries": [
+       {
+        "name": "main_query",
+        "query": {
+         "datasetName": "ds_region_target",
+         "fields": [
+          {
+           "name": "region",
+           "expression": "`region`"
+          },
+          {
+           "name": "revenue",
+           "expression": "`revenue`"
+          },
+          {
+           "name": "target",
+           "expression": "`target`"
+          },
+          {
+           "name": "range_max",
+           "expression": "`range_max`"
+          }
+         ],
+         "disaggregated": true
+        }
+       }
+      ],
+      "spec": {
+       "version": 1,
+       "widgetType": "custom-vega-viz",
+       "jsonSpec": {
+        "type": "vega-lite",
+        "spec": "{\"$schema\": \"https://vega.github.io/schema/vega-lite/v5.json\", \"data\": {\"name\": \"databricks_query\"}, \"width\": \"container\", \"height\": \"container\", \"config\": {\"autosize\": {\"type\": \"fit\", \"contains\": \"padding\"}}, \"encoding\": {\"y\": {\"field\": \"region\", \"type\": \"nominal\", \"sort\": \"-x\", \"title\": null}}, \"layer\": [{\"mark\": {\"type\": \"bar\", \"color\": {\"expr\": \"mode === 'dark' ? '#2B3640' : '#E6EAED'\"}, \"height\": {\"band\": 0.9}}, \"encoding\": {\"x\": {\"field\": \"range_max\", \"type\": \"quantitative\", \"title\": \"Revenue\", \"axis\": {\"format\": \"$.2s\"}}}}, {\"mark\": {\"type\": \"bar\", \"height\": {\"band\": 0.45}, \"color\": {\"expr\": \"dashboardTheme.visualizationColors[0]\"}}, \"encoding\": {\"x\": {\"field\": \"revenue\", \"type\": \"quantitative\"}, \"tooltip\": [{\"field\": \"region\"}, {\"field\": \"revenue\", \"type\": \"quantitative\", \"format\": \"$,.0f\", \"title\": \"Revenue\"}, {\"field\": \"target\", \"type\": \"quantitative\", \"format\": \"$,.0f\", \"title\": \"Target\"}]}}, {\"mark\": {\"type\": \"tick\", \"thickness\": 3, \"size\": 34, \"color\": {\"expr\": \"dashboardTheme.visualizationColors[4]\"}}, \"encoding\": {\"x\": {\"field\": \"target\", \"type\": \"quantitative\"}}}]}"
+       },
+       "encodings": {
+        "fields": [
+         {
+          "fieldName": "region"
+         },
+         {
+          "fieldName": "revenue"
+         },
+         {
+          "fieldName": "target"
+         },
+         {
+          "fieldName": "range_max"
+         }
+        ]
+       },
+       "data": {
+        "queryName": "main_query"
+       },
+       "frame": {
+        "showTitle": true,
+        "title": "Bullet chart: revenue against target",
+        "showDescription": true,
+        "description": "No built-in bullet type. Target here is an equal share of total revenue"
+       }
+      }
+     },
+     "position": {
+      "x": 0,
+      "y": 9,
+      "width": 6,
+      "height": 6
+     }
+    },
+    {
+     "widget": {
+      "name": "custom_dot_crossfilter",
+      "queries": [
+       {
+        "name": "main_query",
+        "query": {
+         "datasetName": "ds_region_segment",
+         "fields": [
+          {
+           "name": "region",
+           "expression": "`region`"
+          },
+          {
+           "name": "segment",
+           "expression": "`segment`"
+          },
+          {
+           "name": "revenue",
+           "expression": "`revenue`"
+          },
+          {
+           "name": "orders",
+           "expression": "`orders`"
+          }
+         ],
+         "disaggregated": true
+        }
+       }
+      ],
+      "spec": {
+       "version": 1,
+       "widgetType": "custom-vega-viz",
+       "jsonSpec": {
+        "type": "vega-lite",
+        "spec": "{\"$schema\": \"https://vega.github.io/schema/vega-lite/v5.json\", \"data\": {\"name\": \"databricks_query\"}, \"width\": \"container\", \"height\": \"container\", \"config\": {\"autosize\": {\"type\": \"fit\", \"contains\": \"padding\"}}, \"params\": [{\"name\": \"databricks_mark_selection\", \"select\": {\"type\": \"point\", \"fields\": [\"region\"]}}], \"mark\": {\"type\": \"circle\", \"size\": 220, \"opacity\": 0.9}, \"encoding\": {\"x\": {\"field\": \"revenue\", \"type\": \"quantitative\", \"title\": \"Revenue\", \"axis\": {\"format\": \"$.2s\"}}, \"y\": {\"field\": \"region\", \"type\": \"nominal\", \"title\": null}, \"color\": {\"field\": \"segment\", \"type\": \"nominal\", \"title\": \"Segment\", \"scale\": {\"range\": [\"#0072B2\", \"#E69F00\", \"#009E73\"]}}, \"stroke\": {\"condition\": {\"param\": \"databricks_mark_selection\", \"empty\": false, \"value\": {\"expr\": \"colors.markHighlightColor\"}}, \"value\": null}, \"strokeWidth\": {\"condition\": {\"param\": \"databricks_mark_selection\", \"empty\": false, \"value\": 3}, \"value\": 0}, \"tooltip\": [{\"field\": \"region\"}, {\"field\": \"segment\"}, {\"field\": \"revenue\", \"type\": \"quantitative\", \"format\": \"$,.0f\", \"title\": \"Revenue\"}, {\"field\": \"orders\", \"type\": \"quantitative\", \"format\": \",\", \"title\": \"Orders\"}]}}"
+       },
+       "encodings": {
+        "fields": [
+         {
+          "fieldName": "region"
+         },
+         {
+          "fieldName": "segment"
+         },
+         {
+          "fieldName": "revenue"
+         },
+         {
+          "fieldName": "orders"
+         }
+        ]
+       },
+       "data": {
+        "queryName": "main_query"
+       },
+       "frame": {
+        "showTitle": true,
+        "title": "Dot plot that cross-filters",
+        "showDescription": true,
+        "description": "Click a dot: the pivot below filters to that region (databricks_mark_selection)"
+       }
+      }
+     },
+     "position": {
+      "x": 6,
+      "y": 9,
+      "width": 6,
+      "height": 6
+     }
+    },
+    {
+     "widget": {
+      "name": "custom_pivot_target",
+      "queries": [
+       {
+        "name": "main_query",
+        "query": {
+         "datasetName": "ds_region_segment",
+         "fields": [
+          {
+           "name": "region",
+           "expression": "`region`"
+          },
+          {
+           "name": "segment",
+           "expression": "`segment`"
+          },
+          {
+           "name": "sum(orders)",
+           "expression": "SUM(`orders`)"
+          }
+         ],
+         "disaggregated": false
+        }
+       }
+      ],
+      "spec": {
+       "version": 3,
+       "widgetType": "pivot",
+       "encodings": {
+        "rows": [
+         {
+          "fieldName": "region",
+          "displayName": "Region"
+         }
+        ],
+        "columns": [
+         {
+          "fieldName": "segment",
+          "displayName": "Segment",
+          "total": {
+           "show": true
+          }
+         }
+        ],
+        "cell": {
+         "type": "multi-cell",
+         "fields": [
+          {
+           "fieldName": "sum(orders)",
+           "displayName": "Orders",
+           "cellType": "text"
+          }
+         ]
+        }
+       },
+       "frame": {
+        "showTitle": true,
+        "title": "Orders (filtered by the dot plot)"
+       }
+      }
+     },
+     "position": {
+      "x": 0,
+      "y": 15,
+      "width": 12,
+      "height": 4
+     }
+    }
+   ]
+  }
+ ],
+ "uiSettings": {
+  "theme": {
+   "canvasBackgroundColor": {
+    "light": "#F7F9FA",
+    "dark": "#1F272D"
+   },
+   "widgetBackgroundColor": {
+    "light": "#FFFFFF",
+    "dark": "#11171C"
+   },
+   "widgetBorderColor": {
+    "light": "#FFFFFF",
+    "dark": "#11171C"
+   },
+   "fontColor": {
+    "light": "#11171C",
+    "dark": "#E8ECF0"
+   },
+   "selectionColor": {
+    "light": "#2272B4",
+    "dark": "#8ACAFF"
+   },
+   "visualizationColors": [
+    "#0072B2",
+    "#E69F00",
+    "#009E73",
+    "#CC79A7",
+    "#D55E00",
+    "#56B4E9",
+    "#F0E442"
+   ],
+   "widgetHeaderAlignment": "LEFT"
+  }
+ }
+}

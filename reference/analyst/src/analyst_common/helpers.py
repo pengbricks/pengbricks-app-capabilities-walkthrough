@@ -57,3 +57,21 @@ def read_delimited(path: str, delimiter: str = "|") -> list[dict[str, str]]:
 def totals_match(left: object, right: object, tolerance: str = "0.005") -> bool:
     """Compare two money totals to within half a cent."""
     return abs(Decimal(str(left)) - Decimal(str(right))) <= Decimal(tolerance)
+
+
+def running_totals(values: Iterable[object]) -> list[Decimal]:
+    """Cumulative sum of values in the order given: the running total a chart plots."""
+    total = Decimal("0")
+    out = []
+    for value in values:
+        total += Decimal(str(value))
+        out.append(total)
+    return out
+
+
+def trailing_sums(values: Iterable[object], periods: int) -> list[Decimal]:
+    """Sum of each value and the periods - 1 before it; the first rows sum what exists so far."""
+    if periods < 1:
+        raise ValueError("periods must be at least 1")
+    items = [Decimal(str(value)) for value in values]
+    return [sum(items[max(0, i - periods + 1) : i + 1], Decimal("0")) for i in range(len(items))]
