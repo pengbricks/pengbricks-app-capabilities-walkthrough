@@ -1,4 +1,5 @@
 import sys
+from decimal import Decimal
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
@@ -10,7 +11,9 @@ from analyst_common.helpers import (
     match_counts,
     match_status,
     read_delimited,
+    running_totals,
     totals_match,
+    trailing_sums,
     upload_path,
     user_folder,
     write_delimited,
@@ -64,3 +67,15 @@ def test_build_table_passes_spec_columns_to_the_generator(monkeypatch):
     columns = [{"name": "a", "type": "bigint", "expr": "id"}]
     assert build_table(None, {"name": "general", "seed": "7"}, "t", 5, columns, partitions=2) == "df"
     assert calls == {"columns": columns, "rows": 5, "seed": 7, "name": "general_t", "partitions": 2}
+
+
+def test_running_totals_accumulate_in_order():
+    assert running_totals(["10.00", 5, "2.50"]) == [Decimal("10.00"), Decimal("15.00"), Decimal("17.50")]
+    assert running_totals([]) == []
+
+
+def test_trailing_sums_cover_the_window_and_partial_start():
+    assert trailing_sums([1, 2, 3, 4], 3) == [Decimal(1), Decimal(3), Decimal(6), Decimal(9)]
+    assert trailing_sums([5, 5], 1) == [Decimal(5), Decimal(5)]
+    with pytest.raises(ValueError):
+        trailing_sums([1], 0)

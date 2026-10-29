@@ -350,6 +350,10 @@ export const walkthrough: Walkthrough = {
     },
   ],
   related: [
+    {
+      slug: 'aibi-visualizations',
+      title: 'AI/BI dashboard visualizations: chart types, running totals, metric views, and custom charts',
+    },
     { slug: 'self-service-extracts', title: 'Self-service extracts and subscriptions' },
     { slug: 'sql-notebook-analysis', title: 'SQL and notebooks at scale' },
     { slug: 'genie-agents', title: 'Genie Agents: setup, instructions, and data handling' },

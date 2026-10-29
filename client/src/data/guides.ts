@@ -1012,6 +1012,21 @@ export const guides: readonly Guide[] = [
     ],
   },
   {
+    slug: 'aibi-visualizations',
+    title: 'AI/BI dashboard visualizations: chart types, running totals, metric views, and custom charts',
+    category: 'Analyst Guides',
+    difficulty: 2,
+    summary:
+      'Pick the right built-in chart, build a running total four ways and know which one follows filters, chart a metric view with MEASURE(), and write Vega-Lite custom visualizations.',
+    acceptanceCriteria:
+      'A bundle deploys one AI/BI dashboard with the built-in chart types, a running total built as a custom calculation, a metric view window measure, a SQL window, and a waterfall, charts that read a metric view directly, and three Vega-Lite custom visualizations, one of which cross-filters. A job checks the running totals month by month against a cumulative sum computed in Python.',
+    evidence: [
+      'Dashboard JSON with datasets, custom calculations, and Vega-Lite specs, deployed by a bundle',
+      'Metric view YAML with cumulative, trailing, and prior-period window measures',
+      'A check table showing every running total and trailing sum matches',
+    ],
+  },
+  {
     slug: 'access-management',
     title: 'Access management',
     category: 'Governance/Monitoring',

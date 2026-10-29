@@ -1,0 +1,8 @@
+resources:
+  dashboards:
+    aibi_visualizations_dashboard:
+      display_name: Capability guides AI-BI visualizations
+      file_path: ../src/dashboards/aibi_visualizations.lvdash.json
+      warehouse_id: ${var.warehouse_id}
+      dataset_catalog: ${var.catalog}
+      dataset_schema: ${var.schema}

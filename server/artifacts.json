@@ -3936,6 +3936,138 @@
         }
       ]
     },
+    "aibi-visualizations": {
+      "bundle": "reference/analyst",
+      "onePager": "reference/analyst/guides/aibi-visualizations/README.md",
+      "code": [
+        {
+          "label": "Dashboard definition",
+          "path": "reference/analyst/src/dashboards/aibi_visualizations.lvdash.json"
+        },
+        {
+          "label": "Metric view with window measures",
+          "path": "reference/analyst/guides/aibi-visualizations/02_viz_metric_view.sql"
+        },
+        {
+          "label": "Running total check",
+          "path": "reference/analyst/guides/aibi-visualizations/03_confirm_running_totals.py"
+        },
+        {
+          "label": "Job",
+          "path": "reference/analyst/resources/aibi_visualizations.job.yml"
+        }
+      ],
+      "jobs": [
+        {
+          "key": "capability_guides_aibi_visualizations",
+          "label": "AI/BI visualizations job"
+        }
+      ],
+      "recordedRuns": [
+        {
+          "label": "AI/BI visualizations run",
+          "url": "https://adb-3438839487639471.11.azuredatabricks.net/?o=3438839487639471#job/396038224738507/run/261858217211090",
+          "workspace": "SLED demo workspace",
+          "recordedAt": "2026-10-29T16:29:17Z"
+        },
+        {
+          "label": "AI/BI visualizations dashboard",
+          "url": "https://adb-3438839487639471.11.azuredatabricks.net/dashboardsv3/01f1d3b5aa511264bf93a7a0f6a43bfe/published?o=3438839487639471",
+          "workspace": "SLED demo workspace",
+          "recordedAt": "2026-10-29T16:29:17Z"
+        }
+      ],
+      "docs": [
+        {
+          "label": "Dashboard visualization types",
+          "url": "https://docs.databricks.com/aws/en/dashboards/manage/visualizations/types"
+        },
+        {
+          "label": "Custom visualizations",
+          "url": "https://docs.databricks.com/aws/en/dashboards/manage/visualizations/custom-visualizations"
+        },
+        {
+          "label": "Custom calculations",
+          "url": "https://docs.databricks.com/aws/en/dashboards/manage/data-modeling/custom-calculations"
+        },
+        {
+          "label": "Dashboard datasets",
+          "url": "https://docs.databricks.com/aws/en/dashboards/manage/data-modeling/datasets"
+        },
+        {
+          "label": "Metric view window measures",
+          "url": "https://docs.databricks.com/aws/en/uc-semantics/metric-views/advanced-techniques#window-measures"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Custom calculations on the orders dataset",
+          "path": "reference/analyst/src/dashboards/aibi_visualizations.lvdash.json",
+          "notes": [
+            "Dataset columns hold the custom calculations: a plain measure, AGGREGATE OVER ... CUMULATIVE, and TRAILING 3 MONTH.",
+            "Widgets ask for them with MEASURE(`Running revenue`)."
+          ],
+          "lines": [
+            16,
+            33
+          ],
+          "section": "running-totals"
+        },
+        {
+          "label": "Window measures in the metric view",
+          "path": "reference/analyst/guides/aibi-visualizations/02_viz_metric_view.sql",
+          "notes": [
+            "range: cumulative is the running total; trailing 3 month inclusive is the rolling window.",
+            "The order field is the order_month dimension."
+          ],
+          "lines": [
+            66,
+            87
+          ],
+          "section": "metric-views"
+        },
+        {
+          "label": "Running total check",
+          "path": "reference/analyst/guides/aibi-visualizations/03_confirm_running_totals.py",
+          "notes": [
+            "Runs the dashboard's own SQL dataset and the metric view, then compares both with a cumulative sum computed in Python."
+          ],
+          "lines": [
+            71,
+            92
+          ],
+          "section": "running-totals"
+        },
+        {
+          "label": "Cumulative and trailing sums",
+          "path": "reference/analyst/src/analyst_common/helpers.py",
+          "symbol": "trailing_sums",
+          "notes": [
+            "The hand-computed expected values the check compares against."
+          ]
+        },
+        {
+          "label": "Dashboard resource",
+          "path": "reference/analyst/resources/aibi_visualizations.dashboard.yml",
+          "notes": [
+            "The bundle deploys the lvdash.json file with the catalog and schema set per target, so dataset queries use bare table names."
+          ],
+          "section": "as-code"
+        },
+        {
+          "label": "Job: data, metric view, check",
+          "path": "reference/analyst/resources/aibi_visualizations.job.yml",
+          "notes": [
+            "A SQL task deploys the metric view from the file in Git, then the check runs."
+          ],
+          "lines": [
+            25,
+            48
+          ],
+          "section": "as-code"
+        }
+      ]
+    },
     "access-management": {
       "bundle": "reference/governance",
       "onePager": "reference/governance/guides/access-management/README.md",

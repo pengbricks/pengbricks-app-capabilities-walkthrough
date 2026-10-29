@@ -1,0 +1,48 @@
+# AI/BI visualizations: sample data, a metric view with window measures (deployed by a SQL task from a
+# file in the repo), and a check that the dashboard's running totals agree across SQL, the metric view,
+# and a cumulative sum computed in Python.
+resources:
+  jobs:
+    capability_guides_aibi_visualizations:
+      name: capability-guides-aibi-visualizations
+      description: Writes the analyst sample tables, deploys the analyst_viz_metrics metric view, and confirms the dashboard's running totals and rolling windows match a hand-computed cumulative sum.
+      tags:
+        capability_guide_job: capability_guides_aibi_visualizations
+        capability_guide_use_case: ${var.use_case}
+      max_concurrent_runs: 1
+      timeout_seconds: 3600
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${var.schema}
+        - name: use_case
+          default: ${var.use_case}
+        - name: warehouse_id
+          default: ${var.warehouse_id}
+        - name: dashboard_id
+          default: ${resources.dashboards.aibi_visualizations_dashboard.id}
+      tasks:
+        - task_key: generate_data
+          notebook_task:
+            notebook_path: ../guides/aibi-visualizations/01_generate_data.py
+
+        # SQL task: the metric view YAML lives in the .sql file, so Git review covers the definition.
+        - task_key: deploy_metric_view
+          depends_on:
+            - task_key: generate_data
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file:
+              path: ../guides/aibi-visualizations/02_viz_metric_view.sql
+            parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+
+        - task_key: confirm_running_totals
+          depends_on:
+            - task_key: deploy_metric_view
+          notebook_task:
+            notebook_path: ../guides/aibi-visualizations/03_confirm_running_totals.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
