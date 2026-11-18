@@ -1882,6 +1882,7 @@
       }
     }
   ],
+  "domains-subdomains": [],
   "environment-workspaces-catalogs": [
     {
       "path": "reference/environments/src/layout_lib.py",
@@ -4015,6 +4016,7 @@
       }
     }
   ],
+  "pages": [],
   "platform-administration": [
     {
       "path": "reference/platform-ops/guides/platform-administration/03_roles.py",

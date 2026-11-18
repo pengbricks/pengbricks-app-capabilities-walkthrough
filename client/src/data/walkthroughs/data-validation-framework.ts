@@ -22,7 +22,7 @@ export const walkthrough: Walkthrough = {
       },
       {
         title: 'Metrics defined once',
-        body: 'A metric view holds the definition of each business metric, so dashboards, Genie, and SQL return the same number. Pages (Beta) do the same for business terms.',
+        body: 'A metric view holds the definition of each business metric, so dashboards, Genie, and SQL return the same number. Pages do the same for business terms.',
       },
     ],
   },
@@ -51,7 +51,7 @@ export const walkthrough: Walkthrough = {
     },
     {
       title: 'Define metrics and terms once.',
-      body: 'Metric views hold metric definitions. Pages (Beta), comments, tags, and certification carry the business meaning.',
+      body: 'Metric views hold metric definitions. Pages, comments, tags, and certification carry the business meaning.',
     },
   ],
   sections: [
@@ -807,15 +807,15 @@ export const walkthrough: Walkthrough = {
       id: 'glossary',
       heading: 'Pattern 7, continued: A shared business glossary',
       prose:
-        'Use this when teams use the same word for different things, or when new people cannot tell which table to trust. Pages (Beta) give a term, entity, or acronym one governed definition with an owner and related assets, and Unity Catalog semantics also holds metric views and certification. Whether definitions live in Pages or in an enterprise glossary tool is covered in the Unity Catalog with an enterprise data management program guide.',
+        'Use this when teams use the same word for different things, or when new people cannot tell which table to trust. Pages give a term, entity, or acronym one governed definition with an owner and related assets, and Unity Catalog semantics also holds metric views and certification. Whether definitions live in Pages or in an enterprise glossary tool is covered in the Unity Catalog with an enterprise data management program guide.',
       options: {
         caption: 'Carrying business meaning in Unity Catalog',
         rows: [
           {
-            option: 'Pages (Beta)',
+            option: 'Pages',
             when: 'Terms, acronyms, and KPIs that need one authoritative definition, owned by a domain.',
             tradeoffs:
-              'Docs: Pages sit in the Discover page, inherit access from the domain, and Genie One uses them and cites them in answers. Beta, so stage and availability may change.',
+              'Pages sit in the Discover page, inherit access from the domain, and Genie One uses them and cites them in answers. MANAGE PAGES controls publication within a domain.',
           },
           {
             option: 'Comments and governed tags',
@@ -831,7 +831,7 @@ export const walkthrough: Walkthrough = {
           },
         ],
         recommendation:
-          'Put definitions of metrics in metric views, descriptions on objects in comments and governed tags, and trust signals in certification. Add Pages for shared terms if your account team confirms the Beta fits.',
+          'Put definitions of metrics in metric views, descriptions on objects in comments and governed tags, and trust signals in certification. Add Pages for shared business terms and link them to the assets that implement each concept.',
       },
       points: [
         {
@@ -851,7 +851,7 @@ export const walkthrough: Walkthrough = {
         },
       ],
       links: [
-        { label: 'Pages (Beta)', url: 'https://docs.databricks.com/aws/en/uc-semantics/pages' },
+        { label: 'Pages', url: 'https://docs.databricks.com/aws/en/uc-semantics/pages' },
         { label: 'Unity Catalog semantics', url: 'https://docs.databricks.com/aws/en/uc-semantics' },
         {
           label: 'Certification and deprecation',

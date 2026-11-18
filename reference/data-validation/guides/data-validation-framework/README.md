@@ -96,7 +96,7 @@ flowchart LR
 - The metric view certification needs `ASSIGN` on the `system.certification_status` governed tag. The notebook reports the outcome and continues if it is denied.
 - The alert is paused. Unpause it and set the schedule and subscribers when you adopt the pattern.
 - Data quality monitoring (anomaly detection, a Public Preview feature, and data profiling) is not enabled by this bundle. Anomaly detection is one setting per schema and needs table history before its range is useful. The data observability guide creates a profiling monitor.
-- Pages (Beta) are a Unity Catalog semantics feature that account admins control from the Previews page. The bundle does not create Pages. Confirm availability with the account team.
+- Pages are a generally available Unity Catalog semantics feature for governed business definitions. The bundle does not create Pages; manage them through Discover or the Pages REST API.
 - Lakebridge Reconcile is documented by Databricks Labs for migration-time reconciliation and is not part of this bundle.
 
 ## Reference run

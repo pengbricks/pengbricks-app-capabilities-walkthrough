@@ -49,7 +49,7 @@ export const faqs: Faq[] = [
   {
     question: 'Are Pages available for the business glossary?',
     answer:
-      'Pages are Beta, and account admins control access from the Previews page. Confirm with the account team that they fit before you plan around them. Put metric definitions in metric views, and use comments, governed tags, and certification for the rest.',
-    links: [{ label: 'Pages (Beta)', url: 'https://docs.databricks.com/aws/en/uc-semantics/pages' }],
+      'Yes. Pages became generally available on November 11, 2026. Use Pages for governed business concepts, metric views for calculations, and comments, governed tags, and certification for asset-specific context and trust signals.',
+    links: [{ label: 'Pages', url: 'https://docs.databricks.com/aws/en/uc-semantics/pages' }],
   },
 ];

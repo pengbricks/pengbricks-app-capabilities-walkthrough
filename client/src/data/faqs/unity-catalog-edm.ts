@@ -49,7 +49,7 @@ export const faqs: Faq[] = [
   {
     question: 'Which Unity Catalog governance features are Beta or Preview today?',
     answer:
-      'As of October 2026, governed tags (GA April 2, 2026), Data Classification for tables (GA April 20, 2026), ABAC row filters and column masks (GA April 28, 2026), external lineage (GA June 8, 2026), the Discover page (GA October 8, 2026), and cross-engine ABAC (GA October 1, 2026) are generally available. Metric view window measures went GA on October 6, 2026, and the metric views docs page states no overall stage. Pages for business terms (Beta, August 12, 2026), governed tag propagation (Beta, October 12, 2026), custom classifiers, classification of views (Beta, September 15, 2026) and metastore-level ABAC policies (Beta, September 17, 2026) are in Beta. Data quality anomaly detection is in Public Preview, and access requests were announced in Public Preview on August 11, 2025. Check the release notes before you plan around any of these.',
+      'As of November 2026, governed tags, Data Classification for tables, ABAC row filters and column masks, external lineage, the Discover page, cross-engine ABAC, and Pages are generally available. Pages reached GA on November 11, 2026, and Genie Ontology reached GA on November 9, 2026. Governed tag propagation, custom classifiers, classification of views, and metastore-level ABAC policies remain Beta. Check the release notes before you plan around preview features.',
     links: [
       {
         label: 'October 2026 release notes',
@@ -71,7 +71,7 @@ export const faqs: Faq[] = [
     kind: 'decision',
     question: 'Which system should be the source of truth for business definitions and which for technical metadata?',
     answer:
-      'Keep technical metadata in Unity Catalog, because it is captured from the platform itself. Put business definitions in the EDM glossary if you already run one with stewards and approval workflows. If you have no EDM tool, Unity Catalog Pages (Beta) hold governed definitions of terms, acronyms and KPIs, and metric views hold governed metric logic. Pick one home per definition, and link to it from the other system instead of copying the text.',
+      'Keep technical metadata in Unity Catalog, because it is captured from the platform itself. Put business definitions in the EDM glossary if you already run one with stewards and approval workflows. If you have no EDM tool, Unity Catalog Pages hold governed definitions of terms, acronyms and KPIs, and metric views hold governed metric logic. Pick one home per definition, and link to it from the other system instead of copying the text.',
     links: [
       { label: 'Unity Catalog Pages', url: 'https://docs.databricks.com/aws/en/uc-semantics/pages' },
       { label: 'Metric views', url: 'https://docs.databricks.com/aws/en/uc-semantics/metric-views/' },
@@ -117,7 +117,7 @@ export const faqs: Faq[] = [
     kind: 'decision',
     question: 'When is Unity Catalog alone enough, with no separate EDM tool?',
     answer:
-      'Unity Catalog alone usually suffices when most governed data lives on Databricks and the program needs access control, classification, lineage, audit and a modest glossary. Governed tags, ABAC, Data Classification, Discover, certification flags, Pages (Beta) and metric views cover that scope. Add an EDM tool when stewardship workflows, approvals and a glossary must span systems outside Databricks. You can start on the platform and connect an enterprise tool later, because the tags, grants and lineage it would read already exist.',
+      'Unity Catalog alone usually suffices when most governed data lives on Databricks and the program needs access control, classification, lineage, audit and a modest glossary. Governed tags, ABAC, Data Classification, Discover, certification, Pages and metric views cover that scope. Add an EDM tool when stewardship workflows, approvals and a glossary must span systems outside Databricks. You can start on the platform and connect an enterprise tool later, because the tags, grants and lineage it would read already exist.',
     links: [
       {
         label: 'Certify or deprecate data',
@@ -232,7 +232,7 @@ export const faqs: Faq[] = [
     kind: 'tradeoff',
     question: 'Should the business glossary live in Unity Catalog Pages and metric views or in the EDM glossary?',
     answer:
-      'The EDM glossary wins on approval workflows, ownership across systems and a mature stewardship process. Pages and metric views win on proximity, because the definition sits next to the data and metric views can be queried from SQL, dashboards, Genie Agents and BI tools such as Power BI, Tableau and Sigma. Pages are in Beta, and the docs say page data may replicate globally, so keep personal or regulated data out of them. A common split keeps the enterprise glossary in the EDM tool and uses metric views for the few metrics that must compute the same way everywhere.',
+      'The EDM glossary wins on approval workflows, ownership across systems and a mature stewardship process. Pages and metric views win on proximity, because the definition sits next to the data and metric views can be queried from SQL, dashboards, Genie Agents and BI tools such as Power BI, Tableau and Sigma. Page data may replicate globally, so keep personal or regulated data out of it. A common split keeps the enterprise glossary in the EDM tool and uses metric views for the metrics that must compute the same way everywhere.',
     links: [
       { label: 'Unity Catalog Pages', url: 'https://docs.databricks.com/aws/en/uc-semantics/pages' },
       { label: 'Metric views', url: 'https://docs.databricks.com/aws/en/uc-semantics/metric-views/' },

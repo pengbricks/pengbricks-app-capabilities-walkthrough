@@ -364,18 +364,48 @@ export const guides: readonly Guide[] = [
     ],
   },
   {
-    slug: 'ontology',
-    title: 'Business terms and synonyms',
+    slug: 'domains-subdomains',
+    title: 'Databricks Domains and Subdomains',
     category: 'AI Guides',
     difficulty: 2,
     summary:
-      'Define business terms once with metric views, governed tags, comments, and Pages (Beta) so people and Genie read data the same way.',
+      'Organize data and AI assets by business purpose, delegate curation by branch, and publish a domain tree that consumers can browse in Discover.',
     acceptanceCriteria:
-      'Business terms and synonyms are defined once in metric views, comments, and governed tags, trusted assets are certified, and Genie benchmarks show how well questions are interpreted.',
+      'The domain hierarchy follows stable business boundaries, each branch has an accountable curator group, assets are assigned at the right level, and consumers can browse the published tree in Discover.',
     evidence: [
-      'Metric view with measures, dimensions, and synonyms',
-      'Governed tags, reviewed comments, and certified assets',
-      'Benchmark scores before and after a change to the semantics',
+      'Published domain and subdomain tree with documented naming rules',
+      'MANAGE DISCOVER and MANAGE DOMAIN grants mapped to curator groups',
+      'Representative assets assigned to the correct direct domain memberships',
+    ],
+  },
+  {
+    slug: 'pages',
+    title: 'Databricks Pages',
+    category: 'AI Guides',
+    difficulty: 2,
+    summary:
+      'Publish governed definitions of business terms, entities, and acronyms with owners, synonyms, evidence, related assets, and certification.',
+    acceptanceCriteria:
+      'A high-value concept has one published Page in the correct domain, with an accountable owner, reviewed synonyms, evidence sources, related implementation assets, controlled publishing, and certification.',
+    evidence: [
+      'Published Page with owner, description, body, and synonyms',
+      'Sources and related assets linking the definition to its implementation',
+      'MANAGE PAGES grants, review record, and certification or deprecation status',
+    ],
+  },
+  {
+    slug: 'ontology',
+    title: 'Databricks Ontology best practices',
+    category: 'AI Guides',
+    difficulty: 2,
+    summary:
+      'Combine modeled and learned knowledge, put each kind of meaning in the right governed object, and test how Genie uses the result.',
+    acceptanceCriteria:
+      'A business-aligned domain tree has accountable curators, critical concepts have published Pages linked to metric views and trusted assets, and benchmarks show how well Genie interprets representative questions.',
+    evidence: [
+      'Published domain and subdomain tree with delegated curator groups',
+      'Certified Page linked to a metric view, source assets, and a focused Genie Agent',
+      'Benchmark scores and cited sources before and after ontology changes',
     ],
   },
   {

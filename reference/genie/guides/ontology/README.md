@@ -1,8 +1,10 @@
-# Business terms and synonyms
+# Databricks Ontology: metric and agent reference run
 
 ## Overview
 
-The sample sales tables store codes (`seg_cd`, `rgn_cd`, `ord_st`). The job asks a Genie Agent five business questions over the raw tables, adds table and column comments, tags, and a Unity Catalog metric view with synonyms, then asks a second space the same five questions. It records the SQL Genie wrote each time and whether the rows match an expected query.
+The sample sales tables store codes (`seg_cd`, `rgn_cd`, `ord_st`). The job asks a Genie Agent five business questions over the raw tables, adds table and column comments, tags, and a Unity Catalog metric view with synonyms, then asks a second agent the same five questions. It records the SQL Genie wrote each time and whether the rows match an expected query.
+
+This reference run covers the metric-view and agent layers of Genie Ontology. Create and govern domains, subdomains, and Pages through Discover or the Pages REST API; the bundle does not create them.
 
 ## Required setup
 
@@ -28,6 +30,8 @@ Run these once, before the job. `<principal>` is the person or service principal
 | Table and column comments, tags | `COMMENT ON TABLE`, column comments, and `business_term` / `domain` tags on `cust` and `ord_fact` |
 | Synonyms | `synonyms:` on every measure and dimension in the metric view, plus a glossary in the Genie instructions and sample questions |
 | Better question interpretation | `ontology_comparison`: expected rows compared with each space's answer (see Reference run) |
+
+The complete operating model adds a business-aligned domain tree, Pages for authoritative definitions, and certification for the Page and its related assets.
 
 ## Architecture
 

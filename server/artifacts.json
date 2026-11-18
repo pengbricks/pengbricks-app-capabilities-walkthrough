@@ -12,6 +12,42 @@
     "unavailableGuides": ["environment-workspaces-catalogs", "sqlserver-lakeflow-connect", "vscode-databricks"]
   },
   "guides": {
+    "domains-subdomains": {
+      "bundle": "docs/guides",
+      "onePager": "docs/guides/domains-subdomains.md",
+      "code": [],
+      "jobs": [],
+      "docs": [
+        {
+          "label": "Domains and subdomains",
+          "url": "https://docs.databricks.com/aws/en/uc-semantics/domains"
+        },
+        {
+          "label": "Discover page",
+          "url": "https://docs.databricks.com/aws/en/discover/discover-page"
+        }
+      ]
+    },
+    "pages": {
+      "bundle": "docs/guides",
+      "onePager": "docs/guides/pages.md",
+      "code": [],
+      "jobs": [],
+      "docs": [
+        {
+          "label": "Pages",
+          "url": "https://docs.databricks.com/aws/en/uc-semantics/pages"
+        },
+        {
+          "label": "Pages REST API",
+          "url": "https://docs.databricks.com/api/workspace/knowledge/pages"
+        },
+        {
+          "label": "Certify or deprecate assets",
+          "url": "https://docs.databricks.com/aws/en/data-governance/unity-catalog/certify-deprecate-data"
+        }
+      ]
+    },
     "configuration-vs-code": {
       "bundle": "reference/ingestion",
       "onePager": "reference/ingestion/guides/configuration-vs-code/README.md",
@@ -5347,7 +5383,7 @@
       "jobs": [
         {
           "key": "capability_guides_ontology",
-          "label": "Business terms job"
+          "label": "Ontology semantics job"
         }
       ],
       "recordedRuns": [
@@ -5380,6 +5416,18 @@
         {
           "label": "Genie best practices",
           "url": "https://docs.databricks.com/aws/en/genie/best-practices"
+        },
+        {
+          "label": "Genie Ontology",
+          "url": "https://docs.databricks.com/aws/en/genie/genie-ontology"
+        },
+        {
+          "label": "Domains and subdomains",
+          "url": "https://docs.databricks.com/aws/en/uc-semantics/domains"
+        },
+        {
+          "label": "Pages",
+          "url": "https://docs.databricks.com/aws/en/uc-semantics/pages"
         }
       ],
       "highlights": [
@@ -8145,7 +8193,7 @@
           "url": "https://docs.databricks.com/aws/en/metric-views/"
         },
         {
-          "label": "Pages (Beta)",
+          "label": "Pages",
           "url": "https://docs.databricks.com/aws/en/uc-semantics/pages"
         }
       ],

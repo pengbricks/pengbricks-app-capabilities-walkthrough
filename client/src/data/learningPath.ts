@@ -105,6 +105,8 @@ export const learningPath: readonly LearningStage[] = [
       'document-processing',
       'genie-agents',
       'genie-external-ai',
+      'domains-subdomains',
+      'pages',
       'ontology',
       'user-experience',
     ],

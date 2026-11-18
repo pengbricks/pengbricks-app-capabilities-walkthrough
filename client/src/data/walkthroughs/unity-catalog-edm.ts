@@ -51,7 +51,7 @@ export const walkthrough: Walkthrough = {
     },
     {
       title: 'Check release stages before you plan around a feature.',
-      body: 'Governed tags, ABAC, Data Classification, external lineage, and cross-engine ABAC are generally available. Pages, tag propagation, and metastore-level ABAC are Beta.',
+      body: 'Governed tags, ABAC, Data Classification, external lineage, cross-engine ABAC, and Pages are generally available. Tag propagation and metastore-level ABAC remain Beta.',
     },
   ],
   prerequisites: [
@@ -177,7 +177,7 @@ export const walkthrough: Walkthrough = {
             'A policy register and approval flow that spans every system, not only Databricks',
           ],
           [
-            'Table and column comments, governed tags, Pages (Beta), metric views',
+            'Table and column comments, governed tags, Pages, metric views',
             'A business glossary with stewards, review cycles, and links to systems outside Databricks',
           ],
           [
@@ -213,7 +213,7 @@ export const walkthrough: Walkthrough = {
             cells: [
               {
                 state: 'optional',
-                text: 'Pages (Beta)',
+                text: 'Pages',
                 sub: 'metric views for metrics',
                 detail:
                   'Use Pages and metric views when there is no EDM glossary, or for the few metrics that must compute the same way everywhere.',
@@ -298,10 +298,10 @@ export const walkthrough: Walkthrough = {
               'Governance: strongest review and ownership across systems. Maintenance: a sync or link keeps Unity Catalog comments current, and drift is possible. Definitions are not queryable from SQL.',
           },
           {
-            option: 'Pages (Beta) and metric views in Unity Catalog',
+            option: 'Pages and metric views in Unity Catalog',
             when: 'Most governed data is on Databricks and you have no EDM tool, or a metric must compute the same way in SQL, dashboards, and Genie.',
             tradeoffs:
-              'Docs: a Page has an owner, synonyms, and related assets, and a metric view holds the calculation. Metric views are queryable from BI tools. Pages are Beta, the docs say Page data may replicate globally, and the EDM tool will not see Pages unless you export them.',
+              'A Page has an owner, synonyms, sources, and related assets, and a metric view holds the calculation. Metric views are queryable from BI tools. Page data may replicate globally, and the EDM tool will not see Pages unless you export them.',
           },
           {
             option: 'Both, split by kind',
@@ -314,7 +314,7 @@ export const walkthrough: Walkthrough = {
           'Use the EDM glossary for terms when you have one, and metric views for the metrics that must compute identically. Link instead of copying text.',
       },
       links: [
-        { label: 'Pages (Beta)', url: 'https://docs.databricks.com/aws/en/uc-semantics/pages' },
+        { label: 'Pages', url: 'https://docs.databricks.com/aws/en/uc-semantics/pages' },
         { label: 'Metric views', url: 'https://docs.databricks.com/aws/en/metric-views/' },
       ],
     },
@@ -583,7 +583,7 @@ export const walkthrough: Walkthrough = {
       id: 'semantics',
       heading: 'Pages, metric views, and the EDM glossary',
       prose:
-        'Pages (Beta) give a business term, acronym, or KPI one governed definition with an owner, synonyms, and related assets. Metric views hold the calculation behind a measure and can be queried from SQL, dashboards, Genie Agents, and BI tools such as Power BI, Tableau, and Sigma. Neither replaces a cross-system glossary with stewardship workflows.',
+        'Pages give a business term, acronym, or KPI one governed definition with an owner, synonyms, sources, and related assets. Metric views hold the calculation behind a measure and can be queried from SQL, dashboards, Genie Agents, and BI tools such as Power BI, Tableau, and Sigma. Neither replaces a cross-system glossary with stewardship workflows.',
       options: {
         caption: 'Glossary placement',
         rows: [
@@ -597,7 +597,7 @@ export const walkthrough: Walkthrough = {
             option: 'Pages and metric views only',
             when: 'Databricks is the main platform and the glossary is modest.',
             tradeoffs:
-              'Definitions sit next to the data, and Genie One prioritizes a published Page over inferred context and cites it. Pages are Beta. Page data is encrypted with Databricks-managed keys, does not support customer-managed keys, and may replicate globally, so keep sensitive text out.',
+              'Definitions sit next to the data, and Genie One prioritizes a published Page over inferred context and cites it. Page data is encrypted with Databricks-managed keys, does not support customer-managed keys, and may replicate globally, so keep sensitive text out.',
           },
           {
             option: 'EDM glossary plus metric views',
@@ -607,10 +607,10 @@ export const walkthrough: Walkthrough = {
           },
         ],
         recommendation:
-          'Keep terms in the EDM glossary when you have one, put calculations in metric views, and add Pages only after you confirm the Beta fits.',
+          'Keep terms in the EDM glossary when it is the enterprise system of record, put calculations in metric views, and use Pages for concepts that should sit next to Databricks data and guide Genie.',
       },
       links: [
-        { label: 'Pages (Beta)', url: 'https://docs.databricks.com/aws/en/uc-semantics/pages' },
+        { label: 'Pages', url: 'https://docs.databricks.com/aws/en/uc-semantics/pages' },
         { label: 'Metric views', url: 'https://docs.databricks.com/aws/en/metric-views/' },
       ],
     },
@@ -798,7 +798,7 @@ export const walkthrough: Walkthrough = {
           ['External lineage', 'Generally available, June 8, 2026'],
           ['Cross-engine ABAC', 'Generally available, October 1, 2026'],
           ['Discover page and domains', 'Generally available, October 8, 2026'],
-          ['Pages for business terms', 'Beta, August 12, 2026'],
+          ['Pages for business terms', 'GA, November 11, 2026'],
           [
             'Certification status system tag',
             'Public Preview in the October 2025 release notes. The current docs page gives no stage, so confirm',

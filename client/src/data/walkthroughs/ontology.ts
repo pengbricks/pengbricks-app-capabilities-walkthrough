@@ -3,67 +3,75 @@ import type { Walkthrough } from './types.ts';
 export const walkthrough: Walkthrough = {
   slug: 'ontology',
   area: 'AI Guides',
-  title: 'Business terms and synonyms',
+  title: 'Databricks Ontology best practices',
   intro:
-    'Enterprise tables use codes such as seg_cd, rgn_cd, and ord_st. A person, a dashboard, or Genie can read them correctly only if the meaning is written down once, next to the data. There is no single ontology object to create in Unity Catalog. You build the governed semantic layer from comments, governed tags, metric views with synonyms, Pages (Beta) for business terms, certification, and Genie Agent context, and you check it with benchmarks.',
+    'Genie Ontology is the governed context layer that helps Genie One, Genie Code, and other agents understand how your organization talks about its data. This guide focuses on the operating model: combine modeled and learned knowledge, put each kind of meaning in the right object, certify the sources that matter, and test real questions before scaling. Use the separate Domains and Subdomains and Pages guides for detailed implementation patterns.',
   businessValue: {
     summary:
-      'Data and analytics leaders need terms like revenue, segment, and active customer to mean the same thing for every person, dashboard, and AI agent. This guide builds that shared meaning in Unity Catalog next to the data.',
+      'A governed ontology gives people and agents the same map of the business: where to look, what a term means, how a KPI is calculated, and which source the organization trusts.',
     outcomes: [
       {
-        title: 'One definition of each metric',
-        body: 'A metric view holds the definition of revenue once. Dashboards, SQL users, and Genie all use it, so two teams stop reporting different totals for the same question.',
+        title: 'Faster business discovery',
+        body: 'Consumers browse assets by business purpose instead of guessing which catalog, schema, or table name belongs to their question.',
       },
       {
-        title: 'Cryptic codes made readable',
-        body: 'Table and column comments, plus metric view synonyms, map seg_cd and similar codes to business terms. People and Genie can ask for sales or turnover and reach the same measure.',
+        title: 'Consistent definitions',
+        body: 'Pages define terms such as customer and churn, while metric views define the calculations behind revenue and other KPIs.',
       },
       {
-        title: 'Trusted assets are visible',
-        body: 'The system.certification_status tag marks assets as certified or deprecated, so people and Genie One prefer the ones the data owner vouches for.',
+        title: 'More trustworthy answers',
+        body: 'Genie gives modeled knowledge priority over conflicting learned context and cites Pages so users can inspect the source.',
       },
       {
-        title: 'Changes are tested',
-        body: 'Genie benchmarks score the expected SQL for real questions before and after a change to the semantics. A definition edit that breaks answers shows up before users find it.',
+        title: 'Delegated stewardship',
+        body: 'Domain owners manage their branch, Page publishers maintain definitions, and curators certify the sources the organization vouches for.',
       },
     ],
   },
   shortVersion: [
     {
-      title: 'Define each term once, next to the data.',
-      body: 'Revenue means completed orders. Segment codes map to names. Put those definitions in a metric view and in table and column comments, not in every dashboard or Genie Agent.',
+      title: 'Model the head; let Genie learn the tail.',
+      body: 'Explicitly model business-critical concepts and KPIs. Genie can learn lower-risk context from governed dashboards, queries, metric views, and Genie Agents.',
     },
     {
-      title: 'Metric views carry synonyms.',
-      body: 'Agent metadata in a metric view adds display names, formats, and synonyms. Revenue can answer to sales or turnover, and Customer Segment to tier.',
+      title: 'Organize around the business.',
+      body: 'Create domains for stable business areas such as Customer, Product, Sales, or Finance. Add subdomains only when they make discovery or ownership clearer.',
     },
     {
-      title: 'Govern tags with tag policies.',
-      body: 'Governed tags are account-level tags with a policy for allowed keys, values, and who can assign them. Use them for domain, sensitivity, and business-term labels that stay consistent.',
+      title: 'Use Pages for meaning.',
+      body: 'A Page is the authoritative definition of a term, entity, or acronym. Give it an owner, synonyms, sources, and related assets, then publish and certify it.',
     },
     {
-      title: 'Define shared terms as Pages (Beta).',
-      body: 'A Page is a governed definition of a business concept, with an owner, synonyms, and related assets. Genie One prioritizes a Page over context it infers and cites it. Pages are in Beta, so confirm availability first.',
+      title: 'Use metric views for calculations.',
+      body: 'A Page explains revenue in words. A metric view implements revenue as a governed calculation that SQL, dashboards, and agents can query.',
     },
     {
-      title: 'Generate comments, then review them.',
-      body: 'AI-generated comments give you a first draft of table and column descriptions. An owner confirms them before Genie or users rely on them.',
+      title: 'Separate owner, publisher, and curator duties.',
+      body: 'The owner is accountable for the concept, MANAGE PAGES controls publication, and domain curators certify or deprecate Pages and assets.',
     },
     {
-      title: 'Certify what you vouch for.',
-      body: 'The system.certification_status tag marks assets certified or deprecated, so people and Genie One prefer the trusted ones.',
+      title: 'Test the questions that matter.',
+      body: 'Use known-good SQL and representative business questions to check whether ontology changes improve answers before you expand to another domain.',
+    },
+  ],
+  prerequisites: [
+    {
+      slug: 'domains-subdomains',
+      title: 'Databricks Domains and Subdomains',
+      why: 'The ontology needs a business-aligned organization and stewardship boundary.',
     },
     {
-      title: 'Prove it with benchmarks.',
-      body: 'Write the expected SQL for the questions people ask and score the Genie Agent before and after each change to the semantics.',
+      slug: 'pages',
+      title: 'Databricks Pages',
+      why: 'The ontology uses Pages as authoritative definitions of business concepts.',
     },
   ],
   sections: [
     {
       id: 'layers',
-      heading: 'Where each term is defined',
+      heading: 'How modeled knowledge reaches an answer',
       prose:
-        'Each piece of meaning has one home. Genie reads all of them, and so do SQL users and dashboards that query the same objects.',
+        'Genie Ontology combines modeled knowledge that people govern with learned knowledge extracted from governed assets and usage. When they conflict, modeled knowledge takes precedence. The reference flow below shows the metric and agent layers; domains, Pages, and certification add navigation, definitions, and trust around them.',
       diagram: {
         type: 'flow',
         title: 'Business term to Genie answer',
@@ -153,12 +161,52 @@ export const walkthrough: Walkthrough = {
           ['Region', 'NA, EM, AP mapped to North America, EMEA, APAC. Synonyms: territory, geo'],
         ],
       },
+      links: [
+        { label: 'Genie Ontology', url: 'https://docs.databricks.com/aws/en/genie/genie-ontology' },
+        { label: 'Unity Catalog semantics', url: 'https://docs.databricks.com/aws/en/uc-semantics' },
+      ],
+    },
+    {
+      id: 'components',
+      heading: 'Connect the ontology layers',
+      prose:
+        'Domains and Pages have their own implementation guides. In the ontology, they work with metric views, certification, curated Genie Agents, and learned knowledge to answer four different questions: where to look, what a concept means, how a KPI is calculated, and which source to trust.',
+      table: {
+        caption: 'Role of each ontology component',
+        columns: ['Component', 'Role in the ontology'],
+        rows: [
+          ['Domain or subdomain', 'Organizes assets by business purpose and creates a boundary for delegated stewardship.'],
+          ['Page', 'Defines a business term, entity, KPI, or acronym in words and links it to evidence and implementation assets.'],
+          ['Metric view', 'Implements reusable calculations, dimensions, filters, display metadata, and synonyms.'],
+          ['Certification', 'Marks Pages and assets the organization vouches for and deprecates sources consumers should avoid.'],
+          ['Curated Genie Agent', 'Applies focused instructions, example SQL, and a tested question-answering experience to one domain.'],
+          ['Learned knowledge', 'Adds context from governed assets and usage when no modeled definition needs to settle the answer.'],
+        ],
+      },
+      points: [
+        {
+          strong: 'Model only what must be right.',
+          text: 'Define business-critical concepts and KPIs explicitly. Let Genie learn lower-risk context from governed assets instead of modeling every possible term.',
+        },
+        {
+          strong: 'Give each definition one home.',
+          text: 'Link the layers rather than copying the same prose or calculation into Pages, metric views, dashboards, and agent instructions.',
+        },
+        {
+          strong: 'Use authority signals deliberately.',
+          text: 'Modeled knowledge, certified assets, and curated agents guide Genie when learned sources disagree.',
+        },
+      ],
+      links: [
+        { label: 'Genie Ontology', url: 'https://docs.databricks.com/aws/en/genie/genie-ontology' },
+        { label: 'Unity Catalog semantics', url: 'https://docs.databricks.com/aws/en/uc-semantics' },
+      ],
     },
     {
       id: 'metrics',
-      heading: 'Metric views with synonyms',
+      heading: 'Put each kind of meaning in the right object',
       prose:
-        'A metric view is the governed semantic layer: a Unity Catalog object that defines measures and dimensions in YAML once, for AI/BI dashboards, Genie, notebooks, and SQL. Agent metadata (YAML version 1.1) adds display names, formats, and synonyms to each measure and dimension.',
+        'A good ontology does not copy the same definition into every surface. Give each piece of meaning one authoritative home and link the layers together. Metric views remain the queryable implementation for measures and dimensions.',
       points: [
         {
           strong: 'Put the business rule in the measure.',
@@ -178,8 +226,14 @@ export const walkthrough: Walkthrough = {
         },
       ],
       options: {
-        caption: 'Where to define a business term',
+        caption: 'Where each part of the ontology belongs',
         rows: [
+          {
+            option: 'Domain or subdomain',
+            when: 'You need a business-aligned place to browse assets and a boundary for delegated stewardship.',
+            tradeoffs:
+              'Domains answer where to look. Keep the hierarchy stable and shallow; do not mirror every catalog, schema, org-chart level, or temporary project.',
+          },
           {
             option: 'Metric view measure or dimension',
             when: 'A calculation, a filter such as completed orders, or a code-to-name mapping that several consumers need.',
@@ -193,10 +247,10 @@ export const walkthrough: Walkthrough = {
               'Cheap to write, and AI-generated comments give a first draft that you should review. A comment describes a column and cannot hold logic, so it does not guarantee the same calculation across consumers.',
           },
           {
-            option: 'Pages (Beta)',
+            option: 'Page',
             when: 'A business term, entity, or acronym that needs one authoritative definition, owned by a domain.',
             tradeoffs:
-              'Docs: a Page has an owner, synonyms, a description, a body, related assets, and sources, and it inherits access from its domain. Genie One prioritizes a Page over context it infers and cites it in answers. It defines a concept in words and holds no calculation, so keep the measure in a metric view and link to it. Beta, so confirm availability with your account team.',
+              'A Page has an owner, synonyms, a description, a body, related assets, and sources, and it inherits access from its domain. Genie One prioritizes it over learned context and cites it. A Page holds no calculation, so keep the measure in a metric view and link to it.',
           },
           {
             option: 'Genie Agent instructions and SQL expressions',
@@ -206,14 +260,14 @@ export const walkthrough: Walkthrough = {
           },
         ],
         recommendation:
-          'Put shared measures and dimensions in a metric view, describe raw columns with comments and tags, and keep agent instructions for rules that belong to one agent.',
+          'Use domains for navigation and stewardship, Pages for business meaning, metric views for calculations, comments and tags for asset-specific context, and focused Genie Agents for the final user experience.',
       },
       links: [
         {
           label: 'Metric views',
           url: 'https://docs.databricks.com/aws/en/metric-views/',
         },
-        { label: 'Pages (Beta)', url: 'https://docs.databricks.com/aws/en/uc-semantics/pages' },
+        { label: 'Pages', url: 'https://docs.databricks.com/aws/en/uc-semantics/pages' },
         {
           label: 'Agent metadata in metric views',
           url: 'https://docs.databricks.com/aws/en/metric-views/data-modeling/semantic-metadata',
@@ -228,28 +282,40 @@ export const walkthrough: Walkthrough = {
     },
     {
       id: 'governance',
-      heading: 'Governed tags, comments, and certification',
+      heading: 'Use a clear stewardship model',
       prose:
-        'Metadata that people can edit freely drifts. Govern the vocabulary, draft descriptions with AI, and mark the assets you trust.',
+        'Ownership, publishing, and certification are different jobs. Separate them so a Page has an accountable owner, a controlled publication path, and an independent trust signal.',
       steps: [
         {
-          title: 'Create governed tags with tag policies',
-          body: 'A governed tag is an account-level tag whose policy fixes the allowed values and who may assign it. Create tags such as domain, sensitivity, and business_term, then apply them to tables, columns, dashboards, and Genie Agents. Do not put secrets in tag names or values: tag data is stored as plain text.',
+          title: 'Delegate the domain branch',
+          body: 'Use account-level MANAGE DISCOVER only for cross-domain administration. Grant MANAGE DOMAIN to the curator group responsible for one branch and its descendants.',
         },
         {
-          title: 'Define shared terms as Pages (Beta)',
-          body: 'In Discover, open Pages and click Create page. Pick a domain, then fill in the owner, synonyms, description, and body, and link the metric views and tables that implement the term. Save as a draft, then publish. A draft shows up only in Genie One conversations with its owner, and a published Page shows up in all of them. Do not put PII or other sensitive data in Page text. Pages are Beta, and account admins control access from the Previews page.',
+          title: 'Control who can publish Pages',
+          body: 'MANAGE PAGES lets a group review, publish, and maintain Pages without full domain administration. Review default grants, assign a steward group, and keep the concept owner as the accountable business contact.',
         },
         {
-          title: 'Draft comments with AI, then review',
-          body: 'Unity Catalog can generate table and column comments from the schema and data. Use them as a draft. Genie relies on column descriptions, so a wrong one produces wrong SQL. Edit or reject any that do not match what you would write by hand.',
+          title: 'Certify the complete definition',
+          body: 'Confirm that the Page, metric view, source assets, and owner agree before the domain curator certifies them. Deprecate stale sources instead of leaving conflicting definitions active.',
         },
         {
-          title: 'Certify the assets you vouch for',
-          body: 'Apply the system.certification_status tag with the value certified to the tables, metric views, and dashboards that meet your standard, and deprecated to the ones to avoid. It requires ASSIGN on the tag. Certified assets show a check mark and help Genie One prioritize trusted data.',
+          title: 'Govern tags and comments as supporting metadata',
+          body: 'Use tag policies for controlled classifications such as sensitivity and lifecycle. Review AI-generated comments before publication. Tags and comments describe assets; they do not replace a concept Page or KPI calculation.',
+        },
+        {
+          title: 'Correct the source of learned knowledge',
+          body: 'Learned snippets are not directly editable. Fix the dashboard, query, agent, wiki, or comment that produced bad context, or replace the concept with modeled knowledge.',
         },
       ],
       links: [
+        {
+          label: 'Domains and permissions',
+          url: 'https://docs.databricks.com/aws/en/uc-semantics/domains',
+        },
+        {
+          label: 'Pages and permissions',
+          url: 'https://docs.databricks.com/aws/en/uc-semantics/pages',
+        },
         {
           label: 'Governed tags',
           url: 'https://docs.databricks.com/aws/en/admin/governed-tags',
@@ -270,17 +336,17 @@ export const walkthrough: Walkthrough = {
     },
     {
       id: 'benchmarks',
-      heading: 'Check interpretation with Genie benchmarks',
+      heading: 'Build one thin slice, test it, then expand',
       prose:
-        'Benchmarks turn "does it understand our terms" into a score. Each benchmark is a business question plus the SQL that returns the right answer. Genie runs the question as a new conversation and compares its result with yours.',
+        'Start with one workflow, one domain, and one metric. A small end-to-end slice exposes unclear ownership and conflicting definitions before you build a large taxonomy. Benchmarks turn interpretation into a score.',
       points: [
         {
           strong: 'Cover the vocabulary.',
           text: 'Include a question for each synonym and each coded dimension. A question that uses turnover, tier, or territory tests the semantics, not just the SQL.',
         },
         {
-          strong: 'Add two to four phrasings of each question.',
-          text: 'Users ask the same thing in different words. All phrasings share one gold query.',
+          strong: 'Model one concept end to end.',
+          text: 'Create the domain branch, Page, metric view, certified assets, and focused Genie Agent for one high-value workflow before adding the next branch.',
         },
         {
           strong: 'Score before and after each change.',
@@ -289,6 +355,10 @@ export const walkthrough: Walkthrough = {
         {
           strong: 'Compare result rows, not text.',
           text: 'A code such as NA is not the same answer as North America. Matching on values catches answers that are technically correct but unreadable.',
+        },
+        {
+          strong: 'Inspect the cited source.',
+          text: 'Open the Genie Ontology citations and verify the Page, asset, author, domains, and lineage that supported the answer.',
         },
       ],
       links: [
@@ -303,7 +373,7 @@ export const walkthrough: Walkthrough = {
       id: 'answers',
       heading: 'Illustration: the same questions, before and after',
       prose:
-        'The reference example asks a Genie Agent five questions over raw coded tables, then over a metric view with comments and synonyms. The five questions are a small illustration of the mechanism on generated data. They are not a measured accuracy figure, and your results depend on your data and questions.',
+        'The reference bundle tests the metric-view layer of the ontology. It asks five questions over raw coded tables, then repeats them over a metric view with comments, tags, synonyms, instructions, and example SQL. The run does not create domains or Pages; govern those through Discover or the Pages REST API.',
       diagram: {
         type: 'matrix',
         title: 'What each setup answered (illustrative)',
@@ -386,8 +456,8 @@ export const walkthrough: Walkthrough = {
     },
   ],
   related: [
-    { slug: 'user-experience', title: 'Assistant user experience' },
-    { slug: 'genie-agents', title: 'Genie Agents: setup, instructions, and data handling' },
-    { slug: 'documentation-generation', title: 'Automated data documentation' },
+    { slug: 'domains-subdomains', title: 'Databricks Domains and Subdomains' },
+    { slug: 'pages', title: 'Databricks Pages' },
+    { slug: 'unity-catalog-edm', title: 'Unity Catalog with an enterprise data management program' },
   ],
 };

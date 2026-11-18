@@ -4,8 +4,8 @@ export const faqs: Faq[] = [
   {
     question: 'What is the difference between a Page and a metric view?',
     answer:
-      'A metric view holds the calculation, and a Page holds the definition in words. A Page (Beta) has an owner, synonyms, a description, a body, and related assets, and it holds no logic. Keep the measure in a metric view and link the Page to it.',
-    links: [{ label: 'Pages (Beta)', url: 'https://docs.databricks.com/aws/en/uc-semantics/pages' }],
+      'A metric view holds the calculation, and a Page holds the definition in words. A Page has an owner, synonyms, a description, a body, sources, and related assets, but it holds no logic. Keep the measure in a metric view and link the Page to it.',
+    links: [{ label: 'Pages', url: 'https://docs.databricks.com/aws/en/uc-semantics/pages' }],
   },
   {
     question: 'What does Genie One do with a Page?',
@@ -13,15 +13,10 @@ export const faqs: Faq[] = [
       'Genie One prioritizes a Page over context it infers and cites the Page in its answers. A draft Page shows up only in Genie One conversations with its owner, and a published Page shows up in all of them.',
   },
   {
-    question: 'Are Pages generally available?',
+    question: 'What is Genie Ontology?',
     answer:
-      'No. Pages are Beta, and account admins control access from the Previews page. Confirm availability with your account team before you plan around them.',
-    links: [{ label: 'Pages (Beta)', url: 'https://docs.databricks.com/aws/en/uc-semantics/pages' }],
-  },
-  {
-    question: 'Is there a single ontology object in Unity Catalog?',
-    answer:
-      'No. You build the semantic layer from comments, governed tags, metric views with synonyms, Pages (Beta), certification, and Genie Agent context, then check it with benchmarks.',
+      'Genie Ontology is the context layer that combines modeled knowledge with context Genie learns from governed assets and usage. Modeled knowledge comes from Unity Catalog semantics: metric views, domains, Pages, certification, and curated Genie Agents. It takes precedence when learned context conflicts with a governed definition.',
+    links: [{ label: 'Genie Ontology', url: 'https://docs.databricks.com/aws/en/genie/genie-ontology' }],
   },
   {
     question: 'Where should I define a term like revenue?',
